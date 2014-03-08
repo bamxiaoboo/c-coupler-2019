@@ -1,0 +1,37 @@
+/***************************************************************
+  *  Copyright (c) 2013, Tsinghua University.
+  *  This is a source file of C-Coupler.
+  *  This file was initially finished by Dr. Li Liu. 
+  *  If you have any problem, 
+  *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
+  ***************************************************************/
+
+
+#ifndef REMAP_OPERATOR_LINEAR
+#define REMAP_OPERATOR_LINEAR
+
+
+#include "remap_operator_basis.h"
+
+class Remap_operator_linear: public Remap_operator_basis
+{
+    private:
+        int num_period;
+        void compute_remap_weights_of_one_dst_cell(long);
+        void recursively_search_src_cells(double, long, long&, long&);
+		bool enable_extrapolation;
+
+    public:
+        Remap_operator_linear(const char*, int, Remap_grid_class **);
+        Remap_operator_linear() { enable_extrapolation = false; }
+        ~Remap_operator_linear() {}
+        void set_parameter(const char *, const char *);
+        void calculate_remap_weights();
+        void do_remap_values_caculation(double*, double*);
+        void do_src_decomp_caculation(bool*, const bool*);
+        Remap_operator_basis *duplicate_remap_operator(bool);
+        Remap_operator_basis *generate_parallel_remap_operator(Remap_grid_class**, int**);
+};
+
+
+#endif
