@@ -27,7 +27,7 @@
    public :: c_coupler_register_decomposition
    public :: c_coupler_withdraw_model_data
    public :: c_coupler_get_current_time
-   public :: c_coupler_get_elapsed_days_from_start_date
+   public :: c_coupler_get_num_elapsed_days_from_start
    public :: c_coupler_allreduce_real16
    public :: c_coupler_log_case_info_in_netcdf_file
 
@@ -1350,13 +1350,13 @@
 
 
 
- SUBROUTINE c_coupler_get_elapsed_days_from_start_date(days, seconds)
+ SUBROUTINE c_coupler_get_num_elapsed_days_from_start(days, seconds)
     implicit none
     integer days, seconds
 
     call coupling_get_elapsed_days_from_start_date(days, seconds)
 
- END SUBROUTINE c_coupler_get_elapsed_days_from_start_date
+ END SUBROUTINE c_coupler_get_num_elapsed_days_from_start
 
 
 
