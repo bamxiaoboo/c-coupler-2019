@@ -1,7 +1,7 @@
 /***************************************************************
   *  Copyright (c) 2013, Tsinghua University.
   *  This is a source file of C-Coupler.
-  *  This file was initially finished by Dr. Li Liu. 
+  *  This file is initially finished by Dr. Li Liu. 
   *  If you have any problem, 
   *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
   ***************************************************************/
@@ -36,6 +36,7 @@ class Remap_weight_sparse_matrix
         ~Remap_weight_sparse_matrix();
         void clear_weights_info();
         void add_weights(long*, long, double*, int);
+		void get_weight(long*, long*, double*, int);
         void remap_values(double*, double*);
         void calc_src_decomp(bool*, const bool*);
         Remap_weight_sparse_matrix *duplicate_remap_weight_of_sparse_matrix();

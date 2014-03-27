@@ -1,7 +1,7 @@
 /***************************************************************
   *  Copyright (c) 2013, Tsinghua University.
   *  This is a source file of C-Coupler.
-  *  This file was initially finished by Dr. Li Liu. 
+  *  This file is initially finished by Dr. Li Liu. 
   *  If you have any problem, 
   *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
   ***************************************************************/
@@ -14,6 +14,7 @@
 #include "remap_operator_distwgt.h"
 #include "remap_operator_conserv_2D.h"
 #include "remap_operator_smooth.h"
+#include "remap_operator_spline_1D.h"
 #include "cor_global_data.h"
 #include <string.h>
 #include <stdio.h>
@@ -58,7 +59,10 @@ void Remap_operator_mgt::execute(const char*function, Remap_statement_operand **
         }        
         else if (words_are_the_same(statement_operands[1]->extension_names[0], REMAP_OPERATOR_NAME_LINEAR)) {
             remap_operators.push_back(new Remap_operator_linear(statement_operands[0]->object->object_name, num_remap_grids, remap_grids));
-        }    
+        }
+        else if (words_are_the_same(statement_operands[1]->extension_names[0], REMAP_OPERATOR_NAME_SPLINE_1D)) {
+            remap_operators.push_back(new Remap_operator_spline_1D(statement_operands[0]->object->object_name, num_remap_grids, remap_grids));
+        }		
         else if (words_are_the_same(statement_operands[1]->extension_names[0], REMAP_OPERATOR_NAME_SMOOTH)) {
             remap_operators.push_back(new Remap_operator_smooth(statement_operands[0]->object->object_name, num_remap_grids, remap_grids));
         }

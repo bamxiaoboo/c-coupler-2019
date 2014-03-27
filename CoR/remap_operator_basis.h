@@ -1,7 +1,7 @@
 /***************************************************************
   *  Copyright (c) 2013, Tsinghua University.
   *  This is a source file of C-Coupler.
-  *  This file was initially finished by Dr. Li Liu. 
+  *  This file is initially finished by Dr. Li Liu. 
   *  If you have any problem, 
   *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
   ***************************************************************/
@@ -19,6 +19,7 @@
 
 #define REMAP_OPERATOR_NAME_BILINEAR               "bilinear"
 #define REMAP_OPERATOR_NAME_CONSERV_2D             "conserv_2D"
+#define REMAP_OPERATOR_NAME_SPLINE_1D              "spline_1D"
 #define REMAP_OPERATOR_NAME_DISTWGT                "distwgt"
 #define REMAP_OPERATOR_NAME_LINEAR                 "linear"
 #define REMAP_OPERATOR_NAME_SMOOTH                 "smooth"

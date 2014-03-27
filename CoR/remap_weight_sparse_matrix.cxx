@@ -1,7 +1,7 @@
 /***************************************************************
   *  Copyright (c) 2013, Tsinghua University.
   *  This is a source file of C-Coupler.
-  *  This file was initially finished by Dr. Li Liu. 
+  *  This file is initially finished by Dr. Li Liu. 
   *  If you have any problem, 
   *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
   ***************************************************************/
@@ -51,7 +51,7 @@ Remap_weight_sparse_matrix::Remap_weight_sparse_matrix(Remap_operator_basis *rem
 {
     this->remap_operator = remap_operator;
     num_weights = 0;
-    weight_arrays_size = 1024;
+    weight_arrays_size = 16;
     num_remaped_dst_cells_indexes = 0;
     remaped_dst_cells_indexes_array_size = weight_arrays_size;
     cells_indexes_src = new long [weight_arrays_size];
@@ -121,6 +121,19 @@ void Remap_weight_sparse_matrix::add_weights(long *indexes_src, long index_dst, 
     }
 
     remaped_dst_cells_indexes[num_remaped_dst_cells_indexes++] = index_dst;
+}
+
+
+void Remap_weight_sparse_matrix::get_weight(long *index_src, long *index_dst, double *weight_value, int index_weight)
+{
+	if (!(index_weight >= 0 && index_weight < num_weights)) {
+		printf("error %d f %d\n", index_weight, num_weights);
+		while(1);
+	}
+	EXECUTION_REPORT(REPORT_ERROR, index_weight >= 0 && index_weight < num_weights, "software error when get remapping weight of sparse matrix\n");
+	*index_src = cells_indexes_src[index_weight];
+	*index_dst = cells_indexes_dst[index_weight];
+	*weight_value = weight_values[index_weight];
 }
 
 
