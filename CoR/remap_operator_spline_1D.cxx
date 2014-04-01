@@ -86,19 +86,19 @@ void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const c
                  object_name);
     if (words_are_the_same(parameter_name, "periodic")) {
 		EXECUTION_REPORT(REPORT_ERROR, !set_periodic, 
-					     "The parameter \"%s\" of the remapping operator \"%s\" has been set before. It can not been set more than once",
+					     "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		if (words_are_the_same(parameter_value, "true"))
 	        periodic = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			periodic = false;
 		else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "The value of parameter \"%s\" of the remapping operator \"%s\" must be \"true\" or \"false\"",
+                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"true\" or \"false\"",
                       parameter_name, operator_name);
 		set_periodic = true;
 		if (periodic)
 			EXECUTION_REPORT(REPORT_ERROR, !set_enable_extrapolation, 
-						     "The parameter \"extrapolation\" of the remapping operator \"%s\" has been set before. This remapping operator can not be set to periodic",
+						     "The parameter \"extrapolation\" of the 1D spline remapping operator \"%s\" has been set before. This remapping operator can not be set to periodic",
 							 parameter_name, operator_name);
     }
 	else if (words_are_the_same(parameter_name, "period")) {
@@ -106,26 +106,39 @@ void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const c
 					     "The spline_1D remapping operator \"%s\" has not been set to periodic before. Its \"period\" can not be set",
 						 operator_name);
 		EXECUTION_REPORT(REPORT_ERROR, !set_period,
-						 "The parameter \"%s\" of the remapping operator \"%s\" has been set before. It can not been set more than once",
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		sscanf(parameter_value, "%lf", &period);
 		set_period = true;
 		EXECUTION_REPORT(REPORT_ERROR, period > 0,
-						 "The parameter \"%s\" of the remapping operator \"%s\" must be bigger than 0",
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" must be bigger than 0",
 						 parameter_name, operator_name);
 	}
 	else if (words_are_the_same(parameter_name, "extrapolation")) {
 		EXECUTION_REPORT(REPORT_ERROR, !periodic,
-						 "The parameter \"%s\" of the remapping operator \"%s\" can not be set when the remapping operator is periodic",
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" can not be set when the 1D spline remapping operator is periodic",
 						 parameter_name, operator_name);
 		if (words_are_the_same(parameter_value, "true"))
 	        enable_extrapolation = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			enable_extrapolation = false;
 		else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "The value of parameter \"%s\" of the remapping operator \"%s\" must be \"true\" or \"false\"",
+                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"true\" or \"false\"",
                       parameter_name, operator_name);		
 		set_enable_extrapolation = true;
+	}
+	else if (words_are_the_same(parameter_name, "keep_monotonicity")) {
+		EXECUTION_REPORT(REPORT_ERROR, !set_keep_monotonicity,
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
+						 parameter_name, operator_name);
+		if (words_are_the_same(parameter_value, "true")) 
+			keep_monotonicity = true;
+		else if (words_are_the_same(parameter_value, "false"))
+			keep_monotonicity = false;
+		else EXECUTION_REPORT(REPORT_ERROR, false, 
+                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
+                      parameter_name, operator_name);
+		set_keep_monotonicity = true;
 	}
     else EXECUTION_REPORT(REPORT_ERROR, false, 
                       "\"%s\" is a illegal parameter of remapping operator \"%s\"\n",
@@ -153,6 +166,8 @@ void Remap_operator_spline_1D::allocate_local_arrays()
 	final_factor3 = new double [dst_grid->get_grid_size()];
 	final_factor4 = new double [dst_grid->get_grid_size()];
 	final_factor5 = new double [dst_grid->get_grid_size()];
+	data_in_monotonicity_range = new double [dst_grid->get_grid_size()+2];
+	dst_cell_indexes_in_monotonicity_ranges = new int [dst_grid->get_grid_size()];
 }
 
 
@@ -171,6 +186,8 @@ Remap_operator_spline_1D::Remap_operator_spline_1D(const char *object_name, int 
     periodic = false;
 	enable_extrapolation = false;
 	set_enable_extrapolation = false;
+	keep_monotonicity = false;
+	set_keep_monotonicity = false;
 	allocate_local_arrays();
 	remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
 	remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
@@ -200,7 +217,8 @@ Remap_operator_spline_1D::~Remap_operator_spline_1D()
 	delete [] final_factor3;
 	delete [] final_factor4;
 	delete [] final_factor5;
-
+	delete [] data_in_monotonicity_range;
+	delete [] dst_cell_indexes_in_monotonicity_ranges;
 }
 
 
@@ -263,12 +281,14 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 			}
 		}
 	}
-	
-	if (num_useful_src_cells <= 1) {
-		printf("special special\n");
-		return;
-	}
 
+	if (num_useful_src_cells == 0)
+		return;
+
+	if (!periodic)
+		EXECUTION_REPORT(REPORT_ERROR, num_useful_src_cells > 2, "Less than three source cells for 1D spline interpolation are not enough");
+	else EXECUTION_REPORT(REPORT_ERROR, num_useful_src_cells > 1, "Less than two source cells for 1D spline interpolation are not enough"); 
+		
 	if (periodic) {
 		coord_values_src[num_useful_src_cells] = coord_values_src[0] + period;
 		useful_src_cells_global_index[num_useful_src_cells] = useful_src_cells_global_index[0];
@@ -293,6 +313,8 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 	}
 
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
+		src_cell_index_left[i] = -1;
+		src_cell_index_right[i] = -1;
 		get_cell_mask_of_dst_grid(i, &dst_cell_mask);
 		if (!dst_cell_mask)
 			continue;
@@ -319,7 +341,7 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 
 	for (i = 0; i < array_size_src; i ++) {
 		add_remap_weights_to_sparse_matrix((long*)(&array_mu[i]), useful_src_cells_global_index[i], array_lambda+i, 1, 0);
-		add_remap_weights_to_sparse_matrix(&temp_long_value, temp_long_value, array_h+i, 1, 1);
+		add_remap_weights_to_sparse_matrix((long*)(&coord_values_src[i]), temp_long_value, array_h+i, 1, 1);
 	}
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		add_remap_weights_to_sparse_matrix((long*)(&final_factor1[i]), *((long*)(&final_factor2[i])), final_factor3+i, 1, 2);
@@ -387,9 +409,13 @@ void Remap_operator_spline_1D::search_src_cells_around_dst_cell_recursively(doub
 
 void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
 {
-	int i, j;
+	int i, j, k, m, start_index_monotonicity_range, end_index_monotonicity_range;
+	int original_index1, original_index2, original_index3;
+	int num_dst_cells_in_monotonicity_ranges;
 	long temp_long_value1, temp_long_value2;
 	double temp_double_value;
+	double ratio;
+	bool check_monotonicity, next_in_same_monotonicity_range;
 
 
 	array_size_src = remap_weights_groups[0]->get_num_weights();
@@ -399,7 +425,7 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 	for (i = 0; i < array_size_src; i ++) {
 		remap_weights_groups[0]->get_weight((long*)(&array_mu[i]), &temp_long_value1, array_lambda+i, i);
 		useful_src_cells_global_index[i] = temp_long_value1;
-		remap_weights_groups[1]->get_weight(&temp_long_value1, &temp_long_value2, array_h+i, i);
+		remap_weights_groups[1]->get_weight((long*)(&coord_values_src[i]), &temp_long_value2, array_h+i, i);
 	}
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		remap_weights_groups[2]->get_weight((long*)(&final_factor1[i]), ((long*)(&final_factor2[i])), final_factor3+i, i);
@@ -438,6 +464,56 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 		data_values_dst[i] += array_d[src_cell_index_right[i]]*final_factor2[i];
 		data_values_dst[i] += (data_values_src[src_cell_index_left[i]]-array_d[src_cell_index_left[i]]*final_factor3[i])*final_factor4[i];
 		data_values_dst[i] += (data_values_src[src_cell_index_right[i]]-array_d[src_cell_index_right[i]]*final_factor3[i])*final_factor5[i];
+	}
+
+	if (keep_monotonicity) {
+		for (i = 0, num_dst_cells_in_monotonicity_ranges = 0; i < dst_grid->get_grid_size(); i ++) {
+			if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
+				continue;
+			if (!(coord_values_dst[i] > coord_values_src[src_cell_index_left[i]] && coord_values_dst[i] < coord_values_src[src_cell_index_right[i]]))
+				continue;
+			dst_cell_indexes_in_monotonicity_ranges[num_dst_cells_in_monotonicity_ranges ++] = i;
+		}
+		start_index_monotonicity_range = -1;
+		for (i = 0; i < num_dst_cells_in_monotonicity_ranges; i ++) {
+			if (start_index_monotonicity_range == -1) {
+				j = 0;
+				start_index_monotonicity_range = i;
+				data_in_monotonicity_range[j++] = data_values_src[src_cell_index_left[dst_cell_indexes_in_monotonicity_ranges[i]]];
+			}
+			end_index_monotonicity_range = i;
+			data_in_monotonicity_range[j++] = data_values_dst[dst_cell_indexes_in_monotonicity_ranges[i]];
+			if (i == num_dst_cells_in_monotonicity_ranges - 1)
+				next_in_same_monotonicity_range = false;
+			else {
+				original_index1 = dst_cell_indexes_in_monotonicity_ranges[start_index_monotonicity_range];
+				original_index2 = dst_cell_indexes_in_monotonicity_ranges[i+1];
+				next_in_same_monotonicity_range = (src_cell_index_left[original_index1] == src_cell_index_left[original_index2] && src_cell_index_right[original_index1] == src_cell_index_right[original_index2]);
+			}
+			if (!next_in_same_monotonicity_range) {
+				original_index1 = dst_cell_indexes_in_monotonicity_ranges[start_index_monotonicity_range];
+				original_index2 = dst_cell_indexes_in_monotonicity_ranges[end_index_monotonicity_range];
+				EXECUTION_REPORT(REPORT_ERROR, src_cell_index_left[original_index1] == src_cell_index_left[original_index2] && src_cell_index_right[original_index1] == src_cell_index_right[original_index2], 
+								 "software error: in keep monotonicity"); 			
+				data_in_monotonicity_range[j++] = data_values_src[src_cell_index_right[original_index1]];
+				check_monotonicity = true;
+				for (k = 0; k < j - 1; k ++)
+					if ((data_in_monotonicity_range[k] >= data_in_monotonicity_range[k+1]) != (data_in_monotonicity_range[0] >= data_in_monotonicity_range[j-1])) {
+						check_monotonicity = false;
+						break;
+					}
+				if (!check_monotonicity) {
+					original_index1 = src_cell_index_left[dst_cell_indexes_in_monotonicity_ranges[start_index_monotonicity_range]];
+					original_index2 = src_cell_index_right[dst_cell_indexes_in_monotonicity_ranges[start_index_monotonicity_range]];
+					for (k = start_index_monotonicity_range; k <= end_index_monotonicity_range; k ++) {
+						original_index3 = dst_cell_indexes_in_monotonicity_ranges[k];
+						ratio = (coord_values_dst[original_index3]-coord_values_src[original_index1]) / (coord_values_src[original_index2]-coord_values_src[original_index1]);
+						data_values_dst[original_index3] = data_values_src[original_index1]*(1-ratio) + data_values_src[original_index2]*ratio;
+					}
+				}
+				start_index_monotonicity_range = -1;
+			}
+		}
 	}
 }
 
@@ -481,6 +557,8 @@ Remap_operator_basis *Remap_operator_spline_1D::duplicate_remap_operator(bool fu
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->set_period = this->set_period;
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->period = this->period;
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->periodic = this->periodic;
+	((Remap_operator_spline_1D*) duplicated_remap_operator)->keep_monotonicity = this->keep_monotonicity;
+	((Remap_operator_spline_1D*) duplicated_remap_operator)->set_keep_monotonicity = this->set_keep_monotonicity;
 	
     return duplicated_remap_operator;
 }
