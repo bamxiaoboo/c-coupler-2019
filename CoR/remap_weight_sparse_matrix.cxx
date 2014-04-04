@@ -33,7 +33,7 @@ Remap_weight_sparse_matrix::Remap_weight_sparse_matrix(Remap_operator_basis *rem
     this->remaped_dst_cells_indexes = remaped_dst_cells_indexes;
     
     if (remaped_dst_cells_indexes == NULL) {
-        this->remaped_dst_cells_indexes_array_size = 1024;
+        this->remaped_dst_cells_indexes_array_size = 16;
         this->remaped_dst_cells_indexes = new long [remaped_dst_cells_indexes_array_size];
         this->num_weights = 0;
         last_start = 0;
@@ -126,10 +126,6 @@ void Remap_weight_sparse_matrix::add_weights(long *indexes_src, long index_dst, 
 
 void Remap_weight_sparse_matrix::get_weight(long *index_src, long *index_dst, double *weight_value, int index_weight)
 {
-	if (!(index_weight >= 0 && index_weight < num_weights)) {
-		printf("error %d f %d\n", index_weight, num_weights);
-		while(1);
-	}
 	EXECUTION_REPORT(REPORT_ERROR, index_weight >= 0 && index_weight < num_weights, "software error when get remapping weight of sparse matrix\n");
 	*index_src = cells_indexes_src[index_weight];
 	*index_dst = cells_indexes_dst[index_weight];

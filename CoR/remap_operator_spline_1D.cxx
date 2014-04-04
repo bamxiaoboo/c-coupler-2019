@@ -84,50 +84,8 @@ void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const c
     EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
-    if (words_are_the_same(parameter_name, "periodic")) {
-		EXECUTION_REPORT(REPORT_ERROR, !set_periodic, 
-					     "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
-						 parameter_name, operator_name);
-		if (words_are_the_same(parameter_value, "true"))
-	        periodic = true;
-		else if (words_are_the_same(parameter_value, "false"))
-			periodic = false;
-		else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"true\" or \"false\"",
-                      parameter_name, operator_name);
-		set_periodic = true;
-		if (periodic)
-			EXECUTION_REPORT(REPORT_ERROR, !set_enable_extrapolation, 
-						     "The parameter \"extrapolation\" of the 1D spline remapping operator \"%s\" has been set before. This remapping operator can not be set to periodic",
-							 parameter_name, operator_name);
-    }
-	else if (words_are_the_same(parameter_name, "period")) {
-		EXECUTION_REPORT(REPORT_ERROR, set_periodic && periodic, 
-					     "The spline_1D remapping operator \"%s\" has not been set to periodic before. Its \"period\" can not be set",
-						 operator_name);
-		EXECUTION_REPORT(REPORT_ERROR, !set_period,
-						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
-						 parameter_name, operator_name);
-		sscanf(parameter_value, "%lf", &period);
-		set_period = true;
-		EXECUTION_REPORT(REPORT_ERROR, period > 0,
-						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" must be bigger than 0",
-						 parameter_name, operator_name);
-	}
-	else if (words_are_the_same(parameter_name, "extrapolation")) {
-		EXECUTION_REPORT(REPORT_ERROR, !periodic,
-						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" can not be set when the 1D spline remapping operator is periodic",
-						 parameter_name, operator_name);
-		if (words_are_the_same(parameter_value, "true"))
-	        enable_extrapolation = true;
-		else if (words_are_the_same(parameter_value, "false"))
-			enable_extrapolation = false;
-		else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"true\" or \"false\"",
-                      parameter_name, operator_name);		
-		set_enable_extrapolation = true;
-	}
-	else if (words_are_the_same(parameter_name, "keep_monotonicity")) {
+
+	if (words_are_the_same(parameter_name, "keep_monotonicity")) {
 		EXECUTION_REPORT(REPORT_ERROR, !set_keep_monotonicity,
 						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
@@ -140,25 +98,17 @@ void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const c
                       parameter_name, operator_name);
 		set_keep_monotonicity = true;
 	}
-    else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "\"%s\" is a illegal parameter of remapping operator \"%s\"\n",
-                      parameter_name, operator_name);
+    else set_common_parameter(parameter_name, parameter_value);
 }
 
 
 void Remap_operator_spline_1D::allocate_local_arrays()
 {
-	coord_values_src = new double [src_grid->get_grid_size()];
-	coord_values_dst = new double [dst_grid->get_grid_size()];
-	packed_data_values_src = new double [src_grid->get_grid_size()+1];
-	useful_src_cells_global_index = new int [src_grid->get_grid_size()+1];
 	array_alpha = new double [src_grid->get_grid_size()+1];
 	array_mu = new double [src_grid->get_grid_size()+1];
 	array_lambda = new double [src_grid->get_grid_size()+1];
 	array_h = new double [src_grid->get_grid_size()+1];
 	array_d = new double [src_grid->get_grid_size()+1];
-	src_cell_index_left = new int [src_grid->get_grid_size()+1];
-	src_cell_index_right = new int [src_grid->get_grid_size()+1];
 	temp_array_column = new double [src_grid->get_grid_size()+1];
 	temp_array_row = new double [src_grid->get_grid_size()+1];
 	final_factor1 = new double [dst_grid->get_grid_size()];
@@ -172,14 +122,7 @@ void Remap_operator_spline_1D::allocate_local_arrays()
 
 
 Remap_operator_spline_1D::Remap_operator_spline_1D(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
-                                       : Remap_operator_basis(object_name, 
-                                                              REMAP_OPERATOR_NAME_SPLINE_1D, 
-                                                              1, 
-                                                              true, 
-                                                              false, 
-                                                              false, 
-                                                              num_remap_grids, 
-                                                              remap_grids)
+                                       : Remap_operator_1D_basis(object_name, num_remap_grids, remap_grids)
 {
 	set_periodic = false;
 	set_period = false;
@@ -199,17 +142,11 @@ Remap_operator_spline_1D::Remap_operator_spline_1D(const char *object_name, int 
 
 Remap_operator_spline_1D::~Remap_operator_spline_1D()
 {
-	delete [] coord_values_src;
-	delete [] coord_values_dst;
-	delete [] packed_data_values_src;
-	delete [] useful_src_cells_global_index;
 	delete [] array_alpha;
 	delete [] array_mu;
 	delete [] array_lambda;
 	delete [] array_h;
 	delete [] array_d;
-	delete [] src_cell_index_left;
-	delete [] src_cell_index_right;
 	delete [] temp_array_column;
 	delete [] temp_array_row;
 	delete [] final_factor1;
@@ -229,72 +166,17 @@ void Remap_operator_spline_1D::compute_remap_weights_of_one_dst_cell(long cell_i
 
 void Remap_operator_spline_1D::calculate_remap_weights()
 {
-	int i, j;
-	bool ascending_order, src_cell_mask, dst_cell_mask;
-	long temp_long_value;
+	int i;
+	long temp_long_value = 0.0;
 
 
 	clear_remap_weight_info_in_sparse_matrix();
-
-	for (i = 0; i < dst_grid->get_grid_size(); i ++)
-		get_cell_center_coord_values_of_dst_grid(i, &coord_values_dst[i]);
-	for (i = 0; i < src_grid->get_grid_size(); i ++)
-		get_cell_center_coord_values_of_src_grid(i, &coord_values_src[i]);
-
-	ascending_order = coord_values_src[0] < coord_values_src[1];
-	for (i = 1; i < src_grid->get_grid_size() - 1; i ++) 
-		EXECUTION_REPORT(REPORT_ERROR,ascending_order == coord_values_src[i] < coord_values_src[i+1], 
-						 "the center coordinate values corresponding to the 1D grid %s are not sorted into ascending or descending order",
-						 src_grid->get_grid_name());
-	ascending_order = coord_values_dst[0] < coord_values_dst[1];
-	for (i = 1; i < dst_grid->get_grid_size() - 1; i ++) 
-		EXECUTION_REPORT(REPORT_ERROR, ascending_order == coord_values_dst[i] < coord_values_dst[i+1], 
-						 "the center coordinate values corresponding to the 1D grid %s are not sorted into ascending or descending order",
-						 dst_grid->get_grid_name());
-
-	if (periodic) {
-		EXECUTION_REPORT(REPORT_ERROR,fabs(coord_values_src[0]-coord_values_dst[src_grid->get_grid_size()-1]) < period, 
-						 "The variation of center coordinate values corresponding to the 1D grid %s is larger than one period",
-						 src_grid->get_grid_name());
-		EXECUTION_REPORT(REPORT_ERROR,fabs(coord_values_dst[0]-coord_values_dst[dst_grid->get_grid_size()-1]) < period, 
-						 "The variation of center coordinate values corresponding to the 1D grid %s is larger than one period",
-						 dst_grid->get_grid_name());
-	}
-	
-	num_useful_src_cells = 0;
-	ascending_order = coord_values_src[0] < coord_values_src[1];
-	if (ascending_order) {
-		for (i = 0; i < src_grid->get_grid_size(); i ++) {
-			get_cell_mask_of_src_grid(i, &src_cell_mask);
-			if (src_cell_mask) {
-				get_cell_center_coord_values_of_src_grid(i, &coord_values_src[num_useful_src_cells]);
-				useful_src_cells_global_index[num_useful_src_cells++] = i;
-			}
-		}	
-	}
-	else {
-		for (i = src_grid->get_grid_size()-1; i >= 0; i --) {
-			get_cell_mask_of_src_grid(i, &src_cell_mask);
-			if (src_cell_mask) {
-				get_cell_center_coord_values_of_src_grid(i, &coord_values_src[num_useful_src_cells]);
-				useful_src_cells_global_index[num_useful_src_cells++] = i;
-			}
-		}
-	}
+	calculate_dst_src_mapping_info();
 
 	if (num_useful_src_cells == 0)
 		return;
-
-	if (!periodic)
-		EXECUTION_REPORT(REPORT_ERROR, num_useful_src_cells > 2, "Less than three source cells for 1D spline interpolation are not enough");
-	else EXECUTION_REPORT(REPORT_ERROR, num_useful_src_cells > 1, "Less than two source cells for 1D spline interpolation are not enough"); 
-		
-	if (periodic) {
-		coord_values_src[num_useful_src_cells] = coord_values_src[0] + period;
-		useful_src_cells_global_index[num_useful_src_cells] = useful_src_cells_global_index[0];
-		array_size_src = num_useful_src_cells + 1;
-	}
-	else array_size_src = num_useful_src_cells;
+	
+	EXECUTION_REPORT(REPORT_ERROR, array_size_src > 2, "Less than three source cells for 1D spline interpolation are not enough");
 
 	for (i = 0; i < array_size_src-1; i ++)
 		array_h[i] = coord_values_src[i+1]-coord_values_src[i];
@@ -313,31 +195,15 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 	}
 
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
-		src_cell_index_left[i] = -1;
-		src_cell_index_right[i] = -1;
-		get_cell_mask_of_dst_grid(i, &dst_cell_mask);
-		if (!dst_cell_mask)
+		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
 			continue;
-		search_src_cells_around_dst_cell(coord_values_dst[i], 0, array_size_src-1, src_cell_index_left[i], src_cell_index_right[i]);
-		for (j = 0; j < array_size_src && coord_values_src[j] <= coord_values_dst[i]; j ++);
-		if (j > 0 && j < array_size_src)
-			EXECUTION_REPORT(REPORT_ERROR, src_cell_index_left[i] == j-1 && src_cell_index_right[i] == j, "error error3\n"); 
-		if ((src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1) && !enable_extrapolation)
-			continue;
-		if (src_cell_index_right[i] == -1) {
-			src_cell_index_right[i] = src_cell_index_left[i];
-			src_cell_index_left[i] --;
-		}
-		if (src_cell_index_left[i] == -1) {
-			src_cell_index_left[i] = src_cell_index_right[i];
-			src_cell_index_right[i] ++;
-		}
 	    final_factor1[i] = pow(coord_values_src[src_cell_index_right[i]]-coord_values_dst[i], 3.0)/(6.0*array_h[src_cell_index_left[i]]);
 		final_factor2[i] = pow(coord_values_dst[i]-coord_values_src[src_cell_index_left[i]], 3.0)/(6.0*array_h[src_cell_index_left[i]]);
 		final_factor3[i] = array_h[src_cell_index_left[i]]*array_h[src_cell_index_left[i]]/6.0;
 		final_factor4[i] = (coord_values_src[src_cell_index_right[i]]-coord_values_dst[i])/array_h[src_cell_index_left[i]];
 		final_factor5[i] = (coord_values_dst[i]-coord_values_src[src_cell_index_left[i]])/array_h[src_cell_index_left[i]];
 	}
+
 
 	for (i = 0; i < array_size_src; i ++) {
 		add_remap_weights_to_sparse_matrix((long*)(&array_mu[i]), useful_src_cells_global_index[i], array_lambda+i, 1, 0);
@@ -349,61 +215,6 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 		temp_long_value = src_cell_index_left[i];
 		add_remap_weights_to_sparse_matrix(&temp_long_value, src_cell_index_right[i], final_factor5+i, 1, 4);
 	}
-}
-
-
-void Remap_operator_spline_1D::search_src_cells_around_dst_cell(double coord_value_dst, int src_index_start, int src_index_end, int &src_cell_index_left, int &src_cell_index_right)
-{
-	int src_index_mid;
-
-
-	if (coord_values_src[src_index_start] > coord_value_dst) {
-		EXECUTION_REPORT(REPORT_ERROR, !periodic, "software error1: can not find the location of dst cell in original grid");
-		src_cell_index_left = -1;
-		src_cell_index_right = src_index_start;
-		return;
-	}
-
-	if (coord_values_src[src_index_end] < coord_value_dst) {
-		EXECUTION_REPORT(REPORT_ERROR, !periodic, "software error2: can not find the location of dst cell in original grid");
-		src_cell_index_left = src_index_end;
-		src_cell_index_right = -1;
-		return;
-	}
-
-	if (coord_values_src[src_index_start] == coord_value_dst) {
-		src_cell_index_left = src_index_start;
-		src_cell_index_right = src_index_start + 1;
-		return;
-	}
-
-	if (coord_values_src[src_index_end] == coord_value_dst) {
-		src_cell_index_left = src_index_end-1;
-		src_cell_index_right = src_index_end;
-		return;
-	}
-
-	search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_start, src_index_end, src_cell_index_left, src_cell_index_right);
-}
-
-
-void Remap_operator_spline_1D::search_src_cells_around_dst_cell_recursively(double coord_value_dst, int src_index_start, int src_index_end, int &src_cell_index_left, int &src_cell_index_right)
-{
-	int src_index_mid;
-
-
-	if (src_index_start == src_index_end-1) {
-		src_cell_index_left = src_index_start;
-		src_cell_index_right = src_index_end;
-		EXECUTION_REPORT(REPORT_ERROR, coord_values_src[src_cell_index_left] <= coord_value_dst && coord_values_src[src_cell_index_right] >= coord_value_dst, 
-			             "software error: can not find the location of dst cell in original grid recursively");
-		return;
-	}
-	
-	src_index_mid = (src_index_start+src_index_end) / 2;
-	if (coord_values_src[src_index_mid] > coord_value_dst)
-		search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_start, src_index_mid, src_cell_index_left, src_cell_index_right);
-	else search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_mid, src_index_end, src_cell_index_left, src_cell_index_right);
 }
 
 
@@ -552,6 +363,7 @@ Remap_operator_basis *Remap_operator_spline_1D::duplicate_remap_operator(bool fu
     Remap_operator_basis *duplicated_remap_operator = new Remap_operator_spline_1D();
 
 	copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
+	((Remap_operator_spline_1D*) duplicated_remap_operator)->initialize_1D_remap_operator();
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->allocate_local_arrays();
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->enable_extrapolation = this->enable_extrapolation;
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->set_period = this->set_period;

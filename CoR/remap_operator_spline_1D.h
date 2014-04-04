@@ -11,29 +11,15 @@
 #define REMAP_OPERATOR_SPLINE_1D
 
 
-#include "remap_operator_basis.h"
+#include "remap_operator_1D_basis.h"
 
 
-class Remap_operator_spline_1D: public Remap_operator_basis
+class Remap_operator_spline_1D: public Remap_operator_1D_basis
 {
     private:
-        bool periodic;
-		bool set_periodic;
-		bool set_period;
-		bool set_enable_extrapolation;
-		bool enable_extrapolation;
 		bool set_keep_monotonicity;
 		bool keep_monotonicity;
-		double period;
-		double *coord_values_src;
-		double *coord_values_dst;
-		double *packed_data_values_src;
 		double *data_in_monotonicity_range;
-		int num_useful_src_cells;
-		int array_size_src;
-		int *useful_src_cells_global_index;
-		int *src_cell_index_left;
-		int *src_cell_index_right;
 		int *dst_cell_indexes_in_monotonicity_ranges;
 		double *array_alpha;
 		double *array_mu;
@@ -50,8 +36,6 @@ class Remap_operator_spline_1D: public Remap_operator_basis
 
 		void solve_aperiodic_tridiagonal_system(double*, double*, double*, double*, int);
 		void solve_periodic_tridiagonal_system(double*, double*, double*, double*, int);
-		void search_src_cells_around_dst_cell(double, int, int, int&, int&);
-		void search_src_cells_around_dst_cell_recursively(double, int, int,  int&, int&);
 		void compute_remap_weights_of_one_dst_cell(long);
 		void allocate_local_arrays();
 		Remap_operator_spline_1D() {}

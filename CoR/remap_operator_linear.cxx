@@ -18,188 +18,152 @@ void Remap_operator_linear::set_parameter(const char *parameter_name, const char
     EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
-    
-    if (words_are_the_same(parameter_name, "period"))
-        sscanf(parameter_value, "%d", &num_period);
-    else if (words_are_the_same(parameter_name, "enable_extrapolation")) {
-		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(parameter_value,"true") || words_are_the_same(parameter_value,"false"),
-		                 "the value of parameter \"enable_extrapolation\" of linear remapping algorithm must be \"true\" or \"false\"");
-		if (words_are_the_same(parameter_value,"true"))
-			enable_extrapolation = true;
-    }
-    else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "\"%s\" is a illegal parameter of remap operator \"%s\"\n",
-                      parameter_name,
-                      operator_name);
-}
 
-
-void Remap_operator_linear::recursively_search_src_cells(double dst_cell_center_coord_value, 
-                                                        long current_src_cell_index, 
-                                                        long &src_cell_index_of_smaller_center_value, 
-                                                        long &src_cell_index_of_bigger_center_value)
-{
-    long current_src_cell_neighbors_indexes[2];
-    double current_src_cell_center_coord_value, difference_of_src_dst_coord_values;
-    bool mask_of_current_src_cell;
-    bool need_recursion = true;
-    int i, num_neighbors;
-
-
-    if (!visit_cell_in_src_grid(current_src_cell_index))
-        return;
-    
-    get_cell_center_coord_values_of_src_grid(current_src_cell_index, &current_src_cell_center_coord_value);
-    difference_of_src_dst_coord_values = compute_difference_of_two_coord_values(current_src_cell_center_coord_value, dst_cell_center_coord_value, 0);
-
-    if (difference_of_src_dst_coord_values >= 0 && src_cell_index_of_bigger_center_value != -1)
-        need_recursion = false;
-    if (difference_of_src_dst_coord_values < 0 && src_cell_index_of_smaller_center_value != -1)
-        need_recursion = false;
-
-    if (!need_recursion)
-        return;
-
-    get_cell_mask_of_src_grid(current_src_cell_index, &mask_of_current_src_cell);
-    if (mask_of_current_src_cell) {
-        if (current_src_cell_center_coord_value == dst_cell_center_coord_value) {
-            src_cell_index_of_smaller_center_value = current_src_cell_index;
-            return;
-        }
-        else if (current_src_cell_center_coord_value > dst_cell_center_coord_value) 
-            src_cell_index_of_bigger_center_value = current_src_cell_index;
-        else src_cell_index_of_smaller_center_value = current_src_cell_index;
-    }
-    
-    get_cell_neighbors_in_src_grid(current_src_cell_index, &num_neighbors, current_src_cell_neighbors_indexes);
-    EXECUTION_REPORT(REPORT_ERROR, num_neighbors <= 2, 
-                 "remap software error in linear recursively_search_src_cells\n");
-    
-    for (i = 0; i < num_neighbors; i ++)
-        recursively_search_src_cells(dst_cell_center_coord_value, current_src_cell_neighbors_indexes[i], src_cell_index_of_smaller_center_value, src_cell_index_of_bigger_center_value);
+	if (words_are_the_same(parameter_name, "use_logarithm")) {
+		EXECUTION_REPORT(REPORT_ERROR, !set_use_logarithm,
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
+						 parameter_name, operator_name);
+		if (words_are_the_same(parameter_value, "true")) 
+			use_logarithm = true;
+		else if (words_are_the_same(parameter_value, "false"))
+			use_logarithm = false;
+		else EXECUTION_REPORT(REPORT_ERROR, false, 
+                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
+                      parameter_name, operator_name);
+		set_use_logarithm = true;
+	}
+    else set_common_parameter(parameter_name, parameter_value);
 }
 
 
 void Remap_operator_linear::compute_remap_weights_of_one_dst_cell(long dst_cell_index)
 {
-    double dst_cell_center_coord_value, src_coord_values[3];
-    long src_cell_indexes[3];
-    bool dst_cell_mask;
-    double remap_weight_values[2], coord_differences[2];
-    long weight_src_indexes[2];
-    int selected_src_index1, selected_src_index2;
-    int i;
-
-
-    get_cell_mask_of_dst_grid(dst_cell_index, &dst_cell_mask);
-    if (!dst_cell_mask)
-        return;
-
-    initialize_computing_remap_weights_of_one_cell();
-    
-    get_cell_center_coord_values_of_dst_grid(dst_cell_index, &dst_cell_center_coord_value);
-    search_cell_in_src_grid(&dst_cell_center_coord_value, &src_cell_indexes[1], true);
-    EXECUTION_REPORT(REPORT_ERROR, src_cell_indexes[1] != -1, "remap software error1 in linear compute_remap_weights_of_one_dst_cell of Remap_operator_linear\n");
-    src_cell_indexes[0] = src_cell_indexes[1] - 1;
-    src_cell_indexes[2] = src_cell_indexes[1] + 1;
-    if (src_grid->get_grid_cyclic()) {
-        src_cell_indexes[0] = (src_cell_indexes[0]+src_grid->get_grid_size())%src_grid->get_grid_size();
-        src_cell_indexes[2] = src_cell_indexes[2]%src_grid->get_grid_size();
-    }
-    else if (src_cell_indexes[2] == src_grid->get_grid_size())
-        src_cell_indexes[2] = -1;
-
-    for (i = 0; i < 3; i ++)
-        if (src_cell_indexes[i] != -1) 
-            get_cell_center_coord_values_of_src_grid(src_cell_indexes[i], &src_coord_values[i]);
-
-    if (src_cell_indexes[0] == -1) {
-        selected_src_index1 = 1;
-        selected_src_index2 = 2;
-    }
-    else if (src_cell_indexes[2] == -1) {
-        selected_src_index1 = 0;
-        selected_src_index2 = 1;
-    }
-    else {
-        if (compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[0],0)<= 0 &&
-            compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[1],0)>= 0 ||
-            compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[0],0)>= 0 &&
-            compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[1],0)<= 0) {
-            selected_src_index1 = 0;
-            selected_src_index2 = 1;
-        }
-        else if (compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[1],0)<= 0 &&
-            compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[2],0)>= 0 ||
-            compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[1],0)>= 0 &&
-            compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[2],0)<= 0) {
-            selected_src_index1 = 1;
-            selected_src_index2 = 2;
-        }
-        else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error2 in linear compute_remap_weights_of_one_dst_cell of Remap_operator_linear\n");
-    }
-
-    weight_src_indexes[0] = src_cell_indexes[selected_src_index1];
-    weight_src_indexes[1] = src_cell_indexes[selected_src_index2];
-    coord_differences[0] = compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[selected_src_index1],0);
-    coord_differences[1] = compute_difference_of_two_coord_values(dst_cell_center_coord_value,src_coord_values[selected_src_index2],0);
-
-    if (coord_differences[0]*coord_differences[1] <= 0) {
-        remap_weight_values[0] = fabs(coord_differences[1])/(fabs(coord_differences[0])+fabs(coord_differences[1]));
-        remap_weight_values[1] = 1 - remap_weight_values[0];
-		add_remap_weights_to_sparse_matrix(weight_src_indexes, dst_cell_index, remap_weight_values, 2, 0);		
-    }
-    else if (enable_extrapolation) {
-        if (fabs(coord_differences[0]) > fabs(coord_differences[1])) {
-            remap_weight_values[0] = -fabs(coord_differences[1])/fabs(coord_differences[0]-coord_differences[1]);
-            remap_weight_values[1] = fabs(coord_differences[0])/fabs(coord_differences[0]-coord_differences[1]);
-        }
-        else {
-            remap_weight_values[0] = fabs(coord_differences[1])/fabs(coord_differences[0]-coord_differences[1]);
-            remap_weight_values[1] = -fabs(coord_differences[0])/fabs(coord_differences[0]-coord_differences[1]);            
-        }
-		add_remap_weights_to_sparse_matrix(weight_src_indexes, dst_cell_index, remap_weight_values, 2, 0);
-    }
-    finalize_computing_remap_weights_of_one_cell();
-
-	if (!enable_extrapolation)
-		EXECUTION_REPORT(REPORT_ERROR, remap_weight_values[0]>=0 && remap_weight_values[0]<=1.0 && remap_weight_values[1]>=0 && remap_weight_values[1]<=1.0,
-						 "remap software error in Remap_operator_linear::compute_remap_weights_of_one_dst_cell");
 }
 
 
 void Remap_operator_linear::calculate_remap_weights()
 {
+	int i;
+    double remap_weight_values[2], coord_differences[2];
+	long weight_src_indexes[2];
+	long temp_long_value = 0;
+	double temp_double_value = 0.0;
+
+	
     clear_remap_weight_info_in_sparse_matrix();
 
-    for (long dst_cell_index = 0; dst_cell_index < dst_grid->get_grid_size(); dst_cell_index ++)
-        compute_remap_weights_of_one_dst_cell(dst_cell_index);
+	calculate_dst_src_mapping_info();
+
+	if (array_size_src == 0)
+		return;
+
+	EXECUTION_REPORT(REPORT_ERROR, array_size_src > 1, "Less than three source cells for linear interpolation are not enough");
+
+	for (i = 0; i < array_size_src; i ++)
+		add_remap_weights_to_sparse_matrix(&temp_long_value, useful_src_cells_global_index[i], &temp_double_value, 1, 0);
+
+    for (i = 0; i < dst_grid->get_grid_size(); i ++) {
+		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
+			continue;
+		weight_src_indexes[0] = src_cell_index_left[i];
+		weight_src_indexes[1] = src_cell_index_right[i];
+		if ((coord_values_dst[i] >= coord_values_src[src_cell_index_left[i]]) == (coord_values_dst[i] <= coord_values_src[src_cell_index_right[i]])) {
+			remap_weight_values[1] = (coord_values_dst[i]-coord_values_src[src_cell_index_left[i]]) / (coord_values_src[src_cell_index_right[i]]-coord_values_src[src_cell_index_left[i]]);
+			remap_weight_values[0] = 1 - remap_weight_values[1];
+		}
+		else {
+			coord_differences[0] = coord_values_dst[i] - coord_values_src[src_cell_index_left[i]];
+			coord_differences[1] = coord_values_dst[i] - coord_values_src[src_cell_index_right[i]];
+			if (fabs(coord_differences[0]) > fabs(coord_differences[1])) {
+				remap_weight_values[0] = -fabs(coord_differences[1])/fabs(coord_differences[0]-coord_differences[1]);
+				remap_weight_values[1] = fabs(coord_differences[0])/fabs(coord_differences[0]-coord_differences[1]);
+			}
+			else {
+				remap_weight_values[0] = fabs(coord_differences[1])/fabs(coord_differences[0]-coord_differences[1]);
+				remap_weight_values[1] = -fabs(coord_differences[0])/fabs(coord_differences[0]-coord_differences[1]);			 
+			}
+		}
+		add_remap_weights_to_sparse_matrix(weight_src_indexes, i, remap_weight_values, 2, 1);		
+    }
 }
 
 
 Remap_operator_linear::Remap_operator_linear(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
-                                       : Remap_operator_basis(object_name, 
-                                                              REMAP_OPERATOR_NAME_LINEAR, 
-                                                              1, 
-                                                              true, 
-                                                              false, 
-                                                              true,
-                                                              num_remap_grids, 
-                                                              remap_grids)
+                                       : Remap_operator_1D_basis(object_name, num_remap_grids, remap_grids)
 {
+	use_logarithm = false;
+	set_use_logarithm = false;
+	logarithm_data_value_src = new double [src_grid->get_grid_size()+1];
+	temp_decomp_map_src = new bool [src_grid->get_grid_size()+1];
     remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
+	remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
+}
+
+
+Remap_operator_linear::~Remap_operator_linear()
+{
+	delete [] logarithm_data_value_src;
+	delete [] temp_decomp_map_src;
 }
 
 
 void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
 {
-    remap_weights_groups[0]->remap_values(data_values_src, data_values_dst);
+	int i, dst_index;
+	long temp_long_value1, temp_long_value2;
+	double temp_double_value, base_value;
+	bool can_use_logarithm;
+	double eps = 1.0e-8;
+	
+	
+	array_size_src = remap_weights_groups[0]->get_num_weights();
+	if (array_size_src == 0)
+		return;
+
+	for (i = 0; i < array_size_src; i ++) {
+		remap_weights_groups[0]->get_weight(&temp_long_value1, &temp_long_value2, &temp_double_value, i);
+		useful_src_cells_global_index[i] = temp_long_value2;
+	}
+
+	for (i = 0; i < array_size_src; i ++)
+		packed_data_values_src[i] = data_values_src[useful_src_cells_global_index[i]];
+
+	if (use_logarithm) {
+		base_value = packed_data_values_src[0];
+		for (i = 1; i < array_size_src; i ++)
+			if (base_value > packed_data_values_src[i])
+				base_value = packed_data_values_src[i];
+		base_value = base_value - eps;
+		for (i = 0; i < array_size_src; i ++)
+			logarithm_data_value_src[i] = log(packed_data_values_src[i] - base_value);
+		remap_weights_groups[1]->remap_values(logarithm_data_value_src, data_values_dst);
+		for (i = 0; i < remap_weights_groups[1]->get_num_remaped_dst_cells_indexes(); i ++) {
+			dst_index = (remap_weights_groups[1]->get_remaped_dst_cells_indexes())[i];
+			data_values_dst[dst_index] = exp(data_values_dst[dst_index]) + base_value;
+		}	
+	}
+	else remap_weights_groups[1]->remap_values(packed_data_values_src, data_values_dst);
 }
 
 
 void Remap_operator_linear::do_src_decomp_caculation(bool *decomp_map_src, const bool *decomp_map_dst)
 {
-    remap_weights_groups[0]->calc_src_decomp(decomp_map_src, decomp_map_dst);
+	int i;
+	long temp_long_value1, temp_long_value2;
+	double temp_double_value;
+
+
+	array_size_src = remap_weights_groups[0]->get_num_weights();
+	if (array_size_src == 0)
+		return;
+
+    remap_weights_groups[1]->calc_src_decomp(temp_decomp_map_src, decomp_map_dst);
+
+	for (i = 0; i < array_size_src; i ++) {
+		remap_weights_groups[0]->get_weight(&temp_long_value1, &temp_long_value2, &temp_double_value, i);
+		useful_src_cells_global_index[i] = temp_long_value2;
+		decomp_map_src[useful_src_cells_global_index[i]] = temp_decomp_map_src[i];
+	}
 }
 
 
@@ -207,6 +171,12 @@ Remap_operator_basis *Remap_operator_linear::duplicate_remap_operator(bool fully
 {
     Remap_operator_basis *duplicated_remap_operator = new Remap_operator_linear();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
+	((Remap_operator_linear *) duplicated_remap_operator)->initialize_1D_remap_operator();
+	((Remap_operator_linear *) duplicated_remap_operator)->use_logarithm = this->use_logarithm;
+	((Remap_operator_linear *) duplicated_remap_operator)->set_use_logarithm = this->set_use_logarithm;
+	((Remap_operator_linear *) duplicated_remap_operator)->logarithm_data_value_src = new double [src_grid->get_grid_size()+1];
+	((Remap_operator_linear *) duplicated_remap_operator)->temp_decomp_map_src = new bool [src_grid->get_grid_size()+1];
+
     return duplicated_remap_operator;
 }
 

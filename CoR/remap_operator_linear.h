@@ -11,20 +11,21 @@
 #define REMAP_OPERATOR_LINEAR
 
 
-#include "remap_operator_basis.h"
+#include "remap_operator_1D_basis.h"
 
-class Remap_operator_linear: public Remap_operator_basis
+class Remap_operator_linear: public Remap_operator_1D_basis
 {
     private:
-        int num_period;
+		bool use_logarithm;
+		bool set_use_logarithm;
+		double *logarithm_data_value_src;
+		bool *temp_decomp_map_src;
         void compute_remap_weights_of_one_dst_cell(long);
-        void recursively_search_src_cells(double, long, long&, long&);
-		bool enable_extrapolation;
 
     public:
         Remap_operator_linear(const char*, int, Remap_grid_class **);
-        Remap_operator_linear() { enable_extrapolation = false; }
-        ~Remap_operator_linear() {}
+        Remap_operator_linear() {}
+        ~Remap_operator_linear();
         void set_parameter(const char *, const char *);
         void calculate_remap_weights();
         void do_remap_values_caculation(double*, double*);

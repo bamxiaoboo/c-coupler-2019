@@ -258,3 +258,4 @@ void Remap_operator_basis::generate_parallel_remap_weights(Remap_operator_basis 
     for (int i = 0; i < this->remap_weights_groups.size(); i ++)
         another_remap_operator->remap_weights_groups.push_back(this->remap_weights_groups[i]->generate_parallel_remap_weight_of_sparse_matrix(decomp_original_grids, global_cells_local_indexes_in_decomps));
 }
+
