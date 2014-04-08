@@ -54,7 +54,7 @@ void IO_mgt::execute(const char*function, Remap_statement_operand **statement_op
             EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(current_IO_object->get_file_type(), FILE_TYPE_BINARY), "remap weights of C-Coupler format can only be written into binary file\n");
             ((IO_binary *) current_IO_object)->write_remap_weights(remap_weights_manager->search_remap_weight_of_strategy(statement_operands[1]->object->object_name));
         }
-        else EXECUTION_REPORT(REPORT_ERROR, false, "the format of remap weights in IO file must be a string of \"SCRIP\" or \"C-Coupler\"\n");
+        else EXECUTION_REPORT(REPORT_ERROR, false, "the format of remap weights in IO file must be a string of \"SCRIP\" or \"C-Coupler\"");
     }
     else if (words_are_the_same(function, FUNCTION_WORD_WRITE_FIELD)) {
         check_is_parameter_object_type_IO(function, 0, statement_operands[0], "the file to record the field\n");

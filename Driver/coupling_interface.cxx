@@ -151,10 +151,12 @@ extern "C" int comm_initialize_(const char *exp_model, const char *current_comp_
 {
 	strcpy(software_name, "C-Coupler");
 	execution_phase_number = 2;
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter == 0, "the first coupling interface to run is coupling_interface_init\n");
-    coupling_process_control_counter = 1;
     compset_communicators_info_mgr = new Compset_communicators_info_mgt(exp_model, current_comp_name, compset_filename, case_name, case_desc, case_mode, comp_namelist, current_config_time, original_case_name, original_config_time);
     *comm = compset_communicators_info_mgr->get_current_comp_comm_group();
+    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter == 0, "the first coupling interface to run is coupling_interface_init\n");
+	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(case_mode, "initial") || words_are_the_same(case_mode, "restart") || words_are_the_same(case_mode, "continue"), "run type must be initial, restart or continue\n");
+	EXECUTION_REPORT(REPORT_LOG, true, "The %d process of the current component is run on the host %s", compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), compset_communicators_info_mgr->get_host_computing_node_name());
+    coupling_process_control_counter = 1;
     return 0;
 }
 

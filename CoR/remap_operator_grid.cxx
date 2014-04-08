@@ -450,7 +450,7 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
 
     if (remap_operator->get_num_dimensions() == 1)
         require_vertex_fields = remap_operator->does_require_grid_vertex_values();
-    else require_vertex_fields = remap_operator->does_require_grid_vertex_values() || remap_operator->get_is_operator_regridding();
+    else require_vertex_fields = remap_operator->does_require_grid_vertex_values() || (remap_operator->get_is_operator_regridding() && is_src_grid);
     if (require_vertex_fields) 
         initialize_for_vertex_coord_values_generation();
 
@@ -592,6 +592,9 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
         if (leaf_grids[i]->grid_vertex_fields.size() == 0)
             current_vertex_field = leaf_grids[i]->get_grid_vertex_field();
         else current_vertex_field = leaf_grids[i]->grid_vertex_fields[0];
+		EXECUTION_REPORT(REPORT_ERROR, current_vertex_field != NULL, 
+						 "The vertex coordinate values of the grid %s are missing, which are not specified by users or generated automatically",
+						 remap_grid->get_grid_name());
         grid_vertex_fields.push_back(current_vertex_field);
     }
 

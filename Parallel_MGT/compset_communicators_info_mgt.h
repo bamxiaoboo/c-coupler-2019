@@ -37,9 +37,10 @@ class Compset_communicators_info_mgt
 {
     private:
         int global_comm_group;                    // The global communication group
-        int current_comp_comm_group;            // The communication group of current component
-        int current_comp_id;                        // The component id of current component
-        int current_proc_local_id;                    // The id of current process in the communication group of current component
+        int current_comp_comm_group;              // The communication group of current component
+        int computing_node_comp_group;            // The communication group for the processes of the same component sharing on the same computing node
+        int current_comp_id;                      // The component id of current component
+        int current_proc_local_id;                // The id of current process in the communication group of current component
         std::vector<Component_communicator_info *> comps_comms_info;    // The array to record the infomation of all components
         char experiment_model[NAME_STR_SIZE];
         char original_case_name[NAME_STR_SIZE];
@@ -49,6 +50,7 @@ class Compset_communicators_info_mgt
         char comp_namelist_filename[NAME_STR_SIZE];
 		char current_config_time[NAME_STR_SIZE];
 		char original_config_time[NAME_STR_SIZE];
+		char host_name_current_computing_node[NAME_STR_SIZE];
 
         void load_in_compset(const char*, const char*);
         void build_compset_communicators_info();
@@ -73,6 +75,8 @@ class Compset_communicators_info_mgt
         const char *get_running_case_mode() { return running_case_mode; }
 		const char *get_current_config_time() { return current_config_time; }
 		const char *get_original_config_time() { return original_config_time; }
+		const char *get_host_computing_node_name() { return host_name_current_computing_node; }
+		int get_computing_node_comp_group() { return computing_node_comp_group; }
         void write_case_info(IO_netcdf*);
 };
 

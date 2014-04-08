@@ -65,28 +65,44 @@ void report_header(int report_type, bool &condition)
 			if (line_number > 0 && execution_phase_number < 2)
 				printf("CoR REPORT ERROR at script line %d: ", line_number);
 #ifndef ONLY_CoR
-			else printf("C-Coupler REPORT ERROR in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+			else { 
+				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
+					printf("C-Coupler REPORT ERROR in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else printf("C-Coupler REPORT ERROR: ");
+			}
 #endif
 			break;
 		case REPORT_LOG:
 			if (line_number > 0 && execution_phase_number < 2)
 				printf("CoR REPORT LOG at script line %d: ", line_number);
 #ifndef ONLY_CoR
-			else printf("C-Coupler REPORT LOG in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+			else {
+				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
+					printf("C-Coupler REPORT LOG in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else printf("C-Coupler REPORT LOG: ");
+			}
 #endif			
 			break;
 		case REPORT_WARNING:
 			if (line_number > 0 && execution_phase_number < 2)
 				printf("CoR REPORT WARNING at script line %d: ", line_number);
 #ifndef ONLY_CoR
-			else printf("C-Coupler REPORT WARNING in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+			else {
+				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
+					printf("C-Coupler REPORT WARNING in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else printf("C-Coupler REPORT WARNING: ");
+			}
 #endif
 			break;
 		case REPORT_PROGRESS:
 			if (line_number > 0 && execution_phase_number < 2)
 				printf("CoR REPORT PROGRESS at script line %d: ", line_number);
 #ifndef ONLY_CoR
-			else printf("C-Coupler REPORT PROGRESS in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+			else {
+				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
+					printf("C-Coupler REPORT PROGRESS in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else printf("C-Coupler REPORT PROGRESS: ");
+			}
 #endif
 			break;
 	}

@@ -74,7 +74,9 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
     if (runtime_remap_operator->does_require_grid_vertex_values()) {
         for (i = 0; i < num_leaf_grids_of_remap_operator_grid_src; i ++) {
             EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values != NULL, "remap software error6 in new Runtime_remap_function\n");
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_src[i]->grid_vertex_fields.size() == 1, "remap software error7 in new Runtime_remap_function\n");
+            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_src[i]->grid_vertex_fields.size() == 1, 
+							 "remap operator %s (%s) requires users to specify vertex coordinate values in source grid %s", 
+							 runtime_remap_operator->get_object_name(), runtime_remap_operator->get_operator_name(), remap_operator_runtime_grid_src->get_grid_name());
             if (leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->num_dimensions > 1)
                 EXECUTION_REPORT(REPORT_ERROR, !leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->are_vertex_values_set_in_default, 
                              "remap operator \"%s\" requires vertex values. The vertex values of \"%s\" in source grid \"%s\" are not given by users\n",
@@ -82,7 +84,9 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
                              leaf_grids_of_remap_operator_grid_src[i]->coord_label,
                              leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->grid_name);
             EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values != NULL, "remap software error8 in new Runtime_remap_function\n");
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_dst[i]->grid_vertex_fields.size() == 1, "remap software error9 in new Runtime_remap_function\n");
+            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_dst[i]->grid_vertex_fields.size() == 1, 
+							 "remap operator %s (%s) requires users to specify vertex coordinate values in target grid %s", 
+							 runtime_remap_operator->get_object_name(), runtime_remap_operator->get_operator_name(), remap_operator_runtime_grid_dst->get_grid_name());
             if (leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values->num_dimensions > 1)
                 EXECUTION_REPORT(REPORT_ERROR, !leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values->are_vertex_values_set_in_default, 
                              "remap operator \"%s\" requires vertex values. The vertex values of \"%s\" in destination grid \"%s\" are not given by users\n",

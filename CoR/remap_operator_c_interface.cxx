@@ -452,6 +452,7 @@ bool have_overlapped_src_cells_for_dst_cell(long cell_index_dst)
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, true);    
     num_grid_dimensions_dst = current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_num_grid_dimensions();
 
+	printf("vertex num %d\n", num_vertexes_dst);
     for (i = 0; i < num_vertexes_dst; i ++) {
         if (vertex_coord_values_dst[i*num_grid_dimensions_dst] == NULL_COORD_VALUE)
             continue;

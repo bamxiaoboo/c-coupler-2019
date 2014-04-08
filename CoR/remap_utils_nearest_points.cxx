@@ -121,11 +121,17 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
         return;
 
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
+	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, dst_cell_vertex_values, true);
     search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
+
+	if (num_vertexes_dst == 0 && src_cell_index == -1)
+		return;
+	if (num_vertexes_dst == 0 && !src_cell_mask)
+		return;
+
     if (src_cell_index == -1 || !src_cell_mask) {
-        get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, dst_cell_vertex_values, true);
         for (i = 0; i < num_vertexes_dst; i ++) {
             search_cell_in_src_grid(dst_cell_vertex_values+i*2, &src_cell_index, false);
             if (src_cell_index != -1) {

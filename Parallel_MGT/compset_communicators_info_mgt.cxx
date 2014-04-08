@@ -13,6 +13,7 @@
 #include "compset_communicators_info_mgt.h"
 #include "global_data.h"
 #include "cor_global_data.h"
+#include <unistd.h>
 
 
 Compset_communicators_info_mgt::Compset_communicators_info_mgt(const char *experiment_model, const char *current_comp_name, const char *compset_filename,
@@ -20,6 +21,7 @@ Compset_communicators_info_mgt::Compset_communicators_info_mgt(const char *exper
            const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
     load_in_compset(current_comp_name, compset_filename);
+	gethostname(host_name_current_computing_node, NAME_STR_SIZE);
     build_compset_communicators_info();
 
 	strcpy(this->experiment_model, experiment_model);
@@ -34,9 +36,7 @@ Compset_communicators_info_mgt::Compset_communicators_info_mgt(const char *exper
 	if (words_are_the_same(case_mode, "initial")) {
 		strcpy(this->original_case_name, "none");
 		strcpy(this->original_config_time, "none");
-	}
-
-	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(case_mode, "initial") || words_are_the_same(case_mode, "restart"), "run type must be initial or restart\n");
+	}	
 }
 
 
@@ -93,7 +93,7 @@ void Compset_communicators_info_mgt::load_in_compset(const char *current_comp_na
 
 void Compset_communicators_info_mgt::build_compset_communicators_info()
 {
-    int i;
+    int i, j;
     int current_proc_global_id;
     int num_global_procs;
     int *all_procs_global_ids;
@@ -101,6 +101,10 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
     int *num_all_comps_procs;
     int *all_comp_root_procs_global_ids;
     int *all_procs_comp_ids;
+	char *host_name_all_computing_nodes, *host_name_distinct_computing_nodes;
+	int *host_name_ids;
+	int num_distinct_computing_nodes;
+	
 
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_dup(MPI_COMM_WORLD, &global_comm_group) == MPI_SUCCESS);
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(global_comm_group, &current_proc_global_id) == MPI_SUCCESS);
@@ -133,11 +137,39 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
     for (i = 0; i < num_global_procs; i ++) 
         comps_comms_info[all_procs_comp_ids[i]]->comp_procs_global_ids[all_procs_local_ids[i]] = all_procs_global_ids[i];
 
+	/* Gather host name of computing nodes */
+	host_name_all_computing_nodes = new char [num_all_comps_procs[current_comp_id]*NAME_STR_SIZE];
+	host_name_distinct_computing_nodes = new char [num_all_comps_procs[current_comp_id]*NAME_STR_SIZE];
+	host_name_ids = new int [num_all_comps_procs[current_comp_id]];
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(host_name_current_computing_node, NAME_STR_SIZE, MPI_CHAR, host_name_all_computing_nodes, NAME_STR_SIZE, MPI_CHAR, current_comp_comm_group) == MPI_SUCCESS);
+	for (i = 0; i < num_all_comps_procs[current_comp_id]; i ++)
+		host_name_ids[i] = -1;
+	num_distinct_computing_nodes = 0;
+	for (i = 0; i < num_all_comps_procs[current_comp_id]; i ++) {
+		if (host_name_ids[i] >= 0)
+			continue;
+		host_name_ids[i] = num_distinct_computing_nodes;
+		for (j = i + 1; j < num_all_comps_procs[current_comp_id]; j ++) {
+			if (host_name_ids[j] >= 0)
+				continue;
+			if (words_are_the_same(host_name_all_computing_nodes+NAME_STR_SIZE*i, host_name_all_computing_nodes+NAME_STR_SIZE*j))
+				host_name_ids[j] = num_distinct_computing_nodes;
+		}
+		num_distinct_computing_nodes ++;
+	}
+
+	EXECUTION_REPORT(REPORT_LOG, true, "%d computing nodes are used in this experiment", num_distinct_computing_nodes);
+	
+    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(current_comp_comm_group, host_name_ids[current_proc_local_id], 0, &computing_node_comp_group) == MPI_SUCCESS);
+
     delete [] all_procs_global_ids;
     delete [] all_procs_local_ids;
     delete [] num_all_comps_procs;               
     delete [] all_comp_root_procs_global_ids;
     delete [] all_procs_comp_ids;
+	delete [] host_name_all_computing_nodes;
+	delete [] host_name_distinct_computing_nodes;
+	delete [] host_name_ids;
 }
 
 

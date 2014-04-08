@@ -15,6 +15,7 @@
 #include "cor_cpl_interface.h"
 #include "cor_global_data.h"
 #include <stdio.h>
+#include <mpi.h>
 
 
 Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
@@ -40,7 +41,15 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     int i, j;
 	bool has_integer;
 	int buf_mark;
-    
+	int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group, temp_value;
+	MPI_Status mpi_status;
+	
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_proc_computing_node_comp_group) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
+	if (current_proc_id_computing_node_comp_group > 0)
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(&temp_value, 1, MPI_INT, current_proc_id_computing_node_comp_group-1, 100, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
 
 	EXECUTION_REPORT(REPORT_LOG, true, "in generating Runtime_remap_algorithm");
 
@@ -53,8 +62,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     timer = new Coupling_timer(line);
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
     sscanf(line, "%d", &algorithm_mode);
-
     sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
+
     cpl_check_remap_weights_format(sequential_remap_weights);
     EXECUTION_REPORT(REPORT_ERROR, sequential_remap_weights != NULL, "C-Coupler software error remap weights is not found\n");
 
@@ -72,10 +81,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating remap_weights_src_decomp");
 
     decomp_name_remap = local_remap_decomp_src->get_decomp_name();
-
-    EXECUTION_REPORT(REPORT_LOG, true, "before generating raarrange router for runtime_remap_algorithm");
-    rearrange_src_router = routing_info_mgr->search_or_add_router(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, decomp_name_remap);
-    EXECUTION_REPORT(REPORT_LOG, true, "after generating raarrange router for runtime_remap_algorithm");
 
     if (algorithm_mode == 1) {
         get_next_line(line, cfg_fp);
@@ -161,8 +166,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         transfered_fields[j++] = src_double_remap_fields_after_rearrange[i];
     if (src_frac_field_before_rearrange != NULL)
         transfered_fields[j++] = src_frac_field_after_rearrange;
-    
-    runtime_rearrange_algorithm = new Runtime_transfer_algorithm(num_transfered_fields, transfered_fields, rearrange_src_router, timer);
+
 
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating rearrange rearrange algorithm for runtime_remap_algorithm");
 
@@ -173,6 +177,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
 	if (decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, decomp_original_grids[1])->get_decomp_grid() == NULL) {
 		parallel_remap_weights = NULL;
+		if (current_proc_id_computing_node_comp_group < num_proc_computing_node_comp_group - 1)
+			EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&temp_value, 1, MPI_INT, current_proc_id_computing_node_comp_group+1, 100, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
 		return;
 	}
 
@@ -207,14 +213,25 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	EXECUTION_REPORT(REPORT_LOG, true, "before generating parallel remap weights for runtime_remap_algorithm");
 
     parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, decomp_grids, global_cells_local_indexes_in_decomps);
+	sequential_remap_weights->temporarily_cleanup_memory_space();
+
 
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
 
-    delete [] transfered_fields;
-    delete [] remap_related_grids;
-    delete [] remap_related_decomp_grids;
-    delete [] global_cells_local_indexes_in_decomps[0];
-    delete [] global_cells_local_indexes_in_decomps[1];
+	if (current_proc_id_computing_node_comp_group < num_proc_computing_node_comp_group - 1)
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&temp_value, 1, MPI_INT, current_proc_id_computing_node_comp_group+1, 100, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+
+	EXECUTION_REPORT(REPORT_LOG, true, "before generating raarrange router for runtime_remap_algorithm");
+	rearrange_src_router = routing_info_mgr->search_or_add_router(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, decomp_name_remap);
+	EXECUTION_REPORT(REPORT_LOG, true, "after generating raarrange router for runtime_remap_algorithm");	
+	runtime_rearrange_algorithm = new Runtime_transfer_algorithm(num_transfered_fields, transfered_fields, rearrange_src_router, timer);
+
+	delete [] transfered_fields;
+	delete [] remap_related_grids;
+	delete [] remap_related_decomp_grids;
+	delete [] global_cells_local_indexes_in_decomps[0];
+	delete [] global_cells_local_indexes_in_decomps[1];
+
 }
 
 
@@ -240,9 +257,10 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
 	if (parallel_remap_weights == NULL)
 		return;
 
-	if (src_float_remap_fields_before_rearrange[i] != NULL) 
-		src_float_remap_fields_before_rearrange[i]->check_field_sum();
-	else src_double_remap_fields_before_rearrange[i]->check_field_sum();
+	for (i = 0; i < src_float_remap_fields_after_rearrange.size(); i ++)
+		if (src_float_remap_fields_before_rearrange[i] != NULL) 
+			src_float_remap_fields_before_rearrange[i]->check_field_sum();
+		else src_double_remap_fields_before_rearrange[i]->check_field_sum();
 
     /* Change the data type and then rearrange src data for parallel remapping */
     field_size_src_before_rearrange = src_double_remap_fields_before_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;

@@ -293,7 +293,9 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     double bilinear_wgt_values[4];
     bool have_searched_num_points_within_threshold;
     double eps = 2.0e-7;
-    
+    int num_vertexes_dst;
+    double vertex_coord_values_dst[256*4];
+	
 
     initialize_computing_remap_weights_of_one_cell();
 
@@ -306,14 +308,19 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     /* When no src cell contains the center of the dst cell, we use inverse distance weight to compute weight values
       */
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
+	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, vertex_coord_values_dst, true);
 
-    if (!have_overlapped_src_cells_for_dst_cell(dst_cell_index)) {
+    if (num_vertexes_dst > 0 && !have_overlapped_src_cells_for_dst_cell(dst_cell_index))
         return;
-    }
 
     search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
+
+	if (num_vertexes_dst == 0 && src_cell_index == -1)
+		return;
+	if (num_vertexes_dst == 0 && !src_cell_mask)
+		return;
 
     if (src_cell_index == -1 || !src_cell_mask) {
         compute_dist_remap_weights_of_one_dst_cell(dst_cell_index, 

@@ -1477,12 +1477,14 @@ void Remap_grid_class::generate_voronoi_grid()
     long i;
     Delaunay_Voronoi *delaunay_triangularization;
 
-
-    printf("generate voronoi grid for %lx\n", this);
-    are_vertex_values_set_in_default = true;
-    
+  
     EXECUTION_REPORT(REPORT_ERROR, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
-    EXECUTION_REPORT(REPORT_ERROR, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user\n", grid_name);
+    EXECUTION_REPORT(REPORT_WARNING, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Failed to generate the voronoi grid\n", grid_name);
+
+	if (boundary_min_lon == NULL_COORD_VALUE)
+		return;
+	
+    are_vertex_values_set_in_default = true;
 
     is_global_grid = boundary_min_lat == -90 && boundary_max_lat == 90 && fabs(boundary_min_lon-boundary_max_lon) == 360;
     center_lon_values = (double*) this->grid_center_fields[0]->get_grid_data_field()->data_buf;

@@ -52,10 +52,14 @@ class Remap_weight_of_strategy_class
 {
     private:
         char object_name[256];
+		char input_IO_file_name[256];
+		char weight_IO_format[256];
         std::vector<Remap_weight_of_operator_class*> remap_weights_of_operators;
         Remap_grid_class *data_grid_src;
         Remap_grid_class *data_grid_dst;
         Remap_strategy_class *remap_strategy;
+		bool include_weight_values;
+		bool read_weights;
 
     public:
         Remap_weight_of_strategy_class(const char*, const char*, const char*, const char*, bool);
@@ -77,6 +81,9 @@ class Remap_weight_of_strategy_class
         Remap_grid_class **get_remap_related_grids(int&);
         Remap_weight_of_strategy_class *generate_parallel_remap_weights(Remap_grid_class**, Remap_grid_class**, Remap_grid_class**, int **);
         const char *get_object_name() { return object_name; }
+		void compute_or_readin_weight_values();
+		void set_input_IO_info(const char*, const char*);
+		void temporarily_cleanup_memory_space();
 };
 
 

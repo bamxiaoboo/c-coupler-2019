@@ -12,8 +12,6 @@
 #include "remap_common_utils.h"
 #include "parse_special_words.h"
 #include "cor_global_data.h"
-#include "io_binary.h"
-#include "io_netcdf.h"
 
 
 void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_operand **statement_operands, int num_operands)
@@ -60,17 +58,8 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
                                                            statement_operands[2]->object->object_name,
                                                            statement_operands[3]->object->object_name,
                                                            true);
+		remap_weights->set_input_IO_info(statement_operands[4]->object->object_name, statement_operands[5]->extension_names[0]);
         remap_weights_of_strategies.push_back(remap_weights);
-        if (words_are_the_same(statement_operands[5]->extension_names[0], "SCRIP")) {
-            EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(io_manager->search_IO_object(statement_operands[4]->object->object_name)->get_file_type(), FILE_TYPE_NETCDF),
-                                            "remap weights of SCRIP format can only be read from netcdf file\n");
-            ((IO_netcdf*) (io_manager->search_IO_object(statement_operands[4]->object->object_name)))->read_remap_weights(remap_weights, remap_strategy_manager->search_remap_strategy(statement_operands[1]->object->object_name));
-        }
-        else {
-            EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(io_manager->search_IO_object(statement_operands[4]->object->object_name)->get_file_type(), FILE_TYPE_BINARY),
-                                            "remap weights of C-Coupler format can only be read from binary file\n");
-            ((IO_binary*) (io_manager->search_IO_object(statement_operands[4]->object->object_name)))->read_remap_weights(remap_weights, remap_strategy_manager->search_remap_strategy(statement_operands[1]->object->object_name));
-        }
     }
 }
 
@@ -78,8 +67,10 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
 Remap_weight_of_strategy_class *Remap_weight_of_strategy_mgt::search_remap_weight_of_strategy(const char *object_name)
 {
     for (int i = 0; i < remap_weights_of_strategies.size(); i ++) 
-        if (remap_weights_of_strategies[i]->match_object_name(object_name))
+        if (remap_weights_of_strategies[i]->match_object_name(object_name)) {
+			remap_weights_of_strategies[i]->compute_or_readin_weight_values();
             return remap_weights_of_strategies[i];
+        }
 
     return NULL;
 }
