@@ -14,6 +14,10 @@
 #include "remap_operator_basis.h"
 
 
+extern double *common_buffer_for_1D_remap_operator;
+extern int size_common_buffer_for_1D_remap_operator;
+
+
 class Remap_operator_1D_basis: public Remap_operator_basis
 {
     protected:
@@ -33,6 +37,7 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		int *src_cell_index_right;
 
 		void initialize_1D_remap_operator();
+		void allocate_1D_remap_operator_common_arrays_space();
 		void search_src_cells_around_dst_cell(double, int, int, int&, int&);
 		void search_src_cells_around_dst_cell_recursively(double, int, int,  int&, int&);
 		void set_common_parameter(const char*, const char*);

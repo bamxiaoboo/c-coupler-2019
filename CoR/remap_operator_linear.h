@@ -21,6 +21,7 @@ class Remap_operator_linear: public Remap_operator_1D_basis
 		double *logarithm_data_value_src;
 		bool *temp_decomp_map_src;
         void compute_remap_weights_of_one_dst_cell(long);
+		void allocate_local_arrays();
 
     public:
         Remap_operator_linear(const char*, int, Remap_grid_class **);

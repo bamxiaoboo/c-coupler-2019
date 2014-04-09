@@ -104,20 +104,21 @@ void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const c
 
 void Remap_operator_spline_1D::allocate_local_arrays()
 {
-	array_alpha = new double [src_grid->get_grid_size()+1];
-	array_mu = new double [src_grid->get_grid_size()+1];
-	array_lambda = new double [src_grid->get_grid_size()+1];
-	array_h = new double [src_grid->get_grid_size()+1];
-	array_d = new double [src_grid->get_grid_size()+1];
-	temp_array_column = new double [src_grid->get_grid_size()+1];
-	temp_array_row = new double [src_grid->get_grid_size()+1];
-	final_factor1 = new double [dst_grid->get_grid_size()];
-	final_factor2 = new double [dst_grid->get_grid_size()];
-	final_factor3 = new double [dst_grid->get_grid_size()];
-	final_factor4 = new double [dst_grid->get_grid_size()];
-	final_factor5 = new double [dst_grid->get_grid_size()];
-	data_in_monotonicity_range = new double [dst_grid->get_grid_size()+2];
-	dst_cell_indexes_in_monotonicity_ranges = new int [dst_grid->get_grid_size()];
+	array_alpha = common_buffer_for_1D_remap_operator + 3*(src_grid->get_grid_size()+2);
+	array_mu = common_buffer_for_1D_remap_operator + 4*(src_grid->get_grid_size()+2);;
+	array_lambda = common_buffer_for_1D_remap_operator + 5*(src_grid->get_grid_size()+2);;
+	array_h = common_buffer_for_1D_remap_operator + 6*(src_grid->get_grid_size()+2);;
+	array_d = common_buffer_for_1D_remap_operator + 7*(src_grid->get_grid_size()+2);;
+	temp_array_column = common_buffer_for_1D_remap_operator + 8*(src_grid->get_grid_size()+2);;
+	temp_array_row = common_buffer_for_1D_remap_operator + 9*(src_grid->get_grid_size()+2);
+
+	final_factor1 = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 3*(dst_grid->get_grid_size()+2);
+	final_factor2 = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 4*(dst_grid->get_grid_size()+2);
+	final_factor3 = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 5*(dst_grid->get_grid_size()+2);
+	final_factor4 = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 6*(dst_grid->get_grid_size()+2);
+	final_factor5 = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 7*(dst_grid->get_grid_size()+2);
+	data_in_monotonicity_range = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 8*(dst_grid->get_grid_size()+2);
+	dst_cell_indexes_in_monotonicity_ranges = (int*) (common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 9*(dst_grid->get_grid_size()+2));
 }
 
 
@@ -142,20 +143,6 @@ Remap_operator_spline_1D::Remap_operator_spline_1D(const char *object_name, int 
 
 Remap_operator_spline_1D::~Remap_operator_spline_1D()
 {
-	delete [] array_alpha;
-	delete [] array_mu;
-	delete [] array_lambda;
-	delete [] array_h;
-	delete [] array_d;
-	delete [] temp_array_column;
-	delete [] temp_array_row;
-	delete [] final_factor1;
-	delete [] final_factor2;
-	delete [] final_factor3;
-	delete [] final_factor4;
-	delete [] final_factor5;
-	delete [] data_in_monotonicity_range;
-	delete [] dst_cell_indexes_in_monotonicity_ranges;
 }
 
 
@@ -169,6 +156,10 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 	int i;
 	long temp_long_value = 0.0;
 
+
+
+	allocate_1D_remap_operator_common_arrays_space();
+	allocate_local_arrays();
 
 	clear_remap_weight_info_in_sparse_matrix();
 	calculate_dst_src_mapping_info();
@@ -228,6 +219,9 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 	double ratio;
 	bool check_monotonicity, next_in_same_monotonicity_range;
 
+
+	allocate_1D_remap_operator_common_arrays_space();
+	allocate_local_arrays();
 
 	array_size_src = remap_weights_groups[0]->get_num_weights();
 	if (array_size_src == 0)
@@ -336,6 +330,7 @@ void Remap_operator_spline_1D::do_src_decomp_caculation(bool *decomp_map_src, co
 	double temp_double_value;
 
 
+	allocate_local_arrays();
 	array_size_src = remap_weights_groups[0]->get_num_weights();
 	if (array_size_src == 0)
 		return;

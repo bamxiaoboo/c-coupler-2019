@@ -52,6 +52,9 @@ void Remap_operator_linear::calculate_remap_weights()
 	
     clear_remap_weight_info_in_sparse_matrix();
 
+	allocate_1D_remap_operator_common_arrays_space();
+	allocate_local_arrays();
+
 	calculate_dst_src_mapping_info();
 
 	if (array_size_src == 0)
@@ -93,17 +96,20 @@ Remap_operator_linear::Remap_operator_linear(const char *object_name, int num_re
 {
 	use_logarithm = false;
 	set_use_logarithm = false;
-	logarithm_data_value_src = new double [src_grid->get_grid_size()+1];
-	temp_decomp_map_src = new bool [src_grid->get_grid_size()+1];
     remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
 	remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
 }
 
 
+void Remap_operator_linear::allocate_local_arrays()
+{
+	logarithm_data_value_src = common_buffer_for_1D_remap_operator + 3*(src_grid->get_grid_size()+2);
+	temp_decomp_map_src = (bool*) (common_buffer_for_1D_remap_operator + 4*(src_grid->get_grid_size()+2));
+}
+
+
 Remap_operator_linear::~Remap_operator_linear()
 {
-	delete [] logarithm_data_value_src;
-	delete [] temp_decomp_map_src;
 }
 
 
@@ -119,6 +125,9 @@ void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, 
 	array_size_src = remap_weights_groups[0]->get_num_weights();
 	if (array_size_src == 0)
 		return;
+
+	allocate_1D_remap_operator_common_arrays_space();
+	allocate_local_arrays();
 
 	for (i = 0; i < array_size_src; i ++) {
 		remap_weights_groups[0]->get_weight(&temp_long_value1, &temp_long_value2, &temp_double_value, i);
@@ -153,6 +162,8 @@ void Remap_operator_linear::do_src_decomp_caculation(bool *decomp_map_src, const
 	double temp_double_value;
 
 
+	allocate_local_arrays();
+	
 	array_size_src = remap_weights_groups[0]->get_num_weights();
 	if (array_size_src == 0)
 		return;
@@ -174,8 +185,6 @@ Remap_operator_basis *Remap_operator_linear::duplicate_remap_operator(bool fully
 	((Remap_operator_linear *) duplicated_remap_operator)->initialize_1D_remap_operator();
 	((Remap_operator_linear *) duplicated_remap_operator)->use_logarithm = this->use_logarithm;
 	((Remap_operator_linear *) duplicated_remap_operator)->set_use_logarithm = this->set_use_logarithm;
-	((Remap_operator_linear *) duplicated_remap_operator)->logarithm_data_value_src = new double [src_grid->get_grid_size()+1];
-	((Remap_operator_linear *) duplicated_remap_operator)->temp_decomp_map_src = new bool [src_grid->get_grid_size()+1];
 
     return duplicated_remap_operator;
 }

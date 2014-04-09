@@ -12,6 +12,10 @@
 #include <math.h>
 
 
+double *common_buffer_for_1D_remap_operator = NULL;
+int size_common_buffer_for_1D_remap_operator = 0;
+
+
 Remap_operator_1D_basis::Remap_operator_1D_basis(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
                                        : Remap_operator_basis(object_name, 
                                                               REMAP_OPERATOR_NAME_SPLINE_1D, 
@@ -28,12 +32,6 @@ Remap_operator_1D_basis::Remap_operator_1D_basis(const char *object_name, int nu
 
 Remap_operator_1D_basis::~Remap_operator_1D_basis()
 {
-	delete [] coord_values_src;
-	delete [] coord_values_dst;
-	delete [] packed_data_values_src;
-	delete [] useful_src_cells_global_index;
-	delete [] src_cell_index_left;
-	delete [] src_cell_index_right;
 }
 
 
@@ -91,6 +89,26 @@ void Remap_operator_1D_basis::set_common_parameter(const char *parameter_name, c
 }
 
 
+void Remap_operator_1D_basis::allocate_1D_remap_operator_common_arrays_space()
+{
+	int required_size = (src_grid->get_grid_size()+2)*12+(dst_grid->get_grid_size()+2)*12;
+
+	if (size_common_buffer_for_1D_remap_operator < required_size) {
+		if (common_buffer_for_1D_remap_operator != NULL)
+			delete [] common_buffer_for_1D_remap_operator;
+		size_common_buffer_for_1D_remap_operator = required_size;
+		common_buffer_for_1D_remap_operator = new double [size_common_buffer_for_1D_remap_operator];
+	}
+	
+	coord_values_src = common_buffer_for_1D_remap_operator + 0*(src_grid->get_grid_size()+2);
+	packed_data_values_src = common_buffer_for_1D_remap_operator + 1*(src_grid->get_grid_size()+2);
+	useful_src_cells_global_index = (int*) (common_buffer_for_1D_remap_operator + 2*(src_grid->get_grid_size()+2));
+	coord_values_dst = common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 0*(dst_grid->get_grid_size()+2);
+	src_cell_index_left = (int*) (common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 1*(dst_grid->get_grid_size()+2));
+	src_cell_index_right = (int*) (common_buffer_for_1D_remap_operator + 12*(src_grid->get_grid_size()+2) + 2*(dst_grid->get_grid_size()+2));
+}
+
+
 void Remap_operator_1D_basis::initialize_1D_remap_operator()
 {
 	set_periodic = false;
@@ -98,12 +116,8 @@ void Remap_operator_1D_basis::initialize_1D_remap_operator()
     periodic = false;
 	enable_extrapolation = false;
 	set_enable_extrapolation = false;
-	coord_values_src = new double [src_grid->get_grid_size()];
-	coord_values_dst = new double [dst_grid->get_grid_size()];
-	packed_data_values_src = new double [src_grid->get_grid_size()+1];
-	useful_src_cells_global_index = new int [src_grid->get_grid_size()+1];
-	src_cell_index_left = new int [src_grid->get_grid_size()+1];
-	src_cell_index_right = new int [src_grid->get_grid_size()+1];
+
+	allocate_1D_remap_operator_common_arrays_space();
 }
 
 

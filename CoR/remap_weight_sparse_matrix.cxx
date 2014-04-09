@@ -51,7 +51,7 @@ Remap_weight_sparse_matrix::Remap_weight_sparse_matrix(Remap_operator_basis *rem
 {
     this->remap_operator = remap_operator;
     num_weights = 0;
-    weight_arrays_size = 16;
+    weight_arrays_size = 1;
     num_remaped_dst_cells_indexes = 0;
     remaped_dst_cells_indexes_array_size = weight_arrays_size;
     cells_indexes_src = new long [weight_arrays_size];

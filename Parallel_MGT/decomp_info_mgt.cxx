@@ -200,7 +200,6 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
         EXECUTION_REPORT(REPORT_ERROR, decomp_src->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");
     for (long i = 0; i < decomp_dst->get_num_local_cells(); i ++)
         EXECUTION_REPORT(REPORT_ERROR, decomp_dst->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");	
-    remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
     decomp_map_src = new bool [decomp_src->get_num_global_cells()];
     decomp_map_dst = new bool [decomp_dst->get_num_global_cells()];
     for (long i = 0; i < decomp_dst->get_num_global_cells(); i ++)
@@ -209,9 +208,11 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
         decomp_map_dst[decomp_dst->get_local_cell_global_indx()[i]] = true;
 
 	EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
+    remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name, true);
     remap_weights->calculate_src_decomp(remap_grid_manager->search_remap_grid_with_grid_name(decomp_src->get_grid_name()), 
                                         remap_grid_manager->search_remap_grid_with_grid_name(decomp_dst->get_grid_name()), 
                                         decomp_map_src, decomp_map_dst);
+	remap_weights->temporarily_cleanup_memory_space();
 	EXECUTION_REPORT(REPORT_LOG, true, "after calculate_src_decomp");
 
     original_map_src = new bool [decomp_src->get_num_global_cells()];
