@@ -76,7 +76,7 @@ class Remap_weight_of_strategy_class
         void add_remap_weight_of_operator(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
         void add_weight_of_operator_class(Remap_weight_of_operator_class *weight_of_operator_class) { remap_weights_of_operators.push_back(weight_of_operator_class); }
-        void calculate_src_decomp(Remap_grid_class*, Remap_grid_class*, bool*, const bool*);
+        void calculate_src_decomp(Remap_grid_class*, Remap_grid_class*, long*, const long*);
         void calculate_src_decomp_recursively(int, Remap_operator_basis*, Remap_grid_data_class*, Remap_grid_data_class*, Remap_grid_data_class*, Remap_grid_data_class*);
         Remap_grid_class **get_remap_related_grids(int&);
         Remap_weight_of_strategy_class *generate_parallel_remap_weights(Remap_grid_class**, Remap_grid_class**, Remap_grid_class**, int **);

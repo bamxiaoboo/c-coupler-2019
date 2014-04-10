@@ -104,7 +104,7 @@ Remap_operator_linear::Remap_operator_linear(const char *object_name, int num_re
 void Remap_operator_linear::allocate_local_arrays()
 {
 	logarithm_data_value_src = common_buffer_for_1D_remap_operator + 3*(src_grid->get_grid_size()+2);
-	temp_decomp_map_src = (bool*) (common_buffer_for_1D_remap_operator + 4*(src_grid->get_grid_size()+2));
+	temp_decomp_map_src = (long*) (common_buffer_for_1D_remap_operator + 4*(src_grid->get_grid_size()+2));
 }
 
 
@@ -155,7 +155,7 @@ void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, 
 }
 
 
-void Remap_operator_linear::do_src_decomp_caculation(bool *decomp_map_src, const bool *decomp_map_dst)
+void Remap_operator_linear::do_src_decomp_caculation(long *decomp_map_src, const long *decomp_map_dst)
 {
 	int i;
 	long temp_long_value1, temp_long_value2;

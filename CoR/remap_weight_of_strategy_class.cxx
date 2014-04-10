@@ -255,7 +255,7 @@ void Remap_weight_of_strategy_class::calculate_src_decomp_recursively(int iter, 
     bool change_src_dst = false;
     Remap_grid_class *sized_sub_grids[4];
     long remap_beg_iter, remap_end_iter, index_size_iter, field_array_offset;
-    bool *decomp_map_values_src, *decomp_map_values_dst;
+    long *decomp_map_values_src, *decomp_map_values_dst;
 
 
     if (current_remap_operator != remap_weights_of_operators[iter]->original_remap_operator) {
@@ -299,8 +299,8 @@ void Remap_weight_of_strategy_class::calculate_src_decomp_recursively(int iter, 
             field_array_offset += current_runtime_index_array[k]*index_size_iter;
             index_size_iter *= index_size_array[k];
         }
-        decomp_map_values_src = ((bool*) tmp_field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[iter]->operator_grid_src->get_grid_size();
-        decomp_map_values_dst = ((bool*) tmp_field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[iter]->operator_grid_dst->get_grid_size();
+        decomp_map_values_src = ((long*) tmp_field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[iter]->operator_grid_src->get_grid_size();
+        decomp_map_values_dst = ((long*) tmp_field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[iter]->operator_grid_dst->get_grid_size();
         remap_weights_of_operators[iter]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_values_src, decomp_map_values_dst);
     }
 
@@ -309,22 +309,26 @@ void Remap_weight_of_strategy_class::calculate_src_decomp_recursively(int iter, 
 }
 
 
-void Remap_weight_of_strategy_class::calculate_src_decomp(Remap_grid_class *grid_src, Remap_grid_class *grid_dst, bool *decomp_map_src, const bool *decomp_map_dst)
+void Remap_weight_of_strategy_class::calculate_src_decomp(Remap_grid_class *grid_src, Remap_grid_class *grid_dst, long *decomp_map_src, const long *decomp_map_dst)
 {
     Remap_grid_data_class *decomp_map_field_src, *decomp_map_field_dst;
     Remap_grid_data_class *expanded_decomp_map_field_src, *expanded_decomp_map_field_dst;
     long i, j;
-    bool *tmp_decomp_map_src;
+    long *tmp_decomp_map_src;
 
 
     for (i = 0; i < grid_src->get_grid_size(); i ++)
-        decomp_map_src[i] = false;
+        decomp_map_src[i] = 0;
  	
     EXECUTION_REPORT(REPORT_ERROR, grid_src->get_grid_mask_field() != NULL && grid_dst->get_grid_mask_field() != NULL, "C-Coupler error in calculate_src_decomp\n");
     decomp_map_field_src = grid_src->get_grid_mask_field()->duplicate_grid_data_field(grid_src, 1, false, true);
+	decomp_map_field_src->change_datatype_in_application(DATA_TYPE_LONG);
     decomp_map_field_dst = grid_dst->get_grid_mask_field()->duplicate_grid_data_field(grid_dst, 1, false, true);
-    memcpy(decomp_map_field_src->get_grid_data_field()->data_buf, decomp_map_src, grid_src->get_grid_size()*sizeof(bool));
-    memcpy(decomp_map_field_dst->get_grid_data_field()->data_buf, decomp_map_dst, grid_dst->get_grid_size()*sizeof(bool));
+	decomp_map_field_dst->change_datatype_in_application(DATA_TYPE_LONG);
+	for (i = 0; i < grid_src->get_grid_size(); i ++)
+		((long*) decomp_map_field_src->get_grid_data_field()->data_buf)[i] = 0;
+	for (i = 0; i < grid_dst->get_grid_size(); i ++)
+		((long*) decomp_map_field_dst->get_grid_data_field()->data_buf)[i] = decomp_map_dst[i];
     expanded_decomp_map_field_src = data_grid_src->expand_to_generate_full_coord_value(decomp_map_field_src);
     expanded_decomp_map_field_dst = data_grid_dst->expand_to_generate_full_coord_value(decomp_map_field_dst);
 
@@ -334,10 +338,9 @@ void Remap_weight_of_strategy_class::calculate_src_decomp(Remap_grid_class *grid
 
     expanded_decomp_map_field_src->interchange_grid_data(grid_src);
     for (i = 0; i < data_grid_src->get_grid_size()/grid_src->get_grid_size(); i ++) {
-        tmp_decomp_map_src = ((bool*) expanded_decomp_map_field_src->get_grid_data_field()->data_buf) + i*grid_src->get_grid_size();
+        tmp_decomp_map_src = ((long*) expanded_decomp_map_field_src->get_grid_data_field()->data_buf) + i*grid_src->get_grid_size();
         for (j = 0; j < grid_src->get_grid_size(); j ++)
-            if (tmp_decomp_map_src[j])
-                decomp_map_src[j] = true;
+			decomp_map_src[j] = (decomp_map_src[j] | tmp_decomp_map_src[j]);
     }
 
     delete decomp_map_field_src;

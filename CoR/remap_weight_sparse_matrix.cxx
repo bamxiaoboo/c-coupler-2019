@@ -143,11 +143,10 @@ void Remap_weight_sparse_matrix::remap_values(double *data_values_src, double *d
 }
 
 
-void Remap_weight_sparse_matrix::calc_src_decomp(bool *decomp_map_src, const bool *decomp_map_dst)
+void Remap_weight_sparse_matrix::calc_src_decomp(long *decomp_map_src, const long *decomp_map_dst)
 {
     for (long i = 0; i < num_weights; i ++)
-        if (decomp_map_dst[cells_indexes_dst[i]])
-            decomp_map_src[cells_indexes_src[i]] = true;
+        decomp_map_src[cells_indexes_src[i]] = (decomp_map_src[cells_indexes_src[i]] | decomp_map_dst[cells_indexes_dst[i]]);
 }
 
 

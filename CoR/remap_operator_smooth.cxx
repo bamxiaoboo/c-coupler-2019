@@ -57,7 +57,7 @@ void Remap_operator_smooth::do_remap_values_caculation(double *data_values_src, 
 }
 
 
-void Remap_operator_smooth::do_src_decomp_caculation(bool *decomp_map_src, const bool *decomp_map_dst)
+void Remap_operator_smooth::do_src_decomp_caculation(long *decomp_map_src, const long *decomp_map_dst)
 {
     remap_weights_groups[0]->calc_src_decomp(decomp_map_src, decomp_map_dst);
 }

@@ -323,7 +323,7 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 }
 
 
-void Remap_operator_spline_1D::do_src_decomp_caculation(bool *decomp_map_src, const bool *decomp_map_dst)
+void Remap_operator_spline_1D::do_src_decomp_caculation(long *decomp_map_src, const long *decomp_map_dst)
 {
 	int i;
 	long temp_long_value1, temp_long_value2;
@@ -345,10 +345,8 @@ void Remap_operator_spline_1D::do_src_decomp_caculation(bool *decomp_map_src, co
 		src_cell_index_right[i] = temp_long_value2;
 		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
 			continue;
-		if (decomp_map_dst[i]) {
-			decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] = true;
-			decomp_map_src[useful_src_cells_global_index[src_cell_index_right[i]]] = true;
-		}
+		decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] = (decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] | decomp_map_dst[i]);
+		decomp_map_src[useful_src_cells_global_index[src_cell_index_right[i]]] = (decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] | decomp_map_dst[i]); 
 	}
 }
 

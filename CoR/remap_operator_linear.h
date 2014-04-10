@@ -19,7 +19,7 @@ class Remap_operator_linear: public Remap_operator_1D_basis
 		bool use_logarithm;
 		bool set_use_logarithm;
 		double *logarithm_data_value_src;
-		bool *temp_decomp_map_src;
+		long *temp_decomp_map_src;
         void compute_remap_weights_of_one_dst_cell(long);
 		void allocate_local_arrays();
 
@@ -30,7 +30,7 @@ class Remap_operator_linear: public Remap_operator_1D_basis
         void set_parameter(const char *, const char *);
         void calculate_remap_weights();
         void do_remap_values_caculation(double*, double*);
-        void do_src_decomp_caculation(bool*, const bool*);
+        void do_src_decomp_caculation(long*, const long*);
         Remap_operator_basis *duplicate_remap_operator(bool);
         Remap_operator_basis *generate_parallel_remap_operator(Remap_grid_class**, int**);
 };

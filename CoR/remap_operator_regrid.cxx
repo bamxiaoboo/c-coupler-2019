@@ -44,7 +44,7 @@ void Remap_operator_regrid::do_remap_values_caculation(double *data_values_src, 
 }
 
 
-void Remap_operator_regrid::do_src_decomp_caculation(bool *decomp_map_src, const bool *decomp_map_dst)
+void Remap_operator_regrid::do_src_decomp_caculation(long *decomp_map_src, const long *decomp_map_dst)
 {
     EXECUTION_REPORT(REPORT_ERROR, false, "remap software error in do_src_decomp_caculation of Remap_operator_regrid\n");
 }

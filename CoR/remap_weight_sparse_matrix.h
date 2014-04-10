@@ -38,7 +38,7 @@ class Remap_weight_sparse_matrix
         void add_weights(long*, long, double*, int);
 		void get_weight(long*, long*, double*, int);
         void remap_values(double*, double*);
-        void calc_src_decomp(bool*, const bool*);
+        void calc_src_decomp(long*, const long*);
         Remap_weight_sparse_matrix *duplicate_remap_weight_of_sparse_matrix();
         Remap_weight_sparse_matrix *generate_parallel_remap_weight_of_sparse_matrix(Remap_grid_class **, int **);
         Remap_operator_basis *get_remap_operator() { return remap_operator; }

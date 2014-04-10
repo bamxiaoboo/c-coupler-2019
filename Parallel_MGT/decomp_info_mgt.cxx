@@ -7,12 +7,12 @@
   ***************************************************************/
 
 
+#include <mpi.h>
 #include "decomp_info_mgt.h"
 #include "global_data.h"
 #include "memory_mgt.h"
 #include "cor_global_data.h"
 #include "cor_cpl_interface.h"
-#include <stdio.h>
 #include <string.h>
 
 
@@ -184,9 +184,10 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
     Decomp_info *decomp_src, *decomp_dst;
     Decomp_info *decomp_for_remap;
     Remap_weight_of_strategy_class *remap_weights;
-    bool *decomp_map_src, *decomp_map_dst, *original_map_src;
+    long *decomp_map_src, *decomp_map_dst, *original_map_src;
     int num_local_cells, *local_cell_global_indexes;
     char decomp_name_remap[NAME_STR_SIZE];
+	int current_proc_id_computing_node_comp_group;
 
 
     sprintf(decomp_name_remap, "%s_%s_%s", decomp_name_src, remap_weights_name, decomp_name_dst);
@@ -200,12 +201,14 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
         EXECUTION_REPORT(REPORT_ERROR, decomp_src->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");
     for (long i = 0; i < decomp_dst->get_num_local_cells(); i ++)
         EXECUTION_REPORT(REPORT_ERROR, decomp_dst->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");	
-    decomp_map_src = new bool [decomp_src->get_num_global_cells()];
-    decomp_map_dst = new bool [decomp_dst->get_num_global_cells()];
+
+    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
+    decomp_map_src = new long [decomp_src->get_num_global_cells()];
+    decomp_map_dst = new long [decomp_dst->get_num_global_cells()];
     for (long i = 0; i < decomp_dst->get_num_global_cells(); i ++)
-        decomp_map_dst[i] = false;
+        decomp_map_dst[i] = 0;
     for (long i = 0; i < decomp_dst->get_num_local_cells(); i ++)
-        decomp_map_dst[decomp_dst->get_local_cell_global_indx()[i]] = true;
+        decomp_map_dst[decomp_dst->get_local_cell_global_indx()[i]] = (((long)1)<<current_proc_id_computing_node_comp_group);
 
 	EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
     remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name, true);
@@ -215,21 +218,21 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 	remap_weights->temporarily_cleanup_memory_space();
 	EXECUTION_REPORT(REPORT_LOG, true, "after calculate_src_decomp");
 
-    original_map_src = new bool [decomp_src->get_num_global_cells()];
+    original_map_src = new long [decomp_src->get_num_global_cells()];
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
-        original_map_src[i] = false;
+        original_map_src[i] = 0;
     for (long i = 0; i < decomp_src->get_num_local_cells(); i ++)
-        original_map_src[decomp_src->get_local_cell_global_indx()[i]] = true;
+        original_map_src[decomp_src->get_local_cell_global_indx()[i]] = (((long)1)<<current_proc_id_computing_node_comp_group);
     num_local_cells = decomp_src->get_num_local_cells();
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
-        if (decomp_map_src[i] && !original_map_src[i])
+        if (decomp_map_src[i] == (((long)1)<<current_proc_id_computing_node_comp_group) && original_map_src[i] != (((long)1)<<current_proc_id_computing_node_comp_group))
             num_local_cells ++;
     local_cell_global_indexes = new int [num_local_cells];
     num_local_cells = 0;
     for (long i = 0; i < decomp_src->get_num_local_cells(); i ++)
         local_cell_global_indexes[num_local_cells++] = decomp_src->get_local_cell_global_indx()[i]+1;
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
-        if (decomp_map_src[i] && !original_map_src[i])
+        if (decomp_map_src[i] == (((long)1)<<current_proc_id_computing_node_comp_group) && original_map_src[i] != (((long)1)<<current_proc_id_computing_node_comp_group))
             local_cell_global_indexes[num_local_cells++] = i+1;
 
     decomp_for_remap = new Decomp_info(decomp_name_remap, decomp_src->get_model_name(), decomp_src->get_grid_name(), num_local_cells, local_cell_global_indexes);
