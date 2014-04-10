@@ -7,6 +7,7 @@
   ***************************************************************/
 
 
+#include <mpi.h>
 #include "decomp_grid_mgt.h"
 #include "global_data.h"
 #include "cor_cpl_interface.h"
@@ -118,11 +119,22 @@ Decomp_grid_info::~Decomp_grid_info()
 }
 
 
+void Decomp_grid_mgt::bcast_grid_area_or_volumn_intra_computing_node(Remap_grid_class *original_grid)
+{
+	if (original_grid->get_area_or_volumn() == NULL)
+		return;
+
+	MPI_Bcast(original_grid->get_area_or_volumn(), original_grid->get_grid_size(), MPI_DOUBLE, 0, compset_communicators_info_mgr->get_computing_node_comp_group());
+}
+
+
 Decomp_grid_info *Decomp_grid_mgt::search_decomp_grid_info(const char *decomp_name, Remap_grid_class *original_grid)
 {
     for (int i = 0; i < decomp_grids_info.size(); i ++)
         if (decomp_grids_info[i]->match(decomp_name, original_grid))
             return decomp_grids_info[i];
+
+	bcast_grid_area_or_volumn_intra_computing_node(original_grid);
 
     decomp_grids_info.push_back(new Decomp_grid_info(decomp_name, original_grid));
     decomp_grids_info[decomp_grids_info.size()-1]->register_decomp_grid_fields();

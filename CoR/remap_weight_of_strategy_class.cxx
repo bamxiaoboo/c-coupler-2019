@@ -7,13 +7,14 @@
   ***************************************************************/
 
 
+#include <mpi.h>
 #include "remap_weight_of_strategy_class.h"
 #include "remap_strategy_class.h"
 #include "remap_operator_basis.h"
 #include "cor_global_data.h"
-#include <string.h>
 #include "io_binary.h"
 #include "io_netcdf.h"
+#include <string.h>
 
 
 Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, 
@@ -83,62 +84,24 @@ Remap_weight_of_operator_class::~Remap_weight_of_operator_class()
 
 Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *object_name, const char *remap_strategy_name, 
                                                                const char *data_grid_name_src, const char *data_grid_name_dst,
+                                                               const char *input_IO_file_name, const char *weight_IO_format,
                                                                bool read_weights)
 {
     strcpy(this->object_name, object_name);
     remap_strategy = remap_strategy_manager->search_remap_strategy(remap_strategy_name);
     data_grid_src = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_src);
     data_grid_dst = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_dst);
-	include_weight_values = false;
-	this->read_weights = read_weights;
-
-    EXECUTION_REPORT(REPORT_ERROR, data_grid_src->get_num_dimensions() == data_grid_dst->get_num_dimensions(), 
-    	             "grid %s and %s must have the same number of dimensions\n", data_grid_name_src, data_grid_name_dst);
-}
-
-
-void Remap_weight_of_strategy_class::set_input_IO_info(const char *input_IO_file_name, const char *weight_IO_format)
-{
-    EXECUTION_REPORT(REPORT_ERROR, read_weights && !include_weight_values, "software error in set_input_IO_info\n");	
-	strcpy(this->input_IO_file_name, input_IO_file_name);
-	strcpy(this->weight_IO_format, weight_IO_format);
-	if (words_are_the_same(weight_IO_format, "SCRIP"))
-		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(io_manager->search_IO_object(input_IO_file_name)->get_file_type(), FILE_TYPE_NETCDF),
-										"remap weights of SCRIP format can only be read from netcdf file\n");
-	else if (words_are_the_same(weight_IO_format, "C-Coupler"))
-		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(io_manager->search_IO_object(input_IO_file_name)->get_file_type(), FILE_TYPE_BINARY),
-										"remap weights of C-Coupler format can only be read from binary file\n");
-	else EXECUTION_REPORT(REPORT_ERROR, false, "the format of remap weights in IO file must be a string of \"SCRIP\" or \"C-Coupler\"");
-}
-
-
-void Remap_weight_of_strategy_class::compute_or_readin_weight_values()
-{
-	if (include_weight_values)
-		return;
-
-	execution_phase_number = 1;
-	if (read_weights) {
+	
+	if (!read_weights)
+		remap_strategy->execute_remap_strategy(NULL, NULL, this);
+	else {
 		if (words_are_the_same(weight_IO_format, "SCRIP")) 
 			((IO_netcdf*) (io_manager->search_IO_object(input_IO_file_name)))->read_remap_weights(this, remap_strategy);
 		else ((IO_binary*) (io_manager->search_IO_object(input_IO_file_name)))->read_remap_weights(this, remap_strategy);
 	}
-	else remap_strategy->execute_remap_strategy(NULL, NULL, this);
-	
-	include_weight_values = true;
-	execution_phase_number = 2;
-}
 
-
-void Remap_weight_of_strategy_class::temporarily_cleanup_memory_space()
-{
-    EXECUTION_REPORT(REPORT_ERROR, read_weights && include_weight_values, "software error in temporarily_cleanup_memory_space\n");	
-
-    for (int i = 0; i < remap_weights_of_operators.size(); i ++)
-        delete remap_weights_of_operators[i];
-
-	remap_weights_of_operators.clear();
-	include_weight_values = false;
+    EXECUTION_REPORT(REPORT_ERROR, data_grid_src->get_num_dimensions() == data_grid_dst->get_num_dimensions(), 
+    	             "grid %s and %s must have the same number of dimensions\n", data_grid_name_src, data_grid_name_dst);
 }
 
 

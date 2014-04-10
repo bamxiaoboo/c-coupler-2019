@@ -187,36 +187,60 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
     long *decomp_map_src, *decomp_map_dst, *original_map_src;
     int num_local_cells, *local_cell_global_indexes;
     char decomp_name_remap[NAME_STR_SIZE];
-	int current_proc_id_computing_node_comp_group;
+	int current_proc_id_computing_node_comp_group, num_procs_computing_node_comp_group;
+	int *dst_decomp_size_all_procs_in_computing_node, *displs, *dst_decomp_local_cell_indexes_all_procs_in_computing_node, *current_local_cell_indexes;
+	int i, j;
 
 
     sprintf(decomp_name_remap, "%s_%s_%s", decomp_name_src, remap_weights_name, decomp_name_dst);
-    for (int i = 0; i < decomps_info.size(); i ++)
+    for (i = 0; i < decomps_info.size(); i ++)
         if (words_are_the_same(decomps_info[i]->get_decomp_name(), decomp_name_remap))
             return decomps_info[i];
 
     decomp_src = decomps_info_mgr->search_decomp_info(decomp_name_src);
     decomp_dst = decomps_info_mgr->search_decomp_info(decomp_name_dst);
-    for (long i = 0; i < decomp_src->get_num_local_cells(); i ++)
+    for (i = 0; i < decomp_src->get_num_local_cells(); i ++)
         EXECUTION_REPORT(REPORT_ERROR, decomp_src->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");
-    for (long i = 0; i < decomp_dst->get_num_local_cells(); i ++)
+    for (i = 0; i < decomp_dst->get_num_local_cells(); i ++)
         EXECUTION_REPORT(REPORT_ERROR, decomp_dst->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");	
 
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_procs_computing_node_comp_group) == MPI_SUCCESS);
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
+	if (current_proc_id_computing_node_comp_group == 0) {
+		dst_decomp_size_all_procs_in_computing_node = new int [num_procs_computing_node_comp_group];
+		displs = new int [num_procs_computing_node_comp_group];
+	}
+	num_local_cells = decomp_dst->get_num_local_cells();
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Gather(&num_local_cells, 1, MPI_INT, dst_decomp_size_all_procs_in_computing_node, 1, MPI_INT, 0, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+	if (current_proc_id_computing_node_comp_group == 0) {
+		displs[0] = 0;
+		for (i = 1; i < num_procs_computing_node_comp_group; i ++)
+			displs[i] = displs[i-1] + dst_decomp_size_all_procs_in_computing_node[i-1];
+		dst_decomp_local_cell_indexes_all_procs_in_computing_node = new int [displs[num_procs_computing_node_comp_group-1]+dst_decomp_size_all_procs_in_computing_node[num_procs_computing_node_comp_group-1]];
+	}	
+    EXECUTION_REPORT(REPORT_ERROR, MPI_Gatherv((void*)(decomp_dst->get_local_cell_global_indx()), num_local_cells, MPI_INT, dst_decomp_local_cell_indexes_all_procs_in_computing_node, dst_decomp_size_all_procs_in_computing_node, displs, MPI_INT, 0, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_LOG, true, "after gathering local cell indexes of processes");
+	
     decomp_map_src = new long [decomp_src->get_num_global_cells()];
-    decomp_map_dst = new long [decomp_dst->get_num_global_cells()];
-    for (long i = 0; i < decomp_dst->get_num_global_cells(); i ++)
-        decomp_map_dst[i] = 0;
-    for (long i = 0; i < decomp_dst->get_num_local_cells(); i ++)
-        decomp_map_dst[decomp_dst->get_local_cell_global_indx()[i]] = (((long)1)<<current_proc_id_computing_node_comp_group);
 
-	EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
-    remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name, true);
-    remap_weights->calculate_src_decomp(remap_grid_manager->search_remap_grid_with_grid_name(decomp_src->get_grid_name()), 
-                                        remap_grid_manager->search_remap_grid_with_grid_name(decomp_dst->get_grid_name()), 
-                                        decomp_map_src, decomp_map_dst);
-	remap_weights->temporarily_cleanup_memory_space();
-	EXECUTION_REPORT(REPORT_LOG, true, "after calculate_src_decomp");
+	if (current_proc_id_computing_node_comp_group == 0) {
+		decomp_map_dst = new long [decomp_dst->get_num_global_cells()];
+		for (i = 0; i < decomp_dst->get_num_global_cells(); i ++)
+			decomp_map_dst[i] = 0;
+		for (i = 0; i < num_procs_computing_node_comp_group; i ++) {
+			current_local_cell_indexes = dst_decomp_local_cell_indexes_all_procs_in_computing_node + displs[i];
+			for (j = 0; j < dst_decomp_size_all_procs_in_computing_node[i]; j ++)
+				decomp_map_dst[current_local_cell_indexes[j]] = (decomp_map_dst[current_local_cell_indexes[j]] | (((long)1)<<i));
+		}
+		EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
+		remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
+		remap_weights->calculate_src_decomp(remap_grid_manager->search_remap_grid_with_grid_name(decomp_src->get_grid_name()), 
+											remap_grid_manager->search_remap_grid_with_grid_name(decomp_dst->get_grid_name()), 
+											decomp_map_src, decomp_map_dst);
+		EXECUTION_REPORT(REPORT_LOG, true, "after calculate_src_decomp");
+	}
+	
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(decomp_map_src, decomp_src->get_num_global_cells(), MPI_LONG, 0, compset_communicators_info_mgr->get_computing_node_comp_group())  == MPI_SUCCESS);
 
     original_map_src = new long [decomp_src->get_num_global_cells()];
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
@@ -245,8 +269,14 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 
     delete [] original_map_src;
     delete [] decomp_map_src;
-    delete [] decomp_map_dst;
     delete [] local_cell_global_indexes;
+
+	if (current_proc_id_computing_node_comp_group == 0) {
+	    delete [] decomp_map_dst;
+		delete [] dst_decomp_size_all_procs_in_computing_node;
+		delete [] displs;
+		delete [] dst_decomp_local_cell_indexes_all_procs_in_computing_node;
+	}
 
     return decomp_for_remap;
 }

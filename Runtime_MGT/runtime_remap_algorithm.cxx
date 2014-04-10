@@ -56,7 +56,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     timer = new Coupling_timer(line);
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
     sscanf(line, "%d", &algorithm_mode);
-    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name, false);
+    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
 
     cpl_check_remap_weights_format(sequential_remap_weights);
     EXECUTION_REPORT(REPORT_ERROR, sequential_remap_weights != NULL, "C-Coupler software error remap weights is not found\n");
@@ -166,14 +166,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
     decomp_original_grids[0] = remap_grid_manager->search_remap_grid_with_grid_name(local_remap_decomp_src->get_grid_name());
     decomp_original_grids[1] = remap_grid_manager->search_remap_grid_with_grid_name(local_decomp_dst->get_grid_name());
-
-	if (decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, decomp_original_grids[1])->get_decomp_grid() == NULL) {
-		parallel_remap_weights = NULL;
-		if (current_proc_id_computing_node_comp_group < num_proc_computing_node_comp_group - 1)
-			EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&temp_value, 1, MPI_INT, current_proc_id_computing_node_comp_group+1, 100, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
-		return;
-	}
-
     decomp_grids[0] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, decomp_original_grids[0])->get_decomp_grid();
     decomp_grids[1] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, decomp_original_grids[1])->get_decomp_grid();
     global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
@@ -196,7 +188,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
 	EXECUTION_REPORT(REPORT_LOG, true, "before generating parallel remap weights for runtime_remap_algorithm");
 
-    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name, true);
+    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
     remap_related_grids = sequential_remap_weights->get_remap_related_grids(num_remap_related_grids);
     remap_related_decomp_grids = new Remap_grid_class *[num_remap_related_grids];
     for (i = 0; i < num_remap_related_grids; i ++) {
@@ -213,8 +205,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         EXECUTION_REPORT(REPORT_ERROR, j <= 1, "C-Coupler error2 in Runtime_remap_algorithm\n");
     }
 	parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, decomp_grids, global_cells_local_indexes_in_decomps);
-	sequential_remap_weights->temporarily_cleanup_memory_space();
-
 
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
 

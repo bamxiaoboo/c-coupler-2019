@@ -25,7 +25,7 @@ class Remap_weight_of_strategy_mgt
         Remap_weight_of_strategy_mgt() {}
         ~Remap_weight_of_strategy_mgt();
         void execute(const char*, Remap_statement_operand **, int);
-        Remap_weight_of_strategy_class *search_remap_weight_of_strategy(const char*, bool);
+        Remap_weight_of_strategy_class *search_remap_weight_of_strategy(const char*);
 };
 
 #endif
