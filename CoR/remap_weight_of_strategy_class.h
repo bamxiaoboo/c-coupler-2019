@@ -57,6 +57,12 @@ class Remap_weight_of_strategy_class
         Remap_grid_class *data_grid_dst;
         Remap_strategy_class *remap_strategy;
 
+		void read_grid_info_from_array(Remap_grid_class*, bool, const char *, long&, long);
+		void read_data_from_array(void*, int, const char*, long&, long);
+		void read_remap_operator_instance_from_array(Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, long, const char*, long&, long);
+		void write_grid_info_into_array(Remap_grid_class*, bool, char **, long&, long &);
+		void write_data_into_array(void*, int, char**, long&, long &);
+
     public:
         Remap_weight_of_strategy_class(const char*, const char*, const char*, const char*, const char*, const char*, bool);
         Remap_weight_of_strategy_class() {}
@@ -77,6 +83,8 @@ class Remap_weight_of_strategy_class
         Remap_grid_class **get_remap_related_grids(int&);
         Remap_weight_of_strategy_class *generate_parallel_remap_weights(Remap_grid_class**, Remap_grid_class**, Remap_grid_class**, int **);
         const char *get_object_name() { return object_name; }
+		void write_remap_weights_into_array(char**, long&);
+		void read_remap_weights_from_array(const char*, long);
 };
 
 

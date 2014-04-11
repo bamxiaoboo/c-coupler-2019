@@ -15,7 +15,6 @@
 #include "cor_cpl_interface.h"
 #include "cor_global_data.h"
 #include <stdio.h>
-#include <mpi.h>
 
 
 Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
@@ -75,6 +74,45 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating remap_weights_src_decomp");
 
     decomp_name_remap = local_remap_decomp_src->get_decomp_name();
+
+    decomp_original_grids[0] = remap_grid_manager->search_remap_grid_with_grid_name(local_remap_decomp_src->get_grid_name());
+    decomp_original_grids[1] = remap_grid_manager->search_remap_grid_with_grid_name(local_decomp_dst->get_grid_name());
+    decomp_grids[0] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, decomp_original_grids[0])->get_decomp_grid();
+    decomp_grids[1] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, decomp_original_grids[1])->get_decomp_grid();
+    global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
+    global_cells_local_indexes_in_decomps[1] = new int [decomp_original_grids[1]->get_grid_size()];
+    for (i = 0; i < decomp_original_grids[0]->get_grid_size(); i ++)
+        global_cells_local_indexes_in_decomps[0][i] = -1;
+    for (i = 0; i < local_remap_decomp_src->get_num_local_cells(); i ++)
+		if (local_remap_decomp_src->get_local_cell_global_indx()[i] >= 0)
+	        global_cells_local_indexes_in_decomps[0][local_remap_decomp_src->get_local_cell_global_indx()[i]] = i;
+    for (i = 0; i < decomp_original_grids[1]->get_grid_size(); i ++)
+        global_cells_local_indexes_in_decomps[1][i] = -1;
+    for (i = 0; i < local_decomp_dst->get_num_local_cells(); i ++)
+		if (local_decomp_dst->get_local_cell_global_indx()[i] >= 0)
+	        global_cells_local_indexes_in_decomps[1][local_decomp_dst->get_local_cell_global_indx()[i]] = i;    
+
+	EXECUTION_REPORT(REPORT_LOG, true, "before generating parallel remap weights for runtime_remap_algorithm");
+
+    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
+    remap_related_grids = sequential_remap_weights->get_remap_related_grids(num_remap_related_grids);
+    remap_related_decomp_grids = new Remap_grid_class *[num_remap_related_grids];
+    for (i = 0; i < num_remap_related_grids; i ++) {
+        j = 0;
+		remap_related_decomp_grids[i] = remap_related_grids[i];
+        if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
+            remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, remap_related_grids[i])->get_decomp_grid();
+            j ++;
+        }
+        if (decomp_original_grids[1]->is_subset_of_grid(remap_related_grids[i])) {
+			remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, remap_related_grids[i])->get_decomp_grid();
+            j ++;
+        }
+        EXECUTION_REPORT(REPORT_ERROR, j <= 1, "C-Coupler error2 in Runtime_remap_algorithm\n");
+    }
+	parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, decomp_grids, global_cells_local_indexes_in_decomps);
+
+	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
 
     if (algorithm_mode == 1) {
         get_next_line(line, cfg_fp);
@@ -161,56 +199,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     if (src_frac_field_before_rearrange != NULL)
         transfered_fields[j++] = src_frac_field_after_rearrange;
 
-
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating rearrange rearrange algorithm for runtime_remap_algorithm");
-
-    decomp_original_grids[0] = remap_grid_manager->search_remap_grid_with_grid_name(local_remap_decomp_src->get_grid_name());
-    decomp_original_grids[1] = remap_grid_manager->search_remap_grid_with_grid_name(local_decomp_dst->get_grid_name());
-    decomp_grids[0] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, decomp_original_grids[0])->get_decomp_grid();
-    decomp_grids[1] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, decomp_original_grids[1])->get_decomp_grid();
-    global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
-    global_cells_local_indexes_in_decomps[1] = new int [decomp_original_grids[1]->get_grid_size()];
-    for (i = 0; i < decomp_original_grids[0]->get_grid_size(); i ++)
-        global_cells_local_indexes_in_decomps[0][i] = -1;
-    for (i = 0; i < local_remap_decomp_src->get_num_local_cells(); i ++)
-		if (local_remap_decomp_src->get_local_cell_global_indx()[i] >= 0)
-	        global_cells_local_indexes_in_decomps[0][local_remap_decomp_src->get_local_cell_global_indx()[i]] = i;
-    for (i = 0; i < decomp_original_grids[1]->get_grid_size(); i ++)
-        global_cells_local_indexes_in_decomps[1][i] = -1;
-    for (i = 0; i < local_decomp_dst->get_num_local_cells(); i ++)
-		if (local_decomp_dst->get_local_cell_global_indx()[i] >= 0)
-	        global_cells_local_indexes_in_decomps[1][local_decomp_dst->get_local_cell_global_indx()[i]] = i;    
-
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_proc_computing_node_comp_group) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
-	if (current_proc_id_computing_node_comp_group > 0)
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(&temp_value, 1, MPI_INT, current_proc_id_computing_node_comp_group-1, 100, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
-
-	EXECUTION_REPORT(REPORT_LOG, true, "before generating parallel remap weights for runtime_remap_algorithm");
-
-    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
-    remap_related_grids = sequential_remap_weights->get_remap_related_grids(num_remap_related_grids);
-    remap_related_decomp_grids = new Remap_grid_class *[num_remap_related_grids];
-    for (i = 0; i < num_remap_related_grids; i ++) {
-        j = 0;
-		remap_related_decomp_grids[i] = remap_related_grids[i];
-        if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
-            remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, remap_related_grids[i])->get_decomp_grid();
-            j ++;
-        }
-        if (decomp_original_grids[1]->is_subset_of_grid(remap_related_grids[i])) {
-			remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, remap_related_grids[i])->get_decomp_grid();
-            j ++;
-        }
-        EXECUTION_REPORT(REPORT_ERROR, j <= 1, "C-Coupler error2 in Runtime_remap_algorithm\n");
-    }
-	parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, decomp_grids, global_cells_local_indexes_in_decomps);
-
-	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
-
-	if (current_proc_id_computing_node_comp_group < num_proc_computing_node_comp_group - 1)
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&temp_value, 1, MPI_INT, current_proc_id_computing_node_comp_group+1, 100, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
-
 	EXECUTION_REPORT(REPORT_LOG, true, "before generating raarrange router for runtime_remap_algorithm");
 	rearrange_src_router = routing_info_mgr->search_or_add_router(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, decomp_name_remap);
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating raarrange router for runtime_remap_algorithm");	
