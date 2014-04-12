@@ -35,13 +35,15 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     Field_mem_info **transfered_fields;
     int num_remap_related_grids;
     Remap_grid_class **remap_related_grids, **remap_related_decomp_grids;
-    Remap_grid_class *decomp_original_grids[256], *decomp_grids[256];
+    Remap_grid_class *decomp_original_grids[256];
     int *global_cells_local_indexes_in_decomps[256];
     int i, j;
 	bool has_integer;
 	int buf_mark;
 	int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group, temp_value;
 	MPI_Status mpi_status;
+	char *remap_weight_array;
+	long array_size;
 	
 	
 	EXECUTION_REPORT(REPORT_LOG, true, "in generating Runtime_remap_algorithm");
@@ -77,8 +79,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
     decomp_original_grids[0] = remap_grid_manager->search_remap_grid_with_grid_name(local_remap_decomp_src->get_grid_name());
     decomp_original_grids[1] = remap_grid_manager->search_remap_grid_with_grid_name(local_decomp_dst->get_grid_name());
-    decomp_grids[0] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, decomp_original_grids[0])->get_decomp_grid();
-    decomp_grids[1] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, decomp_original_grids[1])->get_decomp_grid();
     global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
     global_cells_local_indexes_in_decomps[1] = new int [decomp_original_grids[1]->get_grid_size()];
     for (i = 0; i < decomp_original_grids[0]->get_grid_size(); i ++)
@@ -94,7 +94,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
 	EXECUTION_REPORT(REPORT_LOG, true, "before generating parallel remap weights for runtime_remap_algorithm");
 
-    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
     remap_related_grids = sequential_remap_weights->get_remap_related_grids(num_remap_related_grids);
     remap_related_decomp_grids = new Remap_grid_class *[num_remap_related_grids];
     for (i = 0; i < num_remap_related_grids; i ++) {
@@ -110,7 +109,14 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         }
         EXECUTION_REPORT(REPORT_ERROR, j <= 1, "C-Coupler error2 in Runtime_remap_algorithm\n");
     }
-	parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, decomp_grids, global_cells_local_indexes_in_decomps);
+	parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, global_cells_local_indexes_in_decomps);
+	parallel_remap_weights->write_remap_weights_into_array(&remap_weight_array, array_size, false);
+	delete parallel_remap_weights;
+	parallel_remap_weights = new Remap_weight_of_strategy_class();
+	parallel_remap_weights->set_basic_fields(sequential_remap_weights->get_object_name(), sequential_remap_weights->get_remap_strategy(), remap_related_decomp_grids[0], remap_related_decomp_grids[1]);
+	printf("array size is %ld\n", array_size);
+	parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, array_size, false, remap_related_decomp_grids);
+	delete [] remap_weight_array;
 
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
 

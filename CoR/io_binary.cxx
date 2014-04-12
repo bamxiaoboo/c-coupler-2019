@@ -89,7 +89,7 @@ void IO_binary::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
     EXECUTION_REPORT(REPORT_ERROR, remap_weights != NULL, "remap software error1 in write_remap_weights binary\n");
     
     if (execution_phase_number == 1) {
-		remap_weights->write_remap_weights_into_array(&flat_array, array_size);
+		remap_weights->write_remap_weights_into_array(&flat_array, array_size, true);
         fp_binary = fopen(file_name, "w+");
 		fwrite(flat_array, array_size, 1, fp_binary);
 		delete [] flat_array;
@@ -114,7 +114,7 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 		char *input_array = new char [array_size];
 		fseek(fp_binary, 0, SEEK_SET);
 		fread(input_array, array_size, 1, fp_binary);
-		remap_weights->read_remap_weights_from_array(input_array, array_size);
+		remap_weights->read_remap_weights_from_array(input_array, array_size, true, NULL);
 		delete [] input_array;
 		fclose(fp_binary);
     }
