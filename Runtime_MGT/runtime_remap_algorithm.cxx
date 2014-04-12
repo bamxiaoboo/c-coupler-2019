@@ -7,6 +7,7 @@
   ***************************************************************/
 
 
+#include <mpi.h>
 #include "runtime_transfer_algorithm.h"
 #include "global_data.h"
 #include "runtime_remap_algorithm.h"
@@ -36,11 +37,11 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     int num_remap_related_grids;
     Remap_grid_class **remap_related_grids, **remap_related_decomp_grids;
     Remap_grid_class *decomp_original_grids[256];
-    int *global_cells_local_indexes_in_decomps[256];
+    int *global_cells_local_indexes_in_decomps[256], *local_cell_global_indx_src, *local_cell_global_indx_dst;
     int i, j;
 	bool has_integer;
 	int buf_mark;
-	int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group, temp_value;
+	int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group, num_local_cells_src, num_local_cells_dst;
 	MPI_Status mpi_status;
 	char *remap_weight_array;
 	long array_size;
@@ -79,18 +80,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
     decomp_original_grids[0] = remap_grid_manager->search_remap_grid_with_grid_name(local_remap_decomp_src->get_grid_name());
     decomp_original_grids[1] = remap_grid_manager->search_remap_grid_with_grid_name(local_decomp_dst->get_grid_name());
-    global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
-    global_cells_local_indexes_in_decomps[1] = new int [decomp_original_grids[1]->get_grid_size()];
-    for (i = 0; i < decomp_original_grids[0]->get_grid_size(); i ++)
-        global_cells_local_indexes_in_decomps[0][i] = -1;
-    for (i = 0; i < local_remap_decomp_src->get_num_local_cells(); i ++)
-		if (local_remap_decomp_src->get_local_cell_global_indx()[i] >= 0)
-	        global_cells_local_indexes_in_decomps[0][local_remap_decomp_src->get_local_cell_global_indx()[i]] = i;
-    for (i = 0; i < decomp_original_grids[1]->get_grid_size(); i ++)
-        global_cells_local_indexes_in_decomps[1][i] = -1;
-    for (i = 0; i < local_decomp_dst->get_num_local_cells(); i ++)
-		if (local_decomp_dst->get_local_cell_global_indx()[i] >= 0)
-	        global_cells_local_indexes_in_decomps[1][local_decomp_dst->get_local_cell_global_indx()[i]] = i;    
 
 	EXECUTION_REPORT(REPORT_LOG, true, "before generating parallel remap weights for runtime_remap_algorithm");
 
@@ -109,15 +98,67 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         }
         EXECUTION_REPORT(REPORT_ERROR, j <= 1, "C-Coupler error2 in Runtime_remap_algorithm\n");
     }
-	parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, global_cells_local_indexes_in_decomps);
-	parallel_remap_weights->write_remap_weights_into_array(&remap_weight_array, array_size, false);
-	delete parallel_remap_weights;
-	parallel_remap_weights = new Remap_weight_of_strategy_class();
-	parallel_remap_weights->set_basic_fields(sequential_remap_weights->get_object_name(), sequential_remap_weights->get_remap_strategy(), remap_related_decomp_grids[0], remap_related_decomp_grids[1]);
-	printf("array size is %ld\n", array_size);
-	parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, array_size, false, remap_related_decomp_grids);
-	delete [] remap_weight_array;
 
+    global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
+    global_cells_local_indexes_in_decomps[1] = new int [decomp_original_grids[1]->get_grid_size()];
+	local_cell_global_indx_src = new int [decomp_original_grids[0]->get_grid_size()];
+	local_cell_global_indx_dst = new int [decomp_original_grids[1]->get_grid_size()];
+
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_proc_computing_node_comp_group) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
+
+	if (current_proc_id_computing_node_comp_group > 0) {
+		num_local_cells_src = local_remap_decomp_src->get_num_local_cells();
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&num_local_cells_src, 1, MPI_INT, 0, 100, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Send((int*)(local_remap_decomp_src->get_local_cell_global_indx()), num_local_cells_src, MPI_INT, 0, 101, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+		num_local_cells_dst = local_decomp_dst->get_num_local_cells();
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&num_local_cells_dst, 1, MPI_INT, 0, 102, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Send((int*)(local_decomp_dst->get_local_cell_global_indx()), num_local_cells_dst, MPI_INT, 0, 103, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(&array_size, 1, MPI_LONG, 0, 104, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
+		remap_weight_array = new char [array_size];
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(remap_weight_array, array_size, MPI_CHAR, 0, 105, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
+		parallel_remap_weights = new Remap_weight_of_strategy_class();
+		parallel_remap_weights->set_basic_fields(sequential_remap_weights->get_object_name(), sequential_remap_weights->get_remap_strategy(), remap_related_decomp_grids[0], remap_related_decomp_grids[1]);
+		parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, array_size, false, remap_related_decomp_grids);
+		delete [] remap_weight_array;
+	}
+	else {
+		for (i = num_proc_computing_node_comp_group-1; i >= 0; i --) {
+			if (i > 0) {
+				EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(&num_local_cells_src, 1, MPI_INT, i, 100, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
+				EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(local_cell_global_indx_src, num_local_cells_src, MPI_INT, i, 101, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
+				EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(&num_local_cells_dst, 1, MPI_INT, i, 102, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
+				EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(local_cell_global_indx_dst, num_local_cells_dst, MPI_INT, i, 103, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);			
+			}
+			else {
+				num_local_cells_src = local_remap_decomp_src->get_num_local_cells();
+				num_local_cells_dst = local_decomp_dst->get_num_local_cells();
+				for (j = 0; j < num_local_cells_src; j ++)
+					local_cell_global_indx_src[j] = local_remap_decomp_src->get_local_cell_global_indx()[j];
+				for (j = 0; j < num_local_cells_dst; j ++)
+					local_cell_global_indx_dst[j] = local_decomp_dst->get_local_cell_global_indx()[j];
+			}
+			for (j = 0; j < decomp_original_grids[0]->get_grid_size(); j ++)
+				global_cells_local_indexes_in_decomps[0][j] = -1;
+			for (j = 0; j < num_local_cells_src; j ++)
+				if (local_cell_global_indx_src[j] >= 0)
+					global_cells_local_indexes_in_decomps[0][local_cell_global_indx_src[j]] = j;
+			for (j = 0; j < decomp_original_grids[1]->get_grid_size(); j ++)
+				global_cells_local_indexes_in_decomps[1][j] = -1;
+			for (j = 0; j < num_local_cells_dst; j ++)
+				if (local_cell_global_indx_dst[j] >= 0)
+					global_cells_local_indexes_in_decomps[1][local_cell_global_indx_dst[j]] = j;  
+			parallel_remap_weights = sequential_remap_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, global_cells_local_indexes_in_decomps);
+			if (i > 0) {
+				parallel_remap_weights->write_remap_weights_into_array(&remap_weight_array, array_size, false);
+				delete parallel_remap_weights;
+				EXECUTION_REPORT(REPORT_ERROR, MPI_Send(&array_size, 1, MPI_LONG, i, 104, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+				EXECUTION_REPORT(REPORT_ERROR, MPI_Send(remap_weight_array, array_size, MPI_CHAR, i, 105, compset_communicators_info_mgr->get_computing_node_comp_group()) == MPI_SUCCESS);
+				delete [] remap_weight_array;
+			}
+		}
+	}
+	
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
 
     if (algorithm_mode == 1) {
@@ -216,7 +257,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	delete [] remap_related_decomp_grids;
 	delete [] global_cells_local_indexes_in_decomps[0];
 	delete [] global_cells_local_indexes_in_decomps[1];
-
+	delete [] local_cell_global_indx_src;
+	delete [] local_cell_global_indx_dst;
 }
 
 
