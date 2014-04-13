@@ -808,39 +808,45 @@ void IO_netcdf::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
         report_nc_error();
         rcode = nc_inq_dimlen(ncfile_id, var_id, &num_weights);
         report_nc_error();
-        indexes_src = new long [num_weights];
-        indexes_dst = new long [num_weights];
-        tmp_indexes_src = new int [num_weights];
-        tmp_indexes_dst = new int [num_weights];
-        weight_values = new double [num_weights];
-        rcode = nc_inq_varid(ncfile_id, "col", &var_id);
-        report_nc_error();
-        rcode = nc_get_var_int(ncfile_id, var_id, tmp_indexes_src);
-        report_nc_error();
-        rcode = nc_inq_varid(ncfile_id, "row", &var_id);
-        report_nc_error();
-        rcode = nc_get_var_int(ncfile_id, var_id, tmp_indexes_dst);
-        report_nc_error();
-        rcode = nc_inq_varid(ncfile_id, "S", &var_id);
-        report_nc_error();
-        rcode = nc_get_var_double(ncfile_id, var_id, weight_values);
-        report_nc_error();
-        for (i = 0; i < num_weights; i ++) {
-            indexes_src[i] = tmp_indexes_src[i] - 1;
-            indexes_dst[i] = tmp_indexes_dst[i] - 1;
-        }
-        duplicated_remap_operator = remap_strategy->get_remap_operator(0)->duplicate_remap_operator(false);
-        weight_sparse_matrix = new Remap_weight_sparse_matrix(remap_strategy->get_remap_operator(0),
-                                                              num_weights, indexes_src, indexes_dst, weight_values, 
-                                                              0, NULL);
-        duplicated_remap_operator->add_weight_sparse_matrix(weight_sparse_matrix);
+		if (read_weight_values) {
+	        indexes_src = new long [num_weights];
+	        indexes_dst = new long [num_weights];
+	        tmp_indexes_src = new int [num_weights];
+	        tmp_indexes_dst = new int [num_weights];
+	        weight_values = new double [num_weights];
+	        rcode = nc_inq_varid(ncfile_id, "col", &var_id);
+	        report_nc_error();
+	        rcode = nc_get_var_int(ncfile_id, var_id, tmp_indexes_src);
+	        report_nc_error();
+	        rcode = nc_inq_varid(ncfile_id, "row", &var_id);
+	        report_nc_error();
+	        rcode = nc_get_var_int(ncfile_id, var_id, tmp_indexes_dst);
+	        report_nc_error();
+	        rcode = nc_inq_varid(ncfile_id, "S", &var_id);
+	        report_nc_error();
+	        rcode = nc_get_var_double(ncfile_id, var_id, weight_values);
+	        report_nc_error();
+	        for (i = 0; i < num_weights; i ++) {
+	            indexes_src[i] = tmp_indexes_src[i] - 1;
+	            indexes_dst[i] = tmp_indexes_dst[i] - 1;
+	        }
+	        duplicated_remap_operator = remap_strategy->get_remap_operator(0)->duplicate_remap_operator(false);
+	        weight_sparse_matrix = new Remap_weight_sparse_matrix(remap_strategy->get_remap_operator(0),
+	                                                              num_weights, indexes_src, indexes_dst, weight_values, 
+	                                                              0, NULL);
+	        duplicated_remap_operator->add_weight_sparse_matrix(weight_sparse_matrix);
+		}
+		else duplicated_remap_operator = NULL;
         remap_operator_instance = new Remap_weight_of_operator_class(remap_weights->get_data_grid_src(),
                                                                      remap_weights->get_data_grid_dst(),
                                                                      0, remap_strategy->get_remap_operator(0),
                                                                      duplicated_remap_operator);
         remap_weights->add_weight_of_operator_class(remap_operator_instance);
-        delete [] tmp_indexes_src;
-        delete [] tmp_indexes_dst;
+
+		if (read_weight_values) {
+        	delete [] tmp_indexes_src;
+        	delete [] tmp_indexes_dst;
+		}
         delete [] area;
     }
 }
