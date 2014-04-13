@@ -330,6 +330,7 @@ void Remap_operator_spline_1D::do_src_decomp_caculation(long *decomp_map_src, co
 	double temp_double_value;
 
 
+	allocate_1D_remap_operator_common_arrays_space();
 	allocate_local_arrays();
 	array_size_src = remap_weights_groups[0]->get_num_weights();
 	if (array_size_src == 0)

@@ -119,11 +119,12 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(remap_weight_array, array_size, MPI_CHAR, 0, 105, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
 		parallel_remap_weights = new Remap_weight_of_strategy_class();
 		parallel_remap_weights->set_basic_fields(sequential_remap_weights->get_object_name(), sequential_remap_weights->get_remap_strategy(), remap_related_decomp_grids[0], remap_related_decomp_grids[1]);
-		parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, array_size, false, remap_related_decomp_grids);
+		parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, array_size, false, remap_related_decomp_grids, true);
 		delete [] remap_weight_array;
 	}
 	else {
 		for (i = num_proc_computing_node_comp_group-1; i >= 0; i --) {
+			EXECUTION_REPORT(REPORT_LOG, true, "master process computes parallel remap weights for process %d", i);
 			if (i > 0) {
 				EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(&num_local_cells_src, 1, MPI_INT, i, 100, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);
 				EXECUTION_REPORT(REPORT_ERROR, MPI_Recv(local_cell_global_indx_src, num_local_cells_src, MPI_INT, i, 101, compset_communicators_info_mgr->get_computing_node_comp_group(), &mpi_status) == MPI_SUCCESS);

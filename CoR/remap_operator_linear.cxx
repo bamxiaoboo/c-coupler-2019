@@ -162,18 +162,21 @@ void Remap_operator_linear::do_src_decomp_caculation(long *decomp_map_src, const
 	double temp_double_value;
 
 
+	allocate_1D_remap_operator_common_arrays_space();
 	allocate_local_arrays();
 	
 	array_size_src = remap_weights_groups[0]->get_num_weights();
 	if (array_size_src == 0)
 		return;
 
+	for (i = 0; i < src_grid->get_grid_size(); i ++)
+		temp_decomp_map_src[i] = 0;
     remap_weights_groups[1]->calc_src_decomp(temp_decomp_map_src, decomp_map_dst);
 
 	for (i = 0; i < array_size_src; i ++) {
 		remap_weights_groups[0]->get_weight(&temp_long_value1, &temp_long_value2, &temp_double_value, i);
 		useful_src_cells_global_index[i] = temp_long_value2;
-		decomp_map_src[useful_src_cells_global_index[i]] = temp_decomp_map_src[i];
+		decomp_map_src[useful_src_cells_global_index[i]] = decomp_map_src[useful_src_cells_global_index[i]] | temp_decomp_map_src[i];
 	}
 }
 

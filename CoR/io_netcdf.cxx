@@ -752,7 +752,7 @@ void IO_netcdf::get_global_text(const char *text_title, char *text_value, int st
 }
 
 
-void IO_netcdf::read_remap_weights(Remap_weight_of_strategy_class *remap_weights, Remap_strategy_class *remap_strategy)
+void IO_netcdf::read_remap_weights(Remap_weight_of_strategy_class *remap_weights, Remap_strategy_class *remap_strategy, bool read_weight_values)
 {
     double *area, *weight_values;
     int var_id;

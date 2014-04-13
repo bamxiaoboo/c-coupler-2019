@@ -94,7 +94,7 @@ void Compset_communicators_info_mgt::load_in_compset(const char *current_comp_na
 void Compset_communicators_info_mgt::build_compset_communicators_info()
 {
     int i, j;
-    int current_proc_global_id;
+    int current_proc_global_id, current_proc_computing_node_id;
     int num_global_procs;
     int *all_procs_global_ids;
     int *all_procs_local_ids;
@@ -161,6 +161,9 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 	EXECUTION_REPORT(REPORT_LOG, true, "%d computing nodes are used in this experiment", num_distinct_computing_nodes);
 	
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(current_comp_comm_group, host_name_ids[current_proc_local_id], 0, &computing_node_comp_group) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(current_comp_comm_group, &current_proc_computing_node_id) == MPI_SUCCESS);
+	is_master_process_in_computing_node = (current_proc_computing_node_id == 0);
+	EXECUTION_REPORT(REPORT_ERROR, current_proc_computing_node_id < 64, "current version of C-Coupler only supports 64 processes in a computing node");
 
     delete [] all_procs_global_ids;
     delete [] all_procs_local_ids;

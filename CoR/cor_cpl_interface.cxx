@@ -143,6 +143,8 @@ void cpl_check_remap_weights_format(Remap_weight_of_strategy_class *remap_weight
     
 
     for (i = 0; i < remap_weights->get_num_remap_operator_of_weights(); i ++) {
+		if (remap_weights->get_remap_operator_of_weights(i) == NULL)
+			continue;
         grid_src = remap_weights->get_remap_operator_of_weights(i)->get_src_grid();
         j = 0;
         if (grid_src->has_grid_coord_label(COORD_LABEL_LON))

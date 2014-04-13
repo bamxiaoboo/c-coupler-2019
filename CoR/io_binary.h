@@ -31,7 +31,7 @@ class IO_binary: public IO_basis
         void write_grided_data(Remap_grid_data_class*, bool, int, int, bool);
         void write_remap_weights(Remap_weight_of_strategy_class*);
         long get_dimension_size(const char*);
-        void read_remap_weights(Remap_weight_of_strategy_class*, Remap_strategy_class*);
+        void read_remap_weights(Remap_weight_of_strategy_class*, Remap_strategy_class*, bool);
 };
 
 

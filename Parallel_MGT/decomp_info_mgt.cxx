@@ -230,7 +230,8 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 		for (i = 0; i < num_procs_computing_node_comp_group; i ++) {
 			current_local_cell_indexes = dst_decomp_local_cell_indexes_all_procs_in_computing_node + displs[i];
 			for (j = 0; j < dst_decomp_size_all_procs_in_computing_node[i]; j ++)
-				decomp_map_dst[current_local_cell_indexes[j]] = (decomp_map_dst[current_local_cell_indexes[j]] | (((long)1)<<i));
+				if (current_local_cell_indexes[j] >= 0)
+					decomp_map_dst[current_local_cell_indexes[j]] = (decomp_map_dst[current_local_cell_indexes[j]] | (((long)1)<<i));
 		}
 		EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
 		remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);

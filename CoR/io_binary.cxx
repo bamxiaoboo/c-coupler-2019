@@ -98,7 +98,7 @@ void IO_binary::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
 }
 
 
-void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights, Remap_strategy_class *remap_strategy)
+void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights, Remap_strategy_class *remap_strategy, bool read_weight_values)
 {    
 	long array_size;
 	char *input_array;
@@ -106,6 +106,9 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 
     EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(open_format, "r"), "can not read binary file %s: %s, whose open format is not read\n", object_name, file_name);
     EXECUTION_REPORT(REPORT_ERROR, remap_weights != NULL, "remap software error1 in read_remap_weights binary\n");
+	if (read_weight_values)
+		EXECUTION_REPORT(REPORT_ERROR, true, "remapping weight values will be read into %s", remap_weights->get_object_name());
+	else EXECUTION_REPORT(REPORT_ERROR, true, "remapping weight values will not be read into %s", remap_weights->get_object_name());
 
     if (execution_phase_number == 1) {
         fp_binary = fopen(file_name, "r"); 
@@ -114,7 +117,7 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 		char *input_array = new char [array_size];
 		fseek(fp_binary, 0, SEEK_SET);
 		fread(input_array, array_size, 1, fp_binary);
-		remap_weights->read_remap_weights_from_array(input_array, array_size, true, NULL);
+		remap_weights->read_remap_weights_from_array(input_array, array_size, true, NULL, read_weight_values);
 		delete [] input_array;
 		fclose(fp_binary);
     }

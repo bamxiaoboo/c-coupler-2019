@@ -42,7 +42,6 @@ class Decomp_grid_mgt
     public:
         Decomp_grid_mgt() {}
         Decomp_grid_info *search_decomp_grid_info(const char*, Remap_grid_class*);
-		void bcast_grid_area_or_volumn_intra_computing_node(Remap_grid_class*);
         ~Decomp_grid_mgt();
 };
 

@@ -18,6 +18,8 @@ Remap_field_data_mgt *remap_field_data_manager;
 Remap_weight_of_strategy_mgt *remap_weights_manager;
 Runtime_remap_function *current_runtime_remap_function;
 bool is_coord_unit_degree[256];
+bool is_master_process_in_computing_node = true;
+
 
 
 int line_number = -1;

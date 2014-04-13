@@ -194,6 +194,8 @@ Remap_weight_sparse_matrix *Remap_weight_sparse_matrix::generate_parallel_remap_
         for (i = 0; i < this->num_weights; i ++) {
             if (global_cells_local_indexes_in_decomps[1][this->cells_indexes_dst[i]] != -1) {
                 num_parallel_weights ++;
+				if (global_cells_local_indexes_in_decomps[0][this->cells_indexes_src[i]] == -1)
+					printf("error at %d vs %d\n", this->cells_indexes_dst[i], this->cells_indexes_src[i]);
                 EXECUTION_REPORT(REPORT_ERROR, global_cells_local_indexes_in_decomps[0][this->cells_indexes_src[i]] != -1, "C-Coupler error2 in generate_parallel_remap_weight_of_sparse_matrix\n");
             }
         }

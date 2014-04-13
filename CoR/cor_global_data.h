@@ -49,6 +49,7 @@ extern Runtime_remap_function *current_runtime_remap_function;
 extern int line_number;
 extern int execution_phase_number;
 extern bool is_coord_unit_degree[];
+extern bool is_master_process_in_computing_node;
 
 
 extern int get_data_type_size(const char*);
