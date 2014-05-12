@@ -53,6 +53,7 @@ class Field_mem_info
 		int get_buf_type() { return buf_type; }
         void reset_field_name(const char*);
 		void change_datatype_to_double();
+		void calculate_field_conservative_sum(Field_mem_info*);
         void check_field_sum();
 		void define_field_values();
 		void use_field_values();

@@ -190,6 +190,25 @@ void Field_mem_info::reset_field_name(const char *new_name)
 }
 
 
+void Field_mem_info::calculate_field_conservative_sum(Field_mem_info *area_field)
+{
+#ifdef DEBUG_CCPL
+	double partial_sum, total_sum;
+    long size;
+
+	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "C-Coupler error in calculate_field_sum");
+    size = get_field_data()->get_grid_data_field()->required_data_size;
+    partial_sum = 0;
+    for (long j = 0; j < size; j ++)
+        partial_sum += (((double*) get_data_buf())[j])*(((double*) area_field->get_data_buf())[j]);
+	MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_DOUBLE, MPI_SUM, compset_communicators_info_mgr->get_current_comp_comm_group());
+    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		printf("float sum of field (%s %s) is %0.18lf vs %0.18lf\n", get_comp_name(), get_field_name(), partial_sum, total_sum);
+    }
+#endif
+}
+
+
 void Field_mem_info::check_field_sum()
 {
 #ifdef DEBUG_CCPL
@@ -203,9 +222,8 @@ void Field_mem_info::check_field_sum()
     for (long j = 0; j < size; j ++)
         partial_sum += (((int*) get_data_buf())[j]);
     MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, compset_communicators_info_mgr->get_current_comp_comm_group());
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
         EXECUTION_REPORT(REPORT_LOG, true, "check sum of field (%s %s) is %x vs %x", get_comp_name(), get_field_name(), total_sum, partial_sum);
-    }
 
 #endif
 }

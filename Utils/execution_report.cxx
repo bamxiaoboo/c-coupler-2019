@@ -325,6 +325,20 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 }
 
 
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, double value1, double value2) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+    printf(str1, str2, str3, value1, value2);
+
+	report_ender(report_type);
+}
+
+
 void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2) 
 {
 	report_header(report_type, condition);

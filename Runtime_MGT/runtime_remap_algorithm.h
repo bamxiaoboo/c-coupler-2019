@@ -33,9 +33,10 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
         std::vector<Field_mem_info*> src_double_remap_fields_before_rearrange;        
         Field_mem_info *src_frac_field_before_rearrange;
         Field_mem_info *src_frac_field_after_rearrange;
+		Field_mem_info *src_area_field_after_rearrange;
+		Field_mem_info *dst_area_field;
         Field_mem_info *dst_frac_field;
-
-		Remap_grid_data_class *temp_src_field;
+		Field_mem_info *temp_src_field;
         Remap_weight_of_strategy_class *parallel_remap_weights;
         Remap_weight_of_strategy_class *sequential_remap_weights;
         Coupling_timer *timer;
