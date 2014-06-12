@@ -21,6 +21,7 @@
 #define COMP_TYPE_LND              "lnd"
 #define COMP_TYPE_SEA_ICE          "sice"
 #define COMP_TYPE_WAVE             "wave"
+#define COMP_TYPE_CESM             "cesm"
 
 
 struct Component_communicator_info

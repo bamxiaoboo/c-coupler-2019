@@ -81,7 +81,8 @@ void Compset_communicators_info_mgt::load_in_compset(const char *current_comp_na
         comps_comms_info.push_back(comp_comm_info);
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_OCN) ||
                      words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_LND) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_SEA_ICE) ||
-                     words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_CPL) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_WAVE),
+                     words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_CPL) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_WAVE) ||
+                     words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_CESM),
                      "%s is a wrong componet type\n", comp_comm_info->comp_type);
     }
     

@@ -399,3 +399,10 @@ void C_Coupler_interface_register_model_algorithm(const char *algorithm_name, Mo
 	runtime_process_mgr->register_model_algorithm(algorithm_name, model_algorithm);
 }
 
+
+extern "C" void coupling_check_sum_for_all_fields_()
+{
+	EXECUTION_REPORT(REPORT_ERROR, memory_manager != NULL, "C-Coupler is not initialized when the component call the interface for checking sum of all fields managed by the C-Coupler");
+	memory_manager->check_sum_of_all_fields();
+}
+

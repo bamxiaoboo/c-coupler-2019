@@ -250,14 +250,14 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
         original_map_src[decomp_src->get_local_cell_global_indx()[i]] = (((long)1)<<current_proc_id_computing_node_comp_group);
     num_local_cells = decomp_src->get_num_local_cells();
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
-        if (decomp_map_src[i] == (((long)1)<<current_proc_id_computing_node_comp_group) && original_map_src[i] != (((long)1)<<current_proc_id_computing_node_comp_group))
+        if ((decomp_map_src[i]&(((long)1)<<current_proc_id_computing_node_comp_group)) != 0 && (original_map_src[i]&(((long)1)<<current_proc_id_computing_node_comp_group)) == 0)
             num_local_cells ++;
     local_cell_global_indexes = new int [num_local_cells];
     num_local_cells = 0;
     for (long i = 0; i < decomp_src->get_num_local_cells(); i ++)
         local_cell_global_indexes[num_local_cells++] = decomp_src->get_local_cell_global_indx()[i]+1;
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
-        if (decomp_map_src[i] == (((long)1)<<current_proc_id_computing_node_comp_group) && original_map_src[i] != (((long)1)<<current_proc_id_computing_node_comp_group))
+        if ((decomp_map_src[i]&(((long)1)<<current_proc_id_computing_node_comp_group)) != 0 && (original_map_src[i]&(((long)1)<<current_proc_id_computing_node_comp_group)) == 0)
             local_cell_global_indexes[num_local_cells++] = i+1;
 
     decomp_for_remap = new Decomp_info(decomp_name_remap, decomp_src->get_model_name(), decomp_src->get_grid_name(), num_local_cells, local_cell_global_indexes);

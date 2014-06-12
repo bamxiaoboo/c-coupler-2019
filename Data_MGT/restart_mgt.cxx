@@ -101,11 +101,6 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 	
 	strcpy(restart_read_file_name, restart_read_file);
 	check_is_restart_timer_on();
-
-	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart")) {
-		read_check_restart_basic_info();
- 		restart_read_num_time_step = timer_mgr->get_current_num_time_step();
-	}
 }
 
 
@@ -329,6 +324,12 @@ void Restart_mgt::read_restart_fields_on_restart_date()
 
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
 		return;
+
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart") &&
+		restart_read_num_time_step == ((int)0xffffffff)) {
+		read_check_restart_basic_info();
+ 		restart_read_num_time_step = timer_mgr->get_current_num_time_step();
+	}
 
 	EXECUTION_REPORT(REPORT_LOG, true, "begin reading restart fields on restart date");
 

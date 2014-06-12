@@ -489,3 +489,10 @@ bool Memory_mgt::is_model_data_renewed_in_current_time_step(void *model_data_buf
     return false;
 }
 
+
+void Memory_mgt::check_sum_of_all_fields()
+{
+	for (int i = 0; i < fields_mem.size(); i ++)
+		fields_mem[i]->check_field_sum();
+}
+

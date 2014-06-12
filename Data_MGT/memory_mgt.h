@@ -81,8 +81,10 @@ class Memory_mgt
 		void write_restart_fields();
 		void check_all_restart_fields_have_been_read();
 		bool is_model_data_renewed_in_current_time_step(void*);
+		void check_sum_of_all_fields();
         ~Memory_mgt();
 };
+
 
 extern void *alloc_buf(const char *, const char *, const char *, const char *, const int);
 extern Remap_grid_data_class *alloc_field(const char *, const char *, const char*, const char *, const int);

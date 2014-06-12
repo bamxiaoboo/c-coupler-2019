@@ -30,6 +30,7 @@
    public :: c_coupler_get_num_elapsed_days_from_start
    public :: c_coupler_allreduce_real16
    public :: c_coupler_log_case_info_in_netcdf_file
+   public :: c_coupler_check_sum_for_all_fields
 
    interface c_coupler_register_model_data ; module procedure &
         c_coupler_register_model_double_0D_data, &
@@ -1508,6 +1509,13 @@
    end if
    call coupling_log_case_info_in_netcdf_file(ncfile_id, local_not_at_def_mode)
  END SUBROUTINE c_coupler_log_case_info_in_netcdf_file
+
+
+
+ SUBROUTINE c_coupler_check_sum_for_all_fields
+   implicit none
+   CALL coupling_check_sum_for_all_fields
+ END SUBROUTINE c_coupler_check_sum_for_all_fields
 
 
 
