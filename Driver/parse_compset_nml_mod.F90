@@ -116,8 +116,8 @@ subroutine parse_compset_nml(compset_nml_filename)
       call mpi_abort (MPI_COMM_WORLD, 1)
    end if
 
-   if (.not.(run_type .eq. "initial" .or. run_type .eq. "restart")) then
-      write(6,*) "run_type must be set to one of initial and restart in coupling namelist:", compset_nml_filename
+   if (.not.(run_type .eq. "initial" .or. run_type .eq. "restart" .or. run_type .eq. "hybrid")) then
+      write(6,*) "run_type must be set to one of initial, restart and hybrid in coupling namelist:", compset_nml_filename
       call mpi_abort (MPI_COMM_WORLD, 1)
    end if
    

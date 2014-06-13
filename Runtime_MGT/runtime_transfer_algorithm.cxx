@@ -151,6 +151,11 @@ void Runtime_transfer_algorithm::preprocess(bool is_alglrithm_in_kernel_stage)
 	if (num_timer_on_fields == 0)
 		return;
 
+#ifdef DEBUG_CCPL
+	if (!(num_send_fields > 0 && num_recv_fields > 0))
+		check_cfg_info_consistency();
+#endif
+
     /* Allocate memory buffer for sending or receiving */
     if (mpi_send_buf == NULL && num_send_fields > 0) {
         for (i = 0; i < num_send_fields; i ++) {
@@ -360,7 +365,6 @@ void Runtime_transfer_algorithm::recv_data(bool is_alglrithm_in_kernel_stage)
     }
 
 #ifdef DEBUG_CCPL
-    check_cfg_info_consistency();
     exchange_comp_time_info();
 #endif
     
@@ -436,7 +440,6 @@ void Runtime_transfer_algorithm::send_data(bool is_alglrithm_in_kernel_stage)
 	performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name), NULL);
 
 #ifdef DEBUG_CCPL
-	check_cfg_info_consistency();
     exchange_comp_time_info();
 #endif
 
@@ -570,8 +573,10 @@ void Runtime_transfer_algorithm::check_cfg_info_consistency()
 	int remote_comp_id, remote_num_transfered_fields;
     
 
-	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() != 0)
+	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() != 0) {
+		MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
 		return;
+	}
 
 	EXECUTION_REPORT(REPORT_LOG, true, "begin checking consistency of transfer configuration fields information in %s with remote component %s", transfer_fields_cfg_file, remote_comp_name);
 
@@ -637,6 +642,7 @@ void Runtime_transfer_algorithm::check_cfg_info_consistency()
 	}
 	fclose(fp_cfg);
 	EXECUTION_REPORT(REPORT_LOG, true, "finish checking consistency of transfer configuration fields information in %s with remote component %s", transfer_fields_cfg_file, remote_comp_name);
+	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
 }
 
 

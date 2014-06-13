@@ -235,8 +235,13 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         }
     }
     fclose(field_fp);
-
     fclose(cfg_fp);
+
+	EXECUTION_REPORT(REPORT_ERROR, src_double_remap_fields_after_rearrange.size() == dst_double_remap_fields.size(), "the numbers of source fields and target fields are not the same for runtime remapping algorithm %s", cfg_name);
+	for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
+		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name()),
+		                 "for runtime remapping algorithm %s, the field name does not match (%s and %s) at %d line", cfg_name,
+						 src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name(), i+1);
 
     num_transfered_fields = src_double_remap_fields_before_rearrange.size()*2;
     if (src_frac_field_before_rearrange != NULL)

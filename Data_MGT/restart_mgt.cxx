@@ -82,6 +82,8 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
     int buf_mark;
     Field_mem_info *restart_field_mem;
     FILE *fp_cfg;
+	bool restart_file_exist = false;
+	FILE *fp_tmp;
 
 
 	EXECUTION_REPORT(REPORT_ERROR, restart_second >=0 && restart_second <= 86400, "restart_second of simulation run must between 0 and 86400");
@@ -101,6 +103,17 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 	
 	strcpy(restart_read_file_name, restart_read_file);
 	check_is_restart_timer_on();
+
+	fp_tmp = fopen(restart_read_file_name, "r");
+	if (fp_tmp != NULL) {
+		restart_file_exist = true;
+		fclose(fp_tmp);
+	}
+	
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart") && restart_file_exist) {
+		read_check_restart_basic_info();
+ 		restart_read_num_time_step = timer_mgr->get_current_num_time_step();
+	}
 }
 
 
@@ -320,16 +333,15 @@ void Restart_mgt::read_restart_fields_on_restart_date()
 	int buf_type;
 	long field_restart_time, tmp_long_value;
 	Field_mem_info *field;
+	FILE *fp_tmp;
 
 
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
 		return;
 
-	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart") &&
-		restart_read_num_time_step == ((int)0xffffffff)) {
-		read_check_restart_basic_info();
- 		restart_read_num_time_step = timer_mgr->get_current_num_time_step();
-	}
+	fp_tmp = fopen(restart_read_file_name, "r");
+	EXECUTION_REPORT(REPORT_ERROR, fp_tmp != NULL, "the restart read data file %s does not exist\n");	
+	fclose(fp_tmp);
 
 	EXECUTION_REPORT(REPORT_LOG, true, "begin reading restart fields on restart date");
 

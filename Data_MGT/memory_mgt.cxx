@@ -163,7 +163,7 @@ bool Field_mem_info::match_field_mem(const char *comp_name,
     if (words_are_the_same(this->comp_name, comp_name) &&
         words_are_the_same(this->decomp_name, decomp_name) &&
         words_are_the_same(this->field_name, field_name)) {
-           EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "C-Coupler software error in match_field_mem\n");
+           EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
         if (this->buf_type == buf_type)
             return true;
     }
@@ -263,6 +263,10 @@ Memory_mgt::Memory_mgt(const char *model_mem_cfg_file)
         get_next_attr(registered_field_info->field_name, &line_p);
         get_next_attr(registered_field_info->decomp_name, &line_p);
         get_next_attr(registered_field_info->grid_name, &line_p);
+		for (int i = 0; i < registered_fields_info.size(); i ++)
+			if (words_are_the_same(registered_fields_info[i]->field_name, registered_field_info->field_name) && words_are_the_same(registered_fields_info[i]->decomp_name, registered_field_info->decomp_name))
+				EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(registered_fields_info[i]->grid_name, registered_field_info->grid_name), 
+				                 "field %s is registered in %s more than once, there are conflicts among the multiple registration", registered_field_info->field_name, model_mem_cfg_file);
         registered_fields_info.push_back(registered_field_info);
     }
     fclose(cfg_fp);
