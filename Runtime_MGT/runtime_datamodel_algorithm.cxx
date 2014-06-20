@@ -162,7 +162,7 @@ void Runtime_datamodel_algorithm::datamodel_read()
             netcdf_file_object = new IO_netcdf(full_file_name, full_file_name, "r", true);
             strcpy(datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, datamodel_fields[i]->field_name_in_IO_file);
             netcdf_file_object->read_data(datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field());
-			datamodel_fields[i]->field_data_mem->define_field_values();
+			datamodel_fields[i]->field_data_mem->define_field_values(false);
             delete netcdf_file_object;
         }
     }

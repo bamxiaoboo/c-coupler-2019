@@ -37,6 +37,7 @@ extern char software_name[];
 extern Compset_communicators_info_mgt *compset_communicators_info_mgr;
 extern Routing_info_mgt *routing_info_mgr;
 extern Timer_mgt *timer_mgr;
+extern Timer_mgt *restart_read_timer_mgr;
 extern Decomp_info_mgt *decomps_info_mgr;
 extern Field_info_mgt *fields_info;
 extern Memory_mgt *memory_manager;

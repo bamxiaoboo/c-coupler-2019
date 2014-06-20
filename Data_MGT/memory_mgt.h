@@ -34,6 +34,7 @@ class Field_mem_info
         bool is_registered_model_buf;
 		bool is_restart_field;
 		long last_define_time;
+		bool is_field_active;
         Remap_grid_data_class *grided_field_data;
 
     public:
@@ -42,6 +43,7 @@ class Field_mem_info
 		bool match_field_mem(void*);
         bool get_is_restart_field() { return is_restart_field; }
 		bool get_is_registered_model_buf() { return is_registered_model_buf; }
+		bool check_is_field_active() { return is_field_active; }
         void *get_data_buf() { return grided_field_data->get_grid_data_field()->data_buf; }
         Remap_grid_data_class *get_field_data() { return grided_field_data; }
         void reset_mem_buf(void *buf, bool);
@@ -55,7 +57,7 @@ class Field_mem_info
 		void change_datatype_to_double();
 		void calculate_field_conservative_sum(Field_mem_info*);
         void check_field_sum();
-		void define_field_values();
+		void define_field_values(bool);
 		void use_field_values();
 		bool field_has_been_defined();
 		long get_last_define_time() { return last_define_time; }
@@ -81,6 +83,7 @@ class Memory_mgt
 		void write_restart_fields();
 		void check_all_restart_fields_have_been_read();
 		bool is_model_data_renewed_in_current_time_step(void*);
+		bool is_model_data_active_in_coupling(void*);
 		void check_sum_of_all_fields();
         ~Memory_mgt();
 };

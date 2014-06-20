@@ -144,7 +144,7 @@ void Runtime_common_algorithm::run(bool is_alglrithm_in_kernel_stage)
 		else model_algorithm();
         for (int i = 0; i < num_dst_fields; i ++) {
             memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->check_field_sum();
-			memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->define_field_values();
+			memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->define_field_values(false);
         }
     }
 }

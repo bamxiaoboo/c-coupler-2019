@@ -98,7 +98,6 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
 
     timer_mgr = this;
     restart_timer = NULL;
-	EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(rest_freq_unit, "seconds"), "rest_freq_unit cannot be seconds\n");
     restart_timer = new Coupling_timer(rest_freq_unit, rest_freq_count, 0);
     if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS))
         rest_freq_seconds = NUM_DAYS_PER_NONLEAP_YEAR*86400*rest_freq_count;
@@ -239,7 +238,8 @@ void Timer_mgt::set_restart_time(long start_full_time, long restart_full_time)
     long tmp_date_value;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
+	    EXECUTION_REPORT(REPORT_ERROR, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
 	EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
 	EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
     current_second = restart_full_time % 100000;
@@ -427,3 +427,10 @@ void Timer_mgt::get_current_time(int &year, int &month, int &day, int &second, i
     }
 }
 
+
+int Timer_mgt::get_current_num_time_step()
+{
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid") && current_step_id < SECONDS_PER_DAY/sec_per_step)
+		return current_step_id + SECONDS_PER_DAY/sec_per_step;
+    return current_step_id; 
+}

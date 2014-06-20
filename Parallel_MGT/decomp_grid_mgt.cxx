@@ -91,16 +91,16 @@ void Decomp_grid_info::register_decomp_grid_fields()
     memcpy(local_masks->get_data_buf(), decomp_grid->get_grid_mask_field()->get_grid_data_field()->data_buf, decomp_grid->get_grid_size()*sizeof(bool));
     ((int*)local_nlats->get_data_buf())[0] = cpl_get_sphere_grid_subgrid_size(original_grid->get_grid_name(), LAT_GF);
     ((int*)local_nlons->get_data_buf())[0] = cpl_get_sphere_grid_subgrid_size(original_grid->get_grid_name(), LON_GF);
-	local_lats->define_field_values();
-	local_lons->define_field_values();
-	local_masks->define_field_values();
-	local_nlats->define_field_values();
-	local_nlons->define_field_values();
+	local_lats->define_field_values(false);
+	local_lons->define_field_values(false);
+	local_masks->define_field_values(false);
+	local_nlats->define_field_values(false);
+	local_nlons->define_field_values(false);
 
 	if (decomp_grid->get_area_or_volumn() != NULL) { 
     	local_areas = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), AREA_GF, 0);
     	memcpy(local_areas->get_data_buf(), decomp_grid->get_area_or_volumn(), decomp_grid->get_grid_size()*sizeof(double));
-		local_areas->define_field_values();
+		local_areas->define_field_values(false);
 	}
 }
 

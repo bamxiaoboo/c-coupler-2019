@@ -97,6 +97,7 @@ Field_mem_info::Field_mem_info(const char *comp_name,
     this->buf_type = buf_type;
     is_registered_model_buf = false;
     is_restart_field = false;
+	is_field_active = false;
     last_define_time = 0x7fffffffffffffff;
 }
 
@@ -127,14 +128,16 @@ void Field_mem_info::change_datatype_to_double()
 }
 
 
-void Field_mem_info::define_field_values()
+void Field_mem_info::define_field_values(bool is_restarting)
 {
+	if (!is_restarting)
+		is_field_active = true;
     last_define_time = timer_mgr->get_current_full_time();
 }
 
 
 void Field_mem_info::use_field_values()
-{
+{	
     if (is_registered_model_buf) 
         return;
     
@@ -487,6 +490,18 @@ bool Memory_mgt::is_model_data_renewed_in_current_time_step(void *model_data_buf
     for (int i = 0; i < fields_mem.size(); i ++)
         if (fields_mem[i]->match_field_mem(model_data_buffer)) {
             return fields_mem[i]->get_last_define_time() == timer_mgr->get_current_full_time();
+        }
+
+    EXECUTION_REPORT(REPORT_ERROR, false, "address %lx is not starting address of any data buffer registerred by model", model_data_buffer);
+    return false;
+}
+
+
+bool Memory_mgt::is_model_data_active_in_coupling(void *model_data_buffer)
+{
+    for (int i = 0; i < fields_mem.size(); i ++)
+        if (fields_mem[i]->match_field_mem(model_data_buffer)) {
+            return fields_mem[i]->check_is_field_active();
         }
 
     EXECUTION_REPORT(REPORT_ERROR, false, "address %lx is not starting address of any data buffer registerred by model", model_data_buffer);

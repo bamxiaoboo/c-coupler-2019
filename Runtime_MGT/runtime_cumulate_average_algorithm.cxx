@@ -118,7 +118,7 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_alglrithm_i
             cumulate_average_fields[i]->current_computing_count = 0;			
         }
 		cumulate_average_fields[i]->mem_info_src->use_field_values();
-		cumulate_average_fields[i]->mem_info_dst->define_field_values();
+		cumulate_average_fields[i]->mem_info_dst->define_field_values(false);
     }
 
 	EXECUTION_REPORT(REPORT_LOG, true, "after cumulate or average");

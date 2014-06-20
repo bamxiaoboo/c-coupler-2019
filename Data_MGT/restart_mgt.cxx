@@ -39,9 +39,9 @@ bool Restart_mgt::is_in_restart_read_time_window()
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
 		return false;
 	
-	EXECUTION_REPORT(REPORT_ERROR, timer_mgr->get_current_num_time_step() >= restart_read_num_time_step && restart_read_num_time_step >= 0, 
+	EXECUTION_REPORT(REPORT_ERROR, restart_read_timer_mgr->get_current_num_time_step() >= restart_read_num_time_step && restart_read_num_time_step >= 0, 
 	             "C-Coupler software error in is_in_restart_read_time_window\n");
-	return (timer_mgr->get_current_num_time_step()-restart_read_num_time_step)*timer_mgr->get_comp_frequency() <= timer_mgr->get_comp_stop_latency_seconds();
+	return (restart_read_timer_mgr->get_current_num_time_step()-restart_read_num_time_step)*restart_read_timer_mgr->get_comp_frequency() <= restart_read_timer_mgr->get_comp_stop_latency_seconds();
 }
 
 
@@ -110,9 +110,10 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 		fclose(fp_tmp);
 	}
 	
-	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart") && restart_file_exist) {
+	if ((words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart")||
+		  words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid")) && restart_file_exist) {
 		read_check_restart_basic_info();
- 		restart_read_num_time_step = timer_mgr->get_current_num_time_step();
+ 		restart_read_num_time_step = restart_read_timer_mgr->get_current_num_time_step();
 	}
 }
 
@@ -141,7 +142,7 @@ int Restart_mgt::get_restart_read_field_computing_count(const char *comp_name, c
 			local_buf_type == buf_type) {
 			computing_count = (tmp_long_value >> 32);
 			sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+5), "%ld", &field_restart_time);			
-			EXECUTION_REPORT(REPORT_ERROR, field_restart_time+timer_mgr->get_comp_frequency() >= timer_mgr->get_current_full_time(), "C-Coupler error1 in get_restart_read_field_computing_count\n");
+			EXECUTION_REPORT(REPORT_ERROR, field_restart_time+restart_read_timer_mgr->get_comp_frequency() >= restart_read_timer_mgr->get_current_full_time(), "C-Coupler error1 in get_restart_read_field_computing_count\n");
 			return computing_count;
 		}
 	}
@@ -276,10 +277,10 @@ void Restart_mgt::read_one_restart_field(Field_mem_info *restart_field_mem)
 
  	
     restart_field_mem->get_field_mem_full_name(full_field_name);
-    sprintf(restart_field_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s_%ld", full_field_name, timer_mgr->get_current_full_time());
+    sprintf(restart_field_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s_%ld", full_field_name, restart_read_timer_mgr->get_current_full_time());
     EXECUTION_REPORT(REPORT_LOG, true, "read restart field %s", restart_field_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file);
     fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, restart_field_mem);    
-	restart_field_mem->define_field_values();
+	restart_field_mem->define_field_values(true);
 	restart_field_mem->check_field_sum();
 }
 
@@ -319,7 +320,9 @@ void Restart_mgt::read_check_restart_basic_info()
 	start_full_time = ((long)start_date)*100000;
 	restart_full_time = ((long)restart_date)*100000;
 	EXECUTION_REPORT(REPORT_ERROR, restart_begin_full_time == restart_full_time, "the restart date set by users is different from that in the restart data file for reading\n");
-	timer_mgr->set_restart_time(start_full_time, restart_full_time);
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
+		timer_mgr->set_restart_time(start_full_time, restart_full_time);
+	restart_read_timer_mgr->set_restart_time(start_full_time, restart_full_time);
 	check_is_restart_timer_on();
 }
 
@@ -345,7 +348,7 @@ void Restart_mgt::read_restart_fields_on_restart_date()
 
 	EXECUTION_REPORT(REPORT_LOG, true, "begin reading restart fields on restart date");
 
-	EXECUTION_REPORT(REPORT_ERROR, restart_begin_full_time == timer_mgr->get_current_full_time(), "the time of reading restart fields are different from the restart date setting by users\n");
+	EXECUTION_REPORT(REPORT_ERROR, restart_begin_full_time == restart_read_timer_mgr->get_current_full_time(), "the time of reading restart fields are different from the restart date setting by users\n");
 	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
 		rcode = nc_open(restart_read_nc_file->get_file_name(), NC_WRITE, &ncfile_id);
 		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_read_nc_file->get_file_name());

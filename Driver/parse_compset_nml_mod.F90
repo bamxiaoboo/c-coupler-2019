@@ -93,7 +93,7 @@ subroutine parse_compset_nml(compset_nml_filename)
       call mpi_abort (MPI_COMM_WORLD, 1)
    end if
 
-   if (run_type .eq. "restart") then
+   if (run_type .eq. "restart" .or. run_type .eq. "hybrid") then
       if (original_config_time .eq. "none") then
          write(6,*) "original_config_time has not been set in coupling namelist:", compset_nml_filename
          call mpi_abort (MPI_COMM_WORLD, 1)
@@ -104,7 +104,7 @@ subroutine parse_compset_nml(compset_nml_filename)
       end if
    end if
 
-   if (run_type .eq. "restart") then
+   if (run_type .eq. "restart" .or. run_type .eq. "hybrid") then
       if (original_case_name .eq. "none") then
          write(6,*) "original_case_name has not been set in coupling namelist:", compset_nml_filename
          call mpi_abort (MPI_COMM_WORLD, 1)

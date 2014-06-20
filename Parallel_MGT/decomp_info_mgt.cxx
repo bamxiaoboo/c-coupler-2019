@@ -30,6 +30,7 @@ Decomp_info::Decomp_info(const char *decomp_name, const char *model_name, const 
 
 
 	EXECUTION_REPORT(REPORT_LOG, true, "generate decomposition %s with %d local cells\n", decomp_name, num_local_cells_in_decomp);
+	EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager != NULL, "the grid manager is not initialized because the CoR script is not set");
     decomp_grid = remap_grid_manager->search_remap_grid_with_grid_name(grid_name);
     EXECUTION_REPORT(REPORT_ERROR, decomp_grid != NULL && decomp_grid->get_is_sphere_grid(), 
                  "the grid %s of parallel decomposition %s is not a defined sphere 2D grid with latitude and longitude\n", 
@@ -98,7 +99,7 @@ void Decomp_info::gen_decomp_grid_data()
 
     num_global_cells = cpl_get_grid_size(grid_name);
     local_grid_index = (int *) alloc_buf(model_name, decomp_name, grid_name, "index", 0);
-	memory_manager->search_field_via_data_buf(local_grid_index)->define_field_values();
+	memory_manager->search_field_via_data_buf(local_grid_index)->define_field_values(false);
 
     for (i = 0; i < num_local_cells; i ++) {
         local_grid_index[i] = local_cell_global_indx[i]+1;

@@ -140,6 +140,8 @@ extern "C" void finalize_coupling_managers_()
     delete fields_gather_scatter_mgr;
     EXECUTION_REPORT(REPORT_LOG, true, "before deleting time manager");
 	delete timer_mgr;
+	if (restart_read_timer_mgr != NULL)
+		delete restart_read_timer_mgr;
     EXECUTION_REPORT(REPORT_LOG, true, "before deleting communicator manager");
     delete compset_communicators_info_mgr;
 }
@@ -172,6 +174,8 @@ extern "C" void coupling_execute_procedure_(const char *procedure_name, const ch
 extern "C" void coupling_advance_timer_()
 {
     timer_mgr->advance_coupling_step();
+	if (restart_read_timer_mgr != NULL)
+		restart_read_timer_mgr->advance_coupling_step();
 }
 
 
@@ -220,6 +224,8 @@ extern "C" void coupling_get_float_current_calendar_time_(float *cal_time, int *
 extern "C" void initialize_coupler_timer_(const int *start_date, const int *start_second, const int *stop_date, const int *stop_second, const bool *leap_year_on, 
 	                          const int *cpl_step, const char *rest_freq_unit, const int *rest_freq_count, const int *stop_latency_seconds)
 {
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart") || words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid"))
+		restart_read_timer_mgr = new Timer_mgt(*start_date, *start_second, *stop_date, *stop_second, *leap_year_on, *cpl_step, rest_freq_unit, *rest_freq_count, *stop_latency_seconds);
     timer_mgr = new Timer_mgt(*start_date, *start_second, *stop_date, *stop_second, *leap_year_on, *cpl_step, rest_freq_unit, *rest_freq_count, *stop_latency_seconds);
 }
 
@@ -263,13 +269,24 @@ extern "C" void coupling_do_restart_read_()
 }
 
 
+extern "C" void coupling_is_first_step_(bool *result)
+{
+	*result = false;
+	if (!words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
+		return;
+
+	if (timer_mgr->get_current_num_time_step() == 0)
+		*result = true;
+}
+
+
 extern "C" void coupling_is_first_restart_step_(bool *result)
 {
 	*result = false;
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
 		return;
 
-	if (timer_mgr->get_current_num_time_step() - restart_mgr->get_restart_read_num_time_step() <= 1)
+	if (restart_read_timer_mgr->get_current_num_time_step() - restart_mgr->get_restart_read_num_time_step() <= 1)
 		*result = true;
 }
 
@@ -352,6 +369,14 @@ extern "C" void coupling_abort_(const char *error_string)
 extern "C" void coupling_is_model_data_renewed_in_current_time_step_(void *model_data, int *result)
 {
 	if (memory_manager->is_model_data_renewed_in_current_time_step(model_data))
+		*result = 1;
+	else *result = 0;
+}
+
+
+extern "C" void coupling_is_model_data_active_in_coupling_(void *model_data, int *result)
+{
+	if (memory_manager->is_model_data_active_in_coupling(model_data))
 		*result = 1;
 	else *result = 0;
 }

@@ -382,13 +382,13 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
     }    
     for (i = 0; i < dst_double_remap_fields.size(); i ++)
         if (dst_float_remap_fields[i] != NULL) {
-			dst_float_remap_fields[i]->define_field_values();
+			dst_float_remap_fields[i]->define_field_values(false);
             for (j = 0; j < field_size_dst; j ++)
                 ((float*) dst_float_remap_fields[i]->get_data_buf())[j] = ((double*) dst_double_remap_fields[i]->get_data_buf())[j];
 			dst_float_remap_fields[i]->check_field_sum();
         }
 		else {
-			dst_double_remap_fields[i]->define_field_values();
+			dst_double_remap_fields[i]->define_field_values(false);
 			dst_double_remap_fields[i]->check_field_sum();
 		}
 }

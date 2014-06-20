@@ -104,6 +104,32 @@
         c_coupler_is_model_logical_4D_data_renewed_in_current_time_step
    end interface
 
+
+   interface c_coupler_is_model_data_active_in_coupling ; module procedure &
+        c_coupler_is_model_double_0D_data_active_in_coupling,  &
+        c_coupler_is_model_double_1D_data_active_in_coupling,  &
+        c_coupler_is_model_double_2D_data_active_in_coupling,  &
+        c_coupler_is_model_double_3D_data_active_in_coupling,  &
+        c_coupler_is_model_double_4D_data_active_in_coupling,  &
+        c_coupler_is_model_float_0D_data_active_in_coupling,   &
+        c_coupler_is_model_float_1D_data_active_in_coupling,   &
+        c_coupler_is_model_float_2D_data_active_in_coupling,   &
+        c_coupler_is_model_float_3D_data_active_in_coupling,   &
+        c_coupler_is_model_float_4D_data_active_in_coupling,   &
+        c_coupler_is_model_integer_0D_data_active_in_coupling, &
+        c_coupler_is_model_integer_1D_data_active_in_coupling, &
+        c_coupler_is_model_integer_2D_data_active_in_coupling, &
+        c_coupler_is_model_integer_3D_data_active_in_coupling, &
+        c_coupler_is_model_integer_4D_data_active_in_coupling, &
+        c_coupler_is_model_logical_0D_data_active_in_coupling, &
+        c_coupler_is_model_logical_1D_data_active_in_coupling, &
+        c_coupler_is_model_logical_2D_data_active_in_coupling, &
+        c_coupler_is_model_logical_3D_data_active_in_coupling, &
+        c_coupler_is_model_logical_4D_data_active_in_coupling
+   end interface
+
+
+
    interface c_coupler_check_grid_values ; module procedure &
         c_coupler_check_float_grid_values, &
         c_coupler_check_double_grid_values, &
@@ -1233,10 +1259,10 @@
 
  logical FUNCTION c_coupler_is_first_step
    implicit none
-   integer :: nstep
+   logical is_first_step
 
-   call coupling_get_current_nstep(nstep)
-   c_coupler_is_first_step = (nstep == 0)
+   call coupling_is_first_step(is_first_step)
+   c_coupler_is_first_step = is_first_step
 
  END FUNCTION c_coupler_is_first_step
 
@@ -1526,6 +1552,326 @@
    call coupling_abort(trim(error_string)//char(0))
 
  END SUBROUTINE c_coupler_abort
+
+
+   logical FUNCTION c_coupler_is_model_double_0D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R8)                     :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_double_0D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_double_0D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_double_0D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_double_1D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R8),DIMENSION(:)        :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_double_1D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_double_1D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_double_1D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_double_2D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R8),DIMENSION(:,:)      :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_double_2D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_double_2D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_double_2D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_double_3D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R8),DIMENSION(:,:,:)    :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_double_3D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_double_3D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_double_3D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_double_4D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R8),DIMENSION(:,:,:,:)  :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_double_4D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_double_4D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_double_4D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_float_0D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R4)                     :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_float_0D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_float_0D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_float_0D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_float_1D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R4),DIMENSION(:)        :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_float_1D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_float_1D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_float_1D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_float_2D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R4),DIMENSION(:,:)      :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_float_2D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_float_2D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_float_2D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_float_3D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R4),DIMENSION(:,:,:)    :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_float_3D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_float_3D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_float_3D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_float_4D_data_active_in_coupling(data_buf)
+   implicit none
+   real(R4),DIMENSION(:,:,:,:)  :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_float_4D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_float_4D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_float_4D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_integer_0D_data_active_in_coupling(data_buf)
+   implicit none
+   integer                      :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_integer_0D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_integer_0D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_integer_0D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_integer_1D_data_active_in_coupling(data_buf)
+   implicit none
+   integer,DIMENSION(:)         :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_integer_1D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_integer_1D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_integer_1D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_integer_2D_data_active_in_coupling(data_buf)
+   implicit none
+   integer,DIMENSION(:,:)       :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_integer_2D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_integer_2D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_integer_2D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_integer_3D_data_active_in_coupling(data_buf)
+   implicit none
+   integer,DIMENSION(:,:,:)     :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_integer_3D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_integer_3D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_integer_3D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_integer_4D_data_active_in_coupling(data_buf)
+   implicit none
+   integer,DIMENSION(:,:,:,:)   :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_integer_4D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_integer_4D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_integer_4D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_logical_0D_data_active_in_coupling(data_buf)
+   implicit none
+   logical(1)                   :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_logical_0D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_logical_0D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_logical_0D_data_active_in_coupling
+
+
+   logical FUNCTION c_coupler_is_model_logical_1D_data_active_in_coupling(data_buf)
+   implicit none
+   logical(1),DIMENSION(:)      :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_logical_1D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_logical_1D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_logical_1D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_logical_2D_data_active_in_coupling(data_buf)
+   implicit none
+   logical(1),DIMENSION(:,:)    :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_logical_2D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_logical_2D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_logical_2D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_logical_3D_data_active_in_coupling(data_buf)
+   implicit none
+   logical(1),DIMENSION(:,:,:)  :: data_buf
+   integer                      :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_logical_3D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_logical_3D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_logical_3D_data_active_in_coupling
+
+
+
+   logical FUNCTION c_coupler_is_model_logical_4D_data_active_in_coupling(data_buf)
+   implicit none
+   logical(1),DIMENSION(:,:,:,:) :: data_buf
+   integer                       :: result
+
+   call coupling_is_model_data_active_in_coupling(data_buf, result)
+   if (result .eq. 1) then
+       c_coupler_is_model_logical_4D_data_active_in_coupling = .true.
+   else
+       c_coupler_is_model_logical_4D_data_active_in_coupling = .false.
+   end if
+
+   END FUNCTION c_coupler_is_model_logical_4D_data_active_in_coupling
+
+
 
 
  END MODULE c_coupler_interface_mod

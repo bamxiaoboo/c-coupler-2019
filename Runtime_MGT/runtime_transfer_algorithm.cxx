@@ -373,7 +373,7 @@ void Runtime_transfer_algorithm::recv_data(bool is_alglrithm_in_kernel_stage)
     for (m = num_send_fields; m < num_transfered_fields; m ++) 
         if (currently_transferred_fields_mark[m]) {
             transferred_fields_mem[m]->check_field_sum();
-			transferred_fields_mem[m]->define_field_values();
+			transferred_fields_mem[m]->define_field_values(false);
         }
 
     if (restart_mgr->is_in_restart_write_time_window()) {

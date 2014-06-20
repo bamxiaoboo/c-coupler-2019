@@ -105,7 +105,7 @@ class Timer_mgt
         long get_previous_full_time();
         long get_current_full_time();
         int get_current_date();
-        int get_current_num_time_step() { return current_step_id; }
+        int get_current_num_time_step();
         int get_num_total_step() { return num_total_steps; }
         int get_comp_stop_latency_seconds() { return stop_latency_seconds; }
 		int get_current_num_days_in_year();
