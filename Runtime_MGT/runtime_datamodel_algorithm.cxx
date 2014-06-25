@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "runtime_datamodel_algorithm.h"
 #include "global_data.h"
+#include "runtime_datamodel_algorithm.h"
 #include "decomp_info_mgt.h"
 #include "memory_mgt.h"
 #include "runtime_config_dir.h"

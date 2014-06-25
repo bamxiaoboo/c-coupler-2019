@@ -7,10 +7,9 @@
   ***************************************************************/
 
 
-#include <mpi.h>
+#include "compset_communicators_info_mgt.h"
 #include <stdio.h>
 #include <string.h>
-#include "compset_communicators_info_mgt.h"
 #include "global_data.h"
 #include "cor_global_data.h"
 #include <unistd.h>

@@ -305,7 +305,7 @@ void Runtime_transfer_algorithm::pack_MD_data(long remote_proc_index, long field
 
 void Runtime_transfer_algorithm::recv_data(bool is_alglrithm_in_kernel_stage) 
 {
-    int global_comm;
+    MPI_Comm global_comm;
     int remote_proc_id;
     int offset;
     int i,m;
@@ -387,7 +387,7 @@ void Runtime_transfer_algorithm::recv_data(bool is_alglrithm_in_kernel_stage)
 
 void Runtime_transfer_algorithm::send_data(bool is_alglrithm_in_kernel_stage)
 {    
-    int global_comm;
+    MPI_Comm global_comm;
     int offset;
     int remote_proc_id;
     long num_segments;
@@ -455,7 +455,7 @@ void Runtime_transfer_algorithm::send_data(bool is_alglrithm_in_kernel_stage)
 
 void Runtime_transfer_algorithm::sendrecv_data(bool is_alglrithm_in_kernel_stage)
 {
-    int local_comm;
+    MPI_Comm local_comm;
     int offset;
     long num_segments;
     long i, m;

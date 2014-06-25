@@ -7,11 +7,11 @@
   ***************************************************************/
 
 
-#include "execution_report.h"
-#include "cor_global_data.h"
 #ifndef ONLY_CoR
 #include "global_data.h"
 #endif
+#include "execution_report.h"
+#include "cor_global_data.h"
 #include <assert.h>
 #include <stdio.h>
 #include <sys/time.h>

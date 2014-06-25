@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "decomp_grid_mgt.h"
 #include "global_data.h"
+#include "decomp_grid_mgt.h"
 #include "cor_cpl_interface.h"
 
 

@@ -7,7 +7,6 @@
   ***************************************************************/
 
 
-#include <mpi.h>
 #include "global_data.h"
 #include "cor_global_data.h"
 #include "remap_mgt.h"
@@ -147,7 +146,7 @@ extern "C" void finalize_coupling_managers_()
 }
 
 
-extern "C" int comm_initialize_(const char *exp_model, const char *current_comp_name, const char *compset_filename, int *comm, const char *case_name, 
+extern "C" int comm_initialize_(const char *exp_model, const char *current_comp_name, const char *compset_filename, MPI_Comm *comm, const char *case_name, 
                                 const char *case_desc, const char *case_mode, const char *comp_namelist,
                                 const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
@@ -209,7 +208,7 @@ extern "C" void coupling_get_current_second_(int *date)
 }
 
 
-extern "C" void coupling_get_current_comp_comm_(int *local_comm)
+extern "C" void coupling_get_current_comp_comm_(MPI_Comm *local_comm)
 {
     *local_comm = compset_communicators_info_mgr->get_current_comp_comm_group();
 }

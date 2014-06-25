@@ -10,12 +10,13 @@
 #ifndef GLOBAL_DATA
 #define GLOBAL_DATA
 
+
+#include "compset_communicators_info_mgt.h"
 #include "decomp_info_mgt.h"
 #include "field_info_mgt.h"
 #include "memory_mgt.h"
 #include "runtime_process_mgt.h"
 #include "timer_mgt.h"
-#include "compset_communicators_info_mgt.h"
 #include "routing_info_mgt.h"
 #include "restart_mgt.h"
 #include "cor_cpl_interface.h"

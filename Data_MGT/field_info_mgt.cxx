@@ -7,10 +7,10 @@
   ***************************************************************/
 
 
+#include "global_data.h"
 #include "field_info_mgt.h"
 #include "common_utils.h"
 #include "cor_global_data.h"
-#include "global_data.h"
 #include <string.h>
 
 

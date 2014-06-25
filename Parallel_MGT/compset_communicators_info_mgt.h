@@ -10,6 +10,8 @@
 #ifndef COMM_MGT_H
 #define COMM_MGT_H
 
+
+#include <mpi.h>
 #include "common_utils.h"
 #include "io_netcdf.h"
 #include <vector>
@@ -37,9 +39,9 @@ struct Component_communicator_info
 class Compset_communicators_info_mgt
 {
     private:
-        int global_comm_group;                    // The global communication group
-        int current_comp_comm_group;              // The communication group of current component
-        int computing_node_comp_group;            // The communication group for the processes of the same component sharing on the same computing node
+        MPI_Comm global_comm_group;                    // The global communication group
+        MPI_Comm current_comp_comm_group;              // The communication group of current component
+        MPI_Comm computing_node_comp_group;            // The communication group for the processes of the same component sharing on the same computing node
         int current_comp_id;                      // The component id of current component
         int current_proc_local_id;                // The id of current process in the communication group of current component
         std::vector<Component_communicator_info *> comps_comms_info;    // The array to record the infomation of all components
@@ -61,10 +63,10 @@ class Compset_communicators_info_mgt
         ~Compset_communicators_info_mgt();
 
         int get_comp_id_by_comp_name(const char*);
-		int get_global_comm_group() { return global_comm_group; }
+		MPI_Comm get_global_comm_group() { return global_comm_group; }
         int get_current_comp_id() { return current_comp_id;}
         int get_current_proc_id_in_comp_comm_group() { return current_proc_local_id;}
-        int get_current_comp_comm_group() {return current_comp_comm_group;}
+        MPI_Comm get_current_comp_comm_group() {return current_comp_comm_group;}
         int get_proc_id_in_global_comm_group(int, int);
         int get_num_procs_in_comp(int cid) { return comps_comms_info[cid]->num_comp_procs;}
         const char *get_current_comp_name() { return comps_comms_info[current_comp_id]->comp_name; }
@@ -77,7 +79,7 @@ class Compset_communicators_info_mgt
 		const char *get_current_config_time() { return current_config_time; }
 		const char *get_original_config_time() { return original_config_time; }
 		const char *get_host_computing_node_name() { return host_name_current_computing_node; }
-		int get_computing_node_comp_group() { return computing_node_comp_group; }
+		MPI_Comm get_computing_node_comp_group() { return computing_node_comp_group; }
         void write_case_info(IO_netcdf*);
 };
 

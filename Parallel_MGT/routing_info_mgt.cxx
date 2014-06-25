@@ -50,7 +50,8 @@ Routing_info *Routing_info_mgt::search_router(const char *remote_comp_name, cons
 Routing_info::Routing_info(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
 {
 	char tmp_remote_decomp_name[NAME_STR_SIZE];
-	int remote_root_proc_global_id, global_comm_group;
+	int remote_root_proc_global_id;
+	MPI_Comm global_comm_group;
 	MPI_Request send_req, recv_req;
 	MPI_Status status;
 
@@ -121,7 +122,7 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
     int *local_cell_global_indx;
     int num_remote_procs;
     int remote_proc_global_id;
-    int global_comm_group;
+    MPI_Comm global_comm_group;
     int *num_cells_each_remote_proc;
     int **cell_indx_each_remote_proc; 
     MPI_Request *send_reqs, *recv_reqs;
