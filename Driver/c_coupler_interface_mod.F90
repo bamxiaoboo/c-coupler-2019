@@ -177,7 +177,7 @@
                         trim(case_name)//char(0), trim(case_desc)//char(0), trim(run_type)//char(0), &
                         trim(comp_model_nml)//char(0), trim(config_time)//char(0), &
                         trim(original_case_name)//char(0), trim(original_config_time)//char(0))
-   call initialize_coupler_timer(start_date, start_second, stop_date, stop_second, leap_year, cpl_interface_time_step, &
+   call initialize_coupler_timer(start_date, start_second, stop_date, stop_second, reference_date, leap_year, cpl_interface_time_step, &
                                  trim(rest_freq_unit)//char(0), rest_freq_count, stop_latency_seconds)
    call initialize_coupling_managers(restart_date, restart_second, trim(restart_read_file)//char(0));
 
@@ -1213,6 +1213,15 @@
  END SUBROUTINE c_coupler_do_restart_write
 
 
+
+ SUBROUTINE c_coupler_reset_timer
+
+   call coupling_reset_timer
+
+ END SUBROUTINE c_coupler_reset_timer
+
+
+
  integer FUNCTION c_coupler_get_nstep
    implicit none  
    integer :: nstep
@@ -1374,6 +1383,16 @@
     call coupling_get_current_time(year, month, day, second, local_shift)
 
  END SUBROUTINE c_coupler_get_current_time
+
+
+
+ SUBROUTINE c_coupler_get_num_elapsed_days_from_reference(days, seconds)
+    implicit none
+    integer days, seconds
+
+    call coupling_get_elapsed_days_from_reference_date(days, seconds)
+
+ END SUBROUTINE c_coupler_get_num_elapsed_days_from_reference
 
 
 

@@ -63,7 +63,10 @@ class Timer_mgt
         int current_year;   
         int current_month;
         int current_day; 
-        int current_second; 
+        int current_second;
+		int reference_year;
+		int reference_month;
+		int reference_day;
         int stop_year;
         int stop_month;
         int stop_day;
@@ -81,7 +84,7 @@ class Timer_mgt
 		void check_is_time_legal(int, int, int, int, const char*);
 
     public:
-        Timer_mgt(int, int, int, int, bool, int, const char*, int, int);
+        Timer_mgt(int, int, int, int, int, bool, int, const char*, int, int);
         ~Timer_mgt();
         void advance_coupling_step();
         int get_current_year() { return current_year; }
@@ -113,7 +116,9 @@ class Timer_mgt
         Comps_transfer_time_info *allocate_comp_transfer_time_info(int);
 		bool check_time_consistency_between_components(long);
 		void get_elapsed_days_from_start_date(int*, int*);
+		void get_elapsed_days_from_reference_date(int*, int*);
 		void get_current_time(int&, int&, int&, int&, int);
+		void reset_timer();
 };
 
 

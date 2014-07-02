@@ -50,16 +50,17 @@ bool Coupling_timer::is_timer_on()
 
 void Timer_mgt::check_is_time_legal(int year, int month, int day, int second, const char *report_label)
 {
+	EXECUTION_REPORT(REPORT_ERROR, year >= 0, "the %s year of simulation run can not be negative", report_label);
 	EXECUTION_REPORT(REPORT_ERROR, second >=0 && second <= 86400, "the %s second of simulation run must between 0 and 86400", report_label);
 	EXECUTION_REPORT(REPORT_ERROR, second%sec_per_step == 0 && (86400-second)%sec_per_step == 0, "%s second of simulation run must integer multiple of the time step", report_label);
     EXECUTION_REPORT(REPORT_ERROR, month >= 1 && month <= 12, "the %s month must be between 1 and 12\n", report_label);
-	if (leap_year_on && (year%4) == 0)
+	if (leap_year_on && (((year%4) == 0 && (year%100) != 0) || (year%400) == 0))
         EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_leap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_leap_year[month-1]);
 	else EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_nonleap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_nonleap_year[month-1]);
 }
 
 
-Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_second, bool leap_year_on, int cpl_step, const char *rest_freq_unit, int rest_freq_count, int stop_latency_seconds)
+Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_second, int reference_date, bool leap_year_on, int cpl_step, const char *rest_freq_unit, int rest_freq_count, int stop_latency_seconds)
 {
     int steps_per_day;
     long rest_freq_seconds;
@@ -73,6 +74,9 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
     stop_month = (stop_date%10000) / 100;
     stop_day = stop_date % 100;
     this->stop_second = stop_second;
+    reference_year = reference_date / 10000;
+    reference_month = (reference_date%10000) / 100;
+    reference_day = reference_date % 100;
     sec_per_step = cpl_step;
     previous_year = start_year;
     previous_month = start_month;
@@ -90,6 +94,7 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
     EXECUTION_REPORT(REPORT_ERROR, stop_latency_seconds%sec_per_step == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
 	check_is_time_legal(start_year, start_month, start_day, start_second, "start");
 	check_is_time_legal(stop_year, stop_month, stop_day, stop_second, "stop");
+//	check_is_time_legal(reference_year, reference_month, reference_day, 0, "feference");  This check is disabled due to MASNUM2
 
     steps_per_day = SECONDS_PER_DAY / sec_per_step;
     current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
@@ -118,9 +123,24 @@ Timer_mgt::~Timer_mgt()
 }
 
 
+void Timer_mgt::reset_timer()
+{
+	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), 
+		             "the model timer cannot be reset when run type is not initial\n");
+
+	current_year = start_year;
+	current_month = start_month;
+	current_day = start_day;
+	current_second = start_second;
+	current_step_id = 0;
+	
+	current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
+}
+
+
 int Timer_mgt::get_current_num_days_in_year()
 {
-	if (leap_year_on && (current_year%4) == 0)
+	if (leap_year_on && (((current_year%4) == 0 && (current_year%100) != 0) || (current_year%400) == 0))
 		return elapsed_days_on_start_of_month_of_leap_year[current_month-1] + current_day;
 	return elapsed_days_on_start_of_month_of_nonleap_year[current_month-1] + current_day;
 }
@@ -128,13 +148,21 @@ int Timer_mgt::get_current_num_days_in_year()
 
 long Timer_mgt::calculate_elapsed_day(int year, int month, int day)
 {
+	int num_leap_year;
+
+
 	if (!leap_year_on)
 	    return year*NUM_DAYS_PER_NONLEAP_YEAR + elapsed_days_on_start_of_month_of_nonleap_year[month-1] + day - 1;
 
-	if ((year%4) == 0)
-	    return year*NUM_DAYS_PER_NONLEAP_YEAR + (year-1)/4 + elapsed_days_on_start_of_month_of_leap_year[month-1] + day - 1;
+	num_leap_year = (year-1)/4 - (year-1)/100 + (year-1)/400;
 
-	return year*NUM_DAYS_PER_NONLEAP_YEAR + year/4 + elapsed_days_on_start_of_month_of_nonleap_year[month-1] + day - 1;
+	if (year > 0)
+		num_leap_year ++;   // year 0 is a leap year
+
+	if (((year%4) == 0 && (year%100) != 0) || (year%400) == 0)
+		return year*NUM_DAYS_PER_NONLEAP_YEAR + num_leap_year + elapsed_days_on_start_of_month_of_leap_year[month-1] + day - 1;
+
+	return year*NUM_DAYS_PER_NONLEAP_YEAR + num_leap_year + elapsed_days_on_start_of_month_of_nonleap_year[month-1] + day - 1;
 }
 
 
@@ -153,7 +181,7 @@ void Timer_mgt::advance_coupling_step()
     if (current_second == SECONDS_PER_DAY) {
         current_second = 0;
         current_num_elapsed_day ++;
-		if (leap_year_on && (current_year%4) == 0) 
+		if (leap_year_on && (((current_year%4) == 0 && (current_year%100) != 0) || (current_year%400) == 0)) 
 			num_days_in_current_month = num_days_of_month_of_leap_year[current_month-1];
 		else num_days_in_current_month = num_days_of_month_of_nonleap_year[current_month-1];
 		current_day ++;
@@ -179,7 +207,7 @@ double Timer_mgt::get_double_current_calendar_time(int shift_second)
 	
 	EXECUTION_REPORT(REPORT_ERROR, shift_second>=-86400 && shift_second<= 86400, "The shift seconds for calculating calendar time must be between -86400 and 86400");
 
-	if (leap_year_on && (current_year%4) == 0) {
+	if (leap_year_on && (((current_year%4) == 0 && (current_year%100) != 0) || (current_year%400) == 0)) {
 		calday = elapsed_days_on_start_of_month_of_leap_year[current_month-1] + current_day + ((double)(current_second+shift_second))/SECONDS_PER_DAY;
 		if (calday > (NUM_DAYS_PER_LEAP_YEAR+1))
 			calday = calday - (NUM_DAYS_PER_LEAP_YEAR+1);
@@ -398,6 +426,17 @@ void Timer_mgt::get_elapsed_days_from_start_date(int *num_days, int *num_seconds
 }
 
 
+void Timer_mgt::get_elapsed_days_from_reference_date(int *num_days, int *num_seconds)
+{
+	long current_num_elapsed_days, reference_num_elapsed_days;
+	
+	current_num_elapsed_days = calculate_elapsed_day(current_year, current_month, current_day);
+	reference_num_elapsed_days = calculate_elapsed_day(reference_year, reference_month, reference_day);
+	*num_days = current_num_elapsed_days - reference_num_elapsed_days;
+	*num_seconds = current_second;
+}
+
+
 void Timer_mgt::get_current_time(int &year, int &month, int &day, int &second, int shift_second)
 {
 	int num_days_in_current_month;
@@ -412,7 +451,7 @@ void Timer_mgt::get_current_time(int &year, int &month, int &day, int &second, i
 
     if (second >= SECONDS_PER_DAY) {
 		second -= SECONDS_PER_DAY;
-		if (leap_year_on && (year%4) == 0) 
+		if (leap_year_on && (((year%4) == 0 && (year%100) != 0) || (year%400) == 0)) 
 			num_days_in_current_month = num_days_of_month_of_leap_year[month-1];
 		else num_days_in_current_month = num_days_of_month_of_nonleap_year[month-1];
 		day ++;
@@ -434,3 +473,4 @@ int Timer_mgt::get_current_num_time_step()
 		return current_step_id + SECONDS_PER_DAY/sec_per_step;
     return current_step_id; 
 }
+

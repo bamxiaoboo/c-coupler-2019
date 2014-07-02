@@ -21,6 +21,7 @@ module parse_compset_nml_mod
    integer       , public :: stop_second          
    integer       , public :: restart_date          ! yyyymmdd
    integer       , public :: restart_second         
+   integer       , public :: reference_date        ! yyyymmdd
    character *512, public :: rest_freq_unit
    integer       , public :: rest_freq_count
    character *512, public :: component_name
@@ -42,7 +43,7 @@ subroutine parse_compset_nml(compset_nml_filename)
    character *512         :: compset_nml_filename
 
    namelist /compset_nml/ exp_model, case_name, case_desc, run_type, start_date, start_second, stop_date, &
-                      stop_second, rest_freq_unit, rest_freq_count, component_name, compset_filename, &
+                      stop_second, reference_date, rest_freq_unit, rest_freq_count, component_name, compset_filename, &
                       config_time, comp_run_data_dir, comp_model_nml, comp_log_filename, &
                       restart_date, restart_second, original_case_name, original_config_time, &
                       restart_read_file, cpl_interface_time_step, stop_latency_seconds, leap_year
@@ -56,6 +57,7 @@ subroutine parse_compset_nml(compset_nml_filename)
    run_type = "none"
    start_date = -1
    restart_date = -1
+   reference_date = -99999999
    stop_date = -1
    rest_freq_unit = "none"
    rest_freq_count = -1
@@ -150,6 +152,10 @@ subroutine parse_compset_nml(compset_nml_filename)
    if (start_date .lt. 0) then
       write(6,*) "start_date has not been set in coupling namelist:", compset_nml_filename
       call mpi_abort (MPI_COMM_WORLD, 1)
+   end if
+
+   if (reference_date .eq. -99999999) then
+      reference_date = 00010101
    end if
 
    if (stop_date .lt. 0) then

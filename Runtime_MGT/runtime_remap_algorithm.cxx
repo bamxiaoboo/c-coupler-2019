@@ -342,6 +342,9 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
 	}
     runtime_rearrange_algorithm->run(is_alglrithm_in_kernel_stage);
 
+	for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
+		src_double_remap_fields_after_rearrange[i]->check_field_sum();
+
     /* Do remap */
     field_size_src_before_rearrange = src_double_remap_fields_after_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
     field_size_dst = dst_double_remap_fields[0]->get_field_data()->get_grid_data_field()->required_data_size;
