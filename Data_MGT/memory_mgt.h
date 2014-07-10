@@ -76,8 +76,8 @@ class Memory_mgt
     public: 
         Memory_mgt(const char *);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const int, bool);
-        void register_model_data_buf(const char*, const char*, const char*, void*, void*, bool);
-		void withdraw_model_data_buf(const char*, const char*);
+        void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool);
+		void withdraw_model_data_buf(const char*, const char*, const char*);
         Field_mem_info *alloc_mem_double(const char *, const char *, const char *, const char*, const int);
         Field_mem_info *search_field_via_data_buf(const void*);
 		void write_restart_fields();

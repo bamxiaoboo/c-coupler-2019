@@ -144,6 +144,12 @@ const char *Field_info_mgt::get_field_data_type(const char *field_name)
 }
 
 
+void Field_info_mgt::set_field_data_type(const char *field_name, const char *data_type)
+{
+    strcpy((char*)(search_field_info(field_name)->field_data_type), data_type);
+}
+
+
 const char *Field_info_mgt::get_field_long_name(const char *field_name)
 {
     return search_field_info(field_name)->field_long_name;

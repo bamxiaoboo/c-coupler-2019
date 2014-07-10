@@ -28,7 +28,6 @@ class Field_info_mgt
 {
 private:
     std::vector<field_attr> fields_attr;
-	void add_field_info(const char*, const char*, const char*, const char*, const char*);
     
 public:
     Field_info_mgt(const char*, const char*);
@@ -37,9 +36,11 @@ public:
     int get_field_data_type_size(const field_attr*);
     int get_field_data_type_size(const char*);
     const char *get_field_data_type(const char*);
+	void set_field_data_type(const char*, const char*);
 	int get_field_num_dims(const char*);
 	const char *get_field_long_name(const char*);
 	const char *get_field_unit(const char*);
+	void add_field_info(const char*, const char*, const char*, const char*, const char*);
 };
 
 #endif

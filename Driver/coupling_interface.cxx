@@ -19,21 +19,21 @@
 int coupling_process_control_counter = 0;
 
 
-extern "C" void register_model_data_(void *model_buf, const char *decomp_name, const char *field_name, const char *data_type, int *have_fill_value, void *fill_value, bool *is_restart_field)
+extern "C" void register_model_data_(void *model_buf, const char *decomp_name, const char *field_name, const char *data_type, const char *grid_name, int *have_fill_value, void *fill_value, bool *is_restart_field)
 {
     EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n"); 
     if ((*have_fill_value) == 1)
-        memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, fill_value, *is_restart_field);
-    else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, NULL, *is_restart_field);
+        memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, fill_value, *is_restart_field);
+    else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, NULL, *is_restart_field);
 }
 
 
-extern "C" void withdraw_model_data_(const char *decomp_name, const char *field_name)
+extern "C" void withdraw_model_data_(const char *decomp_name, const char *field_name, const char *grid_name)
 {
     EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n"); 
-    memory_manager->withdraw_model_data_buf(decomp_name, field_name);
+    memory_manager->withdraw_model_data_buf(decomp_name, field_name, grid_name);
 }
 
 
@@ -440,5 +440,12 @@ extern "C" void coupling_check_sum_for_all_fields_()
 {
 	EXECUTION_REPORT(REPORT_ERROR, memory_manager != NULL, "C-Coupler is not initialized when the component call the interface for checking sum of all fields managed by the C-Coupler");
 	memory_manager->check_sum_of_all_fields();
+}
+
+
+extern "C" void coupling_add_field_info_(const char *field_name, const char *field_unit, const char *field_long_name)
+{
+	EXECUTION_REPORT(REPORT_ERROR, fields_info != NULL, "the C-Coupler manager for the information of fields is not initialized");
+	fields_info->add_field_info(field_name, field_long_name, field_unit, "none", "none");
 }
 

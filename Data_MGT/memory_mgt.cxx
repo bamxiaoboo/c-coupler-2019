@@ -365,37 +365,47 @@ Memory_mgt::~Memory_mgt()
 }
 
 
-void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, const char *model_data_field_name, const char *data_type, void *model_data_buffer, void *fill_value, bool is_restart_field)
+void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, const char *model_data_field_name, const char *data_type, void *model_data_buffer, const char *grid_name, void *fill_value, bool is_restart_field)
 {
     Field_mem_info *field_mem;
     bool find_field_in_cfg;
     int i, j;
+	const char *local_grid_name;
 
 
-    find_field_in_cfg = false;
-    for (i = 0; i < registered_fields_info.size(); i ++) {
-        if (words_are_the_same(model_data_field_name, registered_fields_info[i]->field_name) &&
-            words_are_the_same(model_data_decomp_name, registered_fields_info[i]->decomp_name)) {
-            find_field_in_cfg = true;
-            break;
-        }
-    }
-    EXECUTION_REPORT(REPORT_ERROR, find_field_in_cfg, "field (%s %s) registered by model %s is not a legal field (not in field_buf_register.cfg)\n",
-                 model_data_field_name, model_data_decomp_name, compset_communicators_info_mgr->get_current_comp_name());
-    if (!words_are_the_same(registered_fields_info[i]->grid_name, "NULL")) {
-        EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(registered_fields_info[i]->grid_name) != NULL, "%s is not a grid when registering data buffer\n", registered_fields_info[i]->grid_name);
-        decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(registered_fields_info[i]->grid_name));
-    }
+	if (words_are_the_same(grid_name, "none")) {
+	    find_field_in_cfg = false;
+	    for (i = 0; i < registered_fields_info.size(); i ++) {
+	        if (words_are_the_same(model_data_field_name, registered_fields_info[i]->field_name) &&
+	            words_are_the_same(model_data_decomp_name, registered_fields_info[i]->decomp_name)) {
+	            find_field_in_cfg = true;
+	            break;
+	        }
+	    }
+	    EXECUTION_REPORT(REPORT_ERROR, find_field_in_cfg, "field (%s %s) registered by model %s is not a legal field (not in field_buf_register.cfg)\n",
+	                 model_data_field_name, model_data_decomp_name, compset_communicators_info_mgr->get_current_comp_name());
+		local_grid_name = registered_fields_info[i]->grid_name;
+	}
+	else local_grid_name = grid_name;
+	
+	if (!words_are_the_same(local_grid_name, "NULL")) {
+		EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "%s is not a grid when registering data buffer\n", local_grid_name);
+		decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name));
+	}
 
-    EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, registered_fields_info[i]->grid_name, 0, model_data_buffer);
+
+    EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
+
+	if (words_are_the_same(fields_info->get_field_data_type(model_data_field_name), "none"))
+		fields_info->set_field_data_type(model_data_field_name, data_type);
 
     for (j = 0; j < fields_mem.size(); j ++)
-        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, registered_fields_info[i]->grid_name, model_data_field_name, 0)) {
+        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0)) {
             field_mem = fields_mem[j];
             break;
         }
     if (j == fields_mem.size()) {
-        field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, registered_fields_info[i]->grid_name, model_data_field_name, 0, false);
+        field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0, false);
         field_mem->reset_mem_buf(model_data_buffer, is_restart_field);
         fields_mem.push_back(field_mem);
     }
@@ -417,31 +427,39 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 }
 
 
-void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, const char *model_data_field_name)
+void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, const char *model_data_field_name, const char *grid_name)
 {
     Field_mem_info *field_mem;
     bool find_field_in_cfg;
     int i, j;
+	const char *local_grid_name;
 
 
-    find_field_in_cfg = false;
-    for (i = 0; i < registered_fields_info.size(); i ++) {
-        if (words_are_the_same(model_data_field_name, registered_fields_info[i]->field_name) &&
-            words_are_the_same(model_data_decomp_name, registered_fields_info[i]->decomp_name)) {
-            find_field_in_cfg = true;
-            break;
-        }
-    }
+	if (words_are_the_same(grid_name, "none")) {
+	    find_field_in_cfg = false;
+	    for (i = 0; i < registered_fields_info.size(); i ++) {
+	        if (words_are_the_same(model_data_field_name, registered_fields_info[i]->field_name) &&
+	            words_are_the_same(model_data_decomp_name, registered_fields_info[i]->decomp_name)) {
+	            find_field_in_cfg = true;
+	            break;
+	        }
+	    }
+	    EXECUTION_REPORT(REPORT_ERROR, find_field_in_cfg, "field (%s %s) registered by model %s is not a legal field (not in field_buf_register.cfg)\n",
+	                 model_data_field_name, model_data_decomp_name, compset_communicators_info_mgr->get_current_comp_name());
+		local_grid_name = registered_fields_info[i]->grid_name;
+	}
+	else local_grid_name = grid_name;
+	
     EXECUTION_REPORT(REPORT_ERROR, find_field_in_cfg, "field (%s %s) withdrawed by component %s is not a legal field (not in field_buf_register.cfg)\n", model_data_field_name, model_data_decomp_name, compset_communicators_info_mgr->get_current_comp_name());
-    if (!words_are_the_same(registered_fields_info[i]->grid_name, "NULL")) {
-        EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(registered_fields_info[i]->grid_name) != NULL, "%s is not a grid when registering data buffer\n", registered_fields_info[i]->grid_name);
-        decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(registered_fields_info[i]->grid_name));
+    if (!words_are_the_same(local_grid_name, "NULL")) {
+        EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "%s is not a grid when registering data buffer\n", local_grid_name);
+        decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name));
     }
 
-    EXECUTION_REPORT(REPORT_LOG, true, "withdraw field (%s %s %s) at address %lx", model_data_decomp_name, model_data_field_name, registered_fields_info[i]->grid_name, 0);
+    EXECUTION_REPORT(REPORT_LOG, true, "withdraw field (%s %s %s) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0);
 
     for (j = 0; j < fields_mem.size(); j ++)
-        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, registered_fields_info[i]->grid_name, model_data_field_name, 0)) {
+        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0)) {
             field_mem = fields_mem[j];
             break;
         }
