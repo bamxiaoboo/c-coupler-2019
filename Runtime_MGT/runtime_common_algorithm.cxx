@@ -80,7 +80,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p))
 	            buf_type = atoi(buf_type_str);
-	        src_fields_data_buffers[i] = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, 0, true, &pair_field)->get_data_buf();
+	        src_fields_data_buffers[i] = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true, &pair_field)->get_data_buf();
 	        if(words_are_the_same(decomp_name, "NULL")) 
 				continue;
 	        for (j = 0; j < num_distinct_decomp_infos_of_fields; j ++) {
@@ -105,7 +105,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p))
 	            buf_type = atoi(buf_type_str);
-	        dst_fields_data_buffers[i] = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, 0, false, NULL)->get_data_buf();
+	        dst_fields_data_buffers[i] = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, NULL)->get_data_buf();
 	        if(words_are_the_same(decomp_name, "NULL")) 
 				continue;
 	        for(j = 0; j < num_distinct_decomp_infos_of_fields; j ++)
