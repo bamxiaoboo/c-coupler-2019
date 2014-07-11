@@ -98,7 +98,7 @@ void Decomp_info::gen_decomp_grid_data()
 
 
     num_global_cells = cpl_get_grid_size(grid_name);
-    local_grid_index = (int *) alloc_buf(model_name, decomp_name, grid_name, "index", 0);
+    local_grid_index = (int *) alloc_mem(model_name, decomp_name, grid_name, "index", DATA_TYPE_INT, 0, false, NULL)->get_data_buf();
 	memory_manager->search_field_via_data_buf(local_grid_index)->define_field_values(false);
 
     for (i = 0; i < num_local_cells; i ++) {

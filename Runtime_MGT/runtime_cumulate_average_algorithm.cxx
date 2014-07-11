@@ -28,6 +28,7 @@ Runtime_cumulate_average_algorithm::Runtime_cumulate_average_algorithm(const cha
     char * line_p;
     int buf_mark_dst;
     int i;
+	Field_mem_info *pair_field;
 
 
     fp_cfg = open_config_file(cfg, RUNTIME_AVGHIST_ALG_DIR);
@@ -40,8 +41,8 @@ Runtime_cumulate_average_algorithm::Runtime_cumulate_average_algorithm(const cha
         get_next_attr(decomp_name, &line_p);
         get_next_attr(grid_name, &line_p);
         buf_mark_dst = get_next_integer_attr(&line_p);
-        cumulate_average_field->mem_info_src = alloc_mem(comp_name, decomp_name, grid_name, field_name, 0);
-        cumulate_average_field->mem_info_dst = alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_mark_dst);
+        cumulate_average_field->mem_info_src = alloc_mem(comp_name, decomp_name, grid_name, field_name, DATA_TYPE_DOUBLE, 0, true, &pair_field);
+        cumulate_average_field->mem_info_dst = alloc_mem(comp_name, decomp_name, grid_name, field_name, DATA_TYPE_DOUBLE, buf_mark_dst, false, NULL);
         cumulate_average_field->num_elements_in_field = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->required_data_size;
         cumulate_average_field->field_data_type = fields_info->get_field_data_type(field_name);
         cumulate_average_field->current_computing_count = 0;

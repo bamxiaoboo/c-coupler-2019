@@ -97,7 +97,7 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 	current_restart_full_time = -1;
 	restart_read_num_time_step = ((int)0xffffffff);
 	restart_begin_full_time = ((long)restart_date)*100000+restart_second;
-    scalar_int_field = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), "NULL", "NULL", "scalar_int", 0);
+    scalar_int_field = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), "NULL", "NULL", "scalar_int", DATA_TYPE_INT, 0, false, NULL);
 
 	EXECUTION_REPORT(REPORT_LOG, true, "default current_restart_num_time_step is %ld", current_restart_num_time_step);
 	
@@ -389,7 +389,7 @@ void Restart_mgt::read_restart_fields_on_restart_date()
 		buf_type = (tmp_long_value & 0xffffffff);
 		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+5), "%ld", &field_restart_time);
 		if (field_restart_time == restart_begin_full_time) {
-			field = alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_type);
+			field = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, false, NULL);
 			EXECUTION_REPORT(REPORT_LOG, true, "read field %s %s %s %d from restart data file", comp_name, decomp_name, field_name, buf_type);
 			read_one_restart_field(field);
 		}

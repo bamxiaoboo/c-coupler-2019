@@ -655,6 +655,7 @@ void Runtime_transfer_algorithm::generate_transfer_fields_info_from_cfg_file()
     char field_name[NAME_STR_SIZE];
     char data_type[NAME_STR_SIZE];
     int i, j, buf_mark;
+	Field_mem_info *pair_field;
     
 
     /* Allocate and initialize the information arrays for runtime transfer algorithm */
@@ -674,7 +675,7 @@ void Runtime_transfer_algorithm::generate_transfer_fields_info_from_cfg_file()
         get_next_attr(field_remote_decomp_names[i], &local_line);
         get_next_attr(field_grid_names[i], &local_line);
         buf_mark = get_next_integer_attr(&local_line);
-        transferred_fields_mem[i] = alloc_mem(comp_name, field_local_decomp_names[i], field_grid_names[i], field_name, buf_mark);
+        transferred_fields_mem[i] = alloc_mem(comp_name, field_local_decomp_names[i], field_grid_names[i], field_name, NULL, buf_mark, true, &pair_field);
         transferred_fields_data_buffers[i] =  transferred_fields_mem[i]->get_data_buf();
         get_next_attr(data_type, &local_line);
         fields_data_type_sizes[i] = get_data_type_size(data_type);

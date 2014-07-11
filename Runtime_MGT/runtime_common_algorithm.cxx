@@ -22,6 +22,7 @@
 Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 {
     Decomp_info *decomp;
+	Field_mem_info *pair_field;
     FILE * fp_cfg;
     char line[NAME_STR_SIZE * 16];
     char alg_name[NAME_STR_SIZE];
@@ -31,6 +32,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
     char field_name[NAME_STR_SIZE];
     char decomp_name[NAME_STR_SIZE];
 	char grid_name[NAME_STR_SIZE];
+	char data_type[NAME_STR_SIZE];
     char buf_type_str[NAME_STR_SIZE];
     char *line_p;
     char exist_decomps[MAX_DECOMP_NUM][NAME_STR_SIZE];
@@ -78,7 +80,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p))
 	            buf_type = atoi(buf_type_str);
-	        src_fields_data_buffers[i] = alloc_buf(comp_name, decomp_name, grid_name, field_name, buf_type);
+	        src_fields_data_buffers[i] = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, 0, true, &pair_field)->get_data_buf();
 	        if(words_are_the_same(decomp_name, "NULL")) 
 				continue;
 	        for (j = 0; j < num_distinct_decomp_infos_of_fields; j ++) {
@@ -103,7 +105,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p))
 	            buf_type = atoi(buf_type_str);
-	        dst_fields_data_buffers[i] = alloc_buf(comp_name, decomp_name, grid_name, field_name, buf_type);
+	        dst_fields_data_buffers[i] = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, 0, false, NULL)->get_data_buf();
 	        if(words_are_the_same(decomp_name, "NULL")) 
 				continue;
 	        for(j = 0; j < num_distinct_decomp_infos_of_fields; j ++)

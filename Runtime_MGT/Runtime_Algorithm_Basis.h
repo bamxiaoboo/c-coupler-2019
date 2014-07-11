@@ -11,6 +11,8 @@
 #define _ALGORITHM_RUNTIME_BASIS_H_
 
 
+#include "runtime_datatype_transformer.h"
+
 class Runtime_algorithm_basis
 {
     protected:
@@ -19,6 +21,9 @@ class Runtime_algorithm_basis
         void **src_fields_data_buffers;
         void **dst_fields_data_buffers;
         int *num_elements_in_field_buffers;
+		Runtime_datatype_transformer datatype_transformer_before_run;
+		Runtime_datatype_transformer datatype_transformer_after_run;
+
         void runtime_algorithm_common_initialize(const int, const int, const int);
 
     public:

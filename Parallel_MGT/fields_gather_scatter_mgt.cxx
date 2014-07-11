@@ -121,7 +121,7 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
         mpibuf = new char [num_total_cells*num_points_in_each_cell*num_levels*get_data_type_size(data_type)];
         decomps_info_mgr->generate_fully_decomp(fully_decomp_name, decomps_info_mgr->search_decomp_info(original_decomp_name)->get_grid_name());
 		EXECUTION_REPORT(REPORT_LOG, true, "allocate global field for gather/scatter");
-		global_field_mem = alloc_full_grid_mem(local_field->get_comp_name(), fully_decomp_name, grid_name, local_field->get_field_name(), 0);
+		global_field_mem = alloc_full_grid_mem(local_field->get_comp_name(), fully_decomp_name, grid_name, local_field->get_field_name(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application, 0, false, NULL);
     }
 	if (num_local_cells > 0)
 		delete [] local_cell_global_indx;

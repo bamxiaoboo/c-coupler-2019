@@ -127,7 +127,8 @@ void Runtime_datamodel_algorithm::initialize_datamodel(const char *in_file)
         get_next_attr(decomp_name, &line_p);
         get_next_attr(grid_name, &line_p);
         buf_type = get_next_integer_attr(&line_p);
-        datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_type);   
+		EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
+        datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, true, NULL);   
         get_next_attr(datamodel_field->field_name_in_IO_file, &line_p);
         strcpy(datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, datamodel_field->field_name_in_IO_file);
         if (words_are_the_same(datamodel_type, "datamodel_write")) {

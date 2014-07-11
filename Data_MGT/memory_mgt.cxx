@@ -17,33 +17,22 @@
 
 
 /* Interface for allocate memory buffer for the fields in coupling flow */
-void *alloc_buf(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type)
+
+Field_mem_info *alloc_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const char *data_type, const int buf_type, bool is_input_field, Field_mem_info **pair_field)
 {
-    return alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_type)->get_data_buf();
+    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, is_input_field, pair_field);
 }
 
 
-Remap_grid_data_class *alloc_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type)
+Field_mem_info *alloc_full_grid_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const char *data_type, const int buf_type, bool is_input_field, Field_mem_info **pair_field)
 {
-    return alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_type)->get_field_data();
+    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true, is_input_field, pair_field);
 }
 
 
-Field_mem_info *alloc_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type)
+Field_mem_info *alloc_mem_double(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type, bool is_input_field, Field_mem_info **pair_field)
 {
-    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_type, false);
-}
-
-
-Field_mem_info *alloc_full_grid_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type)
-{
-    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, buf_type, true);
-}
-
-
-Field_mem_info *alloc_mem_double(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type)
-{
-    return memory_manager->alloc_mem_double(comp_name, decomp_name, grid_name, field_name, buf_type);
+    return memory_manager->alloc_mem_double(comp_name, decomp_name, grid_name, field_name, buf_type, is_input_field, pair_field);
 }
 
 
@@ -293,7 +282,9 @@ Field_mem_info *Memory_mgt::alloc_mem_double(const char *comp_name,
                                       const char *decomp_name, 
                                       const char *grid_name,
                                       const char *field_name, 
-                                      const int buf_type)
+                                      const int buf_type,
+                                      bool is_input_field,
+		                              Field_mem_info **pair_field)
 {
     Field_mem_info *field_mem;
 
@@ -308,8 +299,11 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
                                const char *decomp_name, 
                                const char *grid_name,
                                const char *field_name, 
+                               const char *data_type,
                                const int buf_type,
-                               bool use_full_grid)
+                               bool use_full_grid,
+                               bool is_input_field,
+                               Field_mem_info **pair_field)
 {
     Field_mem_info *field_mem;
     int i;
