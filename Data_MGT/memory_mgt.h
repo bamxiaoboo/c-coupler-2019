@@ -34,6 +34,7 @@ class Field_mem_info
         bool is_registered_model_buf;
 		bool is_restart_field;
 		long last_define_time;
+		long define_order_count;
 		bool is_field_active;
         Remap_grid_data_class *grided_field_data;
 
@@ -61,6 +62,8 @@ class Field_mem_info
 		void use_field_values();
 		bool field_has_been_defined();
 		long get_last_define_time() { return last_define_time; }
+		void set_define_order_count(long count) { define_order_count = count; }
+		long get_define_order_count() { return define_order_count; }
         ~Field_mem_info();
 };
 
@@ -70,6 +73,7 @@ class Memory_mgt
     private:
         std::vector<Field_mem_info *> fields_mem;
         std::vector<Registered_field_info *> registered_fields_info;
+		long field_define_order_counter;
 
 		void add_registered_field_info(const char*, const char*, const char*);
         
@@ -85,6 +89,7 @@ class Memory_mgt
 		bool is_model_data_renewed_in_current_time_step(void*);
 		bool is_model_data_active_in_coupling(void*);
 		void check_sum_of_all_fields();
+		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int);
         ~Memory_mgt();
 };
 

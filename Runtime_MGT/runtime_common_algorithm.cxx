@@ -21,6 +21,36 @@
 
 Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 {
+    FILE * fp_cfg;
+    char line[NAME_STR_SIZE * 16];
+    char alg_name[NAME_STR_SIZE];
+
+
+	has_allocate_fields = false;
+	strcpy(cfg_file_name, cfg);
+
+    fp_cfg = open_config_file(cfg, RUNTIME_COMMON_ALG_DIR);
+    get_next_line(alg_name, fp_cfg);
+    c_coupler_algorithm = external_algorithm_mgr->search_c_coupler_algorithm_pointer(alg_name);
+	model_algorithm = external_algorithm_mgr->search_model_algorithm_pointer(alg_name);
+	EXECUTION_REPORT(REPORT_ERROR, c_coupler_algorithm != NULL || model_algorithm != NULL, 
+					 "external algorithm %s has not been registerred before using it", alg_name);
+
+    get_next_line(line, fp_cfg);
+	timer = new Coupling_timer(line);
+
+	if (model_algorithm != NULL) {
+    	src_fields_data_buffers = NULL;
+		dst_fields_data_buffers = NULL;
+		num_elements_in_field_buffers = NULL;
+		return;
+	}
+    fclose(fp_cfg);
+}
+
+
+void Runtime_common_algorithm::allocate_src_dst_fields()
+{
     Decomp_info *decomp;
 	Field_mem_info *pair_field;
     FILE * fp_cfg;
@@ -41,24 +71,12 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
     int buf_type;
 
 
-    fp_cfg = open_config_file(cfg, RUNTIME_COMMON_ALG_DIR);
-    get_next_line(alg_name, fp_cfg);
-    c_coupler_algorithm = external_algorithm_mgr->search_c_coupler_algorithm_pointer(alg_name);
-	model_algorithm = external_algorithm_mgr->search_model_algorithm_pointer(alg_name);
-	EXECUTION_REPORT(REPORT_ERROR, c_coupler_algorithm != NULL || model_algorithm != NULL, 
-					 "external algorithm %s has not been registerred before using it", alg_name);
+	has_allocate_fields = true;
 
+    fp_cfg = open_config_file(cfg_file_name, RUNTIME_COMMON_ALG_DIR);
+    get_next_line(alg_name, fp_cfg);
     line_p = line;
     get_next_line(line, fp_cfg);
-	timer = new Coupling_timer(line);
-
-	if (model_algorithm != NULL) {
-    	src_fields_data_buffers = NULL;
-		dst_fields_data_buffers = NULL;
-		num_elements_in_field_buffers = NULL;
-		return;
-	}
-	
     get_next_line(input_field_file_name, fp_cfg);
     get_next_line(output_field_file_name, fp_cfg);
     fclose(fp_cfg);
@@ -137,6 +155,8 @@ Runtime_common_algorithm::~Runtime_common_algorithm()
 void Runtime_common_algorithm::run(bool is_alglrithm_in_kernel_stage)
 {
     if (!is_alglrithm_in_kernel_stage || timer->is_timer_on()) {
+		if (!has_allocate_fields)
+			allocate_src_dst_fields();
         for (int i = 0; i < num_src_fields; i ++) {
             memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->check_field_sum();
 			memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->use_field_values();

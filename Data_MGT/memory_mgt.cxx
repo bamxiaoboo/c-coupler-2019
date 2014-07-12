@@ -87,6 +87,7 @@ Field_mem_info::Field_mem_info(const char *comp_name,
     is_registered_model_buf = false;
     is_restart_field = false;
 	is_field_active = false;
+	define_order_count = -1;
     last_define_time = 0x7fffffffffffffff;
 }
 
@@ -262,6 +263,8 @@ Memory_mgt::Memory_mgt(const char *model_mem_cfg_file)
         registered_fields_info.push_back(registered_field_info);
     }
     fclose(cfg_fp);
+
+	field_define_order_counter = 0;
 }
 
 
@@ -291,6 +294,10 @@ Field_mem_info *Memory_mgt::alloc_mem_double(const char *comp_name,
     field_mem = new Field_mem_info(comp_name, decomp_name, grid_name, field_name, buf_type, false);
     field_mem->change_datatype_to_double();
 
+	field_define_order_counter ++;
+	if (!is_input_field)
+		field_mem->set_define_order_count(field_define_order_counter);
+
     return field_mem;
 }
 
@@ -303,18 +310,25 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
                                const int buf_type,
                                bool use_full_grid,
                                bool is_input_field,
-                               Field_mem_info **pair_field)
+                               Field_mem_info **pair_field_ptr)
 {
-    Field_mem_info *field_mem;
+    Field_mem_info *field_mem, *pair_field;
     int i;
     bool find_field_in_cfg;
 
 
-
     EXECUTION_REPORT(REPORT_LOG, true, "allocate new memory for field (%s %s %s %d)", comp_name, decomp_name, field_name, buf_type);
 
-    compset_communicators_info_mgr->get_comp_id_by_comp_name(comp_name);
+	field_define_order_counter ++;
 
+	if (data_type == NULL)
+		EXECUTION_REPORT(REPORT_ERROR, is_input_field, "C-Coupler software error1 in alloc_mem of Memory_mgt");
+
+	if (is_input_field) {
+		EXECUTION_REPORT(REPORT_ERROR, pair_field_ptr != NULL, "C-Coupler software error2 in alloc_mem of Memory_mgt");
+		pair_field = search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type);
+	}
+	
     if (!words_are_the_same(grid_name, "NULL")) {
         EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "%s is not a grid when allocating memory for field\n", grid_name);
         decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name));
@@ -334,16 +348,20 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
     for (i = 0; i < fields_mem.size(); i ++) 
         if (fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, buf_type)) {
             EXECUTION_REPORT(REPORT_LOG, true, "field (%s %s %s %d) uses existing memory at address %lx", comp_name, decomp_name, field_name, buf_type, fields_mem[i]->get_data_buf());
+			if (!is_input_field)
+				fields_mem[i]->set_define_order_count(field_define_order_counter);
             return fields_mem[i];
         }
 
     if (words_are_the_same(comp_name, compset_communicators_info_mgr->get_current_comp_name()))
         if (!(words_are_the_same(field_name, "lon") || words_are_the_same(field_name, "lat") || words_are_the_same(field_name, "mask") || words_are_the_same(field_name, "arear")))
             EXECUTION_REPORT(REPORT_ERROR, !find_field_in_cfg, "field <%s,%s> has been used before model interface of %s registering it\n", 
-                         field_name, decomp_name, compset_communicators_info_mgr->get_current_comp_name());
+                         	 field_name, decomp_name, compset_communicators_info_mgr->get_current_comp_name());
 
     /* Compute the size of the memory buffer and then allocate and return it */
     field_mem = new Field_mem_info(comp_name, decomp_name, grid_name, field_name, buf_type, use_full_grid);
+	if (!is_input_field)
+		field_mem->set_define_order_count(field_define_order_counter);	
     fields_mem.push_back(field_mem);
 
     EXECUTION_REPORT(REPORT_LOG, true, "allocate new memory for field (%s %s %s %d) at address %lx", comp_name, decomp_name, field_name, buf_type, field_mem->get_data_buf());
@@ -367,6 +385,8 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	const char *local_grid_name;
 
 
+	field_define_order_counter ++;
+
 	if (words_are_the_same(grid_name, "none")) {
 	    find_field_in_cfg = false;
 	    for (i = 0; i < registered_fields_info.size(); i ++) {
@@ -386,7 +406,6 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 		EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "%s is not a grid when registering data buffer\n", local_grid_name);
 		decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name));
 	}
-
 
     EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
 
@@ -416,6 +435,7 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
                  "the data type of field %s registered by component %s is %s, which does not match the data type in field configuration table\n",
                  model_data_field_name, compset_communicators_info_mgr->get_current_comp_name(), data_type);
 
+	field_mem->set_define_order_count(field_define_order_counter);
     if (fill_value != NULL)
         field_mem->get_field_data()->get_grid_data_field()->set_fill_value(fill_value);
 }
@@ -462,6 +482,26 @@ void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, con
     
     fields_mem.erase(fields_mem.begin()+j);
     delete field_mem;
+}
+
+
+Field_mem_info *Memory_mgt::search_last_define_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_count)
+{
+	long found_field_index = -1, found_field_define_count = -1;
+
+	
+    for (int i = 0; i < fields_mem.size(); i ++) 
+		if (fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, buf_count)) {
+			if (found_field_define_count < fields_mem[i]->get_define_order_count()) {
+				found_field_index = i;
+				found_field_define_count = fields_mem[i]->get_define_order_count();
+			}
+		}
+
+	EXECUTION_REPORT(REPORT_ERROR, found_field_index != -1, "field (comp_name=%s, decomp_name=%s, grid_name=%s, field_name=%s, buf_count=%d) is not defined before using it",
+		             comp_name, decomp_name, grid_name, field_name, buf_count);
+
+	return fields_mem[found_field_index];
 }
 
 

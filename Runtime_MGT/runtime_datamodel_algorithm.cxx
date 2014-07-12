@@ -103,6 +103,7 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
 
 void Runtime_datamodel_algorithm::initialize_datamodel(const char *in_file)
 {
+	Field_mem_info *pair_field;
     char line[NAME_STR_SIZE * 16];
     char comp_name[NAME_STR_SIZE];
     char field_name[NAME_STR_SIZE];
@@ -128,7 +129,7 @@ void Runtime_datamodel_algorithm::initialize_datamodel(const char *in_file)
         get_next_attr(grid_name, &line_p);
         buf_type = get_next_integer_attr(&line_p);
 		EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
-        datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, true, NULL);   
+        datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, true, &pair_field);   
         get_next_attr(datamodel_field->field_name_in_IO_file, &line_p);
         strcpy(datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, datamodel_field->field_name_in_IO_file);
         if (words_are_the_same(datamodel_type, "datamodel_write")) {
