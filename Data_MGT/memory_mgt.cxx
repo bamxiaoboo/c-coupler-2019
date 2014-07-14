@@ -323,6 +323,7 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
 
 	if (data_type == NULL)
 		EXECUTION_REPORT(REPORT_ERROR, is_input_field, "C-Coupler software error1 in alloc_mem of Memory_mgt");
+	else get_data_type_size(data_type);
 
 	if (is_input_field) {
 		EXECUTION_REPORT(REPORT_ERROR, pair_field_ptr != NULL, "C-Coupler software error2 in alloc_mem of Memory_mgt");
@@ -482,6 +483,16 @@ void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, con
     
     fields_mem.erase(fields_mem.begin()+j);
     delete field_mem;
+}
+
+
+Field_mem_info *Memory_mgt::search_registerred_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_count)
+{
+    for (int i = 0; i < fields_mem.size(); i ++) 
+		if (fields_mem[i]->get_is_registered_model_buf() && fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, buf_count)) 
+			return fields_mem[i];
+
+	return NULL;
 }
 
 

@@ -27,6 +27,7 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         bool *currently_transferred_fields_mark;
         void *mpi_send_buf;
         void *mpi_recv_buf;
+		char algorithm_cfg_name[NAME_STR_SIZE];
         char transfer_fields_cfg_file[NAME_STR_SIZE];
         char remote_comp_name[NAME_STR_SIZE];
         MPI_Request *send_requests;
@@ -50,6 +51,7 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         void **transferred_fields_data_buffers;
 		int num_timer_on_fields;
 		int mpi_ierr;
+		char *fields_transfer_info_string;
 
         void pack_MD_data(long, long, int*, int);
         void unpack_MD_data(int, int, int, long, int*);
@@ -57,7 +59,8 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         void recv_data(bool);
         void sendrecv_data(bool);
         void initialize_local_data_structures();
-        void generate_transfer_fields_info_from_cfg_file();
+        void generate_algorithm_info_from_cfg_file();
+		bool allocate_fields_according_to_cfg_file();
         void exchange_comp_time_info();
 		void preprocess(bool);
 		void check_mpi_error(const char*);
@@ -66,7 +69,6 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
     public:
         Runtime_transfer_algorithm(const char *);
         Runtime_transfer_algorithm(int, Field_mem_info**, Routing_info*, Coupling_timer*);
-        Runtime_transfer_algorithm(const char*, const char*, int );
         ~Runtime_transfer_algorithm();
         void run(bool);
 };
