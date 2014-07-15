@@ -34,7 +34,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     Decomp_info *local_remap_decomp_src, *local_decomp_src, *local_decomp_dst;
     int num_transfered_fields;
     Field_mem_info **transfered_fields;
-	Field_mem_info*pair_field;
     int num_remap_related_grids;
     Remap_grid_class **remap_related_grids, **remap_related_decomp_grids;
     Remap_grid_class *decomp_original_grids[256];
@@ -168,16 +167,16 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         line_p = line;
         get_next_attr(comp_name, &line_p);
         get_next_attr(field_name, &line_p);
-        src_frac_field_before_rearrange = alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true, &pair_field); 
-        src_frac_field_after_rearrange = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, false, NULL); 
-		src_area_field_after_rearrange = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_remap)->get_model_name(), decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
-		temp_src_field = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 10, false, NULL);
+        src_frac_field_before_rearrange = alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true); 
+        src_frac_field_after_rearrange = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, false); 
+		src_area_field_after_rearrange = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_remap)->get_model_name(), decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, false);
+		temp_src_field = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 10, false);
         get_next_line(line, cfg_fp);
         line_p = line;
         get_next_attr(comp_name, &line_p);
         get_next_attr(field_name, &line_p);
-        dst_frac_field = alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true, &pair_field);
-		dst_area_field = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_dst)->get_model_name(), decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, true, &pair_field);
+        dst_frac_field = alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true);
+		dst_area_field = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_dst)->get_model_name(), decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, true);
     }
     else {
         src_frac_field_before_rearrange = NULL;
@@ -199,18 +198,9 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 			buf_mark = 0;
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_FLOAT) || words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_DOUBLE),
                      "src field %s can not be used to remap because its data type is not real4 or real8", field_name);
-        if (words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_FLOAT)) {
-            src_float_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_FLOAT, buf_mark, true, &pair_field));
-            src_double_remap_fields_before_rearrange.push_back(alloc_mem_double(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark, false, NULL));
-            src_float_remap_fields_after_rearrange.push_back(alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_FLOAT, buf_mark, false, NULL));
-            src_double_remap_fields_after_rearrange.push_back(alloc_mem_double(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark, false, NULL));
-        }
-        else {
-            src_float_remap_fields_before_rearrange.push_back(NULL);
-            src_double_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, true, &pair_field));
-            src_float_remap_fields_after_rearrange.push_back(NULL);
-            src_double_remap_fields_after_rearrange.push_back(alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false, NULL));            
-        }    
+        src_double_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, true));
+		add_runtime_datatype_transformation(src_double_remap_fields_before_rearrange[src_double_remap_fields_before_rearrange.size()-1], true, timer);
+        src_double_remap_fields_after_rearrange.push_back(alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false));
     }
     fclose(field_fp);
 
@@ -224,16 +214,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 		buf_mark = get_next_integer_attr(&line_p, has_integer);
 		if (!has_integer)
 			buf_mark = 0;
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_FLOAT) || words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_DOUBLE),
-                     "dst field %s can not be used to remap because its data type is not real4 or real8", field_name);
-        if (words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_FLOAT)) {
-            dst_float_remap_fields.push_back(alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_FLOAT, buf_mark, false, NULL));
-            dst_double_remap_fields.push_back(alloc_mem_double(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, buf_mark, false, NULL));            
-        }
-        else {
-            dst_float_remap_fields.push_back(NULL);
-            dst_double_remap_fields.push_back(alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false, NULL));
-        }
+        dst_double_remap_fields.push_back(alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false));
+		add_runtime_datatype_transformation(dst_double_remap_fields[dst_double_remap_fields.size()-1], false, timer);
     }
     fclose(field_fp);
     fclose(cfg_fp);
@@ -295,21 +277,14 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
 	if (parallel_remap_weights == NULL)
 		return;
 
-	for (i = 0; i < src_float_remap_fields_after_rearrange.size(); i ++)
-		if (src_float_remap_fields_before_rearrange[i] != NULL) 
-			src_float_remap_fields_before_rearrange[i]->check_field_sum();
-		else src_double_remap_fields_before_rearrange[i]->check_field_sum();
+	for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++)
+		src_double_remap_fields_before_rearrange[i]->check_field_sum();
 
     /* Change the data type and then rearrange src data for parallel remapping */
     field_size_src_before_rearrange = src_double_remap_fields_before_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
     field_size_src_after_rearrange = src_double_remap_fields_after_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
     for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++)
-        if (src_float_remap_fields_before_rearrange[i] != NULL) {
-			src_float_remap_fields_before_rearrange[i]->use_field_values();
-            for (j = 0; j < field_size_src_before_rearrange; j ++)
-                ((double*) src_double_remap_fields_before_rearrange[i]->get_data_buf())[j] = ((float*) src_float_remap_fields_before_rearrange[i]->get_data_buf())[j];
-        }
-		else src_double_remap_fields_before_rearrange[i]->use_field_values();
+        src_double_remap_fields_before_rearrange[i]->use_field_values();
 	decomp_size_src_before_rearrange = decomps_info_mgr->search_decomp_info(src_double_remap_fields_before_rearrange[0]->get_decomp_name())->get_num_local_cells();
 	decomp_size_src_after_rearrange = decomps_info_mgr->search_decomp_info(src_double_remap_fields_after_rearrange[0]->get_decomp_name())->get_num_local_cells();
 
@@ -349,11 +324,6 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
     /* Do remap */
     field_size_src_before_rearrange = src_double_remap_fields_after_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
     field_size_dst = dst_double_remap_fields[0]->get_field_data()->get_grid_data_field()->required_data_size;
-    for (i = 0; i < dst_double_remap_fields.size(); i ++)
-        if (dst_float_remap_fields[i] != NULL) {
-            for (j = 0; j < field_size_dst; j ++)
-                ((double*) dst_double_remap_fields[i]->get_data_buf())[j] = ((float*) dst_float_remap_fields[i]->get_data_buf())[j];
-        }
     for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++) {
         src_field_values = (double*) src_double_remap_fields_after_rearrange[i]->get_data_buf();
         dst_field_values = (double*) dst_double_remap_fields[i]->get_data_buf();
@@ -384,17 +354,10 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
         }
 		dst_frac_field->use_field_values();
     }    
-    for (i = 0; i < dst_double_remap_fields.size(); i ++)
-        if (dst_float_remap_fields[i] != NULL) {
-			dst_float_remap_fields[i]->define_field_values(false);
-            for (j = 0; j < field_size_dst; j ++)
-                ((float*) dst_float_remap_fields[i]->get_data_buf())[j] = ((double*) dst_double_remap_fields[i]->get_data_buf())[j];
-			dst_float_remap_fields[i]->check_field_sum();
-        }
-		else {
-			dst_double_remap_fields[i]->define_field_values(false);
-			dst_double_remap_fields[i]->check_field_sum();
-		}
+    for (i = 0; i < dst_double_remap_fields.size(); i ++) {
+		dst_double_remap_fields[i]->define_field_values(false);
+		dst_double_remap_fields[i]->check_field_sum();
+	}
 }
 
 

@@ -39,8 +39,9 @@ class Field_mem_info
         Remap_grid_data_class *grided_field_data;
 
     public:
-        Field_mem_info(const char *, const char *, const char *, const char*, const int, bool);
-        bool match_field_mem(const char *, const char *, const char *, const char *, const int);
+        Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool);
+        bool match_field_mem(const char*, const char*, const char*, const char*, const int);
+		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int);
 		bool match_field_mem(void*);
         bool get_is_restart_field() { return is_restart_field; }
 		bool get_is_registered_model_buf() { return is_registered_model_buf; }
@@ -79,10 +80,9 @@ class Memory_mgt
         
     public: 
         Memory_mgt(const char *);
-        Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, Field_mem_info**);
+        Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool);
         void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
-        Field_mem_info *alloc_mem_double(const char *, const char *, const char *, const char*, const int, bool, Field_mem_info**);
         Field_mem_info *search_field_via_data_buf(const void*);
 		void write_restart_fields();
 		void check_all_restart_fields_have_been_read();
@@ -90,13 +90,12 @@ class Memory_mgt
 		bool is_model_data_active_in_coupling(void*);
 		void check_sum_of_all_fields();
 		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int);
-		Field_mem_info *search_registerred_field(const char*, const char*, const char*, const char*, int);
+		Field_mem_info *search_registerred_field(const char*, const char*, const char*, const char*);
         ~Memory_mgt();
 };
 
 
-extern Field_mem_info *alloc_mem(const char *, const char *, const char *, const char *, const char *, const int,  bool, Field_mem_info**);
-extern Field_mem_info *alloc_full_grid_mem(const char *, const char *, const char *, const char *, const char*, const int, bool, Field_mem_info**);
-extern Field_mem_info *alloc_mem_double(const char *, const char *, const char *, const char *, const int, bool, Field_mem_info**);
+extern Field_mem_info *alloc_mem(const char *, const char *, const char *, const char *, const char *, const int,  bool);
+extern Field_mem_info *alloc_full_grid_mem(const char *, const char *, const char *, const char *, const char*, const int, bool);
 
 #endif

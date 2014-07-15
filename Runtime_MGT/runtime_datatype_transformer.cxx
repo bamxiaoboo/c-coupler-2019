@@ -41,7 +41,7 @@ void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Fi
     else if (words_are_the_same(data_type_src, DATA_TYPE_LONG) || words_are_the_same(data_type_src, DATA_TYPE_INT) || words_are_the_same(data_type_src, DATA_TYPE_SHORT) || words_are_the_same(data_type_src, DATA_TYPE_BOOL)) 
         data_types_matched = words_are_the_same(data_type_dst, DATA_TYPE_LONG) || words_are_the_same(data_type_dst, DATA_TYPE_INT) || words_are_the_same(data_type_dst, DATA_TYPE_SHORT) || words_are_the_same(data_type_dst, DATA_TYPE_BOOL);
 
-	EXECUTION_REPORT(REPORT_ERROR, data_types_matched, "data types %s and %s for field %s does not match each other", data_type_src, data_type_dst, src_field->get_grid_name());
+	EXECUTION_REPORT(REPORT_ERROR, data_types_matched, "data types %s and %s for field %s does not match each other", data_type_src, data_type_dst, src_field->get_field_name());
 
 	src_fields.push_back(src_field);
 	dst_fields.push_back(dst_field);
@@ -56,9 +56,10 @@ void Runtime_datatype_transformer::transform_fields_datatype()
 
 
 	for (int i = 0; i < src_fields.size(); i ++) {
-		if (!timers[i]->is_timer_on())
+		if (timers[i] != NULL && !timers[i]->is_timer_on())
 			return;
-
+		src_fields[i]->use_field_values();
+		dst_fields[i]->define_field_values(false);
 		data_type_src = src_fields[i]->get_field_data()->get_grid_data_field()->data_type_in_application;
 		data_type_dst = dst_fields[i]->get_field_data()->get_grid_data_field()->data_type_in_application;
 		num_local_cells = src_fields[i]->get_field_data()->get_grid_data_field()->required_data_size;

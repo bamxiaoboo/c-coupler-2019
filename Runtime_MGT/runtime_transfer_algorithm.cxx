@@ -667,7 +667,6 @@ bool Runtime_transfer_algorithm::allocate_fields_according_to_cfg_file()
     char field_name[NAME_STR_SIZE];
     char data_type[NAME_STR_SIZE];
     int i, j, buf_mark;
-	Field_mem_info *pair_field;
 
 
 	if (num_send_fields > 0 && num_recv_fields > 0)
@@ -699,12 +698,12 @@ bool Runtime_transfer_algorithm::allocate_fields_according_to_cfg_file()
 		if (!(currently_transferred_fields_mark[i] && transferred_fields_mem[i] == NULL))
 			continue;
 		if (num_send_fields > 0) {
-	        transferred_fields_mem[i] = alloc_mem(comp_name, field_local_decomp_names[i], field_grid_names[i], field_name, NULL, buf_mark, true, &pair_field);
+	        transferred_fields_mem[i] = alloc_mem(comp_name, field_local_decomp_names[i], field_grid_names[i], field_name, NULL, buf_mark, true);
 			add_runtime_datatype_transformation(transferred_fields_mem[i], true, fields_timers[i]);
 			strcpy(fields_transfer_info_string+10*i+1, transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
 		}
 		else {
-			transferred_fields_mem[i] = alloc_mem(comp_name, field_local_decomp_names[i], field_grid_names[i], field_name, fields_transfer_info_string+10*i+1, buf_mark, false, &pair_field);	
+			transferred_fields_mem[i] = alloc_mem(comp_name, field_local_decomp_names[i], field_grid_names[i], field_name, fields_transfer_info_string+10*i+1, buf_mark, false);	
 			add_runtime_datatype_transformation(transferred_fields_mem[i], false, fields_timers[i]);
 		}
         fields_data_type_sizes[i] = get_data_type_size(transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
@@ -727,7 +726,6 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
     char field_name[NAME_STR_SIZE];
     char data_type[NAME_STR_SIZE];
     int i, j, buf_mark;
-	Field_mem_info *pair_field;
     
 
     fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_TRANSFER_ALG_DIR);

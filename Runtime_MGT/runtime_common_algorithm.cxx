@@ -53,7 +53,6 @@ void Runtime_common_algorithm::allocate_src_dst_fields()
 {
     Decomp_info *decomp;
 	Field_mem_info *field_mem;
-	Field_mem_info *pair_field;
     FILE * fp_cfg;
     char line[NAME_STR_SIZE * 16];
     char alg_name[NAME_STR_SIZE];
@@ -100,7 +99,7 @@ void Runtime_common_algorithm::allocate_src_dst_fields()
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p))
 	            buf_type = atoi(buf_type_str);
-			field_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true, &pair_field);
+			field_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true);
 	        src_fields_data_buffers[i] = field_mem->get_data_buf();
 			add_runtime_datatype_transformation(field_mem, true, timer);
 	        if(words_are_the_same(decomp_name, "NULL")) 
@@ -124,10 +123,11 @@ void Runtime_common_algorithm::allocate_src_dst_fields()
 	        get_next_attr(field_name, &line_p);
 	        get_next_attr(decomp_name, &line_p);
 			get_next_attr(grid_name, &line_p);
+			get_next_attr(data_type, &line_p);
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p))
 	            buf_type = atoi(buf_type_str);
-			field_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, NULL);
+			field_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false);
 	        dst_fields_data_buffers[i] = field_mem->get_data_buf();
 			add_runtime_datatype_transformation(field_mem, false, timer);
 	        if(words_are_the_same(decomp_name, "NULL")) 

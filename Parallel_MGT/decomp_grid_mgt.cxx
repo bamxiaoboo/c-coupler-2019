@@ -81,11 +81,11 @@ void Decomp_grid_info::register_decomp_grid_fields()
         return;
 
     this->decomp_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, this->decomp_grid);
-    local_lats = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), LAT_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
-    local_lons = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), LON_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
-    local_masks = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), MASK_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
-    local_nlats = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), GRID_LATS_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
-    local_nlons = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), GRID_LONS_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
+    local_lats = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), LAT_GF, DATA_TYPE_DOUBLE, 0, false);
+    local_lons = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), LON_GF, DATA_TYPE_DOUBLE, 0, false);
+    local_masks = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), MASK_GF, DATA_TYPE_BOOL, 0, false);
+    local_nlats = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), GRID_LATS_GF, DATA_TYPE_INT, 0, false);
+    local_nlons = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), GRID_LONS_GF, DATA_TYPE_INT, 0, false);
     memcpy(local_lons->get_data_buf(), leaf_grids[0]->get_grid_center_field()->get_grid_data_field()->data_buf, decomp_grid->get_grid_size()*sizeof(double));
     memcpy(local_lats->get_data_buf(), leaf_grids[1]->get_grid_center_field()->get_grid_data_field()->data_buf, decomp_grid->get_grid_size()*sizeof(double));
     memcpy(local_masks->get_data_buf(), decomp_grid->get_grid_mask_field()->get_grid_data_field()->data_buf, decomp_grid->get_grid_size()*sizeof(bool));
@@ -98,7 +98,7 @@ void Decomp_grid_info::register_decomp_grid_fields()
 	local_nlons->define_field_values(false);
 
 	if (decomp_grid->get_area_or_volumn() != NULL) { 
-    	local_areas = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, false, NULL);
+    	local_areas = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, original_grid->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, false);
     	memcpy(local_areas->get_data_buf(), decomp_grid->get_area_or_volumn(), decomp_grid->get_grid_size()*sizeof(double));
 		local_areas->define_field_values(false);
 	}

@@ -18,21 +18,15 @@
 
 /* Interface for allocate memory buffer for the fields in coupling flow */
 
-Field_mem_info *alloc_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const char *data_type, const int buf_type, bool is_input_field, Field_mem_info **pair_field)
+Field_mem_info *alloc_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const char *data_type, const int buf_type, bool is_input_field)
 {
-    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, is_input_field, pair_field);
+    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, is_input_field);
 }
 
 
-Field_mem_info *alloc_full_grid_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const char *data_type, const int buf_type, bool is_input_field, Field_mem_info **pair_field)
+Field_mem_info *alloc_full_grid_mem(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const char *data_type, const int buf_type, bool is_input_field)
 {
-    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true, is_input_field, pair_field);
-}
-
-
-Field_mem_info *alloc_mem_double(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, const int buf_type, bool is_input_field, Field_mem_info **pair_field)
-{
-    return memory_manager->alloc_mem_double(comp_name, decomp_name, grid_name, field_name, buf_type, is_input_field, pair_field);
+    return memory_manager->alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true, is_input_field);
 }
 
 
@@ -40,6 +34,7 @@ Field_mem_info::Field_mem_info(const char *comp_name,
                                   const char *decomp_name, 
                                   const char *grid_name,
                                   const char *field_name, 
+                                  const char *data_type,
                                   const int buf_type,
                                   bool use_full_grid)
 {
@@ -50,19 +45,19 @@ Field_mem_info::Field_mem_info(const char *comp_name,
     
 
     if (strcmp(decomp_name, "NULL") == 0) 
-        mem_size = fields_info->get_field_data_type_size(field_name); 
+        mem_size = get_data_type_size(data_type);
     else {
         EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "%s is not a grid when allocating memory for field\n", grid_name);
         decomp_info = decomps_info_mgr->search_decomp_info(decomp_name);
-        mem_size = decomp_info->get_num_local_cells() * fields_info->get_field_data_type_size(field_name) *
+        mem_size = decomp_info->get_num_local_cells() * get_data_type_size(data_type) *
                    remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_grid_size()/remap_grid_manager->search_remap_grid_with_grid_name(decomp_info->get_grid_name())->get_grid_size();
     }
 
     remap_data_field = new Remap_data_field;
     strcpy(remap_data_field->field_name_in_application, field_name);
     strcpy(remap_data_field->field_name_in_IO_file, field_name);
-    strcpy(remap_data_field->data_type_in_application, fields_info->get_field_data_type(field_name));
-    remap_data_field->required_data_size = mem_size / fields_info->get_field_data_type_size(field_name);
+    strcpy(remap_data_field->data_type_in_application, data_type);
+    remap_data_field->required_data_size = mem_size / get_data_type_size(data_type);
     remap_data_field->read_data_size = remap_data_field->required_data_size;
     remap_data_field->data_buf = new char [mem_size];
     remap_data_field->set_field_long_name(fields_info->get_field_long_name(field_name));
@@ -157,6 +152,33 @@ bool Field_mem_info::match_field_mem(const char *comp_name,
         words_are_the_same(this->decomp_name, decomp_name) &&
         words_are_the_same(this->field_name, field_name)) {
            EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
+        if (this->buf_type == buf_type)
+            return true;
+    }
+
+    return false;
+}
+
+
+bool Field_mem_info::match_field_mem(const char *comp_name, 
+                                    const char *decomp_name, 
+                                    const char *grid_name,
+                                    const char *field_name,
+                                    const char *data_type,
+                                    const int buf_type)
+{
+    if (!words_are_the_same(decomp_name, "NULL")) {
+        decomps_info_mgr->search_decomp_info(decomp_name);
+        EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "C-Coupler software error: grid name %s is ilegal when searching field\n", grid_name);
+        EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(decomps_info_mgr->search_decomp_info(decomp_name)->get_grid_name())->is_subset_of_grid(remap_grid_manager->search_remap_grid_with_grid_name(grid_name)),
+                     "C-Coupler software error: the grid of decomp %s is not a subset of grid %s when searching field\n", decomp_name, grid_name);
+    }
+    else EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(grid_name, "NULL"), "C-Coupler software error: the grid name must be \"NULL\" if the decomp name is \"NULL\" when searching field\n");
+    if (words_are_the_same(this->comp_name, comp_name) &&
+        words_are_the_same(this->decomp_name, decomp_name) &&
+        words_are_the_same(this->field_name, field_name) &&
+        words_are_the_same(this->get_field_data()->get_grid_data_field()->data_type_in_application, data_type)) {
+        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
         if (this->buf_type == buf_type)
             return true;
     }
@@ -281,27 +303,6 @@ void Memory_mgt::add_registered_field_info(const char *field_name, const char *d
 }
 
 
-Field_mem_info *Memory_mgt::alloc_mem_double(const char *comp_name, 
-                                      const char *decomp_name, 
-                                      const char *grid_name,
-                                      const char *field_name, 
-                                      const int buf_type,
-                                      bool is_input_field,
-		                              Field_mem_info **pair_field)
-{
-    Field_mem_info *field_mem;
-
-    field_mem = new Field_mem_info(comp_name, decomp_name, grid_name, field_name, buf_type, false);
-    field_mem->change_datatype_to_double();
-
-	field_define_order_counter ++;
-	if (!is_input_field)
-		field_mem->set_define_order_count(field_define_order_counter);
-
-    return field_mem;
-}
-
-
 Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name, 
                                const char *decomp_name, 
                                const char *grid_name,
@@ -309,8 +310,7 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
                                const char *data_type,
                                const int buf_type,
                                bool use_full_grid,
-                               bool is_input_field,
-                               Field_mem_info **pair_field_ptr)
+                               bool is_input_field)
 {
     Field_mem_info *field_mem, *pair_field;
     int i;
@@ -321,19 +321,26 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
 
 	field_define_order_counter ++;
 
-	if (data_type == NULL)
+	if (data_type == NULL) {
 		EXECUTION_REPORT(REPORT_ERROR, is_input_field, "C-Coupler software error1 in alloc_mem of Memory_mgt");
-	else get_data_type_size(data_type);
-
-	if (is_input_field) {
-		EXECUTION_REPORT(REPORT_ERROR, pair_field_ptr != NULL, "C-Coupler software error2 in alloc_mem of Memory_mgt");
 		pair_field = search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type);
+		data_type = pair_field->get_field_data()->get_grid_data_field()->data_type_in_application;
 	}
+	else get_data_type_size(data_type);
 	
     if (!words_are_the_same(grid_name, "NULL")) {
         EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "%s is not a grid when allocating memory for field\n", grid_name);
         decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name));
     }
+
+    /* If memory buffer has been allocated, return it */
+    for (i = 0; i < fields_mem.size(); i ++) 
+        if (fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type)) {
+            EXECUTION_REPORT(REPORT_LOG, true, "field (%s %s %s %d) uses existing memory at address %lx", comp_name, decomp_name, field_name, buf_type, fields_mem[i]->get_data_buf());
+			if (!is_input_field)
+				fields_mem[i]->set_define_order_count(field_define_order_counter);
+            return fields_mem[i];
+        }
 
     find_field_in_cfg = false;
     if (buf_type == 0)
@@ -344,23 +351,13 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
                 break;
             }
         }
-
-    /* If memory buffer has been allocated, return it */
-    for (i = 0; i < fields_mem.size(); i ++) 
-        if (fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, buf_type)) {
-            EXECUTION_REPORT(REPORT_LOG, true, "field (%s %s %s %d) uses existing memory at address %lx", comp_name, decomp_name, field_name, buf_type, fields_mem[i]->get_data_buf());
-			if (!is_input_field)
-				fields_mem[i]->set_define_order_count(field_define_order_counter);
-            return fields_mem[i];
-        }
-
     if (words_are_the_same(comp_name, compset_communicators_info_mgr->get_current_comp_name()))
         if (!(words_are_the_same(field_name, "lon") || words_are_the_same(field_name, "lat") || words_are_the_same(field_name, "mask") || words_are_the_same(field_name, "arear")))
             EXECUTION_REPORT(REPORT_ERROR, !find_field_in_cfg, "field <%s,%s> has been used before model interface of %s registering it\n", 
                          	 field_name, decomp_name, compset_communicators_info_mgr->get_current_comp_name());
 
     /* Compute the size of the memory buffer and then allocate and return it */
-    field_mem = new Field_mem_info(comp_name, decomp_name, grid_name, field_name, buf_type, use_full_grid);
+    field_mem = new Field_mem_info(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, use_full_grid);
 	if (!is_input_field)
 		field_mem->set_define_order_count(field_define_order_counter);	
     fields_mem.push_back(field_mem);
@@ -409,9 +406,8 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	}
 
     EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
-
-	if (words_are_the_same(fields_info->get_field_data_type(model_data_field_name), "none"))
-		fields_info->set_field_data_type(model_data_field_name, data_type);
+	EXECUTION_REPORT(REPORT_ERROR, search_registerred_field(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name) == NULL,
+					 "field (name=%s, decomposition=%s, grid=%s has been registerred more than once by component %s)", model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
 
     for (j = 0; j < fields_mem.size(); j ++)
         if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0)) {
@@ -419,7 +415,7 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
             break;
         }
     if (j == fields_mem.size()) {
-        field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0, false);
+        field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, false);
         field_mem->reset_mem_buf(model_data_buffer, is_restart_field);
         fields_mem.push_back(field_mem);
     }
@@ -486,10 +482,10 @@ void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, con
 }
 
 
-Field_mem_info *Memory_mgt::search_registerred_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_count)
+Field_mem_info *Memory_mgt::search_registerred_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name)
 {
     for (int i = 0; i < fields_mem.size(); i ++) 
-		if (fields_mem[i]->get_is_registered_model_buf() && fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, buf_count)) 
+		if (fields_mem[i]->get_is_registered_model_buf() && fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, 0)) 
 			return fields_mem[i];
 
 	return NULL;
