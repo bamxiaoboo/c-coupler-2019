@@ -27,10 +27,13 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
     private:
         std::vector<Field_mem_info*> src_double_remap_fields_after_rearrange;
         std::vector<Field_mem_info*> dst_double_remap_fields;
-        std::vector<Field_mem_info*> src_float_remap_fields_after_rearrange;
-        std::vector<Field_mem_info*> dst_float_remap_fields;
-        std::vector<Field_mem_info*> src_float_remap_fields_before_rearrange;
         std::vector<Field_mem_info*> src_double_remap_fields_before_rearrange;        
+		char cfg_file_name[1024];
+		char cfg_file_name_src_fields[1024];
+		char cfg_file_name_dst_fields[1024];
+		char decomp_name_src[1024];
+		char decomp_name_dst[1024];
+		char decomp_name_remap[1024];
         Field_mem_info *src_frac_field_before_rearrange;
         Field_mem_info *src_frac_field_after_rearrange;
 		Field_mem_info *src_area_field_after_rearrange;
@@ -49,6 +52,7 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
     public:
         Runtime_remap_algorithm(const char *);  
         void run(bool);
+		void allocate_src_dst_fields(bool);
         ~Runtime_remap_algorithm();
 };
 

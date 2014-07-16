@@ -31,6 +31,7 @@ struct cumulate_average_field_info
 class Runtime_cumulate_average_algorithm : public Runtime_algorithm_basis
 {
     private:
+		char cfg_file_name[1024];
         std::vector<cumulate_average_field_info*> cumulate_average_fields;
         void cumulate_or_average(bool);
         
@@ -40,6 +41,7 @@ class Runtime_cumulate_average_algorithm : public Runtime_algorithm_basis
         void write_restart_fields();
 		void read_restart_computing_count();
         void run(bool);
+		void allocate_src_dst_fields(bool);
 };
 
 

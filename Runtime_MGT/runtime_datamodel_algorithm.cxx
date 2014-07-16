@@ -67,6 +67,7 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
 
     netcdf_file_object = NULL;
     change_file_timer = NULL;
+	fields_allocated = false;
 
     fp_cfg = open_config_file(cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
     get_next_line(line, fp_cfg);
@@ -86,8 +87,7 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
         get_next_line(line, fp_cfg);
         change_file_timer = new Coupling_timer(line);
     }
-    get_next_line(line, fp_cfg);
-    initialize_datamodel(line);
+    get_next_line(fields_cfg_file_name, fp_cfg);
     IO_file_name[0] = '\0';
     has_input_io_file_name = get_next_line(line, fp_cfg);
     if (!words_are_the_same(datamodel_type, "datamodel_write"))
@@ -101,7 +101,7 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
 }
 
 
-void Runtime_datamodel_algorithm::initialize_datamodel(const char *in_file)
+void Runtime_datamodel_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kernel_stage)
 {
     char line[NAME_STR_SIZE * 16];
     char comp_name[NAME_STR_SIZE];
@@ -115,7 +115,15 @@ void Runtime_datamodel_algorithm::initialize_datamodel(const char *in_file)
     int buf_type;
 
 
-    FILE * fp_cfg = open_config_file(in_file, RUNTIME_DATAMODEL_ALG_DIR);
+    if (is_algorithm_in_kernel_stage && !io_timer->is_timer_on())
+        return;
+
+	if (fields_allocated)
+		return;
+	
+	fields_allocated = true;
+
+    FILE * fp_cfg = open_config_file(fields_cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
 
     while (get_next_line(line, fp_cfg)) {
         datamodel_field = new Datamodel_field_info;
@@ -264,9 +272,9 @@ Runtime_datamodel_algorithm::~Runtime_datamodel_algorithm()
 }
 
 
-void Runtime_datamodel_algorithm::run(bool is_alglrithm_in_kernel_stage)
+void Runtime_datamodel_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
-    if (is_alglrithm_in_kernel_stage && !io_timer->is_timer_on())
+    if (is_algorithm_in_kernel_stage && !io_timer->is_timer_on())
         return;
 
     if (words_are_the_same(datamodel_type, "datamodel_read"))

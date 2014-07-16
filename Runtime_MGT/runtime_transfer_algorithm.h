@@ -60,7 +60,6 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         void sendrecv_data(bool);
         void initialize_local_data_structures();
         void generate_algorithm_info_from_cfg_file();
-		bool allocate_fields_according_to_cfg_file();
         void exchange_comp_time_info();
 		void preprocess(bool);
 		void check_mpi_error(const char*);
@@ -71,6 +70,7 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         Runtime_transfer_algorithm(int, Field_mem_info**, Routing_info*, Coupling_timer*);
         ~Runtime_transfer_algorithm();
         void run(bool);
+		void allocate_src_dst_fields(bool);
 };
 
 #endif

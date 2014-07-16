@@ -26,7 +26,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
     char alg_name[NAME_STR_SIZE];
 
 
-	has_allocate_fields = false;
+	fields_allocated = false;
 	strcpy(cfg_file_name, cfg);
 
     fp_cfg = open_config_file(cfg, RUNTIME_COMMON_ALG_DIR);
@@ -49,7 +49,7 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 }
 
 
-void Runtime_common_algorithm::allocate_src_dst_fields()
+void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kernel_stage)
 {
     Decomp_info *decomp;
 	Field_mem_info *field_mem;
@@ -71,7 +71,14 @@ void Runtime_common_algorithm::allocate_src_dst_fields()
     int buf_type;
 
 
-	has_allocate_fields = true;
+
+	if (!(!is_algorithm_in_kernel_stage || timer->is_timer_on()))
+		return;
+
+	if (fields_allocated)
+		return;
+
+	fields_allocated = true;
 
     fp_cfg = open_config_file(cfg_file_name, RUNTIME_COMMON_ALG_DIR);
     get_next_line(alg_name, fp_cfg);
@@ -158,11 +165,9 @@ Runtime_common_algorithm::~Runtime_common_algorithm()
 }
 
 
-void Runtime_common_algorithm::run(bool is_alglrithm_in_kernel_stage)
+void Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
-    if (!is_alglrithm_in_kernel_stage || timer->is_timer_on()) {
-		if (!has_allocate_fields)
-			allocate_src_dst_fields();
+    if (!is_algorithm_in_kernel_stage || timer->is_timer_on()) {
         for (int i = 0; i < num_src_fields; i ++) {
             memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->check_field_sum();
 			memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->use_field_values();

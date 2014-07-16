@@ -22,30 +22,26 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 {
     FILE *cfg_fp, *field_fp;
     char remap_weights_name[NAME_STR_SIZE];
-    char decomp_name_src[NAME_STR_SIZE];
-    char decomp_name_dst[NAME_STR_SIZE];
-    char delay_count_str[NAME_STR_SIZE];
     char comp_name[NAME_STR_SIZE];
     char field_name[NAME_STR_SIZE];    
     char line[NAME_STR_SIZE*3];
-    const char *decomp_name_remap;
     char *line_p;
     int algorithm_mode;
     Decomp_info *local_remap_decomp_src, *local_decomp_src, *local_decomp_dst;
-    int num_transfered_fields;
-    Field_mem_info **transfered_fields;
     int num_remap_related_grids;
     Remap_grid_class **remap_related_grids, **remap_related_decomp_grids;
     Remap_grid_class *decomp_original_grids[256];
     int *global_cells_local_indexes_in_decomps[256], *local_cell_global_indx_src, *local_cell_global_indx_dst;
     int i, j;
 	bool has_integer;
-	int buf_mark;
 	int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group, num_local_cells_src, num_local_cells_dst;
 	MPI_Status mpi_status;
 	char *remap_weight_array;
 	long array_size;
-	
+
+
+	fields_allocated = false;
+	strcpy(cfg_file_name, cfg_name);
 	
 	EXECUTION_REPORT(REPORT_LOG, true, "in generating Runtime_remap_algorithm");
 
@@ -76,7 +72,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	local_remap_decomp_src = decomps_info_mgr->generate_remap_weights_src_decomp(decomp_name_dst, decomp_name_src, remap_weights_name);
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating remap_weights_src_decomp");
 
-    decomp_name_remap = local_remap_decomp_src->get_decomp_name();
+    strcpy(decomp_name_remap, local_remap_decomp_src->get_decomp_name());
 
     decomp_original_grids[0] = remap_grid_manager->search_remap_grid_with_grid_name(local_remap_decomp_src->get_grid_name());
     decomp_original_grids[1] = remap_grid_manager->search_remap_grid_with_grid_name(local_decomp_dst->get_grid_name());
@@ -186,9 +182,53 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         dst_frac_field = NULL;
     }
 
+    get_next_line(cfg_file_name_src_fields, cfg_fp);
+	get_next_line(cfg_file_name_dst_fields, cfg_fp);
+    fclose(cfg_fp);
+
+	delete [] remap_related_grids;
+	delete [] remap_related_decomp_grids;
+	delete [] global_cells_local_indexes_in_decomps[0];
+	delete [] global_cells_local_indexes_in_decomps[1];
+	delete [] local_cell_global_indx_src;
+	delete [] local_cell_global_indx_dst;
+}
+
+
+Runtime_remap_algorithm::~Runtime_remap_algorithm()
+{
+    delete timer;
+
+	if (parallel_remap_weights != NULL)
+	    delete parallel_remap_weights;
+}
+
+
+void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kernel_stage)
+{
+    FILE *field_fp;
+    char comp_name[NAME_STR_SIZE];
+    char field_name[NAME_STR_SIZE];    
+    char line[NAME_STR_SIZE*3];
+    char *line_p;
+    int num_transfered_fields;
+    Field_mem_info **transfered_fields;
+	Field_mem_info *last_define_mem;
+    int i, j;
+	bool has_integer;
+	int buf_mark;
+	
+
+	if (!(!is_algorithm_in_kernel_stage || timer->is_timer_on()))
+		return;
+		
+	if (fields_allocated)
+		return;
+	
+	fields_allocated = true;
+
     /* set the source variables */
-    get_next_line(line, cfg_fp);
-    field_fp = open_config_file(line, RUNTIME_REMAP_ALG_DIR);
+    field_fp = open_config_file(cfg_file_name_src_fields, RUNTIME_REMAP_ALG_DIR);
     while(get_next_line(line, field_fp)) {
         line_p = line;
         get_next_attr(comp_name, &line_p);
@@ -196,17 +236,17 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 		buf_mark = get_next_integer_attr(&line_p, has_integer);
 		if (!has_integer)
 			buf_mark = 0;
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_FLOAT) || words_are_the_same(fields_info->get_field_data_type(field_name), DATA_TYPE_DOUBLE),
-                     "src field %s can not be used to remap because its data type is not real4 or real8", field_name);
         src_double_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, true));
+		last_define_mem = memory_manager->search_last_define_field(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark);
+        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(last_define_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(last_define_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
+                     "src field %s can not be used to remap because its data type is not real4 or real8", field_name);
 		add_runtime_datatype_transformation(src_double_remap_fields_before_rearrange[src_double_remap_fields_before_rearrange.size()-1], true, timer);
         src_double_remap_fields_after_rearrange.push_back(alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false));
     }
     fclose(field_fp);
 
     /* set the dst variables */
-    get_next_line(line, cfg_fp);
-    field_fp = open_config_file(line, RUNTIME_REMAP_ALG_DIR);
+    field_fp = open_config_file(cfg_file_name_dst_fields, RUNTIME_REMAP_ALG_DIR);
     while(get_next_line(line, field_fp)) {
         line_p = line;
         get_next_attr(comp_name, &line_p);
@@ -218,12 +258,11 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 		add_runtime_datatype_transformation(dst_double_remap_fields[dst_double_remap_fields.size()-1], false, timer);
     }
     fclose(field_fp);
-    fclose(cfg_fp);
 
-	EXECUTION_REPORT(REPORT_ERROR, src_double_remap_fields_after_rearrange.size() == dst_double_remap_fields.size(), "the numbers of source fields and target fields are not the same for runtime remapping algorithm %s", cfg_name);
+	EXECUTION_REPORT(REPORT_ERROR, src_double_remap_fields_after_rearrange.size() == dst_double_remap_fields.size(), "the numbers of source fields and target fields are not the same for runtime remapping algorithm %s", cfg_file_name);
 	for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
 		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name()),
-		                 "for runtime remapping algorithm %s, the field name does not match (%s and %s) at %d line", cfg_name,
+		                 "for runtime remapping algorithm %s, the field name does not match (%s and %s) at %d line", cfg_file_name,
 						 src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name(), i+1);
 
     num_transfered_fields = src_double_remap_fields_before_rearrange.size()*2;
@@ -246,25 +285,10 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	runtime_rearrange_algorithm = new Runtime_transfer_algorithm(num_transfered_fields, transfered_fields, rearrange_src_router, timer);
 
 	delete [] transfered_fields;
-	delete [] remap_related_grids;
-	delete [] remap_related_decomp_grids;
-	delete [] global_cells_local_indexes_in_decomps[0];
-	delete [] global_cells_local_indexes_in_decomps[1];
-	delete [] local_cell_global_indx_src;
-	delete [] local_cell_global_indx_dst;
 }
 
 
-Runtime_remap_algorithm::~Runtime_remap_algorithm()
-{
-    delete timer;
-
-	if (parallel_remap_weights != NULL)
-	    delete parallel_remap_weights;
-}
-
-
-void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
+void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 {
     long i, j, field_size_src_before_rearrange, field_size_src_after_rearrange;
 	long field_size_dst, decomp_size_src_before_rearrange, decomp_size_src_after_rearrange, num_levels;
@@ -316,7 +340,8 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
 	    if (src_frac_field_before_rearrange != NULL)
 	        memcpy(src_frac_field_after_rearrange->get_data_buf(), src_frac_field_before_rearrange->get_data_buf(), decomp_size_src_before_rearrange*sizeof(double));
 	}
-    runtime_rearrange_algorithm->run(is_alglrithm_in_kernel_stage);
+	runtime_rearrange_algorithm->allocate_src_dst_fields(is_algorithm_in_kernel_stage);
+    runtime_rearrange_algorithm->run(is_algorithm_in_kernel_stage);
 
 	for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
 		src_double_remap_fields_after_rearrange[i]->check_field_sum();
@@ -361,9 +386,9 @@ void Runtime_remap_algorithm::do_remap(bool is_alglrithm_in_kernel_stage)
 }
 
 
-void Runtime_remap_algorithm::run(bool is_alglrithm_in_kernel_stage)
+void Runtime_remap_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
-    if (!is_alglrithm_in_kernel_stage || timer->is_timer_on())
-        do_remap(is_alglrithm_in_kernel_stage);
+    if (!is_algorithm_in_kernel_stage || timer->is_timer_on())
+        do_remap(is_algorithm_in_kernel_stage);
 }
 

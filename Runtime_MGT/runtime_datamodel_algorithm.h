@@ -37,11 +37,11 @@ class Runtime_datamodel_algorithm : public Runtime_algorithm_basis
         char IO_file_type[NAME_STR_SIZE];
         char IO_file_name[NAME_STR_SIZE];
         char write_type[NAME_STR_SIZE];
+		char fields_cfg_file_name[NAME_STR_SIZE];
         IO_netcdf *netcdf_file_object;
         Coupling_timer *io_timer;
         Coupling_timer *change_file_timer;
 
-        void initialize_datamodel(const char * in_file);
         void datamodel_read(void);
         void datamodel_check(void);
         void datamodel_write(void);
@@ -52,6 +52,7 @@ class Runtime_datamodel_algorithm : public Runtime_algorithm_basis
         char *get_datamodel_type() { return datamodel_type; }
         void change_IO_file_name_for_restart(const char *);
         virtual void run(bool);
+        void allocate_src_dst_fields(bool);
 };
 
 

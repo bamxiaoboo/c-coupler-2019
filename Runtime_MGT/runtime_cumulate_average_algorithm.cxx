@@ -18,45 +18,8 @@
 
 Runtime_cumulate_average_algorithm::Runtime_cumulate_average_algorithm(const char * cfg)
 {
-    cumulate_average_field_info *cumulate_average_field;
-    FILE * fp_cfg;
-    char line[NAME_STR_SIZE * 16];
-    char comp_name[NAME_STR_SIZE];
-    char field_name[NAME_STR_SIZE];
-    char decomp_name[NAME_STR_SIZE];
-    char grid_name[NAME_STR_SIZE];
-    char * line_p;
-    int buf_mark_dst;
-    int i;
-
-
-    fp_cfg = open_config_file(cfg, RUNTIME_AVGHIST_ALG_DIR);
-
-    while (get_next_line(line, fp_cfg)) {
-        line_p = line;
-        cumulate_average_field = new cumulate_average_field_info;
-        get_next_attr(comp_name, &line_p);
-        get_next_attr(field_name, &line_p);
-        get_next_attr(decomp_name, &line_p);
-        get_next_attr(grid_name, &line_p);
-        buf_mark_dst = get_next_integer_attr(&line_p);
-        cumulate_average_field->timer = new Coupling_timer(line_p);
-        cumulate_average_field->mem_info_src = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, 0, true);
-		add_runtime_datatype_transformation(cumulate_average_field->mem_info_src, true, NULL);
-        cumulate_average_field->mem_info_dst = alloc_mem(comp_name, decomp_name, grid_name, field_name, cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application, buf_mark_dst, false);
-		add_runtime_datatype_transformation(cumulate_average_field->mem_info_dst, false, cumulate_average_field->timer);
-        cumulate_average_field->num_elements_in_field = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->required_data_size;
-        cumulate_average_field->field_data_type = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application;
-        cumulate_average_field->current_computing_count = 0;
-        for (i = 0; i < cumulate_average_fields.size(); i ++)
-            EXECUTION_REPORT(REPORT_ERROR, cumulate_average_fields[i]->mem_info_dst != cumulate_average_field->mem_info_dst,
-                         "Find repeated field in cumulate average algorithm: (%s)\n", line);
-        cumulate_average_fields.push_back(cumulate_average_field);
-    }
-
-	read_restart_computing_count();
-
-    fclose(fp_cfg);
+	strcpy(cfg_file_name, cfg);
+	fields_allocated = false;
 }
 
 
@@ -88,7 +51,55 @@ template<typename T> void template_cumulate_or_average(T* dst, const T* src, con
 }
 
 
-void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_alglrithm_in_kernel_stage)
+void Runtime_cumulate_average_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kernel_stage)
+{
+    cumulate_average_field_info *cumulate_average_field;
+    FILE * fp_cfg;
+    char line[NAME_STR_SIZE * 16];
+    char comp_name[NAME_STR_SIZE];
+    char field_name[NAME_STR_SIZE];
+    char decomp_name[NAME_STR_SIZE];
+    char grid_name[NAME_STR_SIZE];
+    char * line_p;
+    int buf_mark_dst;
+    int i;
+
+
+	if (fields_allocated)
+		return;
+
+	fields_allocated = true;
+    fp_cfg = open_config_file(cfg_file_name, RUNTIME_AVGHIST_ALG_DIR);
+
+    while (get_next_line(line, fp_cfg)) {
+        line_p = line;
+        cumulate_average_field = new cumulate_average_field_info;
+        get_next_attr(comp_name, &line_p);
+        get_next_attr(field_name, &line_p);
+        get_next_attr(decomp_name, &line_p);
+        get_next_attr(grid_name, &line_p);
+        buf_mark_dst = get_next_integer_attr(&line_p);
+        cumulate_average_field->timer = new Coupling_timer(line_p);
+        cumulate_average_field->mem_info_src = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, 0, true);
+		add_runtime_datatype_transformation(cumulate_average_field->mem_info_src, true, NULL);
+        cumulate_average_field->mem_info_dst = alloc_mem(comp_name, decomp_name, grid_name, field_name, cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application, buf_mark_dst, false);
+		add_runtime_datatype_transformation(cumulate_average_field->mem_info_dst, false, cumulate_average_field->timer);
+        cumulate_average_field->num_elements_in_field = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->required_data_size;
+        cumulate_average_field->field_data_type = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application;
+        cumulate_average_field->current_computing_count = 0;
+        for (i = 0; i < cumulate_average_fields.size(); i ++)
+            EXECUTION_REPORT(REPORT_ERROR, cumulate_average_fields[i]->mem_info_dst != cumulate_average_field->mem_info_dst,
+                         "Find repeated field in cumulate average algorithm: (%s)\n", line);
+        cumulate_average_fields.push_back(cumulate_average_field);
+    }
+
+	read_restart_computing_count();
+
+    fclose(fp_cfg);
+}
+
+
+void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_algorithm_in_kernel_stage)
 {
     bool do_average; 
 
@@ -101,7 +112,7 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_alglrithm_i
 	
     for (int i = 0; i < cumulate_average_fields.size(); i ++) {
         cumulate_average_fields[i]->current_computing_count ++;
-        do_average = !is_alglrithm_in_kernel_stage || cumulate_average_fields[i]->timer->is_timer_on();
+        do_average = !is_algorithm_in_kernel_stage || cumulate_average_fields[i]->timer->is_timer_on();
         if (words_are_the_same(cumulate_average_fields[i]->field_data_type, DATA_TYPE_FLOAT))
             template_cumulate_or_average<float>((float *) (cumulate_average_fields[i]->mem_info_dst->get_data_buf()), 
                                          (float *) (cumulate_average_fields[i]->mem_info_src->get_data_buf()), 
@@ -130,9 +141,9 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_alglrithm_i
 }
 
 
-void Runtime_cumulate_average_algorithm::run(bool is_alglrithm_in_kernel_stage)
+void Runtime_cumulate_average_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
-    cumulate_or_average(is_alglrithm_in_kernel_stage);
+    cumulate_or_average(is_algorithm_in_kernel_stage);
 }
 
 

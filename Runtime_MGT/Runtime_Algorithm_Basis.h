@@ -16,6 +16,7 @@
 class Runtime_algorithm_basis
 {
     protected:
+		bool fields_allocated;
         int num_src_fields;
         int num_dst_fields;
         void **src_fields_data_buffers;
@@ -31,6 +32,7 @@ class Runtime_algorithm_basis
         Runtime_algorithm_basis();
         virtual ~Runtime_algorithm_basis();
         virtual void run(bool) = 0;
+		virtual void allocate_src_dst_fields(bool) = 0;
 		void transfer_fields_data_type_before_run();
 		void transfer_fields_data_type_after_run();
 };

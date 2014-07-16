@@ -22,15 +22,13 @@ class Runtime_common_algorithm : public Runtime_algorithm_basis
 		Coupling_timer *timer;
         C_Coupler_algorithm c_coupler_algorithm;
 		Model_algorithm model_algorithm;
-		bool has_allocate_fields;
 		char cfg_file_name[1024];
-
-		void allocate_src_dst_fields();
 		
     public:
         Runtime_common_algorithm(const char * cfg);
         ~Runtime_common_algorithm();
         bool is_model_algorithm() { return model_algorithm != NULL; }
+		void allocate_src_dst_fields(bool);
         void run(bool);
 };
 

@@ -342,20 +342,6 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
             return fields_mem[i];
         }
 
-    find_field_in_cfg = false;
-    if (buf_type == 0)
-        for (i = 0; i < registered_fields_info.size(); i ++) {
-            if (words_are_the_same(field_name, registered_fields_info[i]->field_name) &&
-                words_are_the_same(decomp_name, registered_fields_info[i]->decomp_name)) {
-                find_field_in_cfg = true;
-                break;
-            }
-        }
-    if (words_are_the_same(comp_name, compset_communicators_info_mgr->get_current_comp_name()))
-        if (!(words_are_the_same(field_name, "lon") || words_are_the_same(field_name, "lat") || words_are_the_same(field_name, "mask") || words_are_the_same(field_name, "arear")))
-            EXECUTION_REPORT(REPORT_ERROR, !find_field_in_cfg, "field <%s,%s> has been used before model interface of %s registering it\n", 
-                         	 field_name, decomp_name, compset_communicators_info_mgr->get_current_comp_name());
-
     /* Compute the size of the memory buffer and then allocate and return it */
     field_mem = new Field_mem_info(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, use_full_grid);
 	if (!is_input_field)
@@ -406,7 +392,7 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	}
 
     EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
-	EXECUTION_REPORT(REPORT_ERROR, search_registerred_field(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name) == NULL,
+	EXECUTION_REPORT(REPORT_ERROR, search_registerred_field(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0) == NULL,
 					 "field (name=%s, decomposition=%s, grid=%s has been registerred more than once by component %s)", model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
 
     for (j = 0; j < fields_mem.size(); j ++)
@@ -482,10 +468,10 @@ void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, con
 }
 
 
-Field_mem_info *Memory_mgt::search_registerred_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name)
+Field_mem_info *Memory_mgt::search_registerred_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_count)
 {
     for (int i = 0; i < fields_mem.size(); i ++) 
-		if (fields_mem[i]->get_is_registered_model_buf() && fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, 0)) 
+		if (fields_mem[i]->get_is_registered_model_buf() && fields_mem[i]->match_field_mem(comp_name, decomp_name, grid_name, field_name, buf_count)) 
 			return fields_mem[i];
 
 	return NULL;
