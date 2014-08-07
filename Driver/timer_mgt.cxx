@@ -282,7 +282,7 @@ void Timer_mgt::set_restart_time(long start_full_time, long restart_full_time)
 
 bool Timer_mgt::check_is_coupled_run_finished()
 {
-    EXECUTION_REPORT(REPORT_LOG, true, "check_is_coupled_run_finished %d %d", current_step_id, num_total_steps);
+    EXECUTION_REPORT(REPORT_LOG, true, "check_is_coupled_run_finished %d %ld", current_step_id, num_total_steps);
     return (current_step_id > num_total_steps + (stop_latency_seconds/sec_per_step));
 }
 
@@ -400,6 +400,9 @@ bool Timer_mgt::check_time_consistency_between_components(long full_time)
 	long *full_time_arrays;
 
 
+	if (compset_communicators_info_mgr->get_num_components() == 1)
+		return;
+	
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_global_comm_group(), &num_global_procs) == MPI_SUCCESS);
 	
 	consistent = true;

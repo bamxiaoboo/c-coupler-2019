@@ -43,6 +43,10 @@ void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Fi
 
 	EXECUTION_REPORT(REPORT_ERROR, data_types_matched, "data types %s and %s for field %s does not match each other", data_type_src, data_type_dst, src_field->get_field_name());
 
+	for (int i = 0; i < src_fields.size(); i ++)
+		if (src_fields[i] == src_field && dst_fields[i] == dst_field)
+			return;
+
 	src_fields.push_back(src_field);
 	dst_fields.push_back(dst_field);
 	timers.push_back(timer);

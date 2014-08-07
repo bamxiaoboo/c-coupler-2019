@@ -71,18 +71,15 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
     int buf_type;
 
 
-
-	if (!(!is_algorithm_in_kernel_stage || timer->is_timer_on()))
+	if (is_algorithm_in_kernel_stage && !timer->is_timer_on())
 		return;
 
 	if (fields_allocated)
 		return;
-
 	fields_allocated = true;
 
     fp_cfg = open_config_file(cfg_file_name, RUNTIME_COMMON_ALG_DIR);
     get_next_line(alg_name, fp_cfg);
-    line_p = line;
     get_next_line(line, fp_cfg);
     get_next_line(input_field_file_name, fp_cfg);
     get_next_line(output_field_file_name, fp_cfg);

@@ -75,7 +75,7 @@ class Timer_mgt
         int sec_per_step; 
         int current_num_elapsed_day;
         int current_step_id;
-        int num_total_steps;
+        long num_total_steps;
         bool leap_year_on;
         Coupling_timer *restart_timer;
         std::vector<Comps_transfer_time_info*> comps_transfer_time_infos;
@@ -109,7 +109,7 @@ class Timer_mgt
         long get_current_full_time();
         int get_current_date();
         int get_current_num_time_step();
-        int get_num_total_step() { return num_total_steps; }
+        long get_num_total_step() { return num_total_steps; }
         int get_comp_stop_latency_seconds() { return stop_latency_seconds; }
 		int get_current_num_days_in_year();
         void check_timer_format(const char*, int, int);

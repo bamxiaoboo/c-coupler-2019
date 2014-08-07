@@ -304,7 +304,7 @@ extern "C" void coupling_get_current_nstep_(int *nstep)
 
 extern "C" void coupling_get_num_total_step_(int *nstep)
 {
-	*nstep = timer_mgr->get_num_total_step();
+	*nstep = (int) timer_mgr->get_num_total_step();
 }
 
 

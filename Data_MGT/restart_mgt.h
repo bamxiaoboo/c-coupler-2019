@@ -36,6 +36,7 @@ class Restart_mgt
         bool check_is_restart_timer_on();
 		void create_restart_write_nc_file();
 		void log_last_restart_output_info();
+		void read_in_restart_read_fields_attrs();
 
     public:
         Restart_mgt(int, int, const char*);
@@ -50,6 +51,7 @@ class Restart_mgt
         void write_one_restart_field(Field_mem_info*, int);
 		int get_restart_read_field_computing_count(const char*, const char*, const char*, const char*, int);
         void read_one_restart_field(Field_mem_info*);
+		void get_field_datatype_for_transfer(const char*, const char*, const char*, const char*, int, char*);
 		long get_restart_read_num_time_step() { return restart_read_num_time_step; }
 };
 

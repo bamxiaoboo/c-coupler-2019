@@ -118,9 +118,16 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
     all_procs_comp_ids = new int [num_global_procs];
     num_all_comps_procs = new int [comps_comms_info.size()];
     all_comp_root_procs_global_ids = new int [comps_comms_info.size()];
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, all_procs_global_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_comp_id, 1, MPI_INT, all_procs_comp_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_local_id, 1, MPI_INT, all_procs_local_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	if (num_global_procs == 1) {
+		all_procs_global_ids[0] = current_proc_global_id;
+		all_procs_comp_ids[0] = current_comp_id;
+		all_procs_local_ids[0] = current_proc_local_id;
+	}
+	else {
+	    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, all_procs_global_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_comp_id, 1, MPI_INT, all_procs_comp_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_local_id, 1, MPI_INT, all_procs_local_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	}
     for (i = 0; i < comps_comms_info.size(); i ++)
         num_all_comps_procs[i] = 0;
     for (i = 0; i < num_global_procs; i ++) {
@@ -141,7 +148,9 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 	host_name_all_computing_nodes = new char [num_all_comps_procs[current_comp_id]*NAME_STR_SIZE];
 	host_name_distinct_computing_nodes = new char [num_all_comps_procs[current_comp_id]*NAME_STR_SIZE];
 	host_name_ids = new int [num_all_comps_procs[current_comp_id]];
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(host_name_current_computing_node, NAME_STR_SIZE, MPI_CHAR, host_name_all_computing_nodes, NAME_STR_SIZE, MPI_CHAR, current_comp_comm_group) == MPI_SUCCESS);
+	if (num_global_procs == 1)
+		strcpy(host_name_distinct_computing_nodes, host_name_current_computing_node);
+	else EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(host_name_current_computing_node, NAME_STR_SIZE, MPI_CHAR, host_name_all_computing_nodes, NAME_STR_SIZE, MPI_CHAR, current_comp_comm_group) == MPI_SUCCESS);
 	for (i = 0; i < num_all_comps_procs[current_comp_id]; i ++)
 		host_name_ids[i] = -1;
 	num_distinct_computing_nodes = 0;
@@ -161,7 +170,7 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 	EXECUTION_REPORT(REPORT_LOG, true, "%d computing nodes are used in this experiment", num_distinct_computing_nodes);
 	
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(current_comp_comm_group, host_name_ids[current_proc_local_id], 0, &computing_node_comp_group) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(current_comp_comm_group, &current_proc_computing_node_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(computing_node_comp_group, &current_proc_computing_node_id) == MPI_SUCCESS);
 	is_master_process_in_computing_node = (current_proc_computing_node_id == 0);
 	EXECUTION_REPORT(REPORT_ERROR, current_proc_computing_node_id < 64, "current version of C-Coupler only supports 64 processes in a computing node");
 

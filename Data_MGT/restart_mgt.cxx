@@ -90,7 +90,7 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 	EXECUTION_REPORT(REPORT_ERROR, restart_second%timer_mgr->get_comp_frequency()==0 && restart_second%timer_mgr->get_comp_frequency()==0, "restart_second of simulation run must integer multiple of the time step");
 
 	restart_read_fields_attr_strings = NULL;
-	num_restart_read_fields_attrs = 0;
+	num_restart_read_fields_attrs = -999;
     restart_write_nc_file = NULL; 
 	restart_read_nc_file = NULL;
 	current_restart_num_time_step = ((int)0xffffffff);
@@ -132,16 +132,16 @@ int Restart_mgt::get_restart_read_field_computing_count(const char *comp_name, c
 	long tmp_long_value, field_restart_time;
 
 	
-	for (i = 0; i < num_restart_read_fields_attrs/6; i ++) {
-		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+4), "%ld", &tmp_long_value);
+	for (i = 0; i < num_restart_read_fields_attrs/7; i ++) {
+		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+5), "%ld", &tmp_long_value);
 		local_buf_type = (tmp_long_value & 0xffffffff);
-		if (words_are_the_same(comp_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+0)) &&
-			words_are_the_same(decomp_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+1)) &&
-			words_are_the_same(grid_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+2)) &&
-			words_are_the_same(field_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+3)) &&
+		if (words_are_the_same(comp_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+0)) &&
+			words_are_the_same(decomp_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+1)) &&
+			words_are_the_same(grid_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+2)) &&
+			words_are_the_same(field_name, restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+3)) &&
 			local_buf_type == buf_type) {
 			computing_count = (tmp_long_value >> 32);
-			sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+5), "%ld", &field_restart_time);			
+			sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+6), "%ld", &field_restart_time);			
 			EXECUTION_REPORT(REPORT_ERROR, field_restart_time+restart_read_timer_mgr->get_comp_frequency() >= restart_read_timer_mgr->get_current_full_time(), "C-Coupler error1 in get_restart_read_field_computing_count\n");
 			return computing_count;
 		}
@@ -238,7 +238,7 @@ void Restart_mgt::write_one_restart_field(Field_mem_info *restart_field_mem, int
 		starts[1] = 0;
 		counts[0] = 1;
 		counts[1] = NAME_STR_SIZE;
-		starts[0] = num_restart_var_attrs;
+		starts[0] = num_restart_var_attrs+0;
 		strcpy(attr_string, restart_field_mem->get_comp_name());
 		rcode = nc_put_vara_text(ncfile_id, restart_vars_attrs_id, starts, counts, attr_string);
 		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_write_nc_file->get_file_name());
@@ -255,13 +255,17 @@ void Restart_mgt::write_one_restart_field(Field_mem_info *restart_field_mem, int
 		rcode = nc_put_vara_text(ncfile_id, restart_vars_attrs_id, starts, counts, attr_string);
 		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_write_nc_file->get_file_name());
 		starts[0] = num_restart_var_attrs+4;
+		strcpy(attr_string, restart_field_mem->get_field_data()->get_grid_data_field()->data_type_in_application);
+		rcode = nc_put_vara_text(ncfile_id, restart_vars_attrs_id, starts, counts, attr_string);
+		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_write_nc_file->get_file_name());
+		starts[0] = num_restart_var_attrs+5;
 		tmp_long_value = computing_count;
 		tmp_long_value = (tmp_long_value << 32);
 		tmp_long_value = (tmp_long_value | restart_field_mem->get_buf_type());
 		sprintf(attr_string, "%ld\0", tmp_long_value);
 		rcode = nc_put_vara_text(ncfile_id, restart_vars_attrs_id, starts, counts, attr_string);
 		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_write_nc_file->get_file_name());
-		starts[0] = num_restart_var_attrs+5;
+		starts[0] = num_restart_var_attrs+6;
 		sprintf(attr_string, "%ld\0", timer_mgr->get_current_full_time());
 		rcode = nc_put_vara_text(ncfile_id, restart_vars_attrs_id, starts, counts, attr_string);
 		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_write_nc_file->get_file_name());
@@ -282,6 +286,41 @@ void Restart_mgt::read_one_restart_field(Field_mem_info *restart_field_mem)
     fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, restart_field_mem);    
 	restart_field_mem->define_field_values(true);
 	restart_field_mem->check_field_sum();
+}
+
+
+void Restart_mgt::get_field_datatype_for_transfer(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_mark, char *out_datatype)
+{
+	char *restart_comp_name, *restart_decomp_name, *restart_grid_name, *restart_field_name, *data_type;
+	int i, restart_buf_mark;
+	long tmp_long_value, field_restart_time;
+	Field_mem_info *field = NULL;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), "C-Coupler software error in get_field_datatype_for_transfer");
+
+	read_in_restart_read_fields_attrs();
+
+	for (i = 0; i < num_restart_read_fields_attrs/7; i ++) {
+		restart_comp_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+0);
+		restart_decomp_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+1);
+		restart_grid_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+2);
+		restart_field_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+3);
+		data_type = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+4);
+		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+5), "%ld", &tmp_long_value);
+		restart_buf_mark = (tmp_long_value & 0xffffffff);
+		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+6), "%ld", &field_restart_time);
+		printf("okok1 %s %s %s %s %d %ld\n", restart_comp_name, restart_decomp_name, restart_grid_name, restart_field_name, restart_buf_mark, field_restart_time);
+		if (field_restart_time == restart_read_timer_mgr->get_current_full_time() && buf_mark == restart_buf_mark && words_are_the_same(comp_name, restart_comp_name) &&
+			words_are_the_same(decomp_name, restart_decomp_name) && words_are_the_same(grid_name, restart_grid_name) && words_are_the_same(field_name, restart_field_name)) {
+			strcpy(out_datatype, data_type);
+			EXECUTION_REPORT(REPORT_LOG, true, "the data type of transfer field (%s, %s, %s) is %s", comp_name, decomp_name, field_name, data_type);
+			return;
+		}
+	}
+
+	printf("okok %s %s %s %s %d %ld\n", comp_name, decomp_name, grid_name, field_name, buf_mark, restart_read_timer_mgr->get_current_full_time());
+	EXECUTION_REPORT(REPORT_ERROR, false, "Cannot find transfer field (%s, %s, %s) from restart file in restart window for the transfer algorithm", comp_name, decomp_name, field_name);
 }
 
 
@@ -327,28 +366,22 @@ void Restart_mgt::read_check_restart_basic_info()
 }
 
 
-void Restart_mgt::read_restart_fields_on_restart_date()
+void Restart_mgt::read_in_restart_read_fields_attrs()
 {
-    char full_field_name[256];
 	int ncfile_id, rcode, restart_vars_attrs_id, num_restart_var_attrs_id, i, j;
 	unsigned long starts[2], counts[2];
-	char *comp_name, *decomp_name, *grid_name, *field_name;
-	int buf_type;
-	long field_restart_time, tmp_long_value;
-	Field_mem_info *field;
 	FILE *fp_tmp;
 
-
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
+		return;
+
+	if (num_restart_read_fields_attrs != -999)
 		return;
 
 	fp_tmp = fopen(restart_read_file_name, "r");
 	EXECUTION_REPORT(REPORT_ERROR, fp_tmp != NULL, "the restart read data file %s does not exist\n");	
 	fclose(fp_tmp);
 
-	EXECUTION_REPORT(REPORT_LOG, true, "begin reading restart fields on restart date");
-
-	EXECUTION_REPORT(REPORT_ERROR, restart_begin_full_time == restart_read_timer_mgr->get_current_full_time(), "the time of reading restart fields are different from the restart date setting by users\n");
 	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
 		rcode = nc_open(restart_read_nc_file->get_file_name(), NC_WRITE, &ncfile_id);
 		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_read_nc_file->get_file_name());
@@ -380,16 +413,36 @@ void Restart_mgt::read_restart_fields_on_restart_date()
 	
 	MPI_Bcast(restart_read_fields_attr_strings, num_restart_read_fields_attrs*NAME_STR_SIZE, MPI_CHAR, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
 
-	for (i = 0; i < num_restart_read_fields_attrs/6; i ++) {
-		comp_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+0);
-		decomp_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+1);
-		grid_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+2);
-		field_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+3);
-		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+4), "%ld", &tmp_long_value);
+}
+
+void Restart_mgt::read_restart_fields_on_restart_date()
+{
+	int i, j;
+	char *comp_name, *decomp_name, *grid_name, *field_name, *data_type;
+	int buf_type;
+	long field_restart_time, tmp_long_value;
+	Field_mem_info *field;
+
+
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
+		return;
+
+	read_in_restart_read_fields_attrs();
+
+	EXECUTION_REPORT(REPORT_LOG, true, "begin reading restart fields on restart date");
+	EXECUTION_REPORT(REPORT_ERROR, restart_begin_full_time == restart_read_timer_mgr->get_current_full_time(), "the time of reading restart fields are different from the restart date setting by users\n");
+
+	for (i = 0; i < num_restart_read_fields_attrs/7; i ++) {
+		comp_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+0);
+		decomp_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+1);
+		grid_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+2);
+		field_name = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+3);
+		data_type = restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+4);
+		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+5), "%ld", &tmp_long_value);
 		buf_type = (tmp_long_value & 0xffffffff);
-		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*6+5), "%ld", &field_restart_time);
+		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+6), "%ld", &field_restart_time);
 		if (field_restart_time == restart_begin_full_time) {
-			field = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, false);
+			field = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false);
 			EXECUTION_REPORT(REPORT_LOG, true, "read field %s %s %s %d from restart data file", comp_name, decomp_name, field_name, buf_type);
 			read_one_restart_field(field);
 		}

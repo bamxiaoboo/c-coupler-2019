@@ -219,7 +219,7 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
 	int buf_mark;
 	
 
-	if (!(!is_algorithm_in_kernel_stage || timer->is_timer_on()))
+	if (is_algorithm_in_kernel_stage && !timer->is_timer_on())
 		return;
 		
 	if (fields_allocated)

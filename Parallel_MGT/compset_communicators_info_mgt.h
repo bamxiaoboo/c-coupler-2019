@@ -68,6 +68,7 @@ class Compset_communicators_info_mgt
         int get_current_proc_id_in_comp_comm_group() { return current_proc_local_id;}
         MPI_Comm get_current_comp_comm_group() {return current_comp_comm_group;}
         int get_proc_id_in_global_comm_group(int, int);
+		int get_num_components() { return comps_comms_info.size(); }
         int get_num_procs_in_comp(int cid) { return comps_comms_info[cid]->num_comp_procs;}
         const char *get_current_comp_name() { return comps_comms_info[current_comp_id]->comp_name; }
         const char *get_comp_name_by_id(int cid) { return comps_comms_info[cid]->comp_name; }

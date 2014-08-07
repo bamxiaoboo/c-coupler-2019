@@ -35,9 +35,12 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         MPI_Request *recv_requests;
         MPI_Status *recv_statuses;
         Routing_info **fields_routers;
+		char **comp_names;
+		char **field_names;
         char **field_local_decomp_names;
         char **field_remote_decomp_names;
         char **field_grid_names;
+		int *buf_marks;
         long *field_grids_num_lev;
         int *send_size_with_remote_procs;
         int *recv_size_with_remote_procs;

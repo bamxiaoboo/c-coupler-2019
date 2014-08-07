@@ -136,9 +136,10 @@ void Runtime_datamodel_algorithm::allocate_src_dst_fields(bool is_algorithm_in_k
         get_next_attr(grid_name, &line_p);
         buf_type = get_next_integer_attr(&line_p);
 		EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
-        datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, true);
-		if (words_are_the_same(datamodel_type, "datamodel_read"))
+		if (words_are_the_same(datamodel_type, "datamodel_write")) {
+			datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, true);
 			add_runtime_datatype_transformation(datamodel_field->field_data_mem, true, io_timer);
+		}
         get_next_attr(datamodel_field->field_name_in_IO_file, &line_p);
         strcpy(datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, datamodel_field->field_name_in_IO_file);
         if (words_are_the_same(datamodel_type, "datamodel_write")) {

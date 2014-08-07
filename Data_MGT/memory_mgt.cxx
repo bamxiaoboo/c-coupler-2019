@@ -326,7 +326,11 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
 		pair_field = search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type);
 		data_type = pair_field->get_field_data()->get_grid_data_field()->data_type_in_application;
 	}
-	else get_data_type_size(data_type);
+	else {
+		get_data_type_size(data_type);
+		if (is_input_field)
+			search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type);
+	}
 	
     if (!words_are_the_same(grid_name, "NULL")) {
         EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "%s is not a grid when allocating memory for field\n", grid_name);
