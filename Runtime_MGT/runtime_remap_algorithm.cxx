@@ -301,6 +301,8 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	if (parallel_remap_weights == NULL)
 		return;
 
+	performance_timing_mgr->performance_timing_start(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), cfg_file_name);
+
 	for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++)
 		src_double_remap_fields_before_rearrange[i]->check_field_sum();
 
@@ -383,6 +385,8 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		dst_double_remap_fields[i]->define_field_values(false);
 		dst_double_remap_fields[i]->check_field_sum();
 	}
+
+	performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), cfg_file_name);
 }
 
 

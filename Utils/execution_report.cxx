@@ -114,10 +114,8 @@ void report_ender(int report_type)
     printf("\n");
 	fflush(NULL);	
 
-	if (report_type == REPORT_ERROR) {
-		while(1);
+	if (report_type == REPORT_ERROR)
 		assert(false);
-	}
 }
 
 
