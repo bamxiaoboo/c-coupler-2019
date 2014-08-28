@@ -34,6 +34,8 @@ bool get_next_line(char *line, FILE *fp)
 
 bool get_next_attr(char *attr, char **line)
 {
+	EXECUTION_REPORT(REPORT_ERROR, *line != NULL, "Can not get next attribute from the configuration file. There may be problem in the configuration file");
+	
     if ((*line)[0] == '\0') {
         (*line) = NULL;
         return false;

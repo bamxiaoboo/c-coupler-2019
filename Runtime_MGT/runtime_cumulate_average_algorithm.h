@@ -31,17 +31,18 @@ struct cumulate_average_field_info
 class Runtime_cumulate_average_algorithm : public Runtime_algorithm_basis
 {
     private:
-		char cfg_file_name[1024];
         std::vector<cumulate_average_field_info*> cumulate_average_fields;
         void cumulate_or_average(bool);
         
     public:
+		Runtime_cumulate_average_algorithm() {}
         Runtime_cumulate_average_algorithm(const char * cfg);
         ~Runtime_cumulate_average_algorithm();
         void write_restart_fields();
 		void read_restart_computing_count();
         void run(bool);
 		void allocate_src_dst_fields(bool);
+		Field_mem_info *add_one_field(Field_mem_info*, Coupling_timer *);
 };
 
 

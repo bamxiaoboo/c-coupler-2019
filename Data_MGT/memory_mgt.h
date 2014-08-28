@@ -89,7 +89,7 @@ class Memory_mgt
 		bool is_model_data_renewed_in_current_time_step(void*);
 		bool is_model_data_active_in_coupling(void*);
 		void check_sum_of_all_fields();
-		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int);
+		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int, bool);
 		Field_mem_info *search_registerred_field(const char*, const char*, const char*, const char*, int);
         ~Memory_mgt();
 };

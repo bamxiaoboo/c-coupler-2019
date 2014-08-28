@@ -94,6 +94,7 @@ void Runtime_procedure_mgt::execute(const char *procedure_stage)
 		EXECUTION_REPORT(REPORT_LOG, true, "before run algorithm %d in procedure %s", i, procedure_name);
 		runtime_algorithms[i]->runtime_algorithm_object->allocate_src_dst_fields(words_are_the_same(procedure_stage, PROCEDURE_STAGE_KERNEL));
 		runtime_algorithms[i]->runtime_algorithm_object->transfer_fields_data_type_before_run();
+		runtime_algorithms[i]->runtime_algorithm_object->cumulate_average_before_run(words_are_the_same(procedure_stage, PROCEDURE_STAGE_KERNEL));
 		runtime_algorithms[i]->runtime_algorithm_object->run(words_are_the_same(procedure_stage, PROCEDURE_STAGE_KERNEL));
 		runtime_algorithms[i]->runtime_algorithm_object->transfer_fields_data_type_after_run();
 		EXECUTION_REPORT(REPORT_LOG, true, "after run algorithm %d in procedure", i, procedure_name);

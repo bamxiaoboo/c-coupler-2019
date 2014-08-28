@@ -58,6 +58,7 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
     char *line_p;
 
 
+	global_algorithm_id = 0;
 	execution_phase_number = 2;
 
 	performance_timing_mgr = new Performance_timing_mgt();

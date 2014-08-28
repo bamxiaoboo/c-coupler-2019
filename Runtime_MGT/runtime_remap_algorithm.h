@@ -28,7 +28,6 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
         std::vector<Field_mem_info*> src_double_remap_fields_after_rearrange;
         std::vector<Field_mem_info*> dst_double_remap_fields;
         std::vector<Field_mem_info*> src_double_remap_fields_before_rearrange;        
-		char cfg_file_name[1024];
 		char cfg_file_name_src_fields[1024];
 		char cfg_file_name_dst_fields[1024];
 		char decomp_name_src[1024];

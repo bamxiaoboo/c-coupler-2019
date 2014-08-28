@@ -41,7 +41,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
 
 	fields_allocated = false;
-	strcpy(cfg_file_name, cfg_name);
+	strcpy(algorithm_cfg_name, cfg_name);
 	
 	EXECUTION_REPORT(REPORT_LOG, true, "in generating Runtime_remap_algorithm");
 
@@ -51,7 +51,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(decomp_name_src, cfg_fp));
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(decomp_name_dst, cfg_fp));
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
-    timer = new Coupling_timer(line);
+	line_p = line;
+    timer = new Coupling_timer(&line_p);
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
     sscanf(line, "%d", &algorithm_mode);
     sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
@@ -237,7 +238,7 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
 		if (!has_integer)
 			buf_mark = 0;
         src_double_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, true));
-		last_define_mem = memory_manager->search_last_define_field(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark);
+		last_define_mem = memory_manager->search_last_define_field(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark, true);
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(last_define_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(last_define_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
                      "src field %s can not be used to remap because its data type is not real4 or real8", field_name);
 		add_runtime_datatype_transformation(src_double_remap_fields_before_rearrange[src_double_remap_fields_before_rearrange.size()-1], true, timer);
@@ -259,10 +260,10 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
     }
     fclose(field_fp);
 
-	EXECUTION_REPORT(REPORT_ERROR, src_double_remap_fields_after_rearrange.size() == dst_double_remap_fields.size(), "the numbers of source fields and target fields are not the same for runtime remapping algorithm %s", cfg_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, src_double_remap_fields_after_rearrange.size() == dst_double_remap_fields.size(), "the numbers of source fields and target fields are not the same for runtime remapping algorithm %s", algorithm_cfg_name);
 	for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
 		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name()),
-		                 "for runtime remapping algorithm %s, the field name does not match (%s and %s) at %d line", cfg_file_name,
+		                 "for runtime remapping algorithm %s, the field name does not match (%s and %s) at %d line", algorithm_cfg_name,
 						 src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name(), i+1);
 
     num_transfered_fields = src_double_remap_fields_before_rearrange.size()*2;
@@ -301,7 +302,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	if (parallel_remap_weights == NULL)
 		return;
 
-	performance_timing_mgr->performance_timing_start(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), cfg_file_name);
+	performance_timing_mgr->performance_timing_start(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
 
 	for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++)
 		src_double_remap_fields_before_rearrange[i]->check_field_sum();
@@ -386,7 +387,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		dst_double_remap_fields[i]->check_field_sum();
 	}
 
-	performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), cfg_file_name);
+	performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
 }
 
 

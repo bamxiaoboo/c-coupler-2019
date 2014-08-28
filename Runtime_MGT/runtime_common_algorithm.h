@@ -22,7 +22,9 @@ class Runtime_common_algorithm : public Runtime_algorithm_basis
 		Coupling_timer *timer;
         C_Coupler_algorithm c_coupler_algorithm;
 		Model_algorithm model_algorithm;
-		char cfg_file_name[1024];
+        void **src_fields_data_buffers;
+        void **dst_fields_data_buffers;
+        int *num_elements_in_field_buffers;
 		
     public:
         Runtime_common_algorithm(const char * cfg);

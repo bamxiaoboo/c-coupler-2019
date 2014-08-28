@@ -33,11 +33,11 @@ Coupling_timer::Coupling_timer(const char *freq_unit, int freq_count, int del_co
 }
 
 
-Coupling_timer::Coupling_timer(char *line)
+Coupling_timer::Coupling_timer(char **line)
 {
-    get_next_attr(frequency_unit, &line);
-    frequency_count = get_next_integer_attr(&line);
-    delay_count = get_next_integer_attr(&line);
+    get_next_attr(frequency_unit, line);
+    frequency_count = get_next_integer_attr(line);
+    delay_count = get_next_integer_attr(line);
     timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count);
 }
 
@@ -401,7 +401,7 @@ bool Timer_mgt::check_time_consistency_between_components(long full_time)
 
 
 	if (compset_communicators_info_mgr->get_num_components() == 1)
-		return;
+		return true;
 	
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_global_comm_group(), &num_global_procs) == MPI_SUCCESS);
 	

@@ -20,6 +20,7 @@
 
 
 struct Datamodel_field_info {
+	char cfg_info_remain_line[NAME_STR_SIZE];
     char field_name_in_IO_file[NAME_STR_SIZE];
     char field_datatype_IO_file[NAME_STR_SIZE];
     Field_mem_info *field_data_mem;
@@ -45,6 +46,8 @@ class Runtime_datamodel_algorithm : public Runtime_algorithm_basis
         void datamodel_read(void);
         void datamodel_check(void);
         void datamodel_write(void);
+		void generate_algorithm_info_from_cfg_file();
+		void allocate_one_field(int);
 
     public:
         Runtime_datamodel_algorithm(const char *);    

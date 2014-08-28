@@ -60,16 +60,25 @@ template <class T> static bool differ_two_arrays_with_error(const T *array1, con
 
 Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_name)
 {
-    FILE * fp_cfg;
-    char line[NAME_STR_SIZE * 16], *line_p;
-    bool has_input_io_file_name;
-
-
     netcdf_file_object = NULL;
     change_file_timer = NULL;
 	fields_allocated = false;
+	strcpy(algorithm_cfg_name, cfg_file_name);
 
-    fp_cfg = open_config_file(cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
+	generate_algorithm_info_from_cfg_file();
+}
+
+
+void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
+{
+    FILE * fp_cfg;
+    char line[NAME_STR_SIZE * 16], *line_p, average_or_inst[NAME_STR_SIZE];
+    bool has_input_io_file_name;
+	int num_fields;
+    Datamodel_field_info *datamodel_field;
+
+
+    fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_DATAMODEL_ALG_DIR);
     get_next_line(line, fp_cfg);
     line_p = line;
     get_next_attr(datamodel_type, &line_p);
@@ -82,10 +91,12 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
 
     get_next_line(IO_file_type, fp_cfg);
     get_next_line(line, fp_cfg);
-    io_timer = new Coupling_timer(line);
+	line_p = line;
+    io_timer = new Coupling_timer(&line_p);
     if (words_are_the_same(datamodel_type, "datamodel_write")) {
         get_next_line(line, fp_cfg);
-        change_file_timer = new Coupling_timer(line);
+		line_p = line;
+        change_file_timer = new Coupling_timer(&line_p);
     }
     get_next_line(fields_cfg_file_name, fp_cfg);
     IO_file_name[0] = '\0';
@@ -98,64 +109,96 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
     fclose(fp_cfg);
 
     EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(IO_file_type,FILE_TYPE_NETCDF), "IO file type %s is not supported in C-Coupler\n", IO_file_type);
+
+	num_fields = get_num_fields_in_config_file(fields_cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
+	if (words_are_the_same(datamodel_type, "datamodel_write"))
+        num_src_fields = num_fields;
+	else num_dst_fields = num_fields;
+
+	allocate_basic_data_structure(num_src_fields, num_dst_fields);
+
+	fp_cfg = open_config_file(fields_cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
+	for (int i = 0; i < num_src_fields+num_dst_fields; i ++) {
+		datamodel_field = new Datamodel_field_info;
+		datamodel_field->have_scale_factor = false;
+		datamodel_field->field_data_mem = NULL;
+		datamodel_fields.push_back(datamodel_field);
+		get_next_line(line, fp_cfg);
+		line_p = line;
+        get_next_attr(comp_names[i], &line_p);
+        get_next_attr(field_names[i], &line_p);
+        get_next_attr(field_local_decomp_names[i], &line_p);
+        get_next_attr(field_grid_names[i], &line_p);
+        buf_marks[i] = get_next_integer_attr(&line_p);
+		EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
+		if (words_are_the_same(datamodel_type, "datamodel_write")) {
+			get_next_attr(average_or_inst, &line_p);
+			if (words_are_the_same(average_or_inst, "average"))
+				average_mark[i] = true;
+			else EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(average_or_inst, "inst"), 
+				                  "\"average\" or \"inst\" must be specified in the configuration file of runtime data model algorithm %s (\"%s\" is detected accordingly)", algorithm_cfg_name, average_or_inst);
+		}
+        get_next_attr(datamodel_field->field_name_in_IO_file, &line_p);
+        if (words_are_the_same(datamodel_type, "datamodel_write")) {
+            EXECUTION_REPORT(REPORT_ERROR, get_next_attr(datamodel_field->field_datatype_IO_file, &line_p), "please input the data type in IO file of field %s\n", field_names[i]);
+            get_data_type_size(datamodel_field->field_datatype_IO_file);
+			strcpy(datamodel_field->cfg_info_remain_line, line_p);
+        }		
+	}
+	fclose(fp_cfg);
+
+}
+
+
+void Runtime_datamodel_algorithm::allocate_one_field(int field_indx)
+{
+	if (datamodel_fields[field_indx]->field_data_mem != NULL)
+		return;
+
+	if (words_are_the_same(datamodel_type, "datamodel_write")) {
+		datamodel_fields[field_indx]->field_data_mem = alloc_mem(comp_names[field_indx], field_local_decomp_names[field_indx], field_grid_names[field_indx], field_names[field_indx], NULL, buf_marks[field_indx], true);
+		add_runtime_datatype_transformation(datamodel_fields[field_indx]->field_data_mem, true, io_timer);
+	}
+    strcpy(datamodel_fields[field_indx]->field_data_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, datamodel_fields[field_indx]->field_name_in_IO_file);
+    if (words_are_the_same(datamodel_type, "datamodel_write")) {
+        check_application_io_datatype_consistency(field_names[field_indx], datamodel_fields[field_indx]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, datamodel_fields[field_indx]->field_datatype_IO_file);
+	    if ((words_are_the_same(datamodel_fields[field_indx]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE) || words_are_the_same(datamodel_fields[field_indx]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT))
+		    && words_are_the_same(datamodel_fields[field_indx]->field_datatype_IO_file, DATA_TYPE_SHORT)) {
+		    char *line_p = datamodel_fields[field_indx]->cfg_info_remain_line;
+		    datamodel_fields[field_indx]->add_offset = get_next_double_attr(&line_p);
+		    datamodel_fields[field_indx]->scale_factor = get_next_double_attr(&line_p);
+		    datamodel_fields[field_indx]->have_scale_factor = true;
+		}
+    }	
 }
 
 
 void Runtime_datamodel_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kernel_stage)
 {
-    char line[NAME_STR_SIZE * 16];
-    char comp_name[NAME_STR_SIZE];
-    char field_name[NAME_STR_SIZE];
-    char decomp_name[NAME_STR_SIZE];
-    char grid_name[NAME_STR_SIZE];
-    char IO_datatype[NAME_STR_SIZE];
-    int i;
-    Datamodel_field_info *datamodel_field;
-    char * line_p;
-    int buf_type;
+	if (fields_allocated)
+		return;
 
+    for (int i = 0; i < datamodel_fields.size(); i ++) {
+		if (!average_mark[i])
+			continue;
+		if (datamodel_fields[i]->field_data_mem != NULL)
+			return;
+		if (memory_manager->search_last_define_field(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], buf_marks[i], false) == NULL)
+			continue;
+		allocate_one_field(i);
+		datamodel_fields[i]->field_data_mem = add_one_field_for_cumulate_average(datamodel_fields[i]->field_data_mem, io_timer);
+		EXECUTION_REPORT(REPORT_LOG, true, "automatically average field %s in runtime data algorithm %s", field_names[i], algorithm_cfg_name);
+    }
 
     if (is_algorithm_in_kernel_stage && !io_timer->is_timer_on())
         return;
-
-	if (fields_allocated)
-		return;
 	
 	fields_allocated = true;
 
-    FILE * fp_cfg = open_config_file(fields_cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
+	EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
 
-    while (get_next_line(line, fp_cfg)) {
-        datamodel_field = new Datamodel_field_info;
-        datamodel_field->have_scale_factor = false;
-        datamodel_fields.push_back(datamodel_field);
-        line_p = line;
-        get_next_attr(comp_name, &line_p);
-        get_next_attr(field_name, &line_p);
-        get_next_attr(decomp_name, &line_p);
-        get_next_attr(grid_name, &line_p);
-        buf_type = get_next_integer_attr(&line_p);
-		EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
-		if (words_are_the_same(datamodel_type, "datamodel_write")) {
-			datamodel_field->field_data_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, NULL, buf_type, true);
-			add_runtime_datatype_transformation(datamodel_field->field_data_mem, true, io_timer);
-		}
-        get_next_attr(datamodel_field->field_name_in_IO_file, &line_p);
-        strcpy(datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, datamodel_field->field_name_in_IO_file);
-        if (words_are_the_same(datamodel_type, "datamodel_write")) {
-            EXECUTION_REPORT(REPORT_ERROR, get_next_attr(datamodel_field->field_datatype_IO_file, &line_p), "please input the data type in IO file of field %s\n", field_name);
-            get_data_type_size(datamodel_field->field_datatype_IO_file);
-            check_application_io_datatype_consistency(field_name, datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, datamodel_field->field_datatype_IO_file);
-            if ((words_are_the_same(datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE) || words_are_the_same(datamodel_field->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT))
-                && words_are_the_same(datamodel_field->field_datatype_IO_file, DATA_TYPE_SHORT)) {
-                datamodel_field->add_offset = get_next_double_attr(&line_p);
-                datamodel_field->scale_factor = get_next_double_attr(&line_p);
-                datamodel_field->have_scale_factor = true;
-            }
-        }
-    }
-    
-    fclose(fp_cfg);
+    for (int i = 0; i < datamodel_fields.size(); i ++)
+		allocate_one_field(i);
 }
 
 

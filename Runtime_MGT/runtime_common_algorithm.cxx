@@ -23,11 +23,15 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 {
     FILE * fp_cfg;
     char line[NAME_STR_SIZE * 16];
+	char *line_p;
     char alg_name[NAME_STR_SIZE];
 
 
 	fields_allocated = false;
-	strcpy(cfg_file_name, cfg);
+	strcpy(algorithm_cfg_name, cfg);
+    src_fields_data_buffers = NULL;
+    dst_fields_data_buffers = NULL;
+    num_elements_in_field_buffers = NULL;
 
     fp_cfg = open_config_file(cfg, RUNTIME_COMMON_ALG_DIR);
     get_next_line(alg_name, fp_cfg);
@@ -37,14 +41,8 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
 					 "external algorithm %s has not been registerred before using it", alg_name);
 
     get_next_line(line, fp_cfg);
-	timer = new Coupling_timer(line);
-
-	if (model_algorithm != NULL) {
-    	src_fields_data_buffers = NULL;
-		dst_fields_data_buffers = NULL;
-		num_elements_in_field_buffers = NULL;
-		return;
-	}
+	line_p = line;
+	timer = new Coupling_timer(&line_p);
     fclose(fp_cfg);
 }
 
@@ -78,7 +76,7 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 		return;
 	fields_allocated = true;
 
-    fp_cfg = open_config_file(cfg_file_name, RUNTIME_COMMON_ALG_DIR);
+    fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_COMMON_ALG_DIR);
     get_next_line(alg_name, fp_cfg);
     get_next_line(line, fp_cfg);
     get_next_line(input_field_file_name, fp_cfg);
@@ -88,7 +86,13 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
     num_src_fields = get_num_fields_in_config_file(input_field_file_name, RUNTIME_COMMON_ALG_DIR);
     num_dst_fields = get_num_fields_in_config_file(output_field_file_name, RUNTIME_COMMON_ALG_DIR);
 
-    runtime_algorithm_common_initialize(num_src_fields, num_dst_fields, 0);
+
+	if (num_src_fields > 0)
+	    src_fields_data_buffers = new void *[num_src_fields];
+	if (num_dst_fields > 0)
+	    dst_fields_data_buffers = new void *[num_dst_fields];
+
+    runtime_algorithm_common_initialize(num_src_fields, num_dst_fields);
 
 	if (num_src_fields > 0) {
 	    fp_cfg = open_config_file(input_field_file_name, RUNTIME_COMMON_ALG_DIR);
@@ -159,6 +163,13 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 Runtime_common_algorithm::~Runtime_common_algorithm()
 {
 	delete timer;
+
+    if (src_fields_data_buffers != NULL)
+        delete [] src_fields_data_buffers;
+    if (dst_fields_data_buffers != NULL)
+        delete [] dst_fields_data_buffers;
+    if (num_elements_in_field_buffers != NULL)
+        delete [] num_elements_in_field_buffers;
 }
 
 
@@ -169,11 +180,11 @@ void Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
             memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->check_field_sum();
 			memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->use_field_values();
         }		
-		performance_timing_mgr->performance_timing_start(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), cfg_file_name);
+		performance_timing_mgr->performance_timing_start(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
 		if (c_coupler_algorithm != NULL)
 	        c_coupler_algorithm(src_fields_data_buffers, dst_fields_data_buffers, num_elements_in_field_buffers);
 		else model_algorithm();
-		performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), cfg_file_name);
+		performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
         for (int i = 0; i < num_dst_fields; i ++) {
             memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->check_field_sum();
 			memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->define_field_values(false);

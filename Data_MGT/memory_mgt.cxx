@@ -323,13 +323,13 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
 
 	if (data_type == NULL) {
 		EXECUTION_REPORT(REPORT_ERROR, is_input_field, "C-Coupler software error1 in alloc_mem of Memory_mgt");
-		pair_field = search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type);
+		pair_field = search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type, true);
 		data_type = pair_field->get_field_data()->get_grid_data_field()->data_type_in_application;
 	}
 	else {
 		get_data_type_size(data_type);
 		if (is_input_field)
-			search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type);
+			search_last_define_field(comp_name, decomp_name, grid_name, field_name, buf_type, true);
 	}
 	
     if (!words_are_the_same(grid_name, "NULL")) {
@@ -482,7 +482,7 @@ Field_mem_info *Memory_mgt::search_registerred_field(const char *comp_name, cons
 }
 
 
-Field_mem_info *Memory_mgt::search_last_define_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_count)
+Field_mem_info *Memory_mgt::search_last_define_field(const char *comp_name, const char *decomp_name, const char *grid_name, const char *field_name, int buf_count, bool diag)
 {
 	long found_field_index = -1, found_field_define_count = -1;
 
@@ -495,9 +495,13 @@ Field_mem_info *Memory_mgt::search_last_define_field(const char *comp_name, cons
 			}
 		}
 
-	EXECUTION_REPORT(REPORT_ERROR, found_field_index != -1, "field (comp_name=%s, decomp_name=%s, grid_name=%s, field_name=%s, buf_count=%d) is not defined before using it",
-		             comp_name, decomp_name, grid_name, field_name, buf_count);
+	if (diag)
+		EXECUTION_REPORT(REPORT_ERROR, found_field_index != -1, "field (comp_name=%s, decomp_name=%s, grid_name=%s, field_name=%s, buf_count=%d) is not defined before using it",
+			             comp_name, decomp_name, grid_name, field_name, buf_count);
 
+	if (found_field_index == -1)
+		return NULL;
+	
 	return fields_mem[found_field_index];
 }
 
