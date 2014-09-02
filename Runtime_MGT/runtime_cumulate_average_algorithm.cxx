@@ -136,6 +136,7 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_algorithm_i
 
 	EXECUTION_REPORT(REPORT_LOG, true, "after cumulate or average");
 	for (int i = 0; i < cumulate_average_fields.size(); i ++) {
+		cumulate_average_fields[i]->mem_info_src->check_field_sum();
 		cumulate_average_fields[i]->mem_info_dst->check_field_sum();
 	}
 }
@@ -156,7 +157,7 @@ Field_mem_info *Runtime_cumulate_average_algorithm::add_one_field(Field_mem_info
 	cumulate_average_field->timer = timer;
 	cumulate_average_field->mem_info_src = input_field;
 	cumulate_average_field->mem_info_dst = alloc_mem(input_field->get_comp_name(), input_field->get_decomp_name(), input_field->get_grid_name(), input_field->get_field_name(), 
-		                                   cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application, input_field->get_buf_type()+algorithm_id, false);
+		                                   cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application, algorithm_id*10000+cumulate_average_fields.size(), false);
 	cumulate_average_field->num_elements_in_field = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->required_data_size;
 	cumulate_average_field->field_data_type = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application;
 	cumulate_average_field->current_computing_count = 0;

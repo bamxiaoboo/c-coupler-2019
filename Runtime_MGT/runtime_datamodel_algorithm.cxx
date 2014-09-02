@@ -72,7 +72,7 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
 void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
 {
     FILE * fp_cfg;
-    char line[NAME_STR_SIZE * 16], *line_p, average_or_inst[NAME_STR_SIZE];
+    char line[NAME_STR_SIZE * 16], *line_p;
     bool has_input_io_file_name;
 	int num_fields;
     Datamodel_field_info *datamodel_field;
@@ -132,11 +132,8 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
         buf_marks[i] = get_next_integer_attr(&line_p);
 		EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(datamodel_type, "datamodel_read"), "alloc_mem for datamodel_read has not been well supported");
 		if (words_are_the_same(datamodel_type, "datamodel_write")) {
-			get_next_attr(average_or_inst, &line_p);
-			if (words_are_the_same(average_or_inst, "average"))
+			if (words_are_the_same(write_type, "aver"))
 				average_mark[i] = true;
-			else EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(average_or_inst, "inst"), 
-				                  "\"average\" or \"inst\" must be specified in the configuration file of runtime data model algorithm %s (\"%s\" is detected accordingly)", algorithm_cfg_name, average_or_inst);
 		}
         get_next_attr(datamodel_field->field_name_in_IO_file, &line_p);
         if (words_are_the_same(datamodel_type, "datamodel_write")) {
@@ -297,6 +294,7 @@ void Runtime_datamodel_algorithm::datamodel_write()
             strcpy(datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_IO_file, datamodel_fields[i]->field_datatype_IO_file);
             if (datamodel_fields[i]->have_scale_factor)
                 datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->set_scale_factor_and_add_offset(datamodel_fields[i]->scale_factor, datamodel_fields[i]->add_offset);
+			datamodel_fields[i]->field_data_mem->check_field_sum();
             fields_gather_scatter_mgr->gather_write_field(netcdf_file_object, datamodel_fields[i]->field_data_mem, true, timer_mgr->get_current_date(), timer_mgr->get_current_second(), false);
             datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->clean_scale_factor_and_add_offset_info();
             strcpy(datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_IO_file, "\0");
