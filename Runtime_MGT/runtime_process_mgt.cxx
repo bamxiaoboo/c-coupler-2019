@@ -194,7 +194,7 @@ Runtime_procedure_mgt *Runtime_process_mgt::search_coupling_procedure(const char
         if (runtime_procedures[i]->match(procedure_name))
             return runtime_procedures[i];
         
-    EXECUTION_REPORT(REPORT_ERROR, false, "coupling procedure %s has not been defined in component %s\n",
+    EXECUTION_REPORT(REPORT_WARNING, true, "coupling procedure %s has not been defined in component %s\n",
                  procedure_name, compset_communicators_info_mgr->get_current_comp_name());
 	
 	return NULL;
@@ -203,7 +203,9 @@ Runtime_procedure_mgt *Runtime_process_mgt::search_coupling_procedure(const char
 
 void Runtime_process_mgt::execute_coupling_procedure(const char *procedure_name, const char *procedure_stage)
 {
-	search_coupling_procedure(procedure_name)->execute(procedure_stage);
+	Runtime_procedure_mgt *runtime_procedure = search_coupling_procedure(procedure_name);
+	if (runtime_procedure != NULL)
+		runtime_procedure->execute(procedure_stage);
 }
 
 

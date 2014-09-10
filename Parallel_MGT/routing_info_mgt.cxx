@@ -204,11 +204,6 @@ void Routing_info::compute_routing_info_between_decomps(int num_local_cells_loca
     routing_info->num_elements_transferred = 0;
     routing_info->num_local_indx_segments = 0;
     routing_info->remote_proc_global_id = remote_proc_id;
-
-    if (local_proc_id == remote_proc_id) {
-        remote_procs_routing_info.push_back(routing_info);
-        return;
-    }
         
     /* Determine the reference cell index table according to the table size */
     if (num_local_cells_remote < num_local_cells_local ||

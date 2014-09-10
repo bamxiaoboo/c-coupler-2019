@@ -44,6 +44,7 @@ class Coupling_timer
     public:
         Coupling_timer(const char*, int, int);
         Coupling_timer(char**);
+		Coupling_timer(Coupling_timer*);
         ~Coupling_timer() {}
         bool is_timer_on();
 };

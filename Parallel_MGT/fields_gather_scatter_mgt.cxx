@@ -86,17 +86,41 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
 
     has_global_field = true;
     num_local_cells = decomps_info_mgr->search_decomp_info(original_decomp_name)->get_num_local_cells();
-	num_levels = local_field->get_field_data()->get_coord_value_grid()->get_grid_size() / num_local_cells;
-    num_points_in_each_cell = local_field->get_field_data()->get_grid_data_field()->required_data_size / num_local_cells / num_levels;
-    EXECUTION_REPORT(REPORT_ERROR, num_points_in_each_cell > 0, "C-Coupler software error in Gather_scatter_rearrange_info\n");
-	EXECUTION_REPORT(REPORT_ERROR, local_field->get_field_data()->get_coord_value_grid()->get_grid_size()%num_local_cells == 0, 
-		         "c_coupler error in Gather_scatter_rearrange_info::Gather_scatter_rearrange_info\n");
-	EXECUTION_REPORT(REPORT_LOG, true, "num of levels and num of points in each cell in Gather_scatter_rearrange_info are %d and %d", num_levels, num_points_in_each_cell);
+	if (num_local_cells > 0) {
+		num_levels = local_field->get_field_data()->get_coord_value_grid()->get_grid_size() / num_local_cells;
+	    num_points_in_each_cell = local_field->get_field_data()->get_grid_data_field()->required_data_size / num_local_cells / num_levels;
+	    EXECUTION_REPORT(REPORT_ERROR, num_points_in_each_cell > 0, "C-Coupler software error in Gather_scatter_rearrange_info\n");
+		EXECUTION_REPORT(REPORT_ERROR, local_field->get_field_data()->get_coord_value_grid()->get_grid_size()%num_local_cells == 0, 
+			         "c_coupler error in Gather_scatter_rearrange_info::Gather_scatter_rearrange_info\n");		
+		EXECUTION_REPORT(REPORT_LOG, true, "num of levels and num of points in each cell in Gather_scatter_rearrange_info are %d and %d", num_levels, num_points_in_each_cell);
+	}
+	else {
+		num_levels = -1;
+		num_points_in_each_cell = -1;
+	}
 
     if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
         counts = new int [num_local_procs];
         displs = new int [num_local_procs];
     }
+
+	MPI_Gather(&num_levels, 1, MPI_INT, counts, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Gather(&num_points_in_each_cell, 1, MPI_INT, displs, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+
+    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		for (i = 0; i < num_local_procs; i ++) {
+			if (counts[i] != -1)
+				num_levels = counts[i];
+			if (displs[i] != -1)
+				num_points_in_each_cell = displs[i];
+		}
+		EXECUTION_REPORT(REPORT_ERROR, num_levels != -1 && num_points_in_each_cell != -1, "parallel decomposition %s is empty, which is not allowed in C-Coupler");
+		for (i = 0; i < num_local_procs; i ++)
+			EXECUTION_REPORT(REPORT_ERROR, (counts[i] == -1 || num_levels == counts[i]) && (displs[i] == -1 || num_points_in_each_cell == displs[i]), "C-Coupler software error2 in Gather_scatter_rearrange_info\n");
+    }
+	MPI_Bcast(&num_levels, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());	
+	MPI_Bcast(&num_points_in_each_cell, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+	
     MPI_Gather(&num_local_cells, 1, MPI_INT, counts, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
     if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
         for (i = 0, num_total_cells = 0; i < num_local_procs; i ++) {

@@ -35,9 +35,12 @@ Runtime_algorithm_basis::Runtime_algorithm_basis()
 
 Runtime_algorithm_basis::~Runtime_algorithm_basis()
 {
-	if (num_src_fields + num_dst_fields > 0)
-		EXECUTION_REPORT(REPORT_ERROR, comp_names == NULL && field_names == NULL && field_local_decomp_names == NULL && field_grid_names == NULL && buf_marks == NULL && average_mark == NULL, "C-Coupler software error when deleting Runtime_algorithm_basis");
-	
+//	if (num_src_fields + num_dst_fields > 0)
+//		EXECUTION_REPORT(REPORT_ERROR, comp_names == NULL && field_names == NULL && field_local_decomp_names == NULL && field_grid_names == NULL && buf_marks == NULL && average_mark == NULL, "C-Coupler software error when deleting Runtime_algorithm_basis");
+
+	if (comp_names == NULL)
+		return;
+
 	for (int i = 0; i < num_src_fields+num_dst_fields; i ++) {
 		delete [] comp_names[i];
 		delete [] field_names[i];

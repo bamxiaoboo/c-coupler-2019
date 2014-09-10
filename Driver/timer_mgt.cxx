@@ -42,6 +42,14 @@ Coupling_timer::Coupling_timer(char **line)
 }
 
 
+Coupling_timer::Coupling_timer(Coupling_timer *existing_timer)
+{
+	frequency_count = existing_timer->frequency_count;
+	delay_count = existing_timer->delay_count;
+	strcpy(frequency_unit, existing_timer->frequency_unit);
+}
+
+
 bool Coupling_timer::is_timer_on()
 {
     return timer_mgr->is_timer_on(frequency_unit, frequency_count, delay_count);

@@ -40,6 +40,7 @@ template <class T> void unpack_segment_data(T *mpi_buf, T *field_data_buf, int s
 
 Runtime_transfer_algorithm::Runtime_transfer_algorithm(const char *cfg_name)
 {
+	is_remapping_rearrange_algorithm = false;
 	strcpy(algorithm_cfg_name, cfg_name);
 	fields_transfer_info_string = NULL;
 	generate_algorithm_info_from_cfg_file();
@@ -48,6 +49,7 @@ Runtime_transfer_algorithm::Runtime_transfer_algorithm(const char *cfg_name)
 
 Runtime_transfer_algorithm::Runtime_transfer_algorithm(int num_fields, Field_mem_info **fields_mem, Routing_info *router, Coupling_timer *timer)
 {
+	is_remapping_rearrange_algorithm = true;
     num_transfered_fields = num_fields;
     strcpy(remote_comp_name, compset_communicators_info_mgr->get_current_comp_name());
     num_src_fields = num_fields/2;
@@ -85,7 +87,7 @@ Runtime_transfer_algorithm::~Runtime_transfer_algorithm()
         delete [] recv_size_with_remote_procs;
         for (int i = 0; i < num_transfered_fields; i ++) {
             delete [] field_remote_decomp_names[i];
-            if (num_src_fields != num_dst_fields)
+            if (!is_remapping_rearrange_algorithm)
                 delete fields_timers[i];
         }
         delete [] field_remote_decomp_names;
@@ -175,13 +177,13 @@ void Runtime_transfer_algorithm::preprocess(bool is_algorithm_in_kernel_stage)
     }
     if (mpi_recv_buf == NULL && num_dst_fields > 0) {
         for (i = num_src_fields; i < num_transfered_fields; i ++) {
-            fields_routers[i] = routing_info_mgr->search_or_add_router(remote_comp_name, field_local_decomp_names[i], field_remote_decomp_names[i]);
+	        fields_routers[i] = routing_info_mgr->search_or_add_router(remote_comp_name, field_local_decomp_names[i-num_src_fields], field_remote_decomp_names[i-num_src_fields]);
             if (fields_routers[i]->get_num_dimensions() == 0)
                 field_grids_num_lev[i] = 1;
             else {
-                if (remap_grid_manager->search_remap_grid_with_grid_name(field_grid_names[i])->get_num_dimensions() == 2)
+                if (remap_grid_manager->search_remap_grid_with_grid_name(field_grid_names[i-num_src_fields])->get_num_dimensions() == 2)
                     field_grids_num_lev[i] = 1;
-                else field_grids_num_lev[i] = cpl_get_num_levs_in_grid(field_grid_names[i]);
+                else field_grids_num_lev[i] = cpl_get_num_levs_in_grid(field_grid_names[i-num_src_fields]);
             }
         }
         for (i = num_src_fields, buffer_size = 0; i < num_transfered_fields; i ++) 
@@ -224,7 +226,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 	fields_allocated = false;
 
 	/* Allocate the memory buffer for averaging field when sending data */
-	if (num_src_fields > 0 && num_dst_fields == 0) {
+	if (num_src_fields > 0 && (num_dst_fields == 0 || !is_remapping_rearrange_algorithm)) {
 	    for(i = 0; i < num_transfered_fields; i ++) {
 			if (!average_mark[i])
 				continue;
@@ -251,7 +253,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 	if (num_timer_on_fields == 0)
 		return;
 
-	if (num_src_fields > 0 && num_dst_fields > 0)
+	if (num_src_fields > 0 && num_dst_fields > 0 && is_remapping_rearrange_algorithm)
 		return;
 
 	if (restart_mgr->is_in_restart_read_time_window())
@@ -261,7 +263,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 		if (currently_transferred_fields_mark[i] && transferred_fields_mem[i] == NULL)
 			break;
 
-	if (num_dst_fields > 0) {
+	if (num_dst_fields > 0 && num_src_fields == 0) {
 		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
 			MPI_Recv(fields_transfer_info_string, num_transfered_fields*10, MPI_CHAR, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name), 0), 
 				 	 comm_tag, compset_communicators_info_mgr->get_global_comm_group(), &recv_statuses[0]);
@@ -279,7 +281,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 	    for(i = 0; i < num_transfered_fields; i ++) {
 			if (!(currently_transferred_fields_mark[i] && transferred_fields_mem[i] == NULL))
 				continue;
-			if (num_src_fields > 0) {
+			if (num_src_fields > 0 && i < num_src_fields) {
 				if (average_mark[i]) {
 					continue;
 				}
@@ -288,7 +290,10 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 				strcpy(fields_transfer_info_string+10*i+1, transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
 			}
 			else {
-				transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], fields_transfer_info_string+10*i+1, buf_marks[i], false);	
+				if (num_src_fields == 0)
+					transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], fields_transfer_info_string+10*i+1, buf_marks[i], false);	
+				else transferred_fields_mem[i] = alloc_mem(comp_names[i-num_src_fields], field_remote_decomp_names[i-num_src_fields], field_grid_names[i-num_src_fields], field_names[i-num_src_fields], 
+														   transferred_fields_mem[i-num_src_fields]->get_field_data()->get_grid_data_field()->data_type_in_application, buf_marks[i-num_src_fields], false);
 				add_runtime_datatype_transformation(transferred_fields_mem[i], false, fields_timers[i]);
 			}
 	        fields_data_type_sizes[i] = get_data_type_size(transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
@@ -296,7 +301,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 	    }	    
 	}
 
-	if (num_src_fields > 0) {
+	if (num_src_fields > 0 && num_dst_fields == 0) {
 		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
 			for (i = 0; i < num_transfered_fields; i ++)
 				if (currently_transferred_fields_mark[i])
@@ -568,6 +573,13 @@ void Runtime_transfer_algorithm::sendrecv_data(bool is_algorithm_in_kernel_stage
 
 	preprocess(is_algorithm_in_kernel_stage);
 
+    for (m = 0; m < num_src_fields; m ++)
+        if (currently_transferred_fields_mark[m]) {   
+            transferred_fields_mem[m]->check_field_sum();
+			transferred_fields_mem[m]->use_field_values();
+        }
+
+
     /* For each remote process,  pack the data and then send out the data */
     local_comm = compset_communicators_info_mgr->get_current_comp_comm_group();
     for (i = 0, offset = 0; i < num_remote_procs; i ++) {
@@ -615,6 +627,12 @@ void Runtime_transfer_algorithm::sendrecv_data(bool is_algorithm_in_kernel_stage
                 unpack_MD_data(i, m, buffer_size, fields_routers[m]->get_remap_decomp_size(), &offset);
         EXECUTION_REPORT(REPORT_ERROR, offset-old_offset == recv_size_with_remote_procs[i], "C-Coupler software error2 in sendrecv_data\n");
     }
+
+    for (m = 0; m < num_dst_fields; m ++)
+        if (currently_transferred_fields_mark[m+num_src_fields]) {   
+            transferred_fields_mem[m+num_src_fields]->check_field_sum();
+			transferred_fields_mem[m+num_src_fields]->define_field_values(false);
+        }
 
     EXECUTION_REPORT(REPORT_LOG, true, "after sending/receiving data at %ld", timer_mgr->get_current_full_time());
 }
@@ -740,7 +758,7 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
     char line[NAME_STR_SIZE * 16];    
     FILE *fp_cfg;
     char *local_line;
-    int i, j;
+    int i, j, num_fields_in_cfg;
     
 
     fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_TRANSFER_ALG_DIR);
@@ -755,24 +773,33 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
     fclose(fp_cfg);
     
     /* Allocate and initialize the information arrays for runtime transfer algorithm */
-    num_transfered_fields = get_num_fields_in_config_file(transfer_fields_cfg_file, RUNTIME_TRANSFER_ALG_DIR);
+    num_fields_in_cfg = get_num_fields_in_config_file(transfer_fields_cfg_file, RUNTIME_TRANSFER_ALG_DIR);
 
 	if (words_are_the_same(comm_direction, "send")) {
+		num_transfered_fields = num_fields_in_cfg;
 		num_src_fields = num_transfered_fields;
 		num_dst_fields = 0;
 	}
 	else if  (words_are_the_same(comm_direction, "recv")) {
+		num_transfered_fields = num_fields_in_cfg;
 		num_src_fields = 0;
 		num_dst_fields = num_transfered_fields;
 	}
-	else EXECUTION_REPORT(REPORT_ERROR, false, "No send or recv in the transfer config file %s\n", algorithm_cfg_name);
+	else if  (words_are_the_same(comm_direction, "sendrecv")) {
+		num_src_fields = num_fields_in_cfg;
+		num_dst_fields = num_fields_in_cfg;
+		num_transfered_fields = 2 * num_fields_in_cfg;
+		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(remote_comp_name, compset_communicators_info_mgr->get_current_comp_name()),
+						 "For the sendrecv data transfer algorithm, the remote component must be the same as the current component");
+	}
+	else EXECUTION_REPORT(REPORT_ERROR, false, "The type of runtime transfer algorithm must be one of send, recv and sendrecv\n", algorithm_cfg_name);
 
 	allocate_basic_data_structure(num_src_fields, num_dst_fields);
     initialize_local_data_structures();
 
     fp_cfg = open_config_file(transfer_fields_cfg_file, RUNTIME_TRANSFER_ALG_DIR);
 
-    for(i = 0; i < num_transfered_fields; i ++) {
+    for(i = 0; i < num_fields_in_cfg; i ++) {
         get_next_line(line, fp_cfg);
         local_line = line;        
         get_next_attr(comp_names[i], &local_line);
@@ -788,6 +815,13 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
 		}
 		else average_mark[i] = false;
     }
+
+	if (num_src_fields > 0 && num_dst_fields > 0) {
+		for(i = 0; i < num_fields_in_cfg; i ++) {
+			EXECUTION_REPORT(REPORT_ERROR, buf_marks[i] == 0, "the buffer mark for sendrecv algorithm must be 0");
+			fields_timers[i+num_fields_in_cfg] = new Coupling_timer(fields_timers[i]);
+		}
+	}
     
     fclose(fp_cfg);
 

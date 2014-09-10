@@ -73,10 +73,14 @@ Decomp_info::Decomp_info(const char *decomp_name, const char *model_name, const 
             EXECUTION_REPORT(REPORT_LOG, true, "num local cells according to input decomp data is %d", num_local_cells);
             local_cell_global_indx = new int [num_local_cells];
             for (i = 0; i < num_local_cells; i ++) {
-                EXECUTION_REPORT(REPORT_ERROR, cell_indexes_in_decomp[i] >= 0 && cell_indexes_in_decomp[i] <= decomp_grid->get_grid_size(), 
-                             "the cell index in parallel decompostion of %s is out of the bound of grid size\n",
-                             decomp_name);
-                local_cell_global_indx[i] = cell_indexes_in_decomp[i] - 1;  // -1 because fortran array index starts from 1 but c/c++ starts from 0
+				if (cell_indexes_in_decomp[i] <= 0)
+					local_cell_global_indx[i] = -1;
+				else {
+	                EXECUTION_REPORT(REPORT_ERROR, cell_indexes_in_decomp[i] >= 0 && cell_indexes_in_decomp[i] <= decomp_grid->get_grid_size(), 
+	                             "the cell index in parallel decompostion of %s is out of the bound of grid size\n",
+	                             decomp_name);
+	                local_cell_global_indx[i] = cell_indexes_in_decomp[i] - 1;  // -1 because fortran array index starts from 1 but c/c++ starts from 0
+				}
             }
         }
     }
