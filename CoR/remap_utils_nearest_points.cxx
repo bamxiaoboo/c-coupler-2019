@@ -108,7 +108,8 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
                                                 double *found_nearest_points_distance,
                                                 long *found_nearest_points_src_indexes,
                                                 double *weigt_values_of_one_dst_cell,
-                                                bool is_sphere_grid)
+                                                bool is_sphere_grid,
+                                                bool enable_extrapolate)
 {
     bool successful = false, src_cell_mask, dst_cell_mask;
     long src_cell_index;
@@ -128,15 +129,15 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
 
 	if (num_vertexes_dst == 0 && src_cell_index == -1)
 		return;
-	if (num_vertexes_dst == 0 && !src_cell_mask)
+	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;
 
-    if (src_cell_index == -1 || !src_cell_mask) {
+    if (src_cell_index == -1 || (!enable_extrapolate && !src_cell_mask)) {
         for (i = 0; i < num_vertexes_dst; i ++) {
             search_cell_in_src_grid(dst_cell_vertex_values+i*2, &src_cell_index, false);
             if (src_cell_index != -1) {
                 get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
-                if (src_cell_mask)
+                if (enable_extrapolate || src_cell_mask)
                     break;
             }
         }

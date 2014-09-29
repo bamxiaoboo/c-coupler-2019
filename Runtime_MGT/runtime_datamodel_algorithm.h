@@ -42,6 +42,7 @@ class Runtime_datamodel_algorithm : public Runtime_algorithm_basis
         IO_netcdf *netcdf_file_object;
         Coupling_timer *io_timer;
         Coupling_timer *change_file_timer;
+		bool write_grid_name;
 
         void datamodel_read(void);
         void datamodel_check(void);

@@ -21,7 +21,12 @@ void Remap_operator_bilinear::set_parameter(const char *parameter_name, const ch
     EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
-    EXECUTION_REPORT(REPORT_ERROR, false, "bilinear algorithm does not have parameters to be set\n");
+	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
+		if (words_are_the_same(parameter_value, "true"))
+	        enable_extrapolate = true;
+		else EXECUTION_REPORT(REPORT_ERROR, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
+	}
+    else EXECUTION_REPORT(REPORT_ERROR, false, "bilinear algorithm does not have the parameter to be set\n");
 }
 
 
@@ -30,6 +35,7 @@ Remap_operator_bilinear::Remap_operator_bilinear()
     found_nearest_points_distance = NULL;
     found_nearest_points_src_indexes = NULL;
     weigt_values_of_one_dst_cell = NULL;
+	enable_extrapolate = false;
 }
 
 
@@ -50,6 +56,7 @@ Remap_operator_bilinear::Remap_operator_bilinear(const char *object_name, int nu
     found_nearest_points_distance = new double [src_grid->get_grid_size()];
     found_nearest_points_src_indexes = new long [src_grid->get_grid_size()];
     weigt_values_of_one_dst_cell = new double [max_num_found_nearest_points];
+	enable_extrapolate = false;
 }
 
 
@@ -310,7 +317,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
 	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, vertex_coord_values_dst, true);
 
-    if (num_vertexes_dst > 0 && !have_overlapped_src_cells_for_dst_cell(dst_cell_index))
+    if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;
 
     search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
@@ -319,7 +326,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
 
 	if (num_vertexes_dst == 0 && src_cell_index == -1)
 		return;
-	if (num_vertexes_dst == 0 && !src_cell_mask)
+	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;
 
     if (src_cell_index == -1 || !src_cell_mask) {
@@ -330,7 +337,8 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
                                                    found_nearest_points_distance,
                                                    found_nearest_points_src_indexes,
                                                    weigt_values_of_one_dst_cell,
-                                                   get_is_sphere_grid());
+                                                   get_is_sphere_grid(),
+                                                   enable_extrapolate);
         return;
     }
 
@@ -388,7 +396,8 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
                                                    found_nearest_points_distance,
                                                    found_nearest_points_src_indexes,
                                                    weigt_values_of_one_dst_cell,
-                                                   get_is_sphere_grid());
+                                                   get_is_sphere_grid(),
+                                                   enable_extrapolate);
     }
     else {
         solve_two_bilinear_ratios(bilinear_box_vertexes_src_cell_indexes, dst_cell_center_values, wgt_ratio_u, wgt_ratio_v);

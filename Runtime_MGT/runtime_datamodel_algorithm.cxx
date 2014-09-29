@@ -63,6 +63,7 @@ Runtime_datamodel_algorithm::Runtime_datamodel_algorithm(const char * cfg_file_n
     netcdf_file_object = NULL;
     change_file_timer = NULL;
 	fields_allocated = false;
+	write_grid_name = false;
 	strcpy(algorithm_cfg_name, cfg_file_name);
 
 	generate_algorithm_info_from_cfg_file();
@@ -76,6 +77,9 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
     bool has_input_io_file_name;
 	int num_fields;
     Datamodel_field_info *datamodel_field;
+	int num_leaf_grids, total_num_leaf_grids;
+	Remap_grid_class *leaf_grids[16], *total_leaf_grids[1024], *top_grid;
+	int i, j, k;
 
 
     fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_DATAMODEL_ALG_DIR);
@@ -118,7 +122,7 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
 	allocate_basic_data_structure(num_src_fields, num_dst_fields);
 
 	fp_cfg = open_config_file(fields_cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
-	for (int i = 0; i < num_src_fields+num_dst_fields; i ++) {
+	for (i = 0; i < num_src_fields+num_dst_fields; i ++) {
 		datamodel_field = new Datamodel_field_info;
 		datamodel_field->have_scale_factor = false;
 		datamodel_field->field_data_mem = NULL;
@@ -144,6 +148,27 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
 	}
 	fclose(fp_cfg);
 
+	total_num_leaf_grids = 0;
+	for (i = 0; i < num_src_fields+num_dst_fields; i ++) {
+		if (words_are_the_same(field_grid_names[i], "NULL"))
+			continue;
+		if (write_grid_name)
+			break;
+		top_grid = remap_grid_manager->search_remap_grid_with_grid_name(field_grid_names[i]);
+		top_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, top_grid);
+		for (k = 0; k < num_leaf_grids; k ++)
+			for (j = 0; j < total_num_leaf_grids; j ++) {
+				if (total_leaf_grids[j] != leaf_grids[k] && words_are_the_same(total_leaf_grids[j]->get_coord_label(), leaf_grids[k]->get_coord_label())) {
+					write_grid_name = true;
+					break;
+				}
+			if (write_grid_name)
+				break;
+			total_leaf_grids[total_num_leaf_grids++] = leaf_grids[k];
+		}
+	}
+	if (write_grid_name)
+		EXECUTION_REPORT(REPORT_LOG, true, "Datamodel algorithm %s will write grid name into grid dimensions", algorithm_cfg_name);
 }
 
 
@@ -295,7 +320,7 @@ void Runtime_datamodel_algorithm::datamodel_write()
             if (datamodel_fields[i]->have_scale_factor)
                 datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->set_scale_factor_and_add_offset(datamodel_fields[i]->scale_factor, datamodel_fields[i]->add_offset);
 			datamodel_fields[i]->field_data_mem->check_field_sum();
-            fields_gather_scatter_mgr->gather_write_field(netcdf_file_object, datamodel_fields[i]->field_data_mem, true, timer_mgr->get_current_date(), timer_mgr->get_current_second(), false);
+            fields_gather_scatter_mgr->gather_write_field(netcdf_file_object, datamodel_fields[i]->field_data_mem, write_grid_name, timer_mgr->get_current_date(), timer_mgr->get_current_second(), false);
             datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->clean_scale_factor_and_add_offset_info();
             strcpy(datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_IO_file, "\0");
 			datamodel_fields[i]->field_data_mem->use_field_values();

@@ -70,7 +70,8 @@ void Remap_operator_distwgt::compute_remap_weights_of_one_dst_cell(long dst_cell
                                                found_nearest_points_distance,
                                                found_nearest_points_src_indexes,
                                                weigt_values_of_one_dst_cell,
-                                               get_is_sphere_grid());
+                                               get_is_sphere_grid(),
+                                               false);
     finalize_computing_remap_weights_of_one_cell();    
 }
 

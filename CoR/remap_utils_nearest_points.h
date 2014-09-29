@@ -12,7 +12,7 @@
 
 
 extern void recursively_add_nearest_point(double*, long, double, int*, double*, long*, bool);
-extern void compute_dist_remap_weights_of_one_dst_cell(long, int, double, double*, double*, long*, double*, bool);
+extern void compute_dist_remap_weights_of_one_dst_cell(long, int, double, double*, double*, long*, double*, bool, bool);
 extern double calculate_distance_of_two_points_2D(double, double, double, double, bool);
 
 

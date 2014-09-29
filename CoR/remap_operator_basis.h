@@ -47,6 +47,7 @@ class Remap_operator_basis
         long *displ_src_cells_overlap_with_dst_cells;
         long *index_src_cells_overlap_with_dst_cells;
         long size_index_src_cells_overlap_with_dst_cells;
+		bool enable_extrapolate;
 
         void get_all_overlapping_src_cells_recursively(long, long, int&, long*);
 
