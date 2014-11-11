@@ -113,8 +113,9 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
 {
     bool successful = false, src_cell_mask, dst_cell_mask;
     long src_cell_index;
-    double sum_wgt_values, dst_cell_center_values[256], dst_cell_vertex_values[256];
+    double sum_wgt_values, src_cell_center_values[256], dst_cell_center_values[256], dst_cell_vertex_values[256];
     int i, num_points_within_threshold_dist, num_vertexes_dst;
+	double current_dist, nearest_dist;
 
     
     get_cell_mask_of_dst_grid(dst_cell_index, &dst_cell_mask);
@@ -127,12 +128,12 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
 
-	if (num_vertexes_dst == 0 && src_cell_index == -1)
+	if (num_vertexes_dst == 0 && src_cell_index == -1 && (!enable_extrapolate))
 		return;
 	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;
 
-    if (src_cell_index == -1 || (!enable_extrapolate && !src_cell_mask)) {
+    if (num_vertexes_dst > 0 && (src_cell_index == -1 || (!enable_extrapolate && !src_cell_mask))) {
         for (i = 0; i < num_vertexes_dst; i ++) {
             search_cell_in_src_grid(dst_cell_vertex_values+i*2, &src_cell_index, false);
             if (src_cell_index != -1) {
@@ -144,6 +145,23 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
         if (i == num_vertexes_dst)
             return;
     }
+
+	if (src_cell_index == -1) {
+		for (i = 0; i < get_size_of_src_grid(); i ++) {
+			get_cell_mask_of_src_grid(i, &src_cell_mask);
+			get_cell_center_coord_values_of_src_grid(i, src_cell_center_values);
+			current_dist = calculate_distance_of_two_points_2D(dst_cell_center_values[0],
+															   dst_cell_center_values[1],
+															   src_cell_center_values[0],
+															   src_cell_center_values[1],
+															   is_sphere_grid);
+			if (src_cell_index == -1 || nearest_dist > current_dist) {
+				src_cell_index = i;
+				nearest_dist = current_dist;
+			}
+			*threshold_distance = nearest_dist*1.1;
+		}
+	}
 
     while(!successful) {
         num_points_within_threshold_dist = 0;

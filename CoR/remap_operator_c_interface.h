@@ -38,6 +38,9 @@ extern void compute_cell_bounding_box(int, int, double*, double*);
 extern void sort_vertexes_of_sphere_cell(int, double*, double*);
 extern bool are_the_same_sphere_points(double, double, double, double);
 
+extern long get_size_of_src_grid();
+extern long get_size_of_dst_grid();
+
 
 #endif
 

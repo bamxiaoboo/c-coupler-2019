@@ -1363,7 +1363,7 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
                 min_coord_value = (double)DEFAULT_FILL_VALUE;
                 max_coord_value = -min_coord_value;
                 for (k = box_vertex_start_dim2; k <= box_vertex_end_dim2; k ++)
-                    for (l = box_vertex_start_dim1; l < box_vertex_end_dim1; l ++) {
+                    for (l = box_vertex_start_dim1; l <= box_vertex_end_dim1; l ++) {
                         indx1 = l%grid_size_dim1;
                         indx2 = k%grid_size_dim2;
                         if (!redundant_cell_mark[indx2*grid_size_dim1+indx1]) {
@@ -1378,7 +1378,7 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
             }
 
             for (k = box_vertex_start_dim2; k <= box_vertex_end_dim2; k ++)
-                for (l = box_vertex_start_dim1; l < box_vertex_end_dim1; l ++) {
+                for (l = box_vertex_start_dim1; l <= box_vertex_end_dim1; l ++) {
                     indx1 = l%grid_size_dim1;
                     indx2 = k%grid_size_dim2;
                     if (!redundant_cell_mark[indx2*grid_size_dim1+indx1]) {

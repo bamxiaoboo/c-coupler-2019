@@ -324,7 +324,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
 
-	if (num_vertexes_dst == 0 && src_cell_index == -1)
+	if (num_vertexes_dst == 0 && src_cell_index == -1 && (!enable_extrapolate))
 		return;
 	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;

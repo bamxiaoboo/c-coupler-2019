@@ -38,6 +38,18 @@ void get_cell_mask_of_src_grid(long cell_index, bool *mask_value)
 }
 
 
+long get_size_of_src_grid()
+{
+    return current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_grid_size();
+}
+
+
+long get_size_of_dst_grid()
+{
+    return current_runtime_remap_function->get_runtime_remap_operator_grid_dst()->get_grid_size();
+}
+
+
 void get_cell_mask_of_dst_grid(long cell_index, bool *mask_value)
 {
     get_cell_mask_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst(), cell_index, mask_value);
