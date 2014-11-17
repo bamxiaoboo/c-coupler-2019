@@ -114,9 +114,8 @@ void report_ender(int report_type)
     printf("\n");
 	fflush(NULL);	
 
-	if (report_type == REPORT_ERROR) {
+	if (report_type == REPORT_ERROR)
 		assert(false);
-        }
 }
 
 
@@ -400,6 +399,19 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 		return;
 
     printf(str1, str2, value1, value2);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, long value1, long value2, long value3) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+    printf(str1, str2, value1, value2, value3);
 
 	report_ender(report_type);
 }

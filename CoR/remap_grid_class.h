@@ -94,6 +94,10 @@ class Remap_grid_class
 		double boundary_max_lon;
 		double boundary_max_lat;
 		double boundary_min_lat;
+		Remap_grid_data_class *sigma_grid_sigma_value_field;
+		Remap_grid_data_class *sigma_grid_surface_value_field;
+		double sigma_grid_top_value;
+		double sigma_grid_scale_factor;
         
 
         /* Functions of checking the coordinate values of grid */
@@ -174,7 +178,6 @@ class Remap_grid_class
         /* Functions of getting grids relation */
         bool match_grid(const char*) const;
 		bool match_grid(int, Remap_grid_class**);
-        void gen_lev_coord_from_sigma(char extension_names[16][256], const char*, const char*, const char*, double);
         void read_grid_data_from_IO(char extension_names[16][256], const char*, const char*, int);
         void read_grid_data_through_span(char[16][256], const char*, const char*, long, const char*);
         void extract_mask(const char*, const char*, const char*);
@@ -200,6 +203,9 @@ class Remap_grid_class
         void interchange_grid_fields_for_remapping(Remap_grid_class*, Remap_grid_class*, Remap_grid_data_class *);
         Remap_grid_class *duplicate_grid(Remap_grid_class*);
         Remap_grid_class *generate_decomp_grid(const int*, int);
+		void generate_3D_grid_decomp_sigma_values(Remap_grid_class*, Remap_grid_class*, const int*, int);
+        void gen_lev_coord_from_sigma(char extension_names[16][256], const char*, const char*, const char*, double);
+		void calculate_lev_sigma_values();
 
         /* Function for checking coordinate values consistency with coupler */
         bool check_coord_values_consistency(const char*, const char*, const void*);

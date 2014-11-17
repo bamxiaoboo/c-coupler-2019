@@ -15,7 +15,7 @@
 Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *original_grid)
 {
     Decomp_info *decomp;
-    Remap_grid_class *decomp_info_grid;
+    Remap_grid_class *decomp_info_grid, *decomp_2D_grid;
     Remap_grid_class *leaf_grids[256], *sub_grids[256];
     int num_leaf_grids, num_sub_grids, i, j, decomp_leaf_grid_indexes[2];
 	char decomp_grid_name[256];
@@ -56,13 +56,16 @@ Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *or
 				for (j = i+1; j < num_leaf_grids; j ++)
 					if (leaf_grids[j]->is_subset_of_grid(decomp_info_grid))
 						leaf_grids[j] = NULL;
-				sub_grids[num_sub_grids++] = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(decomp->get_grid_name()))->get_decomp_grid();
+				decomp_2D_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(decomp->get_grid_name()))->get_decomp_grid();
+				sub_grids[num_sub_grids++] = decomp_2D_grid;
 			}
 			else sub_grids[num_sub_grids++] = leaf_grids[i]; 
         }
 		sprintf(decomp_grid_name, "DECOMP_GRID_%s", original_grid->get_grid_name());
         this->decomp_grid = new Remap_grid_class(decomp_grid_name, num_sub_grids, sub_grids, 0);
 		EXECUTION_REPORT(REPORT_LOG, true, "the size of decomp grid %s is %ld %d", this->decomp_grid->get_grid_name(), this->decomp_grid->get_grid_size(), num_sub_grids);
+		if (original_grid->has_grid_coord_label(COORD_LABEL_LEV))
+			this->decomp_grid->generate_3D_grid_decomp_sigma_values(original_grid, decomp_2D_grid, decomp->get_local_cell_global_indx(), decomp->get_num_local_cells());
     }
 }
 
