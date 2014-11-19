@@ -98,6 +98,7 @@ class Remap_grid_class
 		Remap_grid_data_class *sigma_grid_surface_value_field;
 		double sigma_grid_top_value;
 		double sigma_grid_scale_factor;
+		bool specified_sigma_grid_surface_value_field;
         
 
         /* Functions of checking the coordinate values of grid */
@@ -168,6 +169,7 @@ class Remap_grid_class
         void get_partial_grid_mask_fields(int*, Remap_grid_data_class**, Remap_grid_class*);
         void get_grid_index_interchange_table(Remap_grid_class*, int*);
         bool is_partial_grid() const;
+		Remap_grid_class *get_original_grid() { return original_grid; }
         Remap_grid_data_class *get_grid_center_field() const;
         Remap_grid_data_class *get_grid_vertex_field() const;
         bool has_grid_coord_label(const char*);
@@ -206,6 +208,12 @@ class Remap_grid_class
 		void generate_3D_grid_decomp_sigma_values(Remap_grid_class*, Remap_grid_class*, const int*, int);
         void gen_lev_coord_from_sigma(char extension_names[16][256], const char*, const char*, const char*, double);
 		void calculate_lev_sigma_values();
+		bool is_sigma_grid() { return sigma_grid_sigma_value_field != NULL; }
+		Remap_grid_data_class *get_sigma_grid_surface_value_field() { return sigma_grid_surface_value_field; }
+		bool has_specified_sigma_grid_surface_value_field() { return specified_sigma_grid_surface_value_field; }
+		void allocate_sigma_grid_specific_fields(Remap_grid_data_class*, Remap_grid_data_class*, double, double);
+		bool is_sigma_grid_surface_value_field_updated() { return specified_sigma_grid_surface_value_field; }
+		void copy_sigma_grid_surface_value_field(Remap_grid_class*);
 
         /* Function for checking coordinate values consistency with coupler */
         bool check_coord_values_consistency(const char*, const char*, const void*);

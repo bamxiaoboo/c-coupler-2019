@@ -177,6 +177,10 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
 
     EXECUTION_REPORT(REPORT_ERROR, current_remapping_time_iter < num_remapping_times, "remap software error1 in do_runtime_remap\n");
 
+	current_runtime_remap_operator_grid_src = runtime_remap_operator_grid_src;
+	current_runtime_remap_operator_grid_dst = runtime_remap_operator_grid_dst;
+    current_runtime_remap_operator = runtime_remap_operator;
+
     /* Update runtime index array according to current_remapping_time_iter */
     for (i = num_sized_grids_of_interchanged_grid - 1, index_size_iter = 1; i >= 0; i --) {
         current_runtime_index_array[i] = (current_remapping_time_iter/index_size_iter) % index_size_array[i];

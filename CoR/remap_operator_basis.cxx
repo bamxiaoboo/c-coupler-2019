@@ -178,7 +178,7 @@ void Remap_operator_basis::calculate_grids_overlaping()
         size_index_src_cells_overlap_with_dst_cells = dst_grid->get_grid_size();
     }
     temp_array_iter = 0;
-    num_grid_dimensions_dst = current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_num_grid_dimensions();
+    num_grid_dimensions_dst = current_runtime_remap_operator_grid_src->get_num_grid_dimensions();
 
     for (i = 0; i < dst_grid->get_grid_size(); i ++) 
         displ_src_cells_overlap_with_dst_cells[i] = 0;

@@ -87,10 +87,13 @@ void Remap_strategy_class::check_field_data_grid_center_values_for_remapping(Rem
     remap_operator_grid->get_leaf_grids(&num_leaf_grids_remap_operator, leaf_grids_remap_operator, remap_operator_grid);
 
     for (i = 0; i < num_leaf_grids_field_data; i ++)
-        if (leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values() != NULL)
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_subset_of_grid(field_data_grid), 
-                         "The grid of setting coordinate values of 1D grid \"%s\" is \"%s\", it must be a sub grid of field data grid\n",
-                         leaf_grids_field_data[i]->get_coord_label(), leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
+        if (leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values() != NULL) {
+			printf("okok %s\n", leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
+			if (!leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_sigma_grid())
+	            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_subset_of_grid(field_data_grid), 
+	                         "The grid of setting coordinate values of 1D grid \"%s\" is \"%s\", it must be a sub grid of field data grid\n",
+	                         leaf_grids_field_data[i]->get_coord_label(), leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
+        }
     if (is_remap_operator_regriding)
         for (i = 0; i < num_leaf_grids_remap_operator; i ++) {
             EXECUTION_REPORT(REPORT_ERROR, leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values() != NULL,

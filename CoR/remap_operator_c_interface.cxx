@@ -34,25 +34,25 @@ void get_cell_mask_of_grid(Remap_operator_grid *grid, long cell_index, bool *mas
 
 void get_cell_mask_of_src_grid(long cell_index, bool *mask_value)
 {
-    get_cell_mask_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src(), cell_index, mask_value);
+    get_cell_mask_of_grid(current_runtime_remap_operator_grid_src, cell_index, mask_value);
 }
 
 
 long get_size_of_src_grid()
 {
-    return current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_grid_size();
+    return current_runtime_remap_operator_grid_src->get_grid_size();
 }
 
 
 long get_size_of_dst_grid()
 {
-    return current_runtime_remap_function->get_runtime_remap_operator_grid_dst()->get_grid_size();
+    return current_runtime_remap_operator_grid_dst->get_grid_size();
 }
 
 
 void get_cell_mask_of_dst_grid(long cell_index, bool *mask_value)
 {
-    get_cell_mask_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst(), cell_index, mask_value);
+    get_cell_mask_of_grid(current_runtime_remap_operator_grid_dst, cell_index, mask_value);
 }
 
 
@@ -70,20 +70,20 @@ void get_cell_center_coord_values_of_src_grid(long cell_index, double *center_va
 {
     EXECUTION_REPORT(REPORT_ERROR, have_fetched_dst_grid_cell_coord_values, "remap software error in get_cell_center_coord_values_of_src_grid\n");
     if (using_rotated_grid_data)
-        get_cell_center_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_rotated_remap_operator_grid(), cell_index, center_values);
-    else get_cell_center_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src(), cell_index, center_values);
+        get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_src->get_rotated_remap_operator_grid(), cell_index, center_values);
+    else get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_src, cell_index, center_values);
 }
 
 
 void get_cell_center_coord_values_of_dst_grid(long cell_index, double *center_values)
 {
     have_fetched_dst_grid_cell_coord_values = true;
-    get_cell_center_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst(), cell_index, center_values);
-    if (current_runtime_remap_function->get_runtime_remap_operator_grid_dst()->get_rotated_remap_operator_grid() != NULL && fabs(center_values[1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
+    get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_dst, cell_index, center_values);
+    if (current_runtime_remap_operator_grid_dst->get_rotated_remap_operator_grid() != NULL && fabs(center_values[1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
         EXECUTION_REPORT(REPORT_ERROR, last_dst_cell_index == -1 || last_dst_cell_index == cell_index, "remap software error in get_cell_center_coord_values_of_dst_grid\n");
         last_dst_cell_index = cell_index;
         using_rotated_grid_data = true;
-        get_cell_center_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst()->get_rotated_remap_operator_grid(), cell_index, center_values);        
+        get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_dst->get_rotated_remap_operator_grid(), cell_index, center_values);        
     }        
 }
 
@@ -119,11 +119,11 @@ void get_cell_vertex_coord_values_of_src_grid(long cell_index, int *num_vertex, 
     
     if (check_consistency) {
         if (using_rotated_grid_data)
-            get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
-        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src(), cell_index, num_vertex, vertex_values, check_consistency);
+            get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_src->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
+        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_src, cell_index, num_vertex, vertex_values, check_consistency);
     }
     else {
-        get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src(), cell_index, &temp_num_vertex, temp_vertex_values, check_consistency);
+        get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_src, cell_index, &temp_num_vertex, temp_vertex_values, check_consistency);
         should_rotate = false;
         for (int i = 0; i < temp_num_vertex; i ++)
             if (fabs(temp_vertex_values[i*2+1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
@@ -131,8 +131,8 @@ void get_cell_vertex_coord_values_of_src_grid(long cell_index, int *num_vertex, 
                 break;
             }
         if (should_rotate)
-            get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
-        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_src(), cell_index, num_vertex, vertex_values, check_consistency);
+            get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_src->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
+        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_src, cell_index, num_vertex, vertex_values, check_consistency);
     }
 }
 
@@ -146,11 +146,11 @@ void get_cell_vertex_coord_values_of_dst_grid(long cell_index, int *num_vertex, 
     
     if (check_consistency) {
         if (using_rotated_grid_data)
-            get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst()->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
-        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst(), cell_index, num_vertex, vertex_values, check_consistency);
+            get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_dst->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
+        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_dst, cell_index, num_vertex, vertex_values, check_consistency);
     }
     else {
-        get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst(), cell_index, &temp_num_vertex, temp_vertex_values, check_consistency);
+        get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_dst, cell_index, &temp_num_vertex, temp_vertex_values, check_consistency);
         should_rotate = false;
         for (int i = 0; i < temp_num_vertex; i ++)
             if (fabs(temp_vertex_values[i*2+1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
@@ -158,8 +158,8 @@ void get_cell_vertex_coord_values_of_dst_grid(long cell_index, int *num_vertex, 
                 break;
             }
         if (should_rotate)
-            get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst()->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
-        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_function->get_runtime_remap_operator_grid_dst(), cell_index, num_vertex, vertex_values, check_consistency);
+            get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_dst->get_rotated_remap_operator_grid(), cell_index, num_vertex, vertex_values, check_consistency);
+        else get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_dst, cell_index, num_vertex, vertex_values, check_consistency);
     }
 }
 
@@ -168,8 +168,8 @@ void search_cell_in_src_grid(double *point_coord_values, long *cell_index, bool 
 {   
     EXECUTION_REPORT(REPORT_ERROR, have_fetched_dst_grid_cell_coord_values, "remap software error search_cell_in_src_grid\n");
     if (using_rotated_grid_data)
-        *cell_index = current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_rotated_remap_operator_grid()->search_cell_of_locating_point(point_coord_values, accurately_match);
-    else *cell_index = current_runtime_remap_function->get_runtime_remap_operator_grid_src()->search_cell_of_locating_point(point_coord_values, accurately_match);
+        *cell_index = current_runtime_remap_operator_grid_src->get_rotated_remap_operator_grid()->search_cell_of_locating_point(point_coord_values, accurately_match);
+    else *cell_index = current_runtime_remap_operator_grid_src->search_cell_of_locating_point(point_coord_values, accurately_match);
 }
 
 
@@ -178,7 +178,7 @@ void get_cell_neighbors_in_src_grid(long cell_index, int *num_neighbors, long *n
     Remap_operator_grid *grid;
 
 
-    grid = current_runtime_remap_function->get_runtime_remap_operator_grid_src();
+    grid = current_runtime_remap_operator_grid_src;
     EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < grid->get_grid_size(),
                  "remap software error in get_cell_neighbors_in_src_grid\n");    
 
@@ -191,20 +191,20 @@ void get_cell_neighbors_in_src_grid(long cell_index, int *num_neighbors, long *n
 
 bool visit_cell_in_src_grid(long cell_index)
 {
-    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < current_runtime_remap_operator_grid_src->get_grid_size(),
                  "remap software error in visit_cell_in_src_grid\n");    
 
-    if (current_runtime_remap_function->get_runtime_remap_operator_grid_src()->is_cell_visited(cell_index))
+    if (current_runtime_remap_operator_grid_src->is_cell_visited(cell_index))
         return false;
 
-    current_runtime_remap_function->get_runtime_remap_operator_grid_src()->visit_cell(cell_index);
+    current_runtime_remap_operator_grid_src->visit_cell(cell_index);
     return true;
 }
 
 
 void initialize_computing_remap_weights_of_one_cell()
 {
-    EXECUTION_REPORT(REPORT_ERROR, current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_num_visited_cells() == 0,
+    EXECUTION_REPORT(REPORT_ERROR, current_runtime_remap_operator_grid_src->get_num_visited_cells() == 0,
                  "remap software error in initialize_computing_remap_weights_of_one_cell\n");
     have_fetched_dst_grid_cell_coord_values = false;
     using_rotated_grid_data = false;
@@ -220,20 +220,20 @@ void finalize_computing_remap_weights_of_one_cell()
 
 void clear_src_grid_cell_visiting_info()
 {
-    current_runtime_remap_function->get_runtime_remap_operator_grid_src()->clear_cell_visiting_info();
+    current_runtime_remap_operator_grid_src->clear_cell_visiting_info();
 }
 
 
 void clear_remap_weight_info_in_sparse_matrix()
 {
-    for (int i = 0; i < current_runtime_remap_function->get_runtime_remap_operator()->get_num_remap_weights_groups(); i ++)
-    current_runtime_remap_function->get_runtime_remap_operator()->get_remap_weights_group(i)->clear_weights_info();
+    for (int i = 0; i < current_runtime_remap_operator->get_num_remap_weights_groups(); i ++)
+    current_runtime_remap_operator->get_remap_weights_group(i)->clear_weights_info();
 }
 
 
 void add_remap_weights_to_sparse_matrix(long *indexes_src_grid, long index_dst_grid, double *weight_values, int num_weights, int weights_group_index)
 {
-    current_runtime_remap_function->get_runtime_remap_operator()->get_remap_weights_group(weights_group_index)->add_weights(indexes_src_grid, index_dst_grid, weight_values, num_weights);
+    current_runtime_remap_operator->get_remap_weights_group(weights_group_index)->add_weights(indexes_src_grid, index_dst_grid, weight_values, num_weights);
 }
 
 
@@ -419,7 +419,7 @@ bool src_cell_and_dst_cell_have_overlap(long cell_index_src, long cell_index_dst
     get_cell_center_coord_values_of_src_grid(cell_index_src, center_coord_values_src);
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, true);
     get_cell_vertex_coord_values_of_src_grid(cell_index_src, &num_vertexes_src, vertex_coord_values_src, true);    
-    num_grid_dimensions = current_runtime_remap_function->get_runtime_remap_operator()->get_num_dimensions();
+    num_grid_dimensions = current_runtime_remap_operator->get_num_dimensions();
 
     return do_two_cells_bounding_box_have_overlap(num_vertexes_src, 
                                                   num_vertexes_dst,
@@ -462,7 +462,7 @@ bool have_overlapped_src_cells_for_dst_cell(long cell_index_dst)
 
     get_cell_center_coord_values_of_dst_grid(cell_index_dst, center_coord_values_dst);
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, true);    
-    num_grid_dimensions_dst = current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_num_grid_dimensions();
+    num_grid_dimensions_dst = current_runtime_remap_operator_grid_src->get_num_grid_dimensions();
 
 	printf("vertex num %d\n", num_vertexes_dst);
     for (i = 0; i < num_vertexes_dst; i ++) {
@@ -672,7 +672,7 @@ void get_all_vertexes_of_one_cell_in_other_cell(int num_vertexes_cell1,
                                 num_vertexes_cell2,
                                 is_coord_unit_degree[0], 
                                 is_coord_unit_degree[1], 
-                                current_runtime_remap_function->get_runtime_remap_operator()->get_is_sphere_grid())) {
+                                current_runtime_remap_operator->get_is_sphere_grid())) {
             coord1_values_vertexes_in_other_cell[num_vertexes_in_other_cell] = vertex_coord_values_cell1[i*2];
             coord2_values_vertexes_in_other_cell[num_vertexes_in_other_cell] = vertex_coord_values_cell1[i*2+1];
             num_vertexes_in_other_cell ++;
@@ -931,7 +931,7 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
     num_sub_cell_vertexes = 0;
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, true);
     get_cell_vertex_coord_values_of_src_grid(cell_index_src, &num_vertexes_src, vertex_coord_values_src, true);
-    num_grid_dimensions = current_runtime_remap_function->get_runtime_remap_operator()->get_num_dimensions();
+    num_grid_dimensions = current_runtime_remap_operator->get_num_dimensions();
 
     EXECUTION_REPORT(REPORT_ERROR, num_grid_dimensions == 2, "remap software error1 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
 

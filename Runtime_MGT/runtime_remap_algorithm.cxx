@@ -388,6 +388,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	}
 
 	performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
+	EXECUTION_REPORT(REPORT_LOG, true, "finish parallel interpolation of %s", algorithm_cfg_name);
 }
 
 

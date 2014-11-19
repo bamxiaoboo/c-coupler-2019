@@ -57,6 +57,8 @@ class Remap_weight_of_strategy_class
         Remap_grid_class *data_grid_src;
         Remap_grid_class *data_grid_dst;
         Remap_strategy_class *remap_strategy;
+		bool dynamic_vertical_remapping_weights_src;
+		bool dynamic_vertical_remapping_weights_dst;
 
 		void read_grid_info_from_array(Remap_grid_class*, bool, const char *, long&, long);
 		void read_data_from_array(void*, int, const char*, long&, long, bool);
@@ -78,6 +80,7 @@ class Remap_weight_of_strategy_class
         Remap_weight_of_operator_class *get_remap_weight_of_operator(int i) { return remap_weights_of_operators[i]; }
         Remap_operator_basis *get_remap_operator_of_weights(int i) { return remap_weights_of_operators[i]->duplicated_remap_operator; }
         void add_remap_weight_of_operator(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
+		void update_vertical_remap_weights_of_dynamic_sigma_grid(Remap_grid_data_class*, Remap_grid_data_class*);
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
         void add_weight_of_operator_class(Remap_weight_of_operator_class *weight_of_operator_class) { remap_weights_of_operators.push_back(weight_of_operator_class); }
         void calculate_src_decomp(Remap_grid_class*, Remap_grid_class*, long*, const long*);

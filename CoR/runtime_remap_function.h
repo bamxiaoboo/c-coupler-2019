@@ -59,10 +59,6 @@ class Runtime_remap_function
         Runtime_remap_function(Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, Remap_grid_data_class*, Remap_grid_data_class*, Remap_weight_of_strategy_class*);
         void do_runtime_remap(long);
         ~Runtime_remap_function();
-
-        Remap_operator_grid *get_runtime_remap_operator_grid_src() { return runtime_remap_operator_grid_src; }
-        Remap_operator_grid *get_runtime_remap_operator_grid_dst() { return runtime_remap_operator_grid_dst; }
-        Remap_operator_basis *get_runtime_remap_operator() { return runtime_remap_operator; }
 };
 
 

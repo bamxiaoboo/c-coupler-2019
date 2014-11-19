@@ -39,7 +39,7 @@ void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_
 
     get_cell_center_coord_values_of_dst_grid(cell_index_dst, center_coord_values_dst);
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, false);    
-    num_grid_dimensions_dst = current_runtime_remap_function->get_runtime_remap_operator_grid_src()->get_num_grid_dimensions();
+    num_grid_dimensions_dst = current_runtime_remap_operator_grid_src->get_num_grid_dimensions();
 
     for (i = 0; i < num_vertexes_dst; i ++) {
         if (vertex_coord_values_dst[i*num_grid_dimensions_dst] == NULL_COORD_VALUE)

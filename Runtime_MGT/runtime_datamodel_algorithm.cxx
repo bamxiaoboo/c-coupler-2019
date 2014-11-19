@@ -156,8 +156,8 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
 			break;
 		top_grid = remap_grid_manager->search_remap_grid_with_grid_name(field_grid_names[i]);
 		top_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, top_grid);
-		for (k = 0; k < num_leaf_grids; k ++)
-			for (j = 0; j < total_num_leaf_grids; j ++) {
+		for (k = 0; k < num_leaf_grids; k ++) {
+			for (j = 0; j < total_num_leaf_grids; j ++) 
 				if (total_leaf_grids[j] != leaf_grids[k] && words_are_the_same(total_leaf_grids[j]->get_coord_label(), leaf_grids[k]->get_coord_label())) {
 					write_grid_name = true;
 					break;
