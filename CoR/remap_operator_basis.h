@@ -32,7 +32,7 @@ class Remap_operator_basis
         void register_remap_grids(int, Remap_grid_class **);
         
     protected:
-        friend class Remap_weight_of_operator_class;
+        friend class Remap_weight_of_operator_instance_class;
         friend class Remap_weight_of_strategy_class;
         char object_name[256];
         char operator_name[256];

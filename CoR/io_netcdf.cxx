@@ -760,7 +760,7 @@ void IO_netcdf::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
     long *indexes_src, *indexes_dst;
     int *tmp_indexes_src, *tmp_indexes_dst;
     Remap_operator_basis *duplicated_remap_operator;
-    Remap_weight_of_operator_class *remap_operator_instance;
+    Remap_weight_of_operator_instance_class *remap_operator_instance;
     Remap_weight_sparse_matrix *weight_sparse_matrix;
 
 
@@ -837,11 +837,11 @@ void IO_netcdf::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 	        duplicated_remap_operator->add_weight_sparse_matrix(weight_sparse_matrix);
 		}
 		else duplicated_remap_operator = NULL;
-        remap_operator_instance = new Remap_weight_of_operator_class(remap_weights->get_data_grid_src(),
+        remap_operator_instance = new Remap_weight_of_operator_instance_class(remap_weights->get_data_grid_src(),
                                                                      remap_weights->get_data_grid_dst(),
                                                                      0, remap_strategy->get_remap_operator(0),
                                                                      duplicated_remap_operator);
-        remap_weights->add_weight_of_operator_class(remap_operator_instance);
+        remap_weights->add_remap_weight_of_operator_instance(remap_operator_instance);
 
 		if (read_weight_values) {
         	delete [] tmp_indexes_src;

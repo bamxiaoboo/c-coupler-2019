@@ -214,7 +214,7 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
         for (i = 0; i < num_sized_grids_of_interchanged_grid; i ++)
             last_runtime_index_array[i] = current_runtime_index_array[i];
         if (remap_weight_of_strategy != NULL) {
-            remap_weight_of_strategy->add_remap_weight_of_operator(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
+            remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
         }
     }
 

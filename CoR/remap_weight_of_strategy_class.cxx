@@ -16,7 +16,7 @@
 #include <string.h>
 
 
-Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, 
+Remap_weight_of_operator_instance_class::Remap_weight_of_operator_instance_class(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, 
                                                                long remap_beg_iter, Remap_operator_basis *remap_operator)
 {
     this->field_data_grid_src = field_data_grid_src;
@@ -30,7 +30,7 @@ Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class 
 }
 
 
-Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, 
+Remap_weight_of_operator_instance_class::Remap_weight_of_operator_instance_class(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, 
                                                                long remap_beg_iter, Remap_operator_basis *remap_operator, Remap_operator_basis *duplicated_remap_operator)
 {
     this->field_data_grid_src = field_data_grid_src;
@@ -44,41 +44,120 @@ Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class 
 }
 
 
-Remap_weight_of_operator_class *Remap_weight_of_operator_class::generate_parallel_remap_weights(Remap_grid_class **decomp_original_grids, int **global_cells_local_indexes_in_decomps)
+Remap_weight_of_operator_instance_class *Remap_weight_of_operator_instance_class::generate_parallel_remap_weights(Remap_grid_class **decomp_original_grids, int **global_cells_local_indexes_in_decomps)
 {
-    Remap_weight_of_operator_class *parallel_remap_weights_of_operator;
+    Remap_weight_of_operator_instance_class *parallel_remap_weights_of_operator_instance;
     int overlap_with_decomp_counter = 0;
 
 
-    parallel_remap_weights_of_operator = new Remap_weight_of_operator_class();
-    parallel_remap_weights_of_operator->original_remap_operator = this->original_remap_operator;
+    parallel_remap_weights_of_operator_instance = new Remap_weight_of_operator_instance_class();
+    parallel_remap_weights_of_operator_instance->original_remap_operator = this->original_remap_operator;
 
     for (int i = 0; i < 2; i ++)
         if (this->original_remap_operator->get_src_grid()->have_overlap_with_grid(decomp_original_grids[i])) {
             EXECUTION_REPORT(REPORT_ERROR, decomp_original_grids[i]->is_subset_of_grid(this->original_remap_operator->get_src_grid()),
-                         "C-Coupler error1 in generate_parallel_remap_weights of Remap_weight_of_operator_class\n");
+                         "C-Coupler error1 in generate_parallel_remap_weights of Remap_weight_of_operator_instance_class\n");
             overlap_with_decomp_counter ++;
         }
     for (int i = 0; i < 2; i ++)
         if (this->original_remap_operator->get_dst_grid()->have_overlap_with_grid(decomp_original_grids[i])) {
             EXECUTION_REPORT(REPORT_ERROR, decomp_original_grids[i]->is_subset_of_grid(this->original_remap_operator->get_dst_grid()),
-                         "C-Coupler error2 in generate_parallel_remap_weights of Remap_weight_of_operator_class\n");
+                         "C-Coupler error2 in generate_parallel_remap_weights of Remap_weight_of_operator_instance_class\n");
             overlap_with_decomp_counter ++;
         }
-    EXECUTION_REPORT(REPORT_ERROR, overlap_with_decomp_counter == 0 || overlap_with_decomp_counter == 2, "C-Coupler error3 in generate_parallel_remap_weights of Remap_weight_of_operator_class\n");
+    EXECUTION_REPORT(REPORT_ERROR, overlap_with_decomp_counter == 0 || overlap_with_decomp_counter == 2, "C-Coupler error3 in generate_parallel_remap_weights of Remap_weight_of_operator_instance_class\n");
 
     if (overlap_with_decomp_counter > 0)
-        parallel_remap_weights_of_operator->duplicated_remap_operator = this->duplicated_remap_operator->generate_parallel_remap_operator(decomp_original_grids, global_cells_local_indexes_in_decomps);
-    else parallel_remap_weights_of_operator->duplicated_remap_operator = this->duplicated_remap_operator->duplicate_remap_operator(true);
+        parallel_remap_weights_of_operator_instance->duplicated_remap_operator = this->duplicated_remap_operator->generate_parallel_remap_operator(decomp_original_grids, global_cells_local_indexes_in_decomps);
+    else parallel_remap_weights_of_operator_instance->duplicated_remap_operator = this->duplicated_remap_operator->duplicate_remap_operator(true);
 
-    return parallel_remap_weights_of_operator;
+    return parallel_remap_weights_of_operator_instance;
+}
+
+
+Remap_weight_of_operator_instance_class::~Remap_weight_of_operator_instance_class()
+{
+	if (duplicated_remap_operator != NULL)
+	    delete duplicated_remap_operator;
+}
+
+
+Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, Remap_operator_basis *remap_operator)
+{
+    this->field_data_grid_src = field_data_grid_src;
+    this->field_data_grid_dst = field_data_grid_dst;
+    this->original_remap_operator = remap_operator;
+    this->operator_grid_src = remap_operator->get_src_grid();
+    this->operator_grid_dst = remap_operator->get_dst_grid();
+}
+
+
+Remap_weight_of_operator_class *Remap_weight_of_operator_class::generate_parallel_remap_weights(Remap_grid_class **decomp_original_grids, int **global_cells_local_indexes_in_decomps)
+{
+	for (int i = remap_weights_of_operator_instances.size()-1; i >= 0; i --)
+		remap_weights_of_operator_instances[i]->generate_parallel_remap_weights(decomp_original_grids, global_cells_local_indexes_in_decomps);
 }
 
 
 Remap_weight_of_operator_class::~Remap_weight_of_operator_class()
 {
-	if (duplicated_remap_operator != NULL)
-	    delete duplicated_remap_operator;
+	for (int i = 0; i < remap_weights_of_operator_instances.size(); i ++)
+		delete remap_weights_of_operator_instances[i];
+}
+
+
+void Remap_weight_of_operator_class::do_remap(Remap_grid_data_class *field_data_src, Remap_grid_data_class *field_data_dst)
+{
+    Remap_grid_class *sized_sub_grids[256];
+    double *data_value_src, *data_value_dst;
+    int i, j, k, num_sized_sub_grids;
+    long remap_beg_iter, remap_end_iter;
+    long index_size_iter, field_array_offset, index_size_array[256], current_runtime_index_array[256];
+
+    
+    EXECUTION_REPORT(REPORT_ERROR, field_data_src->get_coord_value_grid()->is_similar_grid_with(field_data_grid_src), "C-Coupler error1 in do_remap of Remap_weight_of_operator_class");
+    EXECUTION_REPORT(REPORT_ERROR, field_data_dst->get_coord_value_grid()->is_similar_grid_with(field_data_grid_dst), "C-Coupler error2 in do_remap of Remap_weight_of_operator_class");
+	field_data_src->interchange_grid_data(field_data_grid_src);
+	field_data_dst->interchange_grid_data(field_data_grid_dst);
+
+    field_data_grid_src->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
+    for (j = 0; j < num_sized_sub_grids; j ++)
+		if (!sized_sub_grids[j]->is_subset_of_grid(operator_grid_src))
+            break;
+    for (k = 0; j < num_sized_sub_grids; j ++) 
+        index_size_array[k++] = sized_sub_grids[j]->get_grid_size();
+    num_sized_sub_grids = k;
+	
+    for (i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
+        EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->field_data_grid_src == this->field_data_grid_src && remap_weights_of_operator_instances[i]->field_data_grid_dst == this->field_data_grid_dst,
+                     	 "remap software error3 in do_remap of Remap_weight_of_strategy_class\n");
+
+        remap_beg_iter = remap_weights_of_operator_instances[i]->remap_beg_iter;
+        if (remap_weights_of_operator_instances[i]->remap_end_iter != -1)
+            remap_end_iter = remap_weights_of_operator_instances[i]->remap_end_iter;
+        else if (i+1 < remap_weights_of_operator_instances.size())
+                remap_end_iter = remap_weights_of_operator_instances[i+1]->remap_beg_iter;
+        else remap_end_iter = field_data_grid_src->get_grid_size()/operator_grid_src->get_grid_size();
+        for (j = remap_beg_iter; j < remap_end_iter; j ++) {
+            for (k = num_sized_sub_grids - 1, index_size_iter = 1; k >= 0; k --) {
+                current_runtime_index_array[k] = (j/index_size_iter) % index_size_array[k];
+                index_size_iter *= index_size_array[k];
+            }
+            for (field_array_offset = 0, index_size_iter = 1, k = 0; k < num_sized_sub_grids; k ++) {
+                field_array_offset += current_runtime_index_array[k]*index_size_iter;
+                index_size_iter *= index_size_array[k];
+            }
+            data_value_src = ((double*) field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
+            data_value_dst = ((double*) field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();
+            remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_remap_values_caculation(data_value_src, data_value_dst);
+        }
+    }
+}
+
+
+void Remap_weight_of_operator_class::add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *operator_instance)
+{
+	remap_weights_of_operator_instances.push_back(operator_instance);
 }
 
 
@@ -122,15 +201,28 @@ bool Remap_weight_of_strategy_class::match_object_name(const char*object_name)
 
 Remap_weight_of_strategy_class::~Remap_weight_of_strategy_class()
 {
-    for (int i = 0; i < remap_weights_of_operators.size(); i ++)
-        delete remap_weights_of_operators[i];
+    for (int i = 0; i < remap_weights_of_operator_instances.size(); i ++)
+        delete remap_weights_of_operator_instances[i];
 }
 
 
-void Remap_weight_of_strategy_class::add_remap_weight_of_operator(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst,
+void Remap_weight_of_strategy_class::add_remap_weight_of_operator_instance(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst,
                                                                   long remap_beg_iter, Remap_operator_basis *remap_operator)
 {
-    remap_weights_of_operators.push_back(new Remap_weight_of_operator_class(field_data_grid_src, field_data_grid_dst, remap_beg_iter, remap_operator));
+	Remap_weight_of_operator_instance_class *remap_weight_of_operator_instance = new Remap_weight_of_operator_instance_class(field_data_grid_src, field_data_grid_dst, remap_beg_iter, remap_operator);
+    add_remap_weight_of_operator_instance(remap_weight_of_operator_instance);
+}
+
+
+void Remap_weight_of_strategy_class::add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *weight_of_operator_instance) 
+{ 
+	if (remap_weights_of_operators.size() == 0 || remap_weights_of_operators[remap_weights_of_operators.size()-1]->field_data_grid_src != weight_of_operator_instance->field_data_grid_src) {
+		Remap_weight_of_operator_class *remap_weight_of_operator = new Remap_weight_of_operator_class(weight_of_operator_instance->field_data_grid_src, weight_of_operator_instance->field_data_grid_dst, weight_of_operator_instance->original_remap_operator);
+		remap_weights_of_operators.push_back(remap_weight_of_operator);
+		printf("okokok %d\n", remap_weights_of_operators.size());
+	}
+	remap_weights_of_operators[remap_weights_of_operators.size()-1]->add_remap_weight_of_operator_instance(weight_of_operator_instance);
+	remap_weights_of_operator_instances.push_back(weight_of_operator_instance); 
 }
 
 
@@ -166,21 +258,21 @@ void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_si
 	if (field_data_src->get_coord_value_grid()->has_specified_sigma_grid_surface_value_field()) {
 		operator_field_data_grids[0] = field_data_src->get_coord_value_grid();
 		num_operator_field_data_grids = 1;
-		for (i = 0; i < remap_weights_of_operators.size(); i ++)
-			if (last_remap_operator != remap_weights_of_operators[i]->original_remap_operator) {
-				last_remap_operator = remap_weights_of_operators[i]->original_remap_operator;
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_src();
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_dst();
+		for (i = 0; i < remap_weights_of_operator_instances.size(); i ++)
+			if (last_remap_operator != remap_weights_of_operator_instances[i]->original_remap_operator) {
+				last_remap_operator = remap_weights_of_operator_instances[i]->original_remap_operator;
+				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_src();
+				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_dst();
 			}
 	}
 	else {
 		operator_field_data_grids[0] = field_data_dst->get_coord_value_grid();
 		num_operator_field_data_grids = 1;
-		for (i = remap_weights_of_operators.size()-1; i >= 0 ; i --)
-			if (last_remap_operator != remap_weights_of_operators[i]->original_remap_operator) {
-				last_remap_operator = remap_weights_of_operators[i]->original_remap_operator;
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_dst();
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_src();
+		for (i = remap_weights_of_operator_instances.size()-1; i >= 0 ; i --)
+			if (last_remap_operator != remap_weights_of_operator_instances[i]->original_remap_operator) {
+				last_remap_operator = remap_weights_of_operator_instances[i]->original_remap_operator;
+				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_dst();
+				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_src();
 			}
 
 	}
@@ -221,8 +313,6 @@ void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_si
 					}
 			}
 			operator_field_data_grids[i]->calculate_lev_sigma_values();
-			printf("okok (%s %ld) (%s %ld)\n", operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_size(),
-				operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_size());
 		}
 	}
 	operator_field_data_grids[0]->calculate_lev_sigma_values();
@@ -231,7 +321,7 @@ void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_si
 
 void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_src, Remap_grid_data_class *field_data_dst)
 {
-    Remap_grid_class *interchange_grid_src, *sized_sub_grids[256];
+    Remap_grid_class *sized_sub_grids[256];
     Remap_grid_class *field_data_grid_src, *field_data_grid_dst;
     Remap_grid_data_class *tmp_field_data_src, *tmp_field_data_dst;
     Remap_operator_basis *current_remap_operator;
@@ -250,8 +340,6 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
                  "the grid of field data \"%s\" can not match the dst grid of remap weight object \"%s\"",
                  field_data_dst->get_grid_data_field()->field_name_in_application, object_name);
 
-	dynamic_vertical_remapping_weights_src = false;
-	dynamic_vertical_remapping_weights_dst = false;
 	update_vertical_remap_weights_of_dynamic_sigma_grid(field_data_src, field_data_dst);
 
     field_data_src->transfer_field_attributes_to_another(field_data_dst);
@@ -259,45 +347,44 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
         field_data_dst->get_grid_data_field()->initialize_to_fill_value();
 
     current_remap_operator = NULL;
-    interchange_grid_src = NULL;
     tmp_field_data_src = NULL;
     tmp_field_data_dst = field_data_src;
-    for (i = 0; i < remap_weights_of_operators.size(); i ++) {
-        if (current_remap_operator != remap_weights_of_operators[i]->original_remap_operator) {
+    for (i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
+        if (current_remap_operator != remap_weights_of_operator_instances[i]->original_remap_operator) {
             if (tmp_field_data_src != NULL && tmp_field_data_src != field_data_src)
                 delete tmp_field_data_src;
             tmp_field_data_src = tmp_field_data_dst;
-            for (j = i+1; j < remap_weights_of_operators.size(); j ++)
-                if (remap_weights_of_operators[i]->original_remap_operator != remap_weights_of_operators[j]->original_remap_operator)
+            for (j = i+1; j < remap_weights_of_operator_instances.size(); j ++)
+                if (remap_weights_of_operator_instances[i]->original_remap_operator != remap_weights_of_operator_instances[j]->original_remap_operator)
                     break;
-            is_last_remap_operator = j == remap_weights_of_operators.size();
+            is_last_remap_operator = j == remap_weights_of_operator_instances.size();
             if (is_last_remap_operator) { 
                 tmp_field_data_dst = field_data_dst;
-                EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operators[i]->field_data_grid_dst->is_similar_grid_with(tmp_field_data_dst->get_coord_value_grid()), 
+                EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->field_data_grid_dst->is_similar_grid_with(tmp_field_data_dst->get_coord_value_grid()), 
                              "remap software error1 in do_remap of Remap_weight_of_strategy_class\n");
-                tmp_field_data_dst->interchange_grid_data(remap_weights_of_operators[i]->field_data_grid_dst);
+                tmp_field_data_dst->interchange_grid_data(remap_weights_of_operator_instances[i]->field_data_grid_dst);
             }
-            else tmp_field_data_dst = field_data_src->duplicate_grid_data_field(remap_weights_of_operators[i]->field_data_grid_dst, 1, false, false);
-            remap_weights_of_operators[i]->get_field_data_grid_src()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
+            else tmp_field_data_dst = field_data_src->duplicate_grid_data_field(remap_weights_of_operator_instances[i]->field_data_grid_dst, 1, false, false);
+            remap_weights_of_operator_instances[i]->get_field_data_grid_src()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
             for (j = 0; j < num_sized_sub_grids; j ++)
-                if (!sized_sub_grids[j]->is_subset_of_grid(remap_weights_of_operators[i]->operator_grid_src))
+                if (!sized_sub_grids[j]->is_subset_of_grid(remap_weights_of_operator_instances[i]->operator_grid_src))
                     break;
             for (k = 0; j < num_sized_sub_grids; j ++) 
                 index_size_array[k++] = sized_sub_grids[j]->get_grid_size();
             num_sized_sub_grids = k;
-            current_remap_operator = remap_weights_of_operators[i]->original_remap_operator;
-			tmp_field_data_src->interchange_grid_data(remap_weights_of_operators[i]->field_data_grid_src);
+            current_remap_operator = remap_weights_of_operator_instances[i]->original_remap_operator;
+			tmp_field_data_src->interchange_grid_data(remap_weights_of_operator_instances[i]->field_data_grid_src);
         }
-        EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operators[i]->field_data_grid_src->is_similar_grid_with(tmp_field_data_src->get_coord_value_grid()),
+        EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->field_data_grid_src->is_similar_grid_with(tmp_field_data_src->get_coord_value_grid()),
                      "remap software error2 in do_remap of Remap_weight_of_strategy_class\n");
 
-        remap_beg_iter = remap_weights_of_operators[i]->remap_beg_iter;
-        if (remap_weights_of_operators[i]->remap_end_iter != -1)
-            remap_end_iter = remap_weights_of_operators[i]->remap_end_iter;
+        remap_beg_iter = remap_weights_of_operator_instances[i]->remap_beg_iter;
+        if (remap_weights_of_operator_instances[i]->remap_end_iter != -1)
+            remap_end_iter = remap_weights_of_operator_instances[i]->remap_end_iter;
         else {
-            if (i+1 < remap_weights_of_operators.size() && current_remap_operator == remap_weights_of_operators[i+1]->original_remap_operator)
-                remap_end_iter = remap_weights_of_operators[i+1]->remap_beg_iter;
-            else remap_end_iter = tmp_field_data_src->get_coord_value_grid()->get_grid_size()/remap_weights_of_operators[i]->operator_grid_src->get_grid_size();
+            if (i+1 < remap_weights_of_operator_instances.size() && current_remap_operator == remap_weights_of_operator_instances[i+1]->original_remap_operator)
+                remap_end_iter = remap_weights_of_operator_instances[i+1]->remap_beg_iter;
+            else remap_end_iter = tmp_field_data_src->get_coord_value_grid()->get_grid_size()/remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
         }
         for (j = remap_beg_iter; j < remap_end_iter; j ++) {
             for (k = num_sized_sub_grids - 1, index_size_iter = 1; k >= 0; k --) {
@@ -308,24 +395,9 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
                 field_array_offset += current_runtime_index_array[k]*index_size_iter;
                 index_size_iter *= index_size_array[k];
             }
-			if ((dynamic_vertical_remapping_weights_src || dynamic_vertical_remapping_weights_dst) && 
-				remap_weights_of_operators[i]->original_remap_operator->get_src_grid()->get_num_dimensions() == 1 && 
-				remap_weights_of_operators[i]->original_remap_operator->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV)) {
-				if (runtime_lev_grid_src == NULL || original_lev_grid_src != remap_weights_of_operators[i]->original_remap_operator->get_src_grid() || original_lev_grid_dst != remap_weights_of_operators[i]->original_remap_operator->get_dst_grid()) {
-					if (runtime_lev_grid_src != NULL) {
-						delete runtime_lev_grid_src;
-						delete runtime_lev_grid_dst;
-					}
-					original_lev_grid_src = remap_weights_of_operators[i]->original_remap_operator->get_src_grid();
-					original_lev_grid_dst = remap_weights_of_operators[i]->original_remap_operator->get_dst_grid();
-					runtime_lev_grid_src = original_lev_grid_src->duplicate_grid(original_lev_grid_src);
-					runtime_lev_grid_dst = original_lev_grid_dst->duplicate_grid(original_lev_grid_dst);
-				}
-				printf("okok %s %s\n", remap_weights_of_operators[i]->field_data_grid_src->get_grid_name(), remap_weights_of_operators[i]->field_data_grid_dst->get_grid_name());
-			}
-            data_value_src = ((double*) tmp_field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[i]->operator_grid_src->get_grid_size();
-            data_value_dst = ((double*) tmp_field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[i]->operator_grid_dst->get_grid_size();
-            remap_weights_of_operators[i]->duplicated_remap_operator->do_remap_values_caculation(data_value_src, data_value_dst);
+            data_value_src = ((double*) tmp_field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
+            data_value_dst = ((double*) tmp_field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();
+            remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_remap_values_caculation(data_value_src, data_value_dst);
         }
     }
     
@@ -350,38 +422,38 @@ void Remap_weight_of_strategy_class::calculate_src_decomp_recursively(int iter, 
     long *decomp_map_values_src, *decomp_map_values_dst;
 
 
-    if (current_remap_operator != remap_weights_of_operators[iter]->original_remap_operator) {
+    if (current_remap_operator != remap_weights_of_operator_instances[iter]->original_remap_operator) {
         change_src_dst = true;
         tmp_field_data_src = tmp_field_data_dst;
-        for (j = iter+1; j < remap_weights_of_operators.size(); j ++)
-            if (remap_weights_of_operators[iter]->original_remap_operator != remap_weights_of_operators[j]->original_remap_operator)
+        for (j = iter+1; j < remap_weights_of_operator_instances.size(); j ++)
+            if (remap_weights_of_operator_instances[iter]->original_remap_operator != remap_weights_of_operator_instances[j]->original_remap_operator)
                 break;
-        if (j == remap_weights_of_operators.size()) 
+        if (j == remap_weights_of_operator_instances.size()) 
             tmp_field_data_dst = field_data_dst;
-        else tmp_field_data_dst = field_data_src->duplicate_grid_data_field(remap_weights_of_operators[iter]->field_data_grid_dst, 1, false, false);
-        current_remap_operator = remap_weights_of_operators[iter]->original_remap_operator;
+        else tmp_field_data_dst = field_data_src->duplicate_grid_data_field(remap_weights_of_operator_instances[iter]->field_data_grid_dst, 1, false, false);
+        current_remap_operator = remap_weights_of_operator_instances[iter]->original_remap_operator;
     }
 
-    if (iter+1 < remap_weights_of_operators.size())
+    if (iter+1 < remap_weights_of_operator_instances.size())
         calculate_src_decomp_recursively(iter+1, current_remap_operator, tmp_field_data_src, tmp_field_data_dst, field_data_src, field_data_dst);
 
-	tmp_field_data_src->interchange_grid_data(remap_weights_of_operators[iter]->field_data_grid_src);
-	tmp_field_data_dst->interchange_grid_data(remap_weights_of_operators[iter]->field_data_grid_dst);
+	tmp_field_data_src->interchange_grid_data(remap_weights_of_operator_instances[iter]->field_data_grid_src);
+	tmp_field_data_dst->interchange_grid_data(remap_weights_of_operator_instances[iter]->field_data_grid_dst);
 
-	remap_weights_of_operators[iter]->get_field_data_grid_src()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
+	remap_weights_of_operator_instances[iter]->get_field_data_grid_src()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
 	for (j = 0; j < num_sized_sub_grids; j ++)
-		if (!sized_sub_grids[j]->is_subset_of_grid(remap_weights_of_operators[iter]->operator_grid_src))
+		if (!sized_sub_grids[j]->is_subset_of_grid(remap_weights_of_operator_instances[iter]->operator_grid_src))
 			break;
 	for (k = 0; j < num_sized_sub_grids; j ++) 
 		index_size_array[k++] = sized_sub_grids[j]->get_grid_size();
 	num_sized_sub_grids = k;
 
-    remap_beg_iter = remap_weights_of_operators[iter]->remap_beg_iter;
-    if (remap_weights_of_operators[iter]->remap_end_iter != -1)
-        remap_end_iter = remap_weights_of_operators[iter]->remap_end_iter;
-    else if (iter+1 < remap_weights_of_operators.size() && current_remap_operator == remap_weights_of_operators[iter+1]->original_remap_operator)
-        remap_end_iter = remap_weights_of_operators[iter+1]->remap_beg_iter;
-    else remap_end_iter = tmp_field_data_src->get_coord_value_grid()->get_grid_size()/remap_weights_of_operators[iter]->operator_grid_src->get_grid_size();
+    remap_beg_iter = remap_weights_of_operator_instances[iter]->remap_beg_iter;
+    if (remap_weights_of_operator_instances[iter]->remap_end_iter != -1)
+        remap_end_iter = remap_weights_of_operator_instances[iter]->remap_end_iter;
+    else if (iter+1 < remap_weights_of_operator_instances.size() && current_remap_operator == remap_weights_of_operator_instances[iter+1]->original_remap_operator)
+        remap_end_iter = remap_weights_of_operator_instances[iter+1]->remap_beg_iter;
+    else remap_end_iter = tmp_field_data_src->get_coord_value_grid()->get_grid_size()/remap_weights_of_operator_instances[iter]->operator_grid_src->get_grid_size();
     for (j = remap_beg_iter; j < remap_end_iter; j ++) {
         for (k = num_sized_sub_grids - 1, index_size_iter = 1; k >= 0; k --) {
             current_runtime_index_array[k] = (j/index_size_iter) % index_size_array[k];
@@ -391,9 +463,9 @@ void Remap_weight_of_strategy_class::calculate_src_decomp_recursively(int iter, 
             field_array_offset += current_runtime_index_array[k]*index_size_iter;
             index_size_iter *= index_size_array[k];
         }
-        decomp_map_values_src = ((long*) tmp_field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[iter]->operator_grid_src->get_grid_size();
-        decomp_map_values_dst = ((long*) tmp_field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operators[iter]->operator_grid_dst->get_grid_size();
-        remap_weights_of_operators[iter]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_values_src, decomp_map_values_dst);
+        decomp_map_values_src = ((long*) tmp_field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[iter]->operator_grid_src->get_grid_size();
+        decomp_map_values_dst = ((long*) tmp_field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[iter]->operator_grid_dst->get_grid_size();
+        remap_weights_of_operator_instances[iter]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_values_src, decomp_map_values_dst);
     }
 
     if (change_src_dst && tmp_field_data_dst != field_data_dst)
@@ -454,7 +526,7 @@ Remap_grid_class **Remap_weight_of_strategy_class::get_remap_related_grids(int &
 
     all_remap_related_grids[num_operator_field_data_grids++] = data_grid_src;
     all_remap_related_grids[num_operator_field_data_grids++] = data_grid_dst;
-    for (int i = 0; i < remap_weights_of_operators.size(); i ++) {
+    for (int i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
         if (num_operator_field_data_grids + 4 > array_size) {
             temp_grids = all_remap_related_grids;
             all_remap_related_grids = new Remap_grid_class *[array_size*2];
@@ -463,10 +535,10 @@ Remap_grid_class **Remap_weight_of_strategy_class::get_remap_related_grids(int &
             delete [] temp_grids;
             array_size *= 2;
         }
-        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->field_data_grid_src;
-        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->field_data_grid_dst;
-        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->operator_grid_src;
-        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->operator_grid_dst;
+        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->field_data_grid_src;
+        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->field_data_grid_dst;
+        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->operator_grid_src;
+        all_remap_related_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->operator_grid_dst;
     }
 
     return all_remap_related_grids;
@@ -480,7 +552,7 @@ Remap_weight_of_strategy_class *Remap_weight_of_strategy_class::generate_paralle
     int i, j, k, field_data_grids_iter, num_sized_sub_grids, index_size_array[256], current_runtime_index_array[256];
     Remap_operator_basis *current_remap_operator;
     Remap_weight_of_strategy_class *parallel_remap_weights_of_strategy = new Remap_weight_of_strategy_class;
-    Remap_weight_of_operator_class *parallel_remap_weights_of_operator;
+    Remap_weight_of_operator_instance_class *parallel_remap_weights_of_operator_instance;
     Remap_grid_class *sized_sub_grids[256];
     long remap_beg_iter, remap_end_iter, index_size_iter, global_field_array_offset, local_field_array_offset;
 
@@ -497,39 +569,39 @@ Remap_weight_of_strategy_class *Remap_weight_of_strategy_class::generate_paralle
     parallel_remap_weights_of_strategy->data_grid_dst = remap_related_decomp_grids[field_data_grids_iter++];
 
     current_remap_operator = NULL;
-    for (i = 0; i < this->remap_weights_of_operators.size(); i ++) {
-        if (current_remap_operator != remap_weights_of_operators[i]->original_remap_operator) {
-            for (j = i+1; j < remap_weights_of_operators.size(); j ++)
-                if (remap_weights_of_operators[i]->original_remap_operator != remap_weights_of_operators[j]->original_remap_operator)
+    for (i = 0; i < this->remap_weights_of_operator_instances.size(); i ++) {
+        if (current_remap_operator != remap_weights_of_operator_instances[i]->original_remap_operator) {
+            for (j = i+1; j < remap_weights_of_operator_instances.size(); j ++)
+                if (remap_weights_of_operator_instances[i]->original_remap_operator != remap_weights_of_operator_instances[j]->original_remap_operator)
                     break;
-            remap_weights_of_operators[i]->get_field_data_grid_src()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
+            remap_weights_of_operator_instances[i]->get_field_data_grid_src()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
             for (j = 0; j < num_sized_sub_grids; j ++)
-                if (!sized_sub_grids[j]->is_subset_of_grid(remap_weights_of_operators[i]->operator_grid_src))
+                if (!sized_sub_grids[j]->is_subset_of_grid(remap_weights_of_operator_instances[i]->operator_grid_src))
                     break;
             for (k = 0; j < num_sized_sub_grids; j ++) 
                 index_size_array[k++] = sized_sub_grids[j]->get_grid_size();
             num_sized_sub_grids = k;
-            current_remap_operator = remap_weights_of_operators[i]->original_remap_operator;
+            current_remap_operator = remap_weights_of_operator_instances[i]->original_remap_operator;
         }
-        remap_beg_iter = remap_weights_of_operators[i]->remap_beg_iter;
-        if (remap_weights_of_operators[i]->remap_end_iter != -1)
-            remap_end_iter = remap_weights_of_operators[i]->remap_end_iter;
+        remap_beg_iter = remap_weights_of_operator_instances[i]->remap_beg_iter;
+        if (remap_weights_of_operator_instances[i]->remap_end_iter != -1)
+            remap_end_iter = remap_weights_of_operator_instances[i]->remap_end_iter;
         else {
-            if (i+1 < remap_weights_of_operators.size() && current_remap_operator == remap_weights_of_operators[i+1]->original_remap_operator)
-                remap_end_iter = remap_weights_of_operators[i+1]->remap_beg_iter;
-            else remap_end_iter = remap_weights_of_operators[i]->get_field_data_grid_src()->get_grid_size()/remap_weights_of_operators[i]->operator_grid_src->get_grid_size();
+            if (i+1 < remap_weights_of_operator_instances.size() && current_remap_operator == remap_weights_of_operator_instances[i+1]->original_remap_operator)
+                remap_end_iter = remap_weights_of_operator_instances[i+1]->remap_beg_iter;
+            else remap_end_iter = remap_weights_of_operator_instances[i]->get_field_data_grid_src()->get_grid_size()/remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
         }
 
-        if (remap_weights_of_operators[i]->operator_grid_src->get_is_sphere_grid() || remap_end_iter-remap_beg_iter == remap_weights_of_operators[i]->get_field_data_grid_src()->get_grid_size()/remap_weights_of_operators[i]->operator_grid_src->get_grid_size()){
-            parallel_remap_weights_of_operator = remap_weights_of_operators[i]->generate_parallel_remap_weights(decomp_original_grids, global_cells_local_indexes_in_decomps);
-            parallel_remap_weights_of_operator->field_data_grid_src = remap_related_decomp_grids[field_data_grids_iter+0];
-            parallel_remap_weights_of_operator->field_data_grid_dst = remap_related_decomp_grids[field_data_grids_iter+1];
-            parallel_remap_weights_of_operator->operator_grid_src = remap_related_decomp_grids[field_data_grids_iter+2];
-            parallel_remap_weights_of_operator->operator_grid_dst = remap_related_decomp_grids[field_data_grids_iter+3];
-            parallel_remap_weights_of_operator->remap_beg_iter = remap_weights_of_operators[i]->remap_beg_iter; 
-            parallel_remap_weights_of_operator->remap_end_iter = -1;
-            parallel_remap_weights_of_strategy->remap_weights_of_operators.push_back(parallel_remap_weights_of_operator);
-            EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operators[i]->remap_beg_iter == 0, "C-Coupler error3 in generate_parallel_remap_weights of Remap_weight_of_strategy_class\n");
+        if (remap_weights_of_operator_instances[i]->operator_grid_src->get_is_sphere_grid() || remap_end_iter-remap_beg_iter == remap_weights_of_operator_instances[i]->get_field_data_grid_src()->get_grid_size()/remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size()){
+            parallel_remap_weights_of_operator_instance = remap_weights_of_operator_instances[i]->generate_parallel_remap_weights(decomp_original_grids, global_cells_local_indexes_in_decomps);
+            parallel_remap_weights_of_operator_instance->field_data_grid_src = remap_related_decomp_grids[field_data_grids_iter+0];
+            parallel_remap_weights_of_operator_instance->field_data_grid_dst = remap_related_decomp_grids[field_data_grids_iter+1];
+            parallel_remap_weights_of_operator_instance->operator_grid_src = remap_related_decomp_grids[field_data_grids_iter+2];
+            parallel_remap_weights_of_operator_instance->operator_grid_dst = remap_related_decomp_grids[field_data_grids_iter+3];
+            parallel_remap_weights_of_operator_instance->remap_beg_iter = remap_weights_of_operator_instances[i]->remap_beg_iter; 
+            parallel_remap_weights_of_operator_instance->remap_end_iter = -1;
+			parallel_remap_weights_of_strategy->add_remap_weight_of_operator_instance(parallel_remap_weights_of_operator_instance);
+            EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->remap_beg_iter == 0, "C-Coupler error3 in generate_parallel_remap_weights of Remap_weight_of_strategy_class\n");
         }
         else {
             for (j = remap_beg_iter; j < remap_end_iter; j ++) {
@@ -541,21 +613,21 @@ Remap_weight_of_strategy_class *Remap_weight_of_strategy_class::generate_paralle
                     global_field_array_offset += current_runtime_index_array[k]*index_size_iter;
                     index_size_iter *= index_size_array[k];
                 }
-				if (remap_weights_of_operators[i]->field_data_grid_src->have_overlap_with_grid(decomp_original_grids[0]))
+				if (remap_weights_of_operator_instances[i]->field_data_grid_src->have_overlap_with_grid(decomp_original_grids[0]))
 					local_field_array_offset = global_cells_local_indexes_in_decomps[0][global_field_array_offset];
-				else if (remap_weights_of_operators[i]->field_data_grid_src->have_overlap_with_grid(decomp_original_grids[1]))
+				else if (remap_weights_of_operator_instances[i]->field_data_grid_src->have_overlap_with_grid(decomp_original_grids[1]))
 					local_field_array_offset = global_cells_local_indexes_in_decomps[1][global_field_array_offset];
                 else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error4 in generate_parallel_remap_weights of Remap_weight_of_strategy_class\n");
 				if (local_field_array_offset == -1)
 					continue;
-                parallel_remap_weights_of_operator = remap_weights_of_operators[i]->generate_parallel_remap_weights(decomp_original_grids, global_cells_local_indexes_in_decomps);
-                parallel_remap_weights_of_operator->field_data_grid_src = remap_related_decomp_grids[field_data_grids_iter+0];
-                parallel_remap_weights_of_operator->field_data_grid_dst = remap_related_decomp_grids[field_data_grids_iter+1];
-                parallel_remap_weights_of_operator->operator_grid_src = remap_related_decomp_grids[field_data_grids_iter+2];
-                parallel_remap_weights_of_operator->operator_grid_dst = remap_related_decomp_grids[field_data_grids_iter+3];
-                parallel_remap_weights_of_operator->remap_beg_iter = local_field_array_offset; 
-                parallel_remap_weights_of_operator->remap_end_iter = local_field_array_offset+1;
-                parallel_remap_weights_of_strategy->remap_weights_of_operators.push_back(parallel_remap_weights_of_operator);
+                parallel_remap_weights_of_operator_instance = remap_weights_of_operator_instances[i]->generate_parallel_remap_weights(decomp_original_grids, global_cells_local_indexes_in_decomps);
+                parallel_remap_weights_of_operator_instance->field_data_grid_src = remap_related_decomp_grids[field_data_grids_iter+0];
+                parallel_remap_weights_of_operator_instance->field_data_grid_dst = remap_related_decomp_grids[field_data_grids_iter+1];
+                parallel_remap_weights_of_operator_instance->operator_grid_src = remap_related_decomp_grids[field_data_grids_iter+2];
+                parallel_remap_weights_of_operator_instance->operator_grid_dst = remap_related_decomp_grids[field_data_grids_iter+3];
+                parallel_remap_weights_of_operator_instance->remap_beg_iter = local_field_array_offset; 
+                parallel_remap_weights_of_operator_instance->remap_end_iter = local_field_array_offset+1;
+				parallel_remap_weights_of_strategy->add_remap_weight_of_operator_instance(parallel_remap_weights_of_operator_instance);
             }
         }
 
@@ -632,7 +704,7 @@ void Remap_weight_of_strategy_class::write_remap_weights_into_array(char **array
     int num_leaf_grids, i, j, id, grid_num_dimensions, tmp_int_value;
     int num_remap_operator_instances;
     Remap_operator_basis *remap_operator_of_one_instance;
-    Remap_weight_of_operator_class *remap_weight_of_operator;
+    Remap_weight_of_operator_instance_class *remap_weight_of_operator_instance;
     Remap_weight_sparse_matrix *remap_weights_group;
     char operator_name[256];
 	char *output_array;
@@ -653,23 +725,23 @@ void Remap_weight_of_strategy_class::write_remap_weights_into_array(char **array
     num_remap_operator_instances = get_num_remap_operator_of_weights();
 	write_data_into_array(&num_remap_operator_instances, sizeof(int), &output_array, array_size, max_array_size);
     for (i = 0; i < num_remap_operator_instances; i ++) {
-        remap_weight_of_operator = get_remap_weight_of_operator(i);
-        tmp_long_value = remap_weight_of_operator->get_remap_begin_iter();
+        remap_weight_of_operator_instance = remap_weights_of_operator_instances[i];
+        tmp_long_value = remap_weight_of_operator_instance->get_remap_begin_iter();
 		write_data_into_array(&tmp_long_value, sizeof(long), &output_array, array_size, max_array_size);
         remap_operator_of_one_instance = get_remap_operator_of_weights(i);
         memset(operator_name, 0, 256);
 		if (write_grid) {
 			strcpy(operator_name, remap_operator_of_one_instance->get_operator_name());
 			write_data_into_array(operator_name, sizeof(char)*256, &output_array, array_size, max_array_size);
-	        write_grid_info_into_array(remap_weight_of_operator->get_field_data_grid_src(), false, &output_array, array_size, max_array_size);
-	        write_grid_info_into_array(remap_weight_of_operator->get_field_data_grid_dst(), false, &output_array, array_size, max_array_size);
+	        write_grid_info_into_array(remap_weight_of_operator_instance->get_field_data_grid_src(), false, &output_array, array_size, max_array_size);
+	        write_grid_info_into_array(remap_weight_of_operator_instance->get_field_data_grid_dst(), false, &output_array, array_size, max_array_size);
 	        write_grid_info_into_array(remap_operator_of_one_instance->get_src_grid(), false, &output_array, array_size, max_array_size);
 	        write_grid_info_into_array(remap_operator_of_one_instance->get_dst_grid(), false, &output_array, array_size, max_array_size);
 		}
 		else {
 			strcpy(operator_name, remap_operator_of_one_instance->get_object_name());
 			write_data_into_array(operator_name, sizeof(char)*256, &output_array, array_size, max_array_size);
-			tmp_long_value = remap_weight_of_operator->get_remap_end_iter();
+			tmp_long_value = remap_weight_of_operator_instance->get_remap_end_iter();
 			write_data_into_array(&tmp_long_value, sizeof(long), &output_array, array_size, max_array_size);
 		}
         tmp_int_value = remap_operator_of_one_instance->get_num_remap_weights_groups();
@@ -750,7 +822,7 @@ void Remap_weight_of_strategy_class::read_remap_operator_instance_from_array(Rem
                                                               bool read_weight_values)    
 {
     Remap_operator_basis *duplicated_remap_operator;
-    Remap_weight_of_operator_class *remap_operator_instance;
+    Remap_weight_of_operator_instance_class *remap_operator_instance;
     int i, num_remap_weights_groups;
     long num_weights, num_remaped_dst_cells_indexes, *indexes_src_grid, *indexes_dst_grid, *remaped_dst_cells_indexes;
     Remap_weight_sparse_matrix *weight_sparse_matrix;
@@ -781,10 +853,10 @@ void Remap_weight_of_strategy_class::read_remap_operator_instance_from_array(Rem
 		}
     }
     
-    remap_operator_instance = new Remap_weight_of_operator_class(field_data_grid_src, field_data_grid_dst, remap_iter, remap_operator, duplicated_remap_operator);
+    remap_operator_instance = new Remap_weight_of_operator_instance_class(field_data_grid_src, field_data_grid_dst, remap_iter, remap_operator, duplicated_remap_operator);
 	remap_operator_instance->operator_grid_src = operator_grid_src;
 	remap_operator_instance->operator_grid_dst = operator_grid_dst;
-    add_weight_of_operator_class(remap_operator_instance);
+    add_remap_weight_of_operator_instance(remap_operator_instance);
 }
 
 
@@ -908,7 +980,7 @@ void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *i
 			operator_grid_dst = remap_related_decomp_grids[field_data_grids_iter+3];
 			field_data_grids_iter += 4;
 			read_remap_operator_instance_from_array(current_field_grid_src, current_field_grid_dst, operator_grid_src, operator_grid_dst, remap_operator, current_remap_iter, input_array, current_array_pos, array_size, read_weight_values);
-			remap_weights_of_operators[remap_weights_of_operators.size()-1]->remap_end_iter = remap_end_iter;
+			remap_weights_of_operator_instances[remap_weights_of_operator_instances.size()-1]->remap_end_iter = remap_end_iter;
 		}
     }
     EXECUTION_REPORT(REPORT_ERROR, current_field_grid_dst->is_similar_grid_with(field_grid_dst), "remap software error4 in read_remap_weights_from_array\n");

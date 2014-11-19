@@ -148,7 +148,6 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
 
 	if (src_cell_index == -1) {
 		for (i = 0; i < get_size_of_src_grid(); i ++) {
-			get_cell_mask_of_src_grid(i, &src_cell_mask);
 			get_cell_center_coord_values_of_src_grid(i, src_cell_center_values);
 			current_dist = calculate_distance_of_two_points_2D(dst_cell_center_values[0],
 															   dst_cell_center_values[1],
