@@ -84,7 +84,9 @@ Remap_mgt::Remap_mgt(const char *cfg_file_name)
     remap_grid_manager = new Remap_grid_mgt();
     remap_operator_manager = new Remap_operator_mgt();
     remap_field_data_manager = new Remap_field_data_mgt();    
-    remap_weights_manager = new Remap_weight_of_strategy_mgt();
+    remap_weights_of_strategy_manager = new Remap_weight_of_strategy_mgt();
+	sequential_remap_weight_of_operator_manager = new Remap_weight_of_operator_mgt();
+	parallel_remap_weight_of_operator_manager = new Remap_weight_of_operator_mgt();
     push_back_all_words();
 
     /* Initialize the data structure to keep each word in a statement */
@@ -378,7 +380,7 @@ void Remap_mgt::process_statement()
     else if (words_are_the_same(statement_operands[0]->object->object_type, OBJECT_TYPE_REMAP_STRATEGY)) 
         remap_strategy_manager->execute(remap_statement->function, statement_operands, num_operands);
     else if (words_are_the_same(statement_operands[0]->object->object_type, OBJECT_TYPE_REMAP_WEIGHTS))
-        remap_weights_manager->execute(remap_statement->function, statement_operands, num_operands);
+        remap_weights_of_strategy_manager->execute(remap_statement->function, statement_operands, num_operands);
     else if (words_are_the_same(statement_operands[0]->object->object_type, OBJECT_TYPE_FIELD_DATA)) 
         remap_field_data_manager->execute(remap_statement->function, statement_operands, num_operands);
     else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error: \"%s\" is an unknown object type\n", remap_statement->src_operands[0]->object->object_type);
@@ -436,7 +438,9 @@ Remap_mgt::~Remap_mgt()
     }
 
     delete io_manager;
-    delete remap_weights_manager;
+    delete remap_weights_of_strategy_manager;
+	delete sequential_remap_weight_of_operator_manager;
+	delete parallel_remap_weight_of_operator_manager;
     delete remap_strategy_manager;
     delete remap_grid_manager;
     delete remap_operator_manager;

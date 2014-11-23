@@ -55,7 +55,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     timer = new Coupling_timer(&line_p);
     EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
     sscanf(line, "%d", &algorithm_mode);
-    sequential_remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
+    sequential_remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(remap_weights_name);
 
     cpl_check_remap_weights_format(sequential_remap_weights);
     EXECUTION_REPORT(REPORT_ERROR, sequential_remap_weights != NULL, "C-Coupler software error remap weights is not found\n");
@@ -156,6 +156,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 			}
 		}
 	}
+	parallel_remap_weights->add_remap_weight_of_operators_to_manager(true);
 	
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating parallel remap weights for runtime_remap_algorithm");
 

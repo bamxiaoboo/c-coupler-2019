@@ -584,9 +584,9 @@ void IO_netcdf::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
                  remap_weights->get_remap_strategy()->get_remap_operator(0)->get_num_dimensions() == 2,
                  "for SCRIP format of remap weights, we only support horizontal 2D remap of only one remap algorithm\n");
     if (execution_phase_number == 1) {
-        EXECUTION_REPORT(REPORT_ERROR, remap_weights->get_num_remap_operator_of_weights() == 1,
+        remap_operator = remap_weights->get_unique_remap_operator_of_weights();
+        EXECUTION_REPORT(REPORT_ERROR, remap_operator != NULL,
                      "for SCRIP format of remap weights, we only support horizontal 2D remap of only one 2D remap algorithm\n");
-        remap_operator = remap_weights->get_remap_operator_of_weights(0);
         remap_operator_grid_src = new Remap_operator_grid(remap_weights->get_data_grid_src(), remap_operator, true, false);
 		remap_operator_grid_dst = new Remap_operator_grid(remap_weights->get_data_grid_dst(), remap_operator, true, false);
 		remap_operator_grid_src->update_operator_grid_data();

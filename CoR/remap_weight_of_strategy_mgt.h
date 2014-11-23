@@ -16,6 +16,19 @@
 #include <vector>
 
 
+class Remap_weight_of_operator_mgt
+{
+	private: 
+		std::vector<Remap_weight_of_operator_class *> remap_weights_of_operators;
+
+	public:
+		Remap_weight_of_operator_mgt() {}
+		~Remap_weight_of_operator_mgt();
+		void add_remap_weights_of_operator(Remap_weight_of_operator_class*);
+		Remap_weight_of_operator_class *search_remap_weights_of_operator(Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*);
+};
+
+
 class Remap_weight_of_strategy_mgt
 {
     private:

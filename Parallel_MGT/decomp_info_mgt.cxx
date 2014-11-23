@@ -239,7 +239,7 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 					decomp_map_dst[current_local_cell_indexes[j]] = (decomp_map_dst[current_local_cell_indexes[j]] | (((long)1)<<i));
 		}
 		EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
-		remap_weights = remap_weights_manager->search_remap_weight_of_strategy(remap_weights_name);
+		remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(remap_weights_name);
 		remap_weights->calculate_src_decomp(remap_grid_manager->search_remap_grid_with_grid_name(decomp_src->get_grid_name()), 
 											remap_grid_manager->search_remap_grid_with_grid_name(decomp_dst->get_grid_name()), 
 											decomp_map_src, decomp_map_dst);

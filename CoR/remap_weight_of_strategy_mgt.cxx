@@ -14,6 +14,35 @@
 #include "cor_global_data.h"
 
 
+Remap_weight_of_operator_class *Remap_weight_of_operator_mgt::search_remap_weights_of_operator(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, Remap_operator_basis *original_remap_operator)
+{
+	for (int i = 0; i < remap_weights_of_operators.size(); i ++)
+		if (field_data_grid_src->is_similar_grid_with(remap_weights_of_operators[i]->get_field_data_grid_src())&&
+			field_data_grid_src->is_similar_grid_with(remap_weights_of_operators[i]->get_field_data_grid_src()) &&
+			original_remap_operator == remap_weights_of_operators[i]->get_original_remap_operator())
+			return remap_weights_of_operators[i];
+		
+	return NULL;
+}
+
+
+void Remap_weight_of_operator_mgt::add_remap_weights_of_operator(Remap_weight_of_operator_class *remap_weight_of_operator)
+{
+/*
+	EXECUTION_REPORT(REPORT_ERROR, search_remap_weights_of_operator(remap_weight_of_operator->get_field_data_grid_src(), remap_weight_of_operator->get_field_data_grid_dst(), remap_weight_of_operator->get_original_remap_operator()) == NULL,
+					 "C-Coupler error1 in add_remap_weights_of_operator of Remap_weight_of_operator_mgt");
+*/
+	remap_weights_of_operators.push_back(remap_weight_of_operator);
+}
+
+
+Remap_weight_of_operator_mgt::~Remap_weight_of_operator_mgt()
+{
+	for (int i = 0; i < remap_weights_of_operators.size(); i ++)
+		delete remap_weights_of_operators[i];
+}
+
+
 void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_operand **statement_operands, int num_operands)
 {
     int i;
@@ -33,13 +62,14 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
                                                                                  statement_operands[3]->object->object_name,
                                                                                  NULL, NULL,
                                                                                  false));
+		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_REMAP)){
         EXECUTION_REPORT(REPORT_ERROR, num_operands == 3, "function \"%s\" must have no result parameter and three input parameters\n", function);
         check_is_parameter_object_type_remap_weights(function, 1, statement_operands[0], "the remap weights used for remapping");
         check_is_parameter_object_type_field_data(function, 2, statement_operands[1], "the src field of remapping");
         check_is_parameter_object_type_field_data(function, 3, statement_operands[2], "the dst field of remapping");     
-        remap_weights = remap_weights_manager->search_remap_weight_of_strategy(statement_operands[0]->object->object_name);
+        remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(statement_operands[0]->object->object_name);
         field_data_src = remap_field_data_manager->search_remap_field_data(statement_operands[1]->object->object_name);
         field_data_dst = remap_field_data_manager->search_remap_field_data(statement_operands[2]->object->object_name);
         remap_weights->do_remap(field_data_src, field_data_dst);
@@ -62,6 +92,7 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
                                                            statement_operands[5]->extension_names[0],
                                                            true);
         remap_weights_of_strategies.push_back(remap_weights);
+		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
 }
 

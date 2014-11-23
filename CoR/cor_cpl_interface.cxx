@@ -137,25 +137,6 @@ Remap_grid_data_class *cpl_duplicate_field_with_double_data_type(Remap_grid_data
 
 void cpl_check_remap_weights_format(Remap_weight_of_strategy_class *remap_weights)
 {
-    Remap_grid_class *grid_src;
-    int i, j;
-    bool have_sphere_grid_remapping = false;
-    
-
-    for (i = 0; i < remap_weights->get_num_remap_operator_of_weights(); i ++) {
-		if (remap_weights->get_remap_operator_of_weights(i) == NULL)
-			continue;
-        grid_src = remap_weights->get_remap_operator_of_weights(i)->get_src_grid();
-        j = 0;
-        if (grid_src->has_grid_coord_label(COORD_LABEL_LON))
-            j ++;
-        if (grid_src->has_grid_coord_label(COORD_LABEL_LAT))
-            j ++;
-        EXECUTION_REPORT(REPORT_ERROR, j == 0 || j == 2, "the remap operator %s for coupling must remap on both longitude and latitude\n", remap_weights->get_remap_operator_of_weights(i)->get_operator_name());
-        if (grid_src->has_grid_coord_label(COORD_LABEL_LON)) {
-            EXECUTION_REPORT(REPORT_ERROR, !have_sphere_grid_remapping, "the remap weights %s must have only one remap operator remapping on only one grid\n", remap_weights->get_object_name());
-            have_sphere_grid_remapping = true;
-        }
-    }
+	remap_weights->check_remap_weights_format();
 }
 
