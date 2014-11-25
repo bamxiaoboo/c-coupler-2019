@@ -95,6 +95,22 @@ Remap_operator_basis *Remap_operator_mgt::search_remap_operator(const char *obje
 }
 
 
+Remap_operator_basis *Remap_operator_mgt::search_remap_operator(Remap_grid_class *grid_src, Remap_grid_class *grid_dst, const char *operator_name)
+{
+    for (int i = 0; i < remap_operators.size(); i ++)
+		if (remap_operators[i]->match_remap_operator(grid_src, grid_dst, operator_name))
+            return remap_operators[i];
+
+    return NULL;
+}
+
+
+void Remap_operator_mgt::add_remap_operator(Remap_operator_basis *new_operator)
+{
+	remap_operators.push_back(new_operator);
+}
+
+
 Remap_operator_mgt::~Remap_operator_mgt()
 {
     for (int i = 0; i < remap_operators.size(); i ++)

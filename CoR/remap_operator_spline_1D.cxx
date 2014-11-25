@@ -358,11 +358,7 @@ Remap_operator_basis *Remap_operator_spline_1D::duplicate_remap_operator(bool fu
 
 	copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->initialize_1D_remap_operator();
-	((Remap_operator_spline_1D*) duplicated_remap_operator)->allocate_local_arrays();
-	((Remap_operator_spline_1D*) duplicated_remap_operator)->enable_extrapolation = this->enable_extrapolation;
-	((Remap_operator_spline_1D*) duplicated_remap_operator)->set_period = this->set_period;
-	((Remap_operator_spline_1D*) duplicated_remap_operator)->period = this->period;
-	((Remap_operator_spline_1D*) duplicated_remap_operator)->periodic = this->periodic;
+	((Remap_operator_spline_1D*) duplicated_remap_operator)->copy_1D_remap_operator_info(this);
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->keep_monotonicity = this->keep_monotonicity;
 	((Remap_operator_spline_1D*) duplicated_remap_operator)->set_keep_monotonicity = this->set_keep_monotonicity;
 	

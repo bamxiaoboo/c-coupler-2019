@@ -37,6 +37,7 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		int *src_cell_index_right;
 
 		void initialize_1D_remap_operator();
+		void copy_1D_remap_operator_info(Remap_operator_1D_basis*);
 		void allocate_1D_remap_operator_common_arrays_space();
 		void search_src_cells_around_dst_cell(double, int, int, int&, int&);
 		void search_src_cells_around_dst_cell_recursively(double, int, int,  int&, int&);

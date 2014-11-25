@@ -635,8 +635,12 @@ void Remap_operator_bilinear::do_src_decomp_caculation(long *decomp_map_src, con
 
 Remap_operator_basis *Remap_operator_bilinear::duplicate_remap_operator(bool fully_copy)
 {
-    Remap_operator_basis *duplicated_remap_operator = new Remap_operator_bilinear();
+    Remap_operator_bilinear *duplicated_remap_operator = new Remap_operator_bilinear();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
+	duplicated_remap_operator->max_num_found_nearest_points = max_num_found_nearest_points;
+	duplicated_remap_operator->num_nearest_points = num_nearest_points;
+	duplicated_remap_operator->num_power = num_power;
+	duplicated_remap_operator->iterative_threshold_distance = iterative_threshold_distance;
     return duplicated_remap_operator;
 }
 

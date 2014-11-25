@@ -357,10 +357,13 @@ void Remap_weight_of_strategy_class::add_remap_weight_of_operator_instance(Remap
 
 void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_sigma_grid(Remap_grid_data_class *field_data_src, Remap_grid_data_class *field_data_dst)
 {
-/*
 	Remap_grid_class *operator_field_data_grids[256], *sized_grids_src[256], *sized_grids_dst[256];
+	Remap_operator_basis *original_remap_operators[256], *operator_for_interpolating_surface_fields;
 	int i, j, num_operator_field_data_grids, num_sized_grids_src, num_sized_grids_dst;
-	Remap_operator_basis *last_remap_operator = NULL;
+	Remap_weight_of_operator_class *sequential_weights_of_operator_for_interpolating_surface_fields;
+	Remap_weight_of_strategy_class *sequential_weights_of_strategy_for_interpolating_surface_fields;
+	char temp1_object_name[256], temp2_object_name[256];
+	Remap_strategy_class *new_remap_strategy;
 
 	
 	if (field_data_src->get_coord_value_grid()->get_num_dimensions() != 3 || !field_data_src->get_coord_value_grid()->has_grid_coord_label(COORD_LABEL_LAT) || 
@@ -388,22 +391,20 @@ void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_si
 	if (field_data_src->get_coord_value_grid()->has_specified_sigma_grid_surface_value_field()) {
 		operator_field_data_grids[0] = field_data_src->get_coord_value_grid();
 		num_operator_field_data_grids = 1;
-		for (i = 0; i < remap_weights_of_operator_instances.size(); i ++)
-			if (last_remap_operator != remap_weights_of_operator_instances[i]->original_remap_operator) {
-				last_remap_operator = remap_weights_of_operator_instances[i]->original_remap_operator;
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_src();
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_dst();
-			}
+		for (i = 0, j = 0; i < remap_weights_of_operators.size(); i ++) {
+			operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_src();
+			operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_dst();
+			original_remap_operators[j++] = remap_weights_of_operators[i]->original_remap_operator;
+		}
 	}
 	else {
 		operator_field_data_grids[0] = field_data_dst->get_coord_value_grid();
 		num_operator_field_data_grids = 1;
-		for (i = remap_weights_of_operator_instances.size()-1; i >= 0 ; i --)
-			if (last_remap_operator != remap_weights_of_operator_instances[i]->original_remap_operator) {
-				last_remap_operator = remap_weights_of_operator_instances[i]->original_remap_operator;
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_dst();
-				operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operator_instances[i]->get_field_data_grid_src();
-			}
+		for (i = remap_weights_of_operators.size()-1, j = 0; i >= 0 ; i --) {
+			operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_dst();
+			operator_field_data_grids[num_operator_field_data_grids++] = remap_weights_of_operators[i]->get_field_data_grid_src();
+			j ++;
+		}
 
 	}
 
@@ -438,7 +439,42 @@ void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_si
 							operator_field_data_grids[i]->copy_sigma_grid_surface_value_field(operator_field_data_grids[i-1]);
 						}
 						else {
-							printf("remap to generate surface field values\n");	
+							EXECUTION_REPORT(REPORT_LOG, true, "C-Coupler will generate surface field values for sigma grid through interpolation between grid %s and %s", 
+											 sized_grids_src[j]->get_grid_name(), sized_grids_dst[j]->get_grid_name());
+							EXECUTION_REPORT(REPORT_ERROR, sized_grids_src[j]->get_original_grid() != NULL && sized_grids_dst[j]->get_original_grid() != NULL, "C-Coupler error11 in update_vertical_remap_weights_of_dynamic_sigma_grid");
+							EXECUTION_REPORT(REPORT_ERROR, (i%2) == 0, "C-Coupler error12 in update_vertical_remap_weights_of_dynamic_sigma_grid");
+							EXECUTION_REPORT(REPORT_LOG, true, "The remapping operator for generating the surface field values for sigma grid is %s", original_remap_operators[(i-1)/2]->get_operator_name());
+							EXECUTION_REPORT(REPORT_ERROR, original_remap_operators[(i-1)/2]->get_src_grid()->get_is_sphere_grid(), "C-Coupler error12 in update_vertical_remap_weights_of_dynamic_sigma_grid");
+							if (original_remap_operators[(i-1)/2]->get_src_grid() == sized_grids_src[j]->get_original_grid() && original_remap_operators[(i-1)/2]->get_dst_grid() == sized_grids_dst[j]->get_original_grid()) {
+								EXECUTION_REPORT(REPORT_LOG, true, "Directly use user defined remapping operator %s for generating the surface field values for sigma grid", original_remap_operators[(i-1)/2]->get_object_name());
+								operator_for_interpolating_surface_fields = original_remap_operators[(i-1)/2];
+							}
+							else operator_for_interpolating_surface_fields = remap_operator_manager->search_remap_operator(sized_grids_src[j]->get_original_grid(), sized_grids_dst[j]->get_original_grid(), original_remap_operators[(i-1)/2]->get_operator_name());
+							if (operator_for_interpolating_surface_fields == NULL || true) {
+								EXECUTION_REPORT(REPORT_LOG, true, "C-Coupler will generate %s remapping algorithms for interpolating surface field values between grid %s and %s", 
+												 original_remap_operators[(i-1)/2]->get_operator_name(), sized_grids_src[j]->get_original_grid()->get_grid_name(), sized_grids_dst[j]->get_original_grid()->get_grid_name());
+								sprintf(temp1_object_name, "%s_for_interpolating_surface_field_between_%s_and_%s\0", original_remap_operators[(i-1)/2]->get_operator_name(), sized_grids_src[j]->get_original_grid()->get_grid_name(), sized_grids_dst[j]->get_original_grid()->get_grid_name());
+								operator_for_interpolating_surface_fields = original_remap_operators[(i-1)/2]->duplicate_remap_operator(false);
+								operator_for_interpolating_surface_fields->change_remap_operator_info(temp1_object_name, sized_grids_src[j]->get_original_grid(), sized_grids_dst[j]->get_original_grid());
+								remap_operator_manager->add_remap_operator(operator_for_interpolating_surface_fields);
+								operator_for_interpolating_surface_fields = remap_operator_manager->search_remap_operator(sized_grids_src[j]->get_original_grid(), sized_grids_dst[j]->get_original_grid(), original_remap_operators[(i-1)/2]->get_operator_name());
+								EXECUTION_REPORT(REPORT_ERROR, operator_for_interpolating_surface_fields != NULL, "C-Coupler error13 in update_vertical_remap_weights_of_dynamic_sigma_grid");
+							}
+							sequential_weights_of_operator_for_interpolating_surface_fields = sequential_remap_weight_of_operator_manager->search_remap_weights_of_operator(sized_grids_src[j]->get_original_grid(), sized_grids_dst[j]->get_original_grid(), operator_for_interpolating_surface_fields);
+							printf("operator_for_interpolating_surface_fields is %lx  %lx %lx: %llx\n", operator_for_interpolating_surface_fields, sized_grids_src[j]->get_original_grid(), sized_grids_dst[j]->get_original_grid(), sequential_weights_of_operator_for_interpolating_surface_fields);
+							if (sequential_weights_of_operator_for_interpolating_surface_fields == NULL) {
+								EXECUTION_REPORT(REPORT_LOG, true, "C-Coupler will generate sequential remapping weights for interpolating surface field values between grid %s and %s", 
+												 sized_grids_src[j]->get_original_grid()->get_grid_name(), sized_grids_dst[j]->get_original_grid()->get_grid_name());
+								sprintf(temp1_object_name, "remap_strategy_of_%s_for_interpolating_surface_field_between_%s_and_%s\0", original_remap_operators[(i-1)/2]->get_operator_name(), sized_grids_src[j]->get_original_grid()->get_grid_name(), sized_grids_dst[j]->get_original_grid()->get_grid_name());
+								new_remap_strategy = new Remap_strategy_class(temp1_object_name, 1, &operator_for_interpolating_surface_fields);
+								remap_strategy_manager->add_remap_strategy(new_remap_strategy);
+								sprintf(temp2_object_name, "sequential_remap_weights_of_%s_for_interpolating_surface_field_between_%s_and_%s\0", original_remap_operators[(i-1)/2]->get_operator_name(), sized_grids_src[j]->get_original_grid()->get_grid_name(), sized_grids_dst[j]->get_original_grid()->get_grid_name());
+								execution_phase_number = 1;
+								sequential_weights_of_strategy_for_interpolating_surface_fields = new Remap_weight_of_strategy_class(temp2_object_name, temp1_object_name, sized_grids_src[j]->get_original_grid()->get_grid_name(), 
+																																	 sized_grids_dst[j]->get_original_grid()->get_grid_name(), NULL, NULL, false);
+								execution_phase_number = 2;
+								sequential_weights_of_strategy_for_interpolating_surface_fields->add_remap_weight_of_operators_to_manager(false);
+							}
 						}
 					}
 			}
@@ -446,7 +482,6 @@ void Remap_weight_of_strategy_class::update_vertical_remap_weights_of_dynamic_si
 		}
 	}
 	operator_field_data_grids[0]->calculate_lev_sigma_values();
-*/
 }
 
 
@@ -492,6 +527,8 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
 		remap_weights_of_operators[i]->do_remap(tmp_field_data_src, tmp_field_data_dst);
 	}
 
+	if (tmp_field_data_src != NULL && tmp_field_data_src != field_data_src)
+		delete tmp_field_data_src;
     field_data_dst->interchange_grid_data(field_data_dst->get_coord_value_grid());
 	field_data_dst->get_grid_data_field()->read_data_size = field_data_dst->get_grid_data_field()->required_data_size;
 }

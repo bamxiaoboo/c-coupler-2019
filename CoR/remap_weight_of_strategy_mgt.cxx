@@ -16,11 +16,12 @@
 
 Remap_weight_of_operator_class *Remap_weight_of_operator_mgt::search_remap_weights_of_operator(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, Remap_operator_basis *original_remap_operator)
 {
-	for (int i = 0; i < remap_weights_of_operators.size(); i ++)
+	for (int i = 0; i < remap_weights_of_operators.size(); i ++) {
 		if (field_data_grid_src->is_similar_grid_with(remap_weights_of_operators[i]->get_field_data_grid_src())&&
-			field_data_grid_src->is_similar_grid_with(remap_weights_of_operators[i]->get_field_data_grid_src()) &&
+			field_data_grid_dst->is_similar_grid_with(remap_weights_of_operators[i]->get_field_data_grid_dst()) &&
 			original_remap_operator == remap_weights_of_operators[i]->get_original_remap_operator())
 			return remap_weights_of_operators[i];
+	}
 		
 	return NULL;
 }

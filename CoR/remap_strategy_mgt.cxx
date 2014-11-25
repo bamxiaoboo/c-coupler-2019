@@ -59,3 +59,9 @@ Remap_strategy_mgt::~Remap_strategy_mgt()
         delete remap_strategies[i];
 }
 
+
+void Remap_strategy_mgt::add_remap_strategy(Remap_strategy_class *remap_strategy)
+{
+	remap_strategies.push_back(remap_strategy);
+}
+

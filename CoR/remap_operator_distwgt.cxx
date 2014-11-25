@@ -111,8 +111,12 @@ void Remap_operator_distwgt::do_src_decomp_caculation(long *decomp_map_src, cons
 
 Remap_operator_basis *Remap_operator_distwgt::duplicate_remap_operator(bool fully_copy)
 {
-    Remap_operator_basis *duplicated_remap_operator = new Remap_operator_distwgt();
+    Remap_operator_distwgt *duplicated_remap_operator = new Remap_operator_distwgt();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
+	duplicated_remap_operator->num_power = num_power;
+	duplicated_remap_operator->num_nearest_points = num_nearest_points;
+	duplicated_remap_operator->threshold_distance = threshold_distance;
+
     return duplicated_remap_operator;
 }
 

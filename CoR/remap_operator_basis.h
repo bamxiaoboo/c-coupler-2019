@@ -63,6 +63,7 @@ class Remap_operator_basis
         virtual Remap_operator_basis *generate_parallel_remap_operator(Remap_grid_class**, int**) = 0;
         virtual void compute_remap_weights_of_one_dst_cell(long) = 0;
         bool match_remap_operator(const char*);
+		bool match_remap_operator(Remap_grid_class*, Remap_grid_class*, const char*);
         void calculate_grids_overlaping();
         void copy_remap_operator_basic_data(Remap_operator_basis*, bool);
         void generate_parallel_remap_weights(Remap_operator_basis*, Remap_grid_class**, int**);
@@ -79,6 +80,7 @@ class Remap_operator_basis
         int get_num_dimensions() { return num_dimensions; }
         bool get_is_sphere_grid() { return src_grid->get_is_sphere_grid(); }
         void add_weight_sparse_matrix(Remap_weight_sparse_matrix *sparse_matrix) { remap_weights_groups.push_back(sparse_matrix); }
+		void change_remap_operator_info(const char*, Remap_grid_class*, Remap_grid_class*);
 };
 
 

@@ -128,8 +128,9 @@ void Remap_operator_conserv_2D::do_src_decomp_caculation(long *decomp_map_src, c
 
 Remap_operator_basis *Remap_operator_conserv_2D::duplicate_remap_operator(bool fully_copy)
 {
-    Remap_operator_basis *duplicated_remap_operator = new Remap_operator_conserv_2D();
+    Remap_operator_conserv_2D *duplicated_remap_operator = new Remap_operator_conserv_2D();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
+	duplicated_remap_operator->num_order = num_order;
     return duplicated_remap_operator;
 }
 

@@ -186,6 +186,7 @@ Remap_operator_basis *Remap_operator_linear::duplicate_remap_operator(bool fully
     Remap_operator_basis *duplicated_remap_operator = new Remap_operator_linear();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
 	((Remap_operator_linear *) duplicated_remap_operator)->initialize_1D_remap_operator();
+	((Remap_operator_linear *) duplicated_remap_operator)->copy_1D_remap_operator_info(this);
 	((Remap_operator_linear *) duplicated_remap_operator)->use_logarithm = this->use_logarithm;
 	((Remap_operator_linear *) duplicated_remap_operator)->set_use_logarithm = this->set_use_logarithm;
 

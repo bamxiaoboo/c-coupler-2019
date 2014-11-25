@@ -24,6 +24,8 @@ class Remap_operator_mgt
         ~Remap_operator_mgt();
         void execute(const char*, Remap_statement_operand **, int);
         Remap_operator_basis *search_remap_operator(const char*);
+		Remap_operator_basis *search_remap_operator(Remap_grid_class*, Remap_grid_class*, const char*);
+		void add_remap_operator(Remap_operator_basis *);
 };
 
 

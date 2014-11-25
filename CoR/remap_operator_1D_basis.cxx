@@ -109,6 +109,18 @@ void Remap_operator_1D_basis::allocate_1D_remap_operator_common_arrays_space()
 }
 
 
+void Remap_operator_1D_basis::copy_1D_remap_operator_info(Remap_operator_1D_basis *original_grid)
+{
+    periodic = original_grid->periodic;
+	set_periodic = original_grid->set_periodic;
+	set_period = original_grid->set_period;
+	set_enable_extrapolation = original_grid->set_enable_extrapolation;
+	enable_extrapolation = original_grid->enable_extrapolation;
+	period = original_grid->period;
+	num_useful_src_cells = original_grid->num_useful_src_cells;
+}
+
+
 void Remap_operator_1D_basis::initialize_1D_remap_operator()
 {
 	set_periodic = false;

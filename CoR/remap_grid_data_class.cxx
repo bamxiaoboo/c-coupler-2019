@@ -278,7 +278,8 @@ void Remap_grid_data_class::transfer_field_attributes_to_another(Remap_grid_data
 	if (words_are_the_same(another_field->grid_data_field->field_name_in_IO_file, "\0"))
 	    strcpy(another_field->grid_data_field->field_name_in_IO_file, this->grid_data_field->field_name_in_IO_file);
     strcpy(another_field->grid_data_field->data_type_in_IO_file, this->grid_data_field->data_type_in_IO_file);
-    
+
+	another_field->grid_data_field->field_attributes.clear();
     for (int i = 0; i < this->grid_data_field->field_attributes.size(); i ++)
         another_field->grid_data_field->field_attributes.push_back(this->grid_data_field->field_attributes[i]);
 }

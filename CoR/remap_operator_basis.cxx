@@ -111,6 +111,12 @@ bool Remap_operator_basis::match_remap_operator(const char *object_name)
 }
 
 
+bool Remap_operator_basis::match_remap_operator(Remap_grid_class *grid_src, Remap_grid_class *grid_dst, const char *operator_name)
+{
+    return words_are_the_same(this->operator_name, operator_name) && this->src_grid == grid_src && this->dst_grid == grid_dst;
+}
+
+
 void Remap_operator_basis::get_all_overlapping_src_cells_recursively(long cell_index_dst, long cell_index_src, 
                                                                      int &num_overlapping_src_cells, long *overlapping_src_cells_indexes)
 {
@@ -257,5 +263,13 @@ void Remap_operator_basis::generate_parallel_remap_weights(Remap_operator_basis 
 {
     for (int i = 0; i < this->remap_weights_groups.size(); i ++)
         another_remap_operator->remap_weights_groups.push_back(this->remap_weights_groups[i]->generate_parallel_remap_weight_of_sparse_matrix(decomp_original_grids, global_cells_local_indexes_in_decomps));
+}
+
+
+void Remap_operator_basis::change_remap_operator_info(const char *operator_name, Remap_grid_class *grid_src, Remap_grid_class *grid_dst)
+{
+	strcpy(this->operator_name, operator_name);
+	this->src_grid = grid_src;
+	this->dst_grid = grid_dst;
 }
 

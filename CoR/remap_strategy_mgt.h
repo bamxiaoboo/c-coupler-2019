@@ -26,6 +26,7 @@ class Remap_strategy_mgt
         ~Remap_strategy_mgt();
         void execute(const char*, Remap_statement_operand **, int);
         Remap_strategy_class *search_remap_strategy(const char*);
+		void add_remap_strategy(Remap_strategy_class*);
 };
 
 #endif
