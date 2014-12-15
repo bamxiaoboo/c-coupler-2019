@@ -33,11 +33,13 @@ Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *or
 		return;
 	}
 
+	printf("okok12 %s %ld\n", decomp_name, decomp->get_num_local_cells());
+
     if (this->original_grid->get_is_sphere_grid()) {
         EXECUTION_REPORT(REPORT_ERROR, decomp_info_grid == original_grid, "%s and %s (the grid of parallel decomposition %s) are not the same grid when generating decomp grid",
 		                 original_grid->get_grid_name(), decomp->get_grid_name(), decomp_name);
 		EXECUTION_REPORT(REPORT_LOG, true, "generate decomposition sphere grid (%s %s) with size %d", decomp_name, original_grid->get_grid_name(), decomp->get_num_local_cells());
-        this->decomp_grid = this->original_grid->generate_decomp_grid(decomp->get_local_cell_global_indx(), decomp->get_num_local_cells());
+        this->decomp_grid = this->original_grid->generate_decomp_grid(decomp->get_local_cell_global_indx(), decomp->get_num_local_cells(), decomp_name);
     }
     else {
 		if (original_grid->has_grid_coord_label(COORD_LABEL_LON) || original_grid->has_grid_coord_label(COORD_LABEL_LAT))
@@ -63,7 +65,9 @@ Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *or
         }
 		sprintf(decomp_grid_name, "DECOMP_GRID_%s", original_grid->get_grid_name());
         this->decomp_grid = new Remap_grid_class(decomp_grid_name, num_sub_grids, sub_grids, 0);
+		this->decomp_grid->set_decomp_name(decomp_name);
 		EXECUTION_REPORT(REPORT_LOG, true, "the size of decomp grid %s is %ld %d", this->decomp_grid->get_grid_name(), this->decomp_grid->get_grid_size(), num_sub_grids);
+		EXECUTION_REPORT(REPORT_LOG, true, "the size of decomp 2D grid %s is %ld vs %d", decomp_2D_grid->get_grid_name(), decomp_2D_grid->get_grid_size(), decomp->get_num_local_cells());
 		if (original_grid->has_grid_coord_label(COORD_LABEL_LEV))
 			this->decomp_grid->generate_3D_grid_decomp_sigma_values(original_grid, decomp_2D_grid, decomp->get_local_cell_global_indx(), decomp->get_num_local_cells());
     }

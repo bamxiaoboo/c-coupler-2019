@@ -155,6 +155,14 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
         check_is_parameter_string_type(function, 2, statement_operands[1], "the name of partial area");
         search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->add_partial_grid_area(statement_operands[1]->extension_names[0]);
     }
+	else if (words_are_the_same(function, FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO)) {
+		EXECUTION_REPORT(REPORT_ERROR, num_operands == 4, "function \"%s\" has four input parameters\n", function);
+		check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the level grid (vertical grid) to be set the sigma information");
+		check_is_parameter_object_type_field_data(function, 2, statement_operands[1], "the vector of sigma values");
+		double top_value = get_float_value_from_parameter(function, 3, statement_operands[2], "the vertical coordinate value of top layer in the sigma grid");
+		double scale_factor = get_float_value_from_parameter(function, 4, statement_operands[3], "the scale factor corresponding to the sigma grid");
+		search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->set_lev_grid_sigma_info(statement_operands[1]->object->object_name, top_value, scale_factor);
+	}
     else if (words_are_the_same(function, FUNCTION_WORD_ADD_AREA_BOUND)) {
         EXECUTION_REPORT(REPORT_ERROR, num_operands == 6, "function \"%s\" has six input parameters\n", function);
         check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the partial grid");
@@ -234,5 +242,15 @@ Remap_grid_mgt::~Remap_grid_mgt()
 {
     for (int i = 0; i < remap_grids.size(); i ++)
         delete remap_grids[i];
+}
+
+
+Remap_grid_class *Remap_grid_mgt::search_same_remap_grid(Remap_grid_class *remap_grid)
+{
+	for (int i = 0; i < remap_grids.size(); i ++)
+		if (remap_grids[i]->is_the_same_grid_with(remap_grid))
+			return remap_grids[i];
+		
+	return NULL;
 }
 

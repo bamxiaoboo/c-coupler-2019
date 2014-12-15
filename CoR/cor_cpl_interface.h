@@ -19,6 +19,7 @@
 #define LON_GF					"lon"
 #define AREA_GF					"arear"
 #define MASK_GF					"mask"
+#define SURFACE_FIELD_GF					"surface_field"
 
 
 extern long cpl_get_grid_size(const char*);

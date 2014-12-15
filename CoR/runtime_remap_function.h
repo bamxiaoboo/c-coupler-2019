@@ -50,7 +50,7 @@ class Runtime_remap_function
         bool *last_redundant_mark_src;
         bool *current_redundant_mark_src;
 
-        bool extract_and_set_runtime_grid_fields(int, Remap_grid_class**, Remap_grid_class*);
+        bool extract_and_set_runtime_grid_fields(Remap_grid_class *, int, Remap_grid_class**, Remap_grid_class*);
         bool extract_runtime_grid_field(Remap_grid_data_class*, Remap_grid_data_class*);
         int check_mask_values_status(bool*, bool*, long);
         void check_dimension_order_of_grid_field(Remap_grid_data_class*, Remap_grid_class*);

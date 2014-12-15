@@ -214,6 +214,7 @@ void initialize_computing_remap_weights_of_one_cell()
 
 void finalize_computing_remap_weights_of_one_cell()
 {
+    using_rotated_grid_data = false;
     have_fetched_dst_grid_cell_coord_values = false;
 }
 

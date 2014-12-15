@@ -78,6 +78,7 @@ Field_info_mgt::Field_info_mgt(const char *shared_fname, const char *private_fna
 	add_field_info("n_grid_lats", "number of different latitudes of a 2D grid", "unitless", "scalar");
 	add_field_info("n_grid_lons", "number of different longitudes of a 2D grid", "unitless", "scalar");
 	add_field_info("n_grid_levels", "number of levels of a 3D grid", "unitless", "scalar");
+	add_field_info("surface_field", "surface field in a 3D sigma grid for calculating vertical coordinates", "unitless", "scalar");
 	add_field_info("index", "global index after decomposition of component grid", "unitless", "vector");
 	add_field_info("scalar_int", "scalar integer", "unitless", "scalar");
 	add_field_info("input_orbYear", "year (AD) wrt orbital parameters", "unitless", "scalar");

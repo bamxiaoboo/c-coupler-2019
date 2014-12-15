@@ -14,13 +14,7 @@
 #include "cor_global_data.h"
 #include "cor_cpl_interface.h"
 #include <string.h>
-
-
-#define LAT_GF                        "lat"    
-#define LON_GF                    "lon"
-#define AREA_GF                    "arear"
-#define MASK_GF                    "mask"
-        
+      
 
 Decomp_info::Decomp_info(const char *decomp_name, const char *model_name, const char *grid_name,
                          int num_local_cells_in_decomp, const int *cell_indexes_in_decomp)
@@ -240,6 +234,7 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 		}
 		EXECUTION_REPORT(REPORT_LOG, true, "before calculate_src_decomp");
 		remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(remap_weights_name);
+		EXECUTION_REPORT(REPORT_ERROR, remap_weights != NULL, "C-Coupler error in generate_remap_weights_src_decomp: %s is not found", remap_weights_name);
 		remap_weights->calculate_src_decomp(remap_grid_manager->search_remap_grid_with_grid_name(decomp_src->get_grid_name()), 
 											remap_grid_manager->search_remap_grid_with_grid_name(decomp_dst->get_grid_name()), 
 											decomp_map_src, decomp_map_dst);

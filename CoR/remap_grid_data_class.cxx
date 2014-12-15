@@ -150,15 +150,21 @@ Remap_grid_data_class *Remap_grid_data_class::duplicate_grid_data_field(Remap_gr
     Remap_grid_data_class *duplicated_grid_data_field;
 
 
-    if (copy_data)
-        EXECUTION_REPORT(REPORT_ERROR, associative_grid->get_grid_size() == coord_value_grid->get_grid_size(),
-                     "remap software error1 in duplicate_grid_data_field\n");
+    if (copy_data) {
+		if (coord_value_grid != NULL)
+	        EXECUTION_REPORT(REPORT_ERROR, associative_grid->get_grid_size() == coord_value_grid->get_grid_size(), "remap software error1 in duplicate_grid_data_field\n");
+		else {
+			EXECUTION_REPORT(REPORT_ERROR, associative_grid->get_grid_size() == grid_data_field->required_data_size, "remap software error1 in duplicate_grid_data_field\n");
+			EXECUTION_REPORT(REPORT_ERROR, associative_grid->get_num_dimensions() == 1, "When copy none-grided field %s to a grided field, the grid %s of the grided field must be 1D grid", 
+							 grid_data_field->field_name_in_application, associative_grid->get_grid_name());
+		}
+    }
     EXECUTION_REPORT(REPORT_ERROR, associative_grid->get_whole_grid() == NULL, "remap software error2 duplicate_grid_data_field\n");
 
     duplicated_data_field = grid_data_field->duplicate_remap_data_field(associative_grid->get_grid_size()*num_points_per_cell, copy_data);
     duplicated_grid_data_field = new Remap_grid_data_class(associative_grid, duplicated_data_field);
 
-    if (copy_data) {
+    if (copy_data && coord_value_grid != NULL) {
         duplicated_grid_data_field->sized_grids.clear();
         for (int i = 0; i < this->sized_grids.size(); i ++)
             duplicated_grid_data_field->sized_grids.push_back(this->sized_grids[i]);

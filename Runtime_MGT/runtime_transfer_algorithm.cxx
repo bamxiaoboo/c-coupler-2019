@@ -70,6 +70,7 @@ Runtime_transfer_algorithm::Runtime_transfer_algorithm(int num_fields, Field_mem
         strcpy(field_grid_names[i], fields_mem[i]->get_grid_name());
     }
 	fields_transfer_info_string = NULL;
+	routing_info_mgr->search_or_add_router(remote_comp_name, field_local_decomp_names[0], field_remote_decomp_names[0]);
 }
 
 

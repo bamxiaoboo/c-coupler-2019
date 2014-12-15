@@ -84,6 +84,10 @@ void Remap_weight_sparse_matrix::add_weights(long *indexes_src, long index_dst, 
     double *new_weight_values;
     long i, new_array_size;
 
+
+	for (i = 0; i < num_added_weights; i ++)
+		EXECUTION_REPORT(REPORT_ERROR, indexes_src[i] >= 0 && indexes_src[i] < remap_operator->get_src_grid()->get_grid_size(), "C-Coupler error1 in add_weights of Remap_weight_sparse_matrix");
+	EXECUTION_REPORT(REPORT_ERROR, remap_operator->get_dst_grid() != NULL && index_dst >= 0 && index_dst < remap_operator->get_dst_grid()->get_grid_size(), "C-Coupler error2 in add_weights of Remap_weight_sparse_matrix");
     
     if (num_weights + num_added_weights > weight_arrays_size) {
         new_array_size = 2 * (num_weights+num_added_weights);

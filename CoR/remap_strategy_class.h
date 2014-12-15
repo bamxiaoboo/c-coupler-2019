@@ -23,8 +23,6 @@ class Remap_strategy_class
         char strategy_name[256];
         std::vector<Remap_operator_basis *> remap_operators;
 
-        void check_field_data_grid_center_values_for_remapping(Remap_grid_class*, Remap_grid_class*, bool);
-
     public:
         Remap_strategy_class(const char*, int, Remap_operator_basis**);
         ~Remap_strategy_class() {}
@@ -32,6 +30,7 @@ class Remap_strategy_class
         void execute_remap_strategy(const char*, const char*, Remap_weight_of_strategy_class*);
         int get_num_remap_operator() { return remap_operators.size(); }
         Remap_operator_basis *get_remap_operator(int i) { return remap_operators[i]; }
+        void check_field_data_grid_center_values_for_remapping(Remap_grid_class*, Remap_grid_class*, bool);
 };
 
 

@@ -36,6 +36,7 @@
 #define FUNCTION_WORD_READ_FIELD                 "read_field"
 #define FUNCTION_WORD_SET_BOUNDARY               "set_boundary"
 #define FUNCIION_WORD_LEV_COORD_FROM_SIGMA       "lev_coord_from_sigma"
+#define FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO    "set_lev_grid_sigma_info"
 #define FUNCTION_WORD_READ_DATA                  "read_data"
 #define FUNCTION_WORD_ALLOC_FIELD                "alloc_field"
 #define FUNCTION_WORD_ISPAN                      "ispan"

@@ -55,6 +55,7 @@ class Field_mem_info
         const char *get_grid_name() { return grid_name; }
         const char *get_field_name() { return field_name; }
 		int get_buf_type() { return buf_type; }
+		long get_size_of_field();
         void reset_field_name(const char*);
 		void change_datatype_to_double();
 		void calculate_field_conservative_sum(Field_mem_info*);

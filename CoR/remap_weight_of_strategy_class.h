@@ -24,6 +24,14 @@ class Remap_weight_of_strategy_class;
 class Remap_weight_of_operator_class;
 
 
+struct Operation_for_caculating_sigma_values
+{
+	Remap_grid_class *current_3D_sigma_grid_src;
+	Remap_grid_class *current_3D_sigma_grid_dst;
+	Remap_weight_of_strategy_class *remap_weights;
+};
+
+
 class Remap_weight_of_operator_instance_class
 {
     private:
@@ -72,6 +80,7 @@ class Remap_weight_of_operator_class
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
 		void add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *);
 		Remap_operator_basis *get_original_remap_operator() { return original_remap_operator; }
+		void renew_vertical_remap_weights(Remap_grid_class*, Remap_grid_class*);
 };
 
 
@@ -86,6 +95,10 @@ class Remap_weight_of_strategy_class
 		bool dynamic_vertical_remapping_weights_src;
 		bool dynamic_vertical_remapping_weights_dst;
 		bool public_remap_weights_of_operators;
+		int num_field_data_grids_in_remapping_process;
+		Remap_grid_class *field_data_grids_in_remapping_process[512];
+		Remap_grid_data_class *runtime_mask_fields_in_remapping_process[512];
+		std::vector<Operation_for_caculating_sigma_values*> operations_for_caculating_sigma_values_of_grid;
 
 		void read_grid_info_from_array(Remap_grid_class*, bool, const char *, long&, long);
 		void read_data_from_array(void*, int, const char*, long&, long, bool);
@@ -99,6 +112,7 @@ class Remap_weight_of_strategy_class
 		void initialize_object();
         Remap_weight_of_strategy_class() { initialize_object(); }
         bool match_object_name(const char*);
+		int generate_remapping_related_grids();
         ~Remap_weight_of_strategy_class();
 
         Remap_grid_class *get_data_grid_src() { return data_grid_src; }
@@ -106,7 +120,6 @@ class Remap_weight_of_strategy_class
         Remap_strategy_class *get_remap_strategy() { return remap_strategy; }
         Remap_operator_basis *get_unique_remap_operator_of_weights();
         void add_remap_weight_of_operator_instance(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
-		void update_vertical_remap_weights_of_dynamic_sigma_grid(Remap_grid_data_class*, Remap_grid_data_class*);
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
         void add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *);
         void calculate_src_decomp(Remap_grid_class*, Remap_grid_class*, long*, const long*);
@@ -117,6 +130,15 @@ class Remap_weight_of_strategy_class
 		void read_remap_weights_from_array(const char*, long, bool, Remap_grid_class**, bool);
 		void check_remap_weights_format();
 		void add_remap_weight_of_operators_to_manager(bool);
+		int get_num_remap_weights_of_operators() { return remap_weights_of_operators.size(); }
+		Remap_weight_of_operator_class *get_remap_weights_of_operator(int i) { return remap_weights_of_operators[i]; }
+		int get_num_field_data_grids_in_remapping_process() { return num_field_data_grids_in_remapping_process; }
+		Remap_grid_class *get_field_data_grid_in_remapping_process(int);
+		Remap_grid_data_class *get_runtime_mask_field_in_remapping_process(int);
+		void build_operations_for_calculating_sigma_values_of_grids();
+		void calculate_sigma_values_of_grids();
+		int get_num_operations_for_caculating_sigma_values_of_grid() { return operations_for_caculating_sigma_values_of_grid.size(); }
+		Operation_for_caculating_sigma_values *get_operation_for_caculating_sigma_values_of_grid(int i) { return operations_for_caculating_sigma_values_of_grid[i]; }
 };
 
 

@@ -26,6 +26,7 @@ void Remap_grid_class::initialize_grid_class_data()
     strcpy(this->grid_name, "\0");
     strcpy(this->coord_label, "\0");
     strcpy(this->coord_unit, "\0");
+	strcpy(this->decomp_name, "\0");
     this->grid_size = 0;
     this->num_dimensions = 0;
     this->num_vertexes = 0;
@@ -48,6 +49,8 @@ void Remap_grid_class::initialize_grid_class_data()
     this->redundant_cell_mark = NULL;
     this->redundant_cell_mark_field = NULL;
     this->area_or_volumn = NULL;
+	this->sigma_grid_scale_factor = 0;
+	this->sigma_grid_top_value = 0;
     this->boundary_min_lon = NULL_COORD_VALUE;
     this->boundary_max_lon = NULL_COORD_VALUE;
     this->boundary_min_lat = NULL_COORD_VALUE;
@@ -177,13 +180,17 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *field_data_grid,
     this->num_dimensions = num_leaf_grids_field_data;
     this->grid_size = field_data_grid->grid_size / remap_src_grid->grid_size * remap_dst_grid->grid_size;
     this->enable_to_set_coord_values = false;
-    strcpy(this->grid_name, "TEMP_GRID_FIELD_DATA_DST\0");
+    sprintf(this->grid_name, "TEMP_GRID_FIELD_DATA_DST %s from %s to %s\0", field_data_grid->grid_name, remap_src_grid->grid_name, remap_dst_grid->grid_name);
     for (i = 0; i < num_leaf_grids_field_data; i ++)
         sub_grids.push_back(leaf_grids_field_data[i]);
     get_sized_sub_grids(&num_sized_grids_field_data, sized_grids_field_data);
     sub_grids.clear();
     for (i = 0; i < num_sized_grids_field_data; i ++)
         sub_grids.push_back(sized_grids_field_data[i]);
+
+	printf("okok new grid %s %s\n", grid_name);
+	if (is_sigma_grid())
+		allocate_sigma_grid_specific_fields(NULL, NULL, 0, 0);
 }
 
 
@@ -257,6 +264,8 @@ void Remap_grid_class::generate_interchange_grids(Remap_grid_class *remap_grid,
     Remap_grid_class *leaf_grids_remap[256];    
     int num_size_grids_this, num_size_grids_remap, num_size_grids_interchange;
     Remap_grid_class *size_grids_this[256], *size_grids_remap[256], *size_grids_interchange[256];   
+	Remap_grid_class *existing_grid;
+	char new_grid_name[256];
     int i, j, k;
 
 
@@ -295,7 +304,16 @@ void Remap_grid_class::generate_interchange_grids(Remap_grid_class *remap_grid,
             size_grids_interchange[num_size_grids_interchange++] = size_grids_this[i];
     }
 
-    *interchange_grid = new Remap_grid_class("TEMP_GRID_INTERCHANGE", num_size_grids_interchange, size_grids_interchange, 0);
+	sprintf(new_grid_name, "%s", "TEMP_GRID_INTERCHANGE");
+	for (i = 0; i < num_size_grids_interchange; i ++)
+		sprintf(new_grid_name, "%s_%s", new_grid_name, size_grids_interchange[i]->get_grid_name());
+    *interchange_grid = new Remap_grid_class(new_grid_name, num_size_grids_interchange, size_grids_interchange, 0);
+	existing_grid = remap_grid_manager->search_same_remap_grid(*interchange_grid);
+	if (existing_grid != NULL) {
+		delete *interchange_grid;
+		*interchange_grid = existing_grid;
+	}
+	
     EXECUTION_REPORT(REPORT_ERROR, this->is_similar_grid_with(*interchange_grid), "remap software error2 when generating interchange grids\n");
 }
 
@@ -356,6 +374,10 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
     duplicated_grid->super_grid_of_setting_coord_values = this->super_grid_of_setting_coord_values;
     duplicated_grid->enable_to_set_coord_values = false;
     duplicated_grid->are_vertex_values_set_in_default = this->are_vertex_values_set_in_default;
+	duplicated_grid->sigma_grid_scale_factor = this->sigma_grid_scale_factor;
+	duplicated_grid->sigma_grid_top_value = this->sigma_grid_top_value;
+	if (this->sigma_grid_sigma_value_field != NULL)
+		duplicated_grid->sigma_grid_sigma_value_field = this->sigma_grid_sigma_value_field->duplicate_grid_data_field(duplicated_grid, 1, true, true);
     if (this->redundant_cell_mark_field != NULL) {
         duplicated_grid->redundant_cell_mark_field = this->redundant_cell_mark_field->duplicate_grid_data_field(this, 1, true, true);
         duplicated_grid->redundant_cell_mark = (bool *) duplicated_grid->redundant_cell_mark_field->grid_data_field->data_buf;
@@ -410,18 +432,27 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
 
     runtime_remap_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, runtime_remap_grid);
     for (i = 0; i < num_leaf_grids; i ++) {
-         super_grid = leaf_grids[i]->super_grid_of_setting_coord_values;
-         EXECUTION_REPORT(REPORT_ERROR, super_grid != NULL, "remap software error2 in generate_remap_operator_runtime_grid\n");
-         if (super_grid->is_subset_of_grid(runtime_remap_grid))
-             continue;
-        EXECUTION_REPORT(REPORT_ERROR, super_grid->is_superset_of_grid(remap_grid), "remap software error3 in generate_remap_operator_runtime_grid\n");
-        center_value_field = leaf_grids[i]->get_grid_center_field();
-        duplicated_grid_data = center_value_field->duplicate_grid_data_field(remap_grid, 1, false, false);
+		printf("okok leaf grid %s at %lx\n", leaf_grids[i]->get_grid_name(), leaf_grids[i]);
+		if (leaf_grids[i]->has_grid_coord_label(COORD_LABEL_LEV) && leaf_grids[i]->get_sigma_grid_sigma_value_field() != NULL) {
+			center_value_field = leaf_grids[i]->get_sigma_grid_sigma_value_field();
+			vertex_value_field = center_value_field;
+			leaf_grids[i]->num_vertexes = 2;
+		}
+		else {
+	        super_grid = leaf_grids[i]->super_grid_of_setting_coord_values;
+	        EXECUTION_REPORT(REPORT_ERROR, super_grid != NULL, "remap software error2 in generate_remap_operator_runtime_grid\n");
+	        if (super_grid->is_subset_of_grid(runtime_remap_grid))
+	            continue;
+	        EXECUTION_REPORT(REPORT_ERROR, super_grid->is_superset_of_grid(remap_grid), "remap software error3 in generate_remap_operator_runtime_grid\n");
+	        center_value_field = leaf_grids[i]->get_grid_center_field();
+			vertex_value_field = leaf_grids[i]->get_grid_vertex_field();
+			if (vertex_value_field != NULL)
+				leaf_grids[i]->num_vertexes = super_grid->num_vertexes;
+		}		
+		duplicated_grid_data = center_value_field->duplicate_grid_data_field(remap_grid, 1, false, false);
         leaf_grids[i]->grid_center_fields.push_back(duplicated_grid_data);
-        vertex_value_field = leaf_grids[i]->get_grid_vertex_field();
         if (vertex_value_field != NULL) {
-            leaf_grids[i]->num_vertexes = super_grid->num_vertexes;
-            duplicated_grid_data = vertex_value_field->duplicate_grid_data_field(remap_grid, super_grid->num_vertexes, false, false);
+            duplicated_grid_data = vertex_value_field->duplicate_grid_data_field(remap_grid, leaf_grids[i]->num_vertexes, false, false);
             leaf_grids[i]->grid_vertex_fields.push_back(duplicated_grid_data);
         }
     }
@@ -753,100 +784,148 @@ void Remap_grid_class::gen_lev_coord_from_sigma(char extension_names[16][256],
     sscanf(lev_coord_top_str, "%lf", &data_top);
 	this->specified_sigma_grid_surface_value_field = true;
 	allocate_sigma_grid_specific_fields(grid_lev_sigma_coord->grid_center_fields[0], field_lev_coord_bot, data_top, scale_factor);
-	
 	calculate_lev_sigma_values();
+	get_a_leaf_grid(COORD_LABEL_LEV)->super_grid_of_setting_coord_values = this;
+}
+
+
+void Remap_grid_class::set_lev_grid_sigma_info(const char *sigma_value_field_name, double top_value, double scale_factor)
+{
+	Remap_grid_data_class *sigma_value_field;
+	
+	EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1 && words_are_the_same(coord_label, COORD_LABEL_LEV), 
+					 "Grid %s must be a 1D grid at vertical direction (the label of grid is \"lev\": only lev grid can be set sigma info", grid_name);
+	sigma_value_field = remap_field_data_manager->search_remap_field_data(sigma_value_field_name);
+	EXECUTION_REPORT(REPORT_ERROR, sigma_value_field != NULL, "C-Coupler error in set_lev_grid_sigma_info");
+	allocate_sigma_grid_specific_fields(sigma_value_field, NULL, top_value, scale_factor);
+}
+
+
+bool Remap_grid_class::is_sigma_grid()
+{
+	Remap_grid_class *leaf_grids[256];
+	int i, num_leaf_grids;
+
+	
+	if (num_dimensions != 3)
+		return false;
+
+	if (!has_grid_coord_label(COORD_LABEL_LON) || !has_grid_coord_label(COORD_LABEL_LAT) || !has_grid_coord_label(COORD_LABEL_LEV))
+		return false;
+
+	return get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field != NULL;
 }
 
 
 void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class *sigma_grid_sigma_value_field, Remap_grid_data_class *sigma_grid_surface_value_field, double data_top, double scale_factor)
 {
-	int num_sized_sub_grids, i;
+	int num_sized_sub_grids, i, j;
 	Remap_grid_class *sized_sub_grids[256];
+	Remap_grid_class *sphere_grid, *existing_grid;
 	
 
-	if (this->sigma_grid_sigma_value_field != NULL)
+	if (this->sigma_grid_surface_value_field != NULL)
 		return;
-	
+
 	if (sigma_grid_sigma_value_field != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, sigma_grid_surface_value_field != NULL, "C-Coupler error1 in allocate_sigma_grid_specific_fields");
-		this->sigma_grid_sigma_value_field = sigma_grid_sigma_value_field->duplicate_grid_data_field(sigma_grid_sigma_value_field->get_coord_value_grid(), 1, true, true);
-		this->sigma_grid_surface_value_field = sigma_grid_surface_value_field->duplicate_grid_data_field(sigma_grid_surface_value_field->get_coord_value_grid(), 1, true, true);
-		this->sigma_grid_top_value = data_top;
-		this->sigma_grid_scale_factor = scale_factor;		
+		EXECUTION_REPORT(REPORT_ERROR, enable_to_set_coord_values, "Grid %s has been used (for example, interpolation) before. It cannot be set to a sigma grid", grid_name);
+		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field == NULL, "Sigma information of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
+		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->grid_center_fields.size() == 0, "1D grid %s has been set to non-sigma grid before. Therefore it cannot be set sigma information", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, this->grid_center_fields.size() == 0, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
-		grid_center_fields.push_back(sigma_grid_sigma_value_field->duplicate_grid_data_field(this, 1, false, false));
-	    strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
+		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field = sigma_grid_sigma_value_field->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, true, true);
+		if (sigma_grid_surface_value_field != NULL) {
+			this->sigma_grid_surface_value_field = sigma_grid_surface_value_field->duplicate_grid_data_field(sigma_grid_surface_value_field->get_coord_value_grid(), 1, true, true);
+			grid_center_fields.push_back(sigma_grid_sigma_value_field->duplicate_grid_data_field(this, 1, false, false));
+			strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
+			strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_IO_file, COORD_LABEL_LEV);
+		}
+		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_top_value = data_top;
+		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_scale_factor = scale_factor;		
+		this->get_a_leaf_grid(COORD_LABEL_LEV)->end_grid_definition_stage(NULL);
+		printf("okok allocate sigma_grid_sigma_value_field for grid %s at %lx\n", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name(), this->get_a_leaf_grid(COORD_LABEL_LEV));
 		return;
 	}
+
+	EXECUTION_REPORT(REPORT_LOG, true, "Allocate sigma grid specific fields for grid %s", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR, is_sigma_grid(), "C-Coupler error0 in allocate_sigma_grid_specific_fields");
 		
 	get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
-	for (i = 0; i < num_sized_sub_grids; i ++)
-		if (sized_sub_grids[i]->has_grid_coord_label(COORD_LABEL_LEV)) {
-			EXECUTION_REPORT(REPORT_ERROR, sized_sub_grids[i]->get_num_dimensions() == 1 && sized_sub_grids[i]->get_super_grid_of_setting_coord_values() != NULL &&
-				             sized_sub_grids[i]->get_super_grid_of_setting_coord_values()->is_sigma_grid(), "C-Coupler error2 in allocate_sigma_grid_specific_fields");
-			this->sigma_grid_sigma_value_field = sized_sub_grids[i]->get_super_grid_of_setting_coord_values()->sigma_grid_sigma_value_field->duplicate_grid_data_field(sized_sub_grids[i], 1, true, true);
-			this->sigma_grid_top_value = sized_sub_grids[i]->get_super_grid_of_setting_coord_values()->sigma_grid_top_value;
-			this->sigma_grid_scale_factor = sized_sub_grids[i]->get_super_grid_of_setting_coord_values()->sigma_grid_scale_factor;
-		}
-		else {			
-			EXECUTION_REPORT(REPORT_ERROR, sized_sub_grids[i]->get_num_dimensions() == 2 && sized_sub_grids[i]->has_grid_coord_label(COORD_LABEL_LON) &&
-				             sized_sub_grids[i]->has_grid_coord_label(COORD_LABEL_LAT), "C-Coupler error3 in allocate_sigma_grid_specific_fields");
-			EXECUTION_REPORT(REPORT_ERROR, sized_sub_grids[i]->grid_center_fields.size() == 2, "C-Coupler error4 in allocate_sigma_grid_specific_fields");
-			this->sigma_grid_surface_value_field = sized_sub_grids[i]->grid_center_fields[0]->duplicate_grid_data_field(sized_sub_grids[i], 1, false, false);
-		}
+	for (i = 0, j = 0; i < num_sized_sub_grids; i ++)
+		if (!sized_sub_grids[i]->has_grid_coord_label(COORD_LABEL_LEV))
+			sized_sub_grids[j++] = sized_sub_grids[i];
+	sphere_grid = new Remap_grid_class("sphere_grid_for_sigma_grid_surface_value_field", j, sized_sub_grids, 0);
+	existing_grid = remap_grid_manager->search_same_remap_grid(sphere_grid);
+	if (existing_grid != NULL) {
+		delete sphere_grid;
+		sphere_grid = existing_grid;
+	}
 
-	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_sigma_value_field != NULL && this->sigma_grid_surface_value_field != NULL, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
+	this->sigma_grid_surface_value_field = this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field->duplicate_grid_data_field(sphere_grid, 1, false, false);
+	strcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
+	strcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->field_name_in_IO_file, COORD_LABEL_LEV);
 
 	if (this->grid_center_fields.size() != 0)
 		EXECUTION_REPORT(REPORT_ERROR, this->grid_center_fields.size() == 1, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
 	else {
-		grid_center_fields.push_back(this->sigma_grid_sigma_value_field->duplicate_grid_data_field(this, 1, false, false));
+		grid_center_fields.push_back(this->get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(this, 1, false, false));
 	    strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
+		strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_IO_file, COORD_LABEL_LEV);
 	}
 }
 
 
-void Remap_grid_class::copy_sigma_grid_surface_value_field(Remap_grid_class *grid_copy_in)
+Remap_grid_data_class *Remap_grid_class::get_sigma_grid_sigma_value_field()
 {
-	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_surface_value_field != NULL && grid_copy_in->sigma_grid_surface_value_field, "C-Coupler error1 in copy_sigma_grid_surface_value_field");
-	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_surface_value_field->get_coord_value_grid()&& grid_copy_in->sigma_grid_surface_value_field->get_coord_value_grid(), 
+	EXECUTION_REPORT(REPORT_ERROR, sigma_grid_sigma_value_field != NULL, "C-Coupler error1 in get_sigma_grid_sigma_value_field");
+	return sigma_grid_sigma_value_field;
+}
+
+
+void Remap_grid_class::copy_sigma_grid_surface_value_field(Remap_grid_data_class *field_copy_in)
+{
+	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_surface_value_field != NULL, "C-Coupler error1 in copy_sigma_grid_surface_value_field");
+	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size() == field_copy_in->get_coord_value_grid()->get_grid_size(), 
 					 "C-Coupler error2 in copy_sigma_grid_surface_value_field");
 
-	memcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->data_buf, grid_copy_in->sigma_grid_surface_value_field->get_grid_data_field()->data_buf, sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size()*sizeof(double));
+	memcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->data_buf, field_copy_in->get_grid_data_field()->data_buf, sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size()*sizeof(double));
 }
 
 
 void Remap_grid_class::calculate_lev_sigma_values()
 {
-    long i, j;
+    long i, j, lev_grid_size;
     int num_leaf_grids;
 	Remap_grid_class *leaf_grids[256], *lev_leaf_grid, *interchanged_grid;
 	double *data_grid_field, *data_array_bot, *data_array_ptr, *data_sigma, data_bot, full_ratio;
 	bool *horizontal_grid_mask_values;
+	double local_sigma_grid_top_value, local_sigma_grid_scale_factor;
 	
 
 	EXECUTION_REPORT(REPORT_ERROR, this->num_dimensions == 3 && this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LEV),
 					 "C-Coupler error1 in calculate_lev_sigma_values\n");
-	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_sigma_value_field != NULL && this->sigma_grid_surface_value_field != NULL, "C-Coupler error2 in calculate_lev_sigma_values %s", grid_name);	
+	EXECUTION_REPORT(REPORT_ERROR, this->is_sigma_grid() && this->sigma_grid_surface_value_field != NULL, "C-Coupler error2 in calculate_lev_sigma_values %s", grid_name);	
 
     full_ratio = 0;
-	data_sigma = (double*) sigma_grid_sigma_value_field->get_grid_data_field()->data_buf;
-    for (i = 0; i < sigma_grid_sigma_value_field->get_coord_value_grid()->grid_size; i ++) {
-        EXECUTION_REPORT(REPORT_WARNING, fabs(data_sigma[i]) <= 1.0, "the sigma value in grid %s should be between 0.0 and 1.0\n", sigma_grid_sigma_value_field->get_coord_value_grid()->get_grid_name());
+	data_sigma = (double*) get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_grid_data_field()->data_buf;
+	lev_grid_size = get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->grid_size;
+	local_sigma_grid_top_value = get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_top_value;
+	local_sigma_grid_scale_factor = get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_scale_factor;
+    for (i = 0; i < lev_grid_size; i ++) {
+        EXECUTION_REPORT(REPORT_WARNING, fabs(data_sigma[i]) <= 1.0, "the sigma value in grid %s should be between 0.0 and 1.0\n", get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
         if (fabs(data_sigma[i]) > 1.0)
             if (data_sigma[i] > 0)
                 data_sigma[i] = 1.0;
             else data_sigma[i] = -1.0;
         if (full_ratio == 1.0)
-            EXECUTION_REPORT(REPORT_ERROR, data_sigma[i] >= 0, "the sigma value in grid %s must be all positive or negative", sigma_grid_sigma_value_field->get_coord_value_grid()->get_grid_name());
+            EXECUTION_REPORT(REPORT_ERROR, data_sigma[i] >= 0, "the sigma value in grid %s must be all positive or negative", get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
         if (full_ratio == -1.0)
-            EXECUTION_REPORT(REPORT_ERROR, data_sigma[i] <= 0, "the sigma value in grid %s must be all positive or negative", sigma_grid_sigma_value_field->get_coord_value_grid()->get_grid_name());
+            EXECUTION_REPORT(REPORT_ERROR, data_sigma[i] <= 0, "the sigma value in grid %s must be all positive or negative", get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
         if (data_sigma[i] > 0)
             full_ratio = 1.0;
         if (data_sigma[i] < 0)
             full_ratio = -1.0;
     }
-    EXECUTION_REPORT(REPORT_ERROR, full_ratio == 1.0 || full_ratio == -1.0, "the sigma value in grid %s must be all positive or negative", sigma_grid_sigma_value_field->get_coord_value_grid()->get_grid_name());
+    EXECUTION_REPORT(REPORT_ERROR, full_ratio == 1.0 || full_ratio == -1.0, "the sigma value in grid %s must be all positive or negative", get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
 
     this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++)
@@ -874,10 +953,24 @@ void Remap_grid_class::calculate_lev_sigma_values()
         }
         else {
             for (j = 0; j < lev_leaf_grid->grid_size; j ++)
-                data_array_ptr[j] = (fabs(data_sigma[j])*(data_bot-sigma_grid_top_value) + sigma_grid_top_value)*full_ratio*sigma_grid_scale_factor;
+                data_array_ptr[j] = (fabs(data_sigma[j])*(data_bot-local_sigma_grid_top_value) + local_sigma_grid_top_value)*full_ratio*local_sigma_grid_scale_factor;
         }
     }
 	EXECUTION_REPORT(REPORT_LOG, true, "calculate vertical grid coordinate values in a sigma 3D grid %s\n", grid_name);
+}
+
+
+Remap_grid_data_class *Remap_grid_class::get_unique_center_field()
+{
+	EXECUTION_REPORT(REPORT_ERROR, grid_center_fields.size() == 1 && is_sigma_grid(), "C-Coupler error in Remap_grid_class::get_unique_center_field");
+	return grid_center_fields[0];
+}
+
+
+Remap_grid_data_class *Remap_grid_class::get_unique_vertex_field()
+{
+	EXECUTION_REPORT(REPORT_ERROR, grid_vertex_fields.size() == 1 && is_sigma_grid() && num_vertexes == 2, "C-Coupler error in Remap_grid_class::get_unique_vertex_field");
+	return grid_vertex_fields[0];
 }
 
 
@@ -1059,6 +1152,23 @@ bool Remap_grid_class::is_similar_grid_with(Remap_grid_class *another_grid)
 bool Remap_grid_class::is_superset_of_grid(Remap_grid_class *another_grid) 
 {
     return another_grid->is_subset_of_grid(this);
+}
+
+
+Remap_grid_class *Remap_grid_class::get_a_leaf_grid(const char *coord_label)
+{
+    Remap_grid_class *leaf_grids[256];
+    int i, num_leaf_grids;
+
+
+    get_leaf_grids(&num_leaf_grids, leaf_grids, this);
+	for (i = 0; i < num_leaf_grids; i ++)
+		if (words_are_the_same(leaf_grids[i]->coord_label, coord_label))
+			return leaf_grids[i];
+
+	EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error in get_a_leaf_grid");
+
+	return NULL;
 }
 
 
@@ -1342,20 +1452,20 @@ void Remap_grid_class::set_1D_coord_vertex_values_in_default(const double *cente
     for (i = 0; i < grid_size; i ++) {
         if (cyclic) {
             prev_i = (i-1+grid_size) % grid_size;
-            while (redundant_cell_mark[prev_i])
+            while (redundant_cell_mark != NULL && redundant_cell_mark[prev_i])
                 prev_i = (prev_i-1+grid_size) % grid_size;
             next_i = (i+1) % grid_size;
-            while (redundant_cell_mark[next_i])
+            while (redundant_cell_mark != NULL && redundant_cell_mark[next_i])
                 next_i = (next_i+1) % grid_size;
         }
         else {
             prev_i = i - 1;
-            while (prev_i >= 0 && redundant_cell_mark[prev_i])
+            while (prev_i >= 0 && (redundant_cell_mark != NULL && redundant_cell_mark[prev_i]))
                 prev_i --;
             if (prev_i < 0)
                 prev_i = i;
             next_i = i + 1;
-            while (next_i < grid_size && redundant_cell_mark[next_i])
+            while (next_i < grid_size && (redundant_cell_mark != NULL && redundant_cell_mark[next_i]))
                 next_i ++;
             if (next_i >= grid_size)
                 next_i = i;
@@ -1603,7 +1713,6 @@ void Remap_grid_class::generate_voronoi_grid()
 
 void Remap_grid_class::set_coord_vertex_values_in_default()
 {
-    Remap_grid_data_class *vertex_field[256];
     bool is_unit_degree_dim1, is_unit_degree_dim2;
     double *center_values, *vertex_values;
     long i, j, k;
@@ -1612,7 +1721,7 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
     Remap_grid_class *leaf_grids[256], *current_leaf_grid, *leaf_grid_dim1, *leaf_grid_dim2;
 
 
-    if (grid_center_fields.size() == 0 || grid_vertex_fields.size() > 0)
+    if (grid_center_fields.size() == 0)
         return;
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
@@ -1625,31 +1734,38 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
     num_vertexes = 1;
     for (i = 0; i < grid_center_fields.size(); i ++)
         num_vertexes *= 2;
-    for (i = 0; i < grid_center_fields.size(); i ++) {
-        vertex_field[i] = grid_center_fields[i]->duplicate_grid_data_field(this, num_vertexes, false, false);
-        grid_vertex_fields.push_back(vertex_field[i]);
-    }
+	if (grid_vertex_fields.size() == 0)
+		for (i = 0; i < grid_center_fields.size(); i ++) 
+			grid_vertex_fields.push_back(grid_center_fields[i]->duplicate_grid_data_field(this, num_vertexes, false, false));
 
     if (grid_center_fields.size() == 1) {
         for (j = 0; j < num_leaf_grids; j ++)
-            if (leaf_grids[j]->get_grid_center_field() == grid_center_fields[0])
-                break;
+			if (is_sigma_grid()) {
+				if (leaf_grids[j]->has_grid_coord_label(COORD_LABEL_LEV)){
+					EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV), "remap software error0 in set_coord_vertex_values_in_default\n");
+					break;
+				}
+			}
+			else {
+	            if (leaf_grids[j]->get_grid_center_field() == grid_center_fields[0])
+	                break;
+			}
         EXECUTION_REPORT(REPORT_ERROR, j < num_leaf_grids, "remap software error1 in set_coord_vertex_values_in_default\n");
         current_leaf_grid = leaf_grids[j];
         EXECUTION_REPORT(REPORT_ERROR, current_leaf_grid->grid_size > 0, "remap software error2 in set_coord_vertex_values_in_default\n");
         grid_center_fields[0]->interchange_grid_data(current_leaf_grid);
-        vertex_field[0]->interchange_grid_data(current_leaf_grid);
+        grid_vertex_fields[0]->interchange_grid_data(current_leaf_grid);
         is_unit_degree_dim1 = words_are_the_same(current_leaf_grid->coord_unit, COORD_UNIT_DEGREES);
         for (j = 0; j < grid_size/current_leaf_grid->grid_size; j ++) {
             center_values = (double*)grid_center_fields[0]->grid_data_field->data_buf + j*current_leaf_grid->grid_size;
-            vertex_values = (double*)vertex_field[0]->grid_data_field->data_buf + 2*j*current_leaf_grid->grid_size;
+            vertex_values = (double*)grid_vertex_fields[0]->grid_data_field->data_buf + 2*j*current_leaf_grid->grid_size;
             set_1D_coord_vertex_values_in_default(center_values,
                                                   vertex_values,
                                                   current_leaf_grid->grid_size,
                                                   current_leaf_grid->cyclic,
                                                   is_unit_degree_dim1);
         }        
-        vertex_field[0]->interchange_grid_data(this);
+        grid_vertex_fields[0]->interchange_grid_data(this);
         grid_center_fields[0]->interchange_grid_data(this);
     }
     else if (grid_center_fields.size() == 2) {
@@ -2631,7 +2747,13 @@ bool Remap_grid_class::get_is_sphere_grid()
 }
 
 
-Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_indexes, int num_local_cells)
+void Remap_grid_class::set_decomp_name(const char *decomp_name)
+{
+	strcpy(this->decomp_name, decomp_name);
+}
+
+
+Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_indexes, int num_local_cells, const char *decomp_name)
 {
     Remap_grid_class *leaf_grids[256];
     Remap_grid_class *decomp_leaf_grids[256];
@@ -2708,6 +2830,7 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
         delete original_center_field_lat;
     }
 
+	strcpy(decomp_grid->decomp_name, decomp_name);
 	decomp_grid->original_grid = this;
 	
     return decomp_grid;
@@ -2724,23 +2847,21 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 	EXECUTION_REPORT(REPORT_ERROR, this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LEV),
 					 "C-Coupler error1 in generate_3D_grid_decomp_sigma_values\n");
 
-	if (original_3D_grid->sigma_grid_sigma_value_field == NULL)
+	if (!original_3D_grid->is_sigma_grid())
 		return;
 
 	EXECUTION_REPORT(REPORT_ERROR, original_3D_grid->grid_center_fields.size() == 1 && this->grid_center_fields.size() == 0, "C-Coupler error1 in generate_3D_grid_decomp_sigma_values\n");
 	
 	grid_center_fields.push_back(original_3D_grid->grid_center_fields[0]->duplicate_grid_data_field(this, 1, false, false));
-	sigma_grid_sigma_value_field = original_3D_grid->sigma_grid_sigma_value_field->duplicate_grid_data_field(original_3D_grid->sigma_grid_sigma_value_field->get_coord_value_grid(), 1, true, true);
-	sigma_grid_surface_value_field = original_3D_grid->sigma_grid_sigma_value_field->duplicate_grid_data_field(decomp_grid, 1, false, false);
+	sigma_grid_surface_value_field = original_3D_grid->get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(decomp_grid, 1, false, false);
 	local_sigma_grid_surface_values = (double*) sigma_grid_surface_value_field->get_grid_data_field()->data_buf;
 	for (int i = 0; i < num_local_cells; i ++)
 		local_sigma_grid_surface_values[i] = 0.0;
 
-	sigma_grid_top_value = original_3D_grid->sigma_grid_top_value;
-	sigma_grid_scale_factor = original_3D_grid->sigma_grid_scale_factor;
+	printf("okok11 %d vs %ld vs %ld at %lx\n", num_local_cells, decomp_grid->get_grid_size(), sigma_grid_surface_value_field->get_grid_data_field()->read_data_size, this);
 	specified_sigma_grid_surface_value_field = original_3D_grid->specified_sigma_grid_surface_value_field;
 	
-	EXECUTION_REPORT(REPORT_LOG, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, sigma_grid_sigma_value_field->get_coord_value_grid()->get_grid_size(),
+	EXECUTION_REPORT(REPORT_LOG, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_size(),
 	                 sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size(), this->get_grid_size());
 
 	this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
@@ -2752,6 +2873,18 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 		
 	for (int i = 0; i < num_local_cells; i ++)
 		local_sigma_grid_surface_values[i] = ((double*)(original_3D_grid->sigma_grid_surface_value_field->get_grid_data_field()->data_buf))[local_cell_indexes[i]];
+}
+
+
+void Remap_grid_class::renew_lev_grid_coord_values(double *new_center_coord_values, double *new_vertex_coord_values)
+{
+	EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1, "C-Coupler error1 in renew_lev_grid_coord_values");
+	EXECUTION_REPORT(REPORT_ERROR, grid_center_fields.size() == 1, "C-Coupler error2 in renew_lev_grid_coord_values");
+	EXECUTION_REPORT(REPORT_ERROR, grid_vertex_fields.size() == 1 && num_vertexes == 2, "C-Coupler error3 in renew_lev_grid_coord_values");
+	for (int i = 0; i < grid_size; i ++)
+		((double*)grid_center_fields[0]->get_grid_data_field()->data_buf)[i] = new_center_coord_values[i];
+	for (int i = 0; i < grid_size*2; i ++)
+		((double*)grid_vertex_fields[0]->get_grid_data_field()->data_buf)[i] = new_vertex_coord_values[i];
 }
 
 

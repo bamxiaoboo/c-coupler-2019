@@ -114,3 +114,9 @@ Remap_weight_of_strategy_mgt::~Remap_weight_of_strategy_mgt()
         delete remap_weights_of_strategies[i];
 }
 
+
+void Remap_weight_of_strategy_mgt::add_remap_weight_of_strategy(Remap_weight_of_strategy_class *remap_weight_of_strategy)
+{
+	remap_weights_of_strategies.push_back(remap_weight_of_strategy);
+}
+

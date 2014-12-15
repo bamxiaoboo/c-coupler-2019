@@ -132,6 +132,8 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
             super_grid = leaf_grids[i]->super_grid_of_setting_coord_values;
             if (super_grid == NULL)
                 continue;
+			if (super_grid->is_sigma_grid())
+				continue;
             partial_redundant_mark_field = remap_field_data_redundant_mark_field_src->get_coord_value_grid()->expand_to_generate_full_coord_value(super_grid->redundant_cell_mark_field);
             for (j = 0; j < remap_field_data_redundant_mark_field_src->get_coord_value_grid()->get_grid_size(); j ++) 
                 ((bool*)remap_field_data_redundant_mark_field_src->grid_data_field->data_buf)[j] |= ((bool*)partial_redundant_mark_field->grid_data_field->data_buf)[j];
@@ -188,10 +190,12 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
     }
 
     /* Extract the runtime grid field data for runtime remapping */
-    coord_values_have_been_changed_src = extract_and_set_runtime_grid_fields(num_leaf_grids_of_remap_operator_grid_src,
+    coord_values_have_been_changed_src = extract_and_set_runtime_grid_fields(interchanged_grid_src,
+																		     num_leaf_grids_of_remap_operator_grid_src,
                                                                              leaf_grids_of_remap_operator_grid_src,
                                                                              remap_operator_runtime_grid_src);
-    coord_values_have_been_changed_dst = extract_and_set_runtime_grid_fields(num_leaf_grids_of_remap_operator_grid_dst,
+    coord_values_have_been_changed_dst = extract_and_set_runtime_grid_fields(interchanged_grid_dst,
+																			 num_leaf_grids_of_remap_operator_grid_dst,
                                                                              leaf_grids_of_remap_operator_grid_dst,
                                                                              remap_operator_runtime_grid_dst);
     if (remap_field_data_redundant_mark_field_src != NULL)
@@ -230,13 +234,14 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
 }
 
 
-bool Runtime_remap_function::extract_and_set_runtime_grid_fields(int num_leaf_grids_of_remap_operator_grid,
+bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_class *field_data_grid,
+																 int num_leaf_grids_of_remap_operator_grid,
                                                                  Remap_grid_class **leaf_grids_of_remap_operator_grid,
                                                                  Remap_grid_class *remap_operator_runtime_grid)
 {
     int i;
     Remap_grid_class *super_grid;
-    Remap_grid_data_class *center_value_field, *vertex_value_field;
+    Remap_grid_data_class *center_value_field, *vertex_value_field = NULL;
     bool are_coord_values_updated = false;
 
 
@@ -246,7 +251,9 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(int num_leaf_gr
     for (i = 0; i < num_leaf_grids_of_remap_operator_grid; i ++) {
         if (runtime_remap_operator->does_require_grid_vertex_values() || leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() > 0)
             EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() == 1, "remap software error6 in new extract_and_set_runtime_grid_fields\n");
-        super_grid = leaf_grids_of_remap_operator_grid[i]->get_super_grid_of_setting_coord_values();
+		if (leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid())
+			super_grid = field_data_grid;
+        else super_grid = leaf_grids_of_remap_operator_grid[i]->get_super_grid_of_setting_coord_values();
         if (super_grid == NULL) {
             EXECUTION_REPORT(REPORT_ERROR, !runtime_remap_operator->get_is_operator_regridding() && leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 0, 
                          "remap software error1 in new extract_and_set_runtime_grid_fields\n");
@@ -254,13 +261,25 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(int num_leaf_gr
         }
         if (super_grid->is_subset_of_grid(remap_operator_runtime_grid))
             continue;
-        center_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_center_field();
+		if (super_grid == field_data_grid) {
+			EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid(), "C-Coupler error in extract_and_set_runtime_grid_fields");
+			center_value_field = super_grid->get_unique_center_field();
+			if (super_grid->grid_vertex_fields.size() > 0)
+				vertex_value_field = super_grid->grid_vertex_fields[0];
+			printf("okok special\n");
+		}
+        else {
+			center_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_center_field();
+	        vertex_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_vertex_field();
+        }
         EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 1 && center_value_field != NULL, 
                      "remap software error4 in new extract_and_set_runtime_grid_fields\n");    
+		if (field_data_grid->is_sigma_grid())
+			printf("okok right\n");
+		printf("okok %s %s: %s %lx %lx\n", center_value_field->get_grid_data_field()->field_name_in_application, field_data_grid->get_grid_name(), center_value_field->get_coord_value_grid()->get_grid_name(), center_value_field->get_coord_value_grid(), field_data_grid);
         check_dimension_order_of_grid_field(center_value_field, remap_operator_runtime_grid);
         check_dimension_order_of_grid_field(leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0], remap_operator_runtime_grid);
         are_coord_values_updated = extract_runtime_grid_field(center_value_field, leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0]);
-        vertex_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_vertex_field();
         if (vertex_value_field != NULL) {
             check_dimension_order_of_grid_field(vertex_value_field, remap_operator_runtime_grid);
             check_dimension_order_of_grid_field(leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields[0], remap_operator_runtime_grid);
@@ -361,9 +380,10 @@ void Runtime_remap_function::check_dimension_order_of_grid_field(Remap_grid_data
 
     last_order_indx = -1;
     for (i = 0; i < grid_data->sized_grids.size(); i ++) {
-        for (j = 0; j < num_sized_grids_of_remapping; j ++)    
+        for (j = 0; j < num_sized_grids_of_remapping; j ++) {
             if (grid_data->sized_grids[i] == sized_grids_of_remapping[j]) 
                 break;
+        }
         EXECUTION_REPORT(REPORT_ERROR, j < num_sized_grids_of_remapping, "remap software error1 in check_dimension_order_of_grid_field\n");
         EXECUTION_REPORT(REPORT_ERROR, j > last_order_indx, "remap software error2 in check_dimension_order_of_grid_field\n");
         last_order_indx = j;

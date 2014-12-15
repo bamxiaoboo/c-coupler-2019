@@ -65,7 +65,8 @@ class Remap_grid_class
     private:
         friend class Runtime_remap_function;
         friend class Remap_operator_grid;
-        char grid_name[256];
+		char decomp_name[256];
+        char grid_name[512];
         char coord_label[256];
         char coord_unit[256];
         long grid_size;
@@ -116,7 +117,6 @@ class Remap_grid_class
 
         /* Functions of setting default coordinate values of grid */
 		void generate_voronoi_grid();
-        void set_coord_vertex_values_in_default();
         void set_1D_coord_vertex_values_in_default(const double*, double*, long, bool, bool);
         void set_2D_coord_vertex_values_in_default(const double*, double*, long, bool, bool, const double*, double*, long, bool, bool);
 
@@ -157,6 +157,8 @@ class Remap_grid_class
         const char *get_grid_name() const { return grid_name; }
         const char *get_coord_label() const { return coord_label; }
         const char *get_coord_unit() const { return coord_unit; }
+		const char *get_decomp_name() const { return decomp_name; }
+		void set_decomp_name(const char*);
         bool get_grid_cyclic() const { return cyclic; }
         Remap_grid_data_class *get_grid_mask_field() const { return grid_mask_field; }
         bool get_are_vertex_values_set_in_default() const { return are_vertex_values_set_in_default; }
@@ -164,6 +166,7 @@ class Remap_grid_class
         Remap_grid_class *get_super_grid_of_setting_coord_values() const { return super_grid_of_setting_coord_values; }
         Remap_grid_class *get_first_super_grid_of_enable_setting_coord_value() { return first_super_grid_of_enable_setting_coord_value; }
         void get_leaf_grids(int *, Remap_grid_class**, Remap_grid_class*);
+		Remap_grid_class *get_a_leaf_grid(const char*);
         void get_sized_sub_grids(int*, Remap_grid_class**);
         void get_masked_sub_grids(int*, Remap_grid_class**);
         void get_partial_grid_mask_fields(int*, Remap_grid_data_class**, Remap_grid_class*);
@@ -204,22 +207,30 @@ class Remap_grid_class
         Remap_grid_class *generate_remap_operator_runtime_grid(Remap_grid_class*, Remap_operator_basis*, Remap_grid_data_class *);
         void interchange_grid_fields_for_remapping(Remap_grid_class*, Remap_grid_class*, Remap_grid_data_class *);
         Remap_grid_class *duplicate_grid(Remap_grid_class*);
-        Remap_grid_class *generate_decomp_grid(const int*, int);
+        Remap_grid_class *generate_decomp_grid(const int*, int, const char*);
 		void generate_3D_grid_decomp_sigma_values(Remap_grid_class*, Remap_grid_class*, const int*, int);
         void gen_lev_coord_from_sigma(char extension_names[16][256], const char*, const char*, const char*, double);
 		void calculate_lev_sigma_values();
-		bool is_sigma_grid() { return sigma_grid_sigma_value_field != NULL; }
+		bool is_sigma_grid();
+		Remap_grid_data_class *get_sigma_grid_sigma_value_field();
 		Remap_grid_data_class *get_sigma_grid_surface_value_field() { return sigma_grid_surface_value_field; }
 		bool has_specified_sigma_grid_surface_value_field() { return specified_sigma_grid_surface_value_field; }
 		void allocate_sigma_grid_specific_fields(Remap_grid_data_class*, Remap_grid_data_class*, double, double);
 		bool is_sigma_grid_surface_value_field_updated() { return specified_sigma_grid_surface_value_field; }
-		void copy_sigma_grid_surface_value_field(Remap_grid_class*);
+		void copy_sigma_grid_surface_value_field(Remap_grid_data_class*);
+		void set_lev_grid_sigma_info(const char*, double, double);
+		void renew_lev_grid_coord_values(double*, double*);
 
         /* Function for checking coordinate values consistency with coupler */
         bool check_coord_values_consistency(const char*, const char*, const void*);
         bool check_mask_values_consitency(const char*, const void*);
 
 		void set_grid_boundary(double, double, double, double);
+
+		Remap_grid_data_class *get_unique_center_field();
+		Remap_grid_data_class *get_unique_vertex_field();
+
+        void set_coord_vertex_values_in_default();
 };
 
 #endif

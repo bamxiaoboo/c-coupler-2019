@@ -31,6 +31,7 @@ class Remap_grid_mgt
         Remap_grid_class *search_remap_grid_with_grid_name(const char*);
         Remap_grid_class *search_remap_grid_with_coord_name(const char*);
 		Remap_grid_class *search_remap_grid_with_sized_sub_grids(int, Remap_grid_class**);
+		Remap_grid_class *search_same_remap_grid(Remap_grid_class*);
 		void add_remap_grid(Remap_grid_class*);
         void get_all_leaf_remap_grids(int*, Remap_grid_class **);
 };

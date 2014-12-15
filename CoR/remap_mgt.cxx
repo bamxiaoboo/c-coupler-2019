@@ -58,6 +58,7 @@ void Remap_mgt::push_back_all_words()
     push_back_words("function", FUNCTION_WORD_EVALUATE_ERROR);
     push_back_words("function", FUNCTION_WORD_COMPUTE_REMAP_WEIGHTS);
     push_back_words("function", FUNCTION_WORD_SET_OPERATOR_PARA);
+	push_back_words("function", FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO);
 
     push_back_words("reserved", RESERVED_WORD_QUOTE_MARK);
     push_back_words("reserved", RESERVED_WORD_EQUAL);
@@ -356,6 +357,8 @@ void Remap_mgt::process_statement()
             check_is_parameter_object_type_IO(remap_statement->function, 1, remap_statement->src_operands[0], "the IO file to record the weight data");
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_ADD_GRID_AREA)) 
             check_is_parameter_object_type_grid(remap_statement->function, 1, remap_statement->src_operands[0], "the partial grid to be added the area");   
+		else if (words_are_the_same(remap_statement->function, FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO)) 
+            check_is_parameter_object_type_grid(remap_statement->function, 1, remap_statement->src_operands[0], "the level grid (vertical grid) to be set the sigma information");   
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_ADD_AREA_BOUND))
             check_is_parameter_object_type_grid(remap_statement->function, 1, remap_statement->src_operands[0], "the partial grid to be added the area bounds");  
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_GEN_TEST_DATA) ||
