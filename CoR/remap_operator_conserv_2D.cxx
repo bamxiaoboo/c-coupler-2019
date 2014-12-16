@@ -74,7 +74,7 @@ void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_
         weight_values[i] = common_sub_cell_area[i]/sum_area;
     }
 
-    add_remap_weights_to_sparse_matrix(overlapping_src_cells_indexes, cell_index_dst, weight_values, num_weights, 0);
+    add_remap_weights_to_sparse_matrix(overlapping_src_cells_indexes, cell_index_dst, weight_values, num_weights, 0, true);
 }
 
 

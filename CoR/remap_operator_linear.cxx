@@ -62,15 +62,22 @@ void Remap_operator_linear::calculate_remap_weights()
 
 	EXECUTION_REPORT(REPORT_ERROR, array_size_src > 1, "Less than three source cells for linear interpolation are not enough");
 
+	temp_long_value = 0; 
+	temp_double_value = 0.0;
 	for (i = 0; i < array_size_src; i ++)
-		add_remap_weights_to_sparse_matrix(&temp_long_value, useful_src_cells_global_index[i], &temp_double_value, 1, 0);
+		add_remap_weights_to_sparse_matrix(&temp_long_value, useful_src_cells_global_index[i], &temp_double_value, 1, 0, false);
 
     for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
 			continue;
 		weight_src_indexes[0] = src_cell_index_left[i];
 		weight_src_indexes[1] = src_cell_index_right[i];
-		if ((coord_values_dst[i] >= coord_values_src[src_cell_index_left[i]]) == (coord_values_dst[i] <= coord_values_src[src_cell_index_right[i]])) {
+		if (coord_values_src[src_cell_index_left[i]] == coord_values_src[src_cell_index_right[i]]) {
+			EXECUTION_REPORT(REPORT_ERROR, coord_values_dst[i] == coord_values_src[src_cell_index_left[i]], "C-Coupler error in Remap_operator_linear::calculate_remap_weights");
+			remap_weight_values[0] = 0.5;
+			remap_weight_values[1] = 0.5;
+		}
+		else if ((coord_values_dst[i] >= coord_values_src[src_cell_index_left[i]]) == (coord_values_dst[i] <= coord_values_src[src_cell_index_right[i]])) {
 			remap_weight_values[1] = (coord_values_dst[i]-coord_values_src[src_cell_index_left[i]]) / (coord_values_src[src_cell_index_right[i]]-coord_values_src[src_cell_index_left[i]]);
 			remap_weight_values[0] = 1 - remap_weight_values[1];
 		}
@@ -86,8 +93,11 @@ void Remap_operator_linear::calculate_remap_weights()
 				remap_weight_values[1] = -fabs(coord_differences[0])/fabs(coord_differences[0]-coord_differences[1]);			 
 			}
 		}
-		add_remap_weights_to_sparse_matrix(weight_src_indexes, i, remap_weight_values, 2, 1);		
+		add_remap_weights_to_sparse_matrix(weight_src_indexes, i, remap_weight_values, 2, 1, true);		
     }
+	
+	if (remap_weights_groups[1]->get_num_weights() == 0)
+		EXECUTION_REPORT(REPORT_LOG, true, "Encounter an empty linear remapping operator instance"); 
 }
 
 
@@ -200,3 +210,4 @@ Remap_operator_basis *Remap_operator_linear::generate_parallel_remap_operator(Re
     this->generate_parallel_remap_weights(parallel_remap_operator, decomp_original_grids, global_cells_local_indexes_in_decomps);
     return parallel_remap_operator;
 }
+

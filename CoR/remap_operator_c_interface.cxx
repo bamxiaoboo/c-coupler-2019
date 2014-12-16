@@ -232,9 +232,9 @@ void clear_remap_weight_info_in_sparse_matrix()
 }
 
 
-void add_remap_weights_to_sparse_matrix(long *indexes_src_grid, long index_dst_grid, double *weight_values, int num_weights, int weights_group_index)
+void add_remap_weights_to_sparse_matrix(long *indexes_src_grid, long index_dst_grid, double *weight_values, int num_weights, int weights_group_index, bool is_real_weight)
 {
-    current_runtime_remap_operator->get_remap_weights_group(weights_group_index)->add_weights(indexes_src_grid, index_dst_grid, weight_values, num_weights);
+    current_runtime_remap_operator->get_remap_weights_group(weights_group_index)->add_weights(indexes_src_grid, index_dst_grid, weight_values, num_weights, is_real_weight);
 }
 
 

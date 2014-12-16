@@ -197,14 +197,15 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 
 
 	for (i = 0; i < array_size_src; i ++) {
-		add_remap_weights_to_sparse_matrix((long*)(&array_mu[i]), useful_src_cells_global_index[i], array_lambda+i, 1, 0);
-		add_remap_weights_to_sparse_matrix((long*)(&coord_values_src[i]), temp_long_value, array_h+i, 1, 1);
+		temp_long_value = 0;
+		add_remap_weights_to_sparse_matrix((long*)(&array_mu[i]), useful_src_cells_global_index[i], array_lambda+i, 1, 0, false);
+		add_remap_weights_to_sparse_matrix((long*)(&coord_values_src[i]), temp_long_value, array_h+i, 1, 1, false);
 	}
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
-		add_remap_weights_to_sparse_matrix((long*)(&final_factor1[i]), *((long*)(&final_factor2[i])), final_factor3+i, 1, 2);
-		add_remap_weights_to_sparse_matrix((long*)(&final_factor4[i]), *((long*)(&final_factor5[i])), coord_values_dst+i, 1, 3);
+		add_remap_weights_to_sparse_matrix((long*)(&final_factor1[i]), *((long*)(&final_factor2[i])), final_factor3+i, 1, 2, false);
+		add_remap_weights_to_sparse_matrix((long*)(&final_factor4[i]), *((long*)(&final_factor5[i])), coord_values_dst+i, 1, 3, false);
 		temp_long_value = src_cell_index_left[i];
-		add_remap_weights_to_sparse_matrix(&temp_long_value, src_cell_index_right[i], final_factor5+i, 1, 4);
+		add_remap_weights_to_sparse_matrix(&temp_long_value, src_cell_index_right[i], final_factor5+i, 1, 4, false);
 	}
 }
 

@@ -78,6 +78,10 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 																																											dynamic_remap_weight_of_operator_for_vertical_1D_grid->get_original_remap_operator(), NULL);
 		}
 		EXECUTION_REPORT(REPORT_ERROR, dynamic_remap_weight_of_operator_for_vertical_1D_grid != NULL, "C-Coupler error3 in Runtime_remap_algorithm constructor");
+		EXECUTION_REPORT(REPORT_ERROR, !dynamic_remap_weight_of_operator_for_vertical_1D_grid->get_original_remap_operator()->get_src_grid()->has_specified_sigma_grid_surface_value_field() &&
+									   !dynamic_remap_weight_of_operator_for_vertical_1D_grid->get_original_remap_operator()->get_dst_grid()->has_specified_sigma_grid_surface_value_field(),
+						 "There is requirement of dynamic 3D interpolation between grid %s and %s. C-Coupler currently cannot handle the corresponding 3D interpolation because there are 3-D mask values",
+						 dynamic_remap_weight_of_operator_for_vertical_1D_grid->get_original_remap_operator()->get_src_grid()->get_grid_name(), dynamic_remap_weight_of_operator_for_vertical_1D_grid->get_original_remap_operator()->get_dst_grid()->get_grid_name());
 	}
 
     if (algorithm_mode == 1) {

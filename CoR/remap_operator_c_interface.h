@@ -23,7 +23,7 @@ extern bool visit_cell_in_src_grid(long);
 extern void initialize_computing_remap_weights_of_one_cell();
 extern void finalize_computing_remap_weights_of_one_cell();
 extern void clear_remap_weight_info_in_sparse_matrix();
-extern void add_remap_weights_to_sparse_matrix(long*, long, double*, int, int);
+extern void add_remap_weights_to_sparse_matrix(long*, long, double*, int, int, bool);
 extern double compute_difference_of_two_coord_values(double, double, int);
 extern void sort_polygon_vertexes(double, double, double*, double*, long*, int);
 extern double compute_vector_angle(double*, double*);

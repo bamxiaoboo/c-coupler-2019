@@ -220,6 +220,7 @@ class Remap_grid_class
 		void copy_sigma_grid_surface_value_field(Remap_grid_data_class*);
 		void set_lev_grid_sigma_info(const char*, double, double);
 		void renew_lev_grid_coord_values(double*, double*);
+		bool has_super_grids_of_setting_mask_value() { return super_grids_of_setting_mask_value.size() > 0; }
 
         /* Function for checking coordinate values consistency with coupler */
         bool check_coord_values_consistency(const char*, const char*, const void*);

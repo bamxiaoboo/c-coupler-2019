@@ -107,13 +107,6 @@ Cell_lookup_table::Cell_lookup_table(Remap_operator_grid *remap_operator_grid)
     cell_bounding_boxes = new Cell_bounding_box *[num_cell_bounding_boxes];
     initialize_cell_bounding_boxes();
     recursively_partition_cell_lookup_table();
-
-    double coord_values[256];
-    for (long i = 0; i < num_cell_bounding_boxes; i ++) {
-        for (int j = 0; j < num_grid_dimensions; j ++)
-            coord_values[j] = remap_operator_grid->center_coord_values[j][i];
-        long k = search_cell_of_locating_point(coord_values, true);
-    }
 }
 
 

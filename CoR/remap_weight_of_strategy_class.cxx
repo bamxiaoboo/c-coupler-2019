@@ -334,7 +334,7 @@ void Remap_weight_of_operator_class::renew_vertical_remap_weights(Remap_grid_cla
 	lev_grid_size = operator_grid_src->get_grid_size();
 
 	for (i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
-		new_remap_operator = remap_weights_of_operator_instances[i]->duplicated_remap_operator->duplicate_remap_operator(false);
+		new_remap_operator = remap_weights_of_operator_instances[i]->duplicated_remap_operator->duplicate_remap_operator(true);
 		new_remap_operator->set_src_grid(runtime_remap_grid_src);
 		new_remap_operator->set_dst_grid(runtime_remap_grid_dst);
 		offset = remap_weights_of_operator_instances[i]->remap_beg_iter * lev_grid_size;
@@ -348,14 +348,19 @@ void Remap_weight_of_operator_class::renew_vertical_remap_weights(Remap_grid_cla
 			runtime_remap_operator_grid_dst = new Remap_operator_grid(runtime_remap_grid_dst, new_remap_operator, false, false);
 			current_runtime_remap_operator_grid_src = runtime_remap_operator_grid_src;
 			current_runtime_remap_operator_grid_dst = runtime_remap_operator_grid_dst;
-
 		}
 		else {
 			runtime_remap_operator_grid_src->update_operator_grid_data();
 			runtime_remap_operator_grid_dst->update_operator_grid_data();
 		}
 		current_runtime_remap_operator = new_remap_operator;
-		delete new_remap_operator;
+		new_remap_operator->calculate_remap_weights();
+		new_remap_operator->get_remap_weights_group(0)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(0));
+		new_remap_operator->get_remap_weights_group(1)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(1));
+		new_remap_operator->get_remap_weights_group(2)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(2));
+		new_remap_operator->get_remap_weights_group(3)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(3));
+		delete remap_weights_of_operator_instances[i]->duplicated_remap_operator;
+		remap_weights_of_operator_instances[i]->duplicated_remap_operator = new_remap_operator;
 	}
 
 	if (runtime_remap_operator_grid_src != NULL) {

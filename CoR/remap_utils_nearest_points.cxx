@@ -185,7 +185,7 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
 
     if (found_nearest_points_distance[0] == 0.0) {
         weigt_values_of_one_dst_cell[0] = 1.0;
-        add_remap_weights_to_sparse_matrix(found_nearest_points_src_indexes, dst_cell_index, weigt_values_of_one_dst_cell, 1, 0);
+        add_remap_weights_to_sparse_matrix(found_nearest_points_src_indexes, dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
     }
     else {
         sum_wgt_values = 0.0;
@@ -198,7 +198,7 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
             weigt_values_of_one_dst_cell[i] = weigt_values_of_one_dst_cell[i] / sum_wgt_values;        
             weigt_values_of_one_dst_cell[num_nearest_points-1] -= weigt_values_of_one_dst_cell[i];
         }
-        add_remap_weights_to_sparse_matrix(found_nearest_points_src_indexes, dst_cell_index, weigt_values_of_one_dst_cell, num_nearest_points, 0);
+        add_remap_weights_to_sparse_matrix(found_nearest_points_src_indexes, dst_cell_index, weigt_values_of_one_dst_cell, num_nearest_points, 0, true);
     }
 
     if (num_points_within_threshold_dist > num_nearest_points)

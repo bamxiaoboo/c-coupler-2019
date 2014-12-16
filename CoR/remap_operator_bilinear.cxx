@@ -162,6 +162,7 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box_recursively(double *
     bool have_points_on_the_same_line;
     int index_of_quadrant_id_for_distance_sorting[4];
     int new_iter_num_src_points_in_each_quadrant[4];
+	double eps = 2.0e-7;
 
 
     for (i = 0; i < 4; i ++) {
@@ -176,8 +177,8 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box_recursively(double *
                           bilinear_vertex_coord1_values,
                           bilinear_vertex_coord2_values,
                           index_of_selected_src_point_in_each_quadrant,
-                          4);
-        
+                          4);     
+	
     if (is_point_in_2D_cell(dst_cell_center_values[0], 
                             dst_cell_center_values[1],
                             bilinear_vertex_coord1_values,
@@ -351,10 +352,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
                                             src_cell_center_values[1],
                                             get_is_sphere_grid()) <= eps) {
         weigt_values_of_one_dst_cell[0] = 1.0;
-        add_remap_weights_to_sparse_matrix(&src_cell_index,
-                                           dst_cell_index, 
-                                           weigt_values_of_one_dst_cell, 
-                                           1, 0);
+        add_remap_weights_to_sparse_matrix(&src_cell_index, dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
         return;
     }
 
@@ -367,9 +365,15 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
                                                                                                    src_cell_index, 
                                                                                                    current_threshold_distance, 
                                                                                                    near_optimal_threshold_distance);    
-        if (num_points_within_threshold_distance > max_num_found_nearest_points) {
+		for (i = 0; i < num_points_within_threshold_distance; i ++) {
+			if (found_nearest_points_distance[i] <= eps) {
+				weigt_values_of_one_dst_cell[0] = 1.0;
+				add_remap_weights_to_sparse_matrix(&found_nearest_points_src_indexes[i], dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
+				return;
+			}
+		}
+        if (num_points_within_threshold_distance > max_num_found_nearest_points)
             break;        
-        }
         have_searched_num_points_within_threshold = true;
         if (get_near_optimal_bilinear_box(dst_cell_center_values, 
                                           num_points_within_threshold_distance,
@@ -405,7 +409,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
         bilinear_wgt_values[1] = wgt_ratio_u * (1-wgt_ratio_v);
         bilinear_wgt_values[2] = wgt_ratio_u * wgt_ratio_v;
         bilinear_wgt_values[3] = (1-wgt_ratio_u) * wgt_ratio_v;
-        add_remap_weights_to_sparse_matrix(bilinear_box_vertexes_src_cell_indexes, dst_cell_index, bilinear_wgt_values, 4, 0);
+        add_remap_weights_to_sparse_matrix(bilinear_box_vertexes_src_cell_indexes, dst_cell_index, bilinear_wgt_values, 4, 0, true);
     }
 }
 
