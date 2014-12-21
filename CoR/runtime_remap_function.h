@@ -30,6 +30,7 @@ class Runtime_remap_function
         Remap_grid_data_class *remap_field_data_dst;
         Remap_grid_data_class *remap_field_data_redundant_mark_field_src;
         Remap_weight_of_strategy_class *remap_weight_of_strategy;
+		Remap_weight_of_operator_instance_class *last_remap_weight_of_operator_instance;
         int num_sized_grids_of_interchanged_grid;
         int num_leaf_grids_of_remap_operator_grid_src;
         int num_leaf_grids_of_remap_operator_grid_dst;

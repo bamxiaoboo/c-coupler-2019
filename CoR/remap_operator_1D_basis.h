@@ -46,7 +46,7 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 
     public:
 		Remap_operator_1D_basis() {}
-        Remap_operator_1D_basis(const char*, int, Remap_grid_class **);
+        Remap_operator_1D_basis(const char*, const char*, int, Remap_grid_class **);
         virtual ~Remap_operator_1D_basis();
         virtual void set_parameter(const char*, const char*) = 0;
         virtual void do_remap_values_caculation(double*, double*) = 0;

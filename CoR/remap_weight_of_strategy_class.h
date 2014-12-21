@@ -56,6 +56,7 @@ class Remap_weight_of_operator_instance_class
         Remap_grid_class *get_field_data_grid_src() { return field_data_grid_src; }
         Remap_grid_class *get_field_data_grid_dst() { return field_data_grid_dst; }
         Remap_weight_of_operator_instance_class *generate_parallel_remap_weights(Remap_grid_class**, int **);
+		void renew_remapping_time_end_iter(long);
 };
 
 
@@ -69,6 +70,8 @@ class Remap_weight_of_operator_class
         Remap_grid_class *operator_grid_dst;
         Remap_operator_basis *original_remap_operator;
 		std::vector<Remap_weight_of_operator_instance_class*> remap_weights_of_operator_instances;
+		long index_size_array[256];
+		int size_index_size_array;
         
     public: 
         Remap_weight_of_operator_class(Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, Remap_grid_class*, Remap_grid_class*);
@@ -81,6 +84,8 @@ class Remap_weight_of_operator_class
 		void add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *);
 		Remap_operator_basis *get_original_remap_operator() { return original_remap_operator; }
 		void renew_vertical_remap_weights(Remap_grid_class*, Remap_grid_class*);
+		void prepare_index_size_array();
+		long calculate_offset_for_operator_instance(int);
 };
 
 
@@ -119,7 +124,7 @@ class Remap_weight_of_strategy_class
         Remap_grid_class *get_data_grid_dst() { return data_grid_dst; }
         Remap_strategy_class *get_remap_strategy() { return remap_strategy; }
         Remap_operator_basis *get_unique_remap_operator_of_weights();
-        void add_remap_weight_of_operator_instance(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
+        Remap_weight_of_operator_instance_class *add_remap_weight_of_operator_instance(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
         void add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *);
         void calculate_src_decomp(Remap_grid_class*, Remap_grid_class*, long*, const long*);

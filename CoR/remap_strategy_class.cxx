@@ -178,7 +178,6 @@ void Remap_strategy_class::execute_remap_strategy(const char *field_data_name_sr
 		current_remap_src_data_grid_interchanged = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
 		runtime_mask_src = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
 		current_remap_dst_data_grid = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
-		printf("okok in strategy: %s %lx : %s %lx\n", current_remap_src_data_grid_interchanged->get_grid_name(),current_remap_src_data_grid_interchanged, current_remap_dst_data_grid->get_grid_name(), current_remap_dst_data_grid);	
         check_field_data_grid_center_values_for_remapping(current_remap_src_data_grid, get_remap_operator(i)->get_src_grid(), get_remap_operator(i)->get_is_operator_regridding());
         check_field_data_grid_center_values_for_remapping(current_remap_dst_data_grid, get_remap_operator(i)->get_dst_grid(), get_remap_operator(i)->get_is_operator_regridding());	
 		runtime_mask_dst = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);

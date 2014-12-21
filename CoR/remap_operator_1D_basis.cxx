@@ -16,9 +16,9 @@ double *common_buffer_for_1D_remap_operator = NULL;
 int size_common_buffer_for_1D_remap_operator = 0;
 
 
-Remap_operator_1D_basis::Remap_operator_1D_basis(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
+Remap_operator_1D_basis::Remap_operator_1D_basis(const char *object_name, const char *operator_name, int num_remap_grids, Remap_grid_class **remap_grids)
                                        : Remap_operator_basis(object_name, 
-                                                              REMAP_OPERATOR_NAME_SPLINE_1D, 
+                                                              operator_name, 
                                                               1, 
                                                               true, 
                                                               false, 

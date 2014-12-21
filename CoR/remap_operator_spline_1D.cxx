@@ -123,7 +123,7 @@ void Remap_operator_spline_1D::allocate_local_arrays()
 
 
 Remap_operator_spline_1D::Remap_operator_spline_1D(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
-                                       : Remap_operator_1D_basis(object_name, num_remap_grids, remap_grids)
+                                       : Remap_operator_1D_basis(object_name, REMAP_OPERATOR_NAME_SPLINE_1D, num_remap_grids, remap_grids)
 {
 	set_periodic = false;
 	set_period = false;
@@ -172,6 +172,7 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 	for (i = 0; i < array_size_src-1; i ++)
 		array_h[i] = coord_values_src[i+1]-coord_values_src[i];
 
+	array_mu[0] = 0.0;
 	for (i = 1; i < array_size_src-1; i ++) {
 		array_mu[i] = array_h[i-1]/(array_h[i-1]+array_h[i]);
 		array_lambda[i] = 1.0-array_mu[i];
@@ -186,6 +187,11 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 	}
 
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
+		final_factor1[i] = 0;
+		final_factor2[i] = 0;
+		final_factor3[i] = 0;
+		final_factor4[i] = 0;
+		final_factor5[i] = 0;
 		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
 			continue;
 	    final_factor1[i] = pow(coord_values_src[src_cell_index_right[i]]-coord_values_dst[i], 3.0)/(6.0*array_h[src_cell_index_left[i]]);

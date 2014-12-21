@@ -39,6 +39,7 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
     this->num_remapping_times = interchanged_grid_src->get_grid_size()/remap_operator_runtime_grid_src->get_grid_size();
     this->remap_weight_of_strategy = remap_weight_of_strategy;
     this->last_remapping_time_iter = -1;
+	this->last_remap_weight_of_operator_instance = NULL;
     for (i = 0; i < 256; i ++)
         this->last_runtime_index_array[i] = -1;
 
@@ -204,6 +205,10 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
     mask_values_status_src = check_mask_values_status(last_mask_values_src, current_mask_values_src, remap_operator_runtime_grid_src->grid_size);
     mask_values_status_dst = check_mask_values_status(last_mask_values_dst, current_mask_values_dst, remap_operator_runtime_grid_dst->grid_size);
 
+	if (mask_values_status_src == -1 || mask_values_status_dst == -1) {
+		return;
+	}
+
     mask_values_have_been_changed = (mask_values_status_src%2==1) || (mask_values_status_dst%2==1);
 
     if (coord_values_have_been_changed_src || last_remapping_time_iter == -1 || redundant_mark_status_src%2==1)
@@ -217,10 +222,15 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
         last_remapping_time_iter = current_remapping_time_iter;
         for (i = 0; i < num_sized_grids_of_interchanged_grid; i ++)
             last_runtime_index_array[i] = current_runtime_index_array[i];
+        for (field_array_offset = 0, index_size_iter = 1, i = 0; i < num_sized_grids_of_interchanged_grid; i ++) {
+            field_array_offset += current_runtime_index_array[i]*index_size_iter;
+            index_size_iter *= index_size_array[i];
+        }
         if (remap_weight_of_strategy != NULL) {
-            remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
+            last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
         }
     }
+	else last_remap_weight_of_operator_instance->renew_remapping_time_end_iter(current_remapping_time_iter);
 
     if (remap_field_data_src != NULL) {
         for (field_array_offset = 0, index_size_iter = 1, i = 0; i < num_sized_grids_of_interchanged_grid; i ++) {
@@ -266,7 +276,6 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_clas
 			center_value_field = super_grid->get_unique_center_field();
 			if (super_grid->grid_vertex_fields.size() > 0)
 				vertex_value_field = super_grid->grid_vertex_fields[0];
-			printf("okok special\n");
 		}
         else {
 			center_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_center_field();
@@ -274,9 +283,6 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_clas
         }
         EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 1 && center_value_field != NULL, 
                      "remap software error4 in new extract_and_set_runtime_grid_fields\n");    
-		if (field_data_grid->is_sigma_grid())
-			printf("okok right\n");
-		printf("okok %s %s: %s %lx %lx\n", center_value_field->get_grid_data_field()->field_name_in_application, field_data_grid->get_grid_name(), center_value_field->get_coord_value_grid()->get_grid_name(), center_value_field->get_coord_value_grid(), field_data_grid);
         check_dimension_order_of_grid_field(center_value_field, remap_operator_runtime_grid);
         check_dimension_order_of_grid_field(leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0], remap_operator_runtime_grid);
         are_coord_values_updated = extract_runtime_grid_field(center_value_field, leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0]);
@@ -346,7 +352,16 @@ int Runtime_remap_function::check_mask_values_status(bool *last_mask_values, boo
 
 
     if (last_mask_values == NULL)
-        return -1;
+        return 0;
+
+	for (i = 0; i < grid_size; i ++)
+		if (current_mask_values[i])
+			break;
+	if (i == grid_size) {
+		for (i = 0; i < grid_size; i ++)
+			last_mask_values[i] = current_mask_values[i];
+		return -1;
+	}
     
     for (i = 0; i < grid_size; i ++)
         if (last_mask_values[i] != current_mask_values[i]) {

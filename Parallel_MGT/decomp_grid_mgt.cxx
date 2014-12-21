@@ -33,8 +33,6 @@ Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *or
 		return;
 	}
 
-	printf("okok12 %s %ld\n", decomp_name, decomp->get_num_local_cells());
-
     if (this->original_grid->get_is_sphere_grid()) {
         EXECUTION_REPORT(REPORT_ERROR, decomp_info_grid == original_grid, "%s and %s (the grid of parallel decomposition %s) are not the same grid when generating decomp grid",
 		                 original_grid->get_grid_name(), decomp->get_grid_name(), decomp_name);

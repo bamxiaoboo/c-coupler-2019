@@ -62,11 +62,6 @@ void Remap_operator_linear::calculate_remap_weights()
 
 	EXECUTION_REPORT(REPORT_ERROR, array_size_src > 1, "Less than three source cells for linear interpolation are not enough");
 
-	temp_long_value = 0; 
-	temp_double_value = 0.0;
-	for (i = 0; i < array_size_src; i ++)
-		add_remap_weights_to_sparse_matrix(&temp_long_value, useful_src_cells_global_index[i], &temp_double_value, 1, 0, false);
-
     for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
 			continue;
@@ -96,18 +91,26 @@ void Remap_operator_linear::calculate_remap_weights()
 		add_remap_weights_to_sparse_matrix(weight_src_indexes, i, remap_weight_values, 2, 1, true);		
     }
 	
-	if (remap_weights_groups[1]->get_num_weights() == 0)
+	if (remap_weights_groups[1]->get_num_weights() == 0) {
 		EXECUTION_REPORT(REPORT_LOG, true, "Encounter an empty linear remapping operator instance"); 
+		return;
+	}
+
+	temp_long_value = 0; 
+	temp_double_value = 0.0;
+	for (i = 0; i < array_size_src; i ++)
+		add_remap_weights_to_sparse_matrix(&temp_long_value, useful_src_cells_global_index[i], &temp_double_value, 1, 0, false);
 }
 
 
 Remap_operator_linear::Remap_operator_linear(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
-                                       : Remap_operator_1D_basis(object_name, num_remap_grids, remap_grids)
+                                       : Remap_operator_1D_basis(object_name, REMAP_OPERATOR_NAME_LINEAR, num_remap_grids, remap_grids)
 {
 	use_logarithm = false;
 	set_use_logarithm = false;
     remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
 	remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
+	
 }
 
 

@@ -65,7 +65,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	}
 	if (dynamic_surface_field_origin_grid != NULL) {
 		for (int i = 0; i < parallel_remap_weights->get_num_remap_weights_of_operators(); i ++) {
-			printf("okok wuwu %s : %s : %d : %d\n", parallel_remap_weights->get_remap_weights_of_operator(i)->get_original_remap_operator()->get_src_grid()->get_grid_name(), remap_weights_name, parallel_remap_weights->get_num_remap_weights_of_operators(), sequential_remap_weights->get_num_remap_weights_of_operators());
 			if (!(parallel_remap_weights->get_remap_weights_of_operator(i)->get_original_remap_operator()->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))) 
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, parallel_remap_weights->get_remap_weights_of_operator(i)->get_original_remap_operator()->get_src_grid()->get_num_dimensions() == 1, 
@@ -207,7 +206,6 @@ void Runtime_remap_algorithm::generate_parallel_interpolation_and_decomposition(
         j = 0;
 		remap_related_decomp_grids[i] = remap_related_grids[i];
         if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
-			printf("okok2 %s %s  %s : %d vs %d\n", decomp_name_remap, remap_related_grids[i]->get_grid_name(), sequential_remap_weights->get_data_grid_dst()->get_grid_name(), i, num_remap_related_grids);
             remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, remap_related_grids[i])->get_decomp_grid();
             j ++;
         }
@@ -373,7 +371,6 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
         transfered_fields[j++] = src_frac_field_after_rearrange;
 	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src())->get_decomp_grid())	{
 		transfered_fields[j++] = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_remap, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false); 
-		printf("okok field0: %s %s\n", decomp_name_remap, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name());		
 	}	
 	num_transfered_fields = j;
 
@@ -444,10 +441,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	}
 
 	if (dynamic_surface_field_origin_grid != NULL && dynamic_surface_field_origin_grid->is_sigma_grid_surface_value_field_updated()) {
-		printf("okok size %ld vs %ld vs %ld at %lx\n", dynamic_surface_field_origin_mem->get_size_of_field(), dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_grid_data_field()->read_data_size, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_grid_data_field()->required_data_size, dynamic_surface_field_origin_grid);
 		memcpy(dynamic_surface_field_origin_mem->get_data_buf(), dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_grid_data_field()->data_buf, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_grid_data_field()->read_data_size*sizeof(double));
-		for (i = 0; i < dynamic_surface_field_origin_mem->get_size_of_field(); i ++)
-			printf("okok qiguai %lx:  %d: %lf\n", dynamic_surface_field_origin_mem, i, ((double*)dynamic_surface_field_origin_mem->get_data_buf())[i]);
 	}
 
 	runtime_rearrange_algorithm->allocate_src_dst_fields(is_algorithm_in_kernel_stage);
@@ -577,12 +571,9 @@ void Runtime_remap_algorithm::build_operations_for_dynamic_sigma_grid()
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i-1]->is_sigma_grid(), "C-Coupler error7 in update_vertical_remap_weights_of_dynamic_sigma_grid");
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field() != NULL, "C-Coupler error8 in update_vertical_remap_weights_of_dynamic_sigma_grid");
 		operator_field_data_grids[i]->allocate_sigma_grid_specific_fields(NULL, NULL, 0, 0);
-		printf("okok10: %ld vs %ld\n", operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_grid_data_field()->required_data_size, 
-			operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_grid_data_field()->required_data_size);
 		operation_for_dynamic_sigma_grid = new Operation_for_dynamic_sigma_grid;
 		operation_for_dynamic_sigma_grid->current_3D_sigma_grid_dst = operator_field_data_grids[i];
 		operation_for_dynamic_sigma_grid->current_3D_sigma_grid_src = operator_field_data_grids[i-1];
-		printf("okok field1: %s %s %d\n", operator_field_data_grids[i-1]->get_decomp_name(),operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), k);
 		operation_for_dynamic_sigma_grid->surface_field_of_sigma_grid_src = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), operator_field_data_grids[i-1]->get_decomp_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false);
 		operation_for_dynamic_sigma_grid->surface_field_of_sigma_grid_dst = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), operator_field_data_grids[i]->get_decomp_name(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false);
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid() == sequential_remap_weights->get_operation_for_caculating_sigma_values_of_grid(k)->current_3D_sigma_grid_src->get_sigma_grid_surface_value_field()->get_coord_value_grid(), "C-Coupler error9 in update_vertical_remap_weights_of_dynamic_sigma_grid");
@@ -646,9 +637,7 @@ void Runtime_remap_algorithm::renew_sigma_values(bool is_algorithm_in_kernel_sta
 		}
 		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->copy_sigma_grid_surface_value_field(operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->get_field_data());
 		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->calculate_lev_sigma_values();
-		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_src->set_coord_vertex_values_in_default();
+		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->set_coord_vertex_values_in_default();
 	}
-	for (i = 0; i < operations_for_dynamic_sigma_grid[operations_for_dynamic_sigma_grid.size()-1]->surface_field_of_sigma_grid_dst->get_size_of_field(); i ++)
-		printf("okok check sigma surface %ld: %d: %lf\n",operations_for_dynamic_sigma_grid.size(), i, ((double*) operations_for_dynamic_sigma_grid[operations_for_dynamic_sigma_grid.size()-1]->surface_field_of_sigma_grid_dst->get_data_buf())[i]);
 }
 

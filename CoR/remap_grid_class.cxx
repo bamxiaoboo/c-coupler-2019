@@ -188,7 +188,6 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *field_data_grid,
     for (i = 0; i < num_sized_grids_field_data; i ++)
         sub_grids.push_back(sized_grids_field_data[i]);
 
-	printf("okok new grid %s %s\n", grid_name);
 	if (is_sigma_grid())
 		allocate_sigma_grid_specific_fields(NULL, NULL, 0, 0);
 }
@@ -432,7 +431,6 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
 
     runtime_remap_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, runtime_remap_grid);
     for (i = 0; i < num_leaf_grids; i ++) {
-		printf("okok leaf grid %s at %lx\n", leaf_grids[i]->get_grid_name(), leaf_grids[i]);
 		if (leaf_grids[i]->has_grid_coord_label(COORD_LABEL_LEV) && leaf_grids[i]->get_sigma_grid_sigma_value_field() != NULL) {
 			center_value_field = leaf_grids[i]->get_sigma_grid_sigma_value_field();
 			vertex_value_field = center_value_field;
@@ -842,7 +840,6 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_top_value = data_top;
 		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_scale_factor = scale_factor;		
 		this->get_a_leaf_grid(COORD_LABEL_LEV)->end_grid_definition_stage(NULL);
-		printf("okok allocate sigma_grid_sigma_value_field for grid %s at %lx\n", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name(), this->get_a_leaf_grid(COORD_LABEL_LEV));
 		return;
 	}
 
@@ -876,7 +873,6 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 
 Remap_grid_data_class *Remap_grid_class::get_sigma_grid_sigma_value_field()
 {
-	EXECUTION_REPORT(REPORT_ERROR, sigma_grid_sigma_value_field != NULL, "C-Coupler error1 in get_sigma_grid_sigma_value_field");
 	return sigma_grid_sigma_value_field;
 }
 
@@ -1723,6 +1719,9 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
 
     if (grid_center_fields.size() == 0)
         return;
+
+	if (grid_vertex_fields.size() > 0 && !are_vertex_values_set_in_default)
+		return;
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++) {
@@ -2858,7 +2857,6 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 	for (int i = 0; i < num_local_cells; i ++)
 		local_sigma_grid_surface_values[i] = 0.0;
 
-	printf("okok11 %d vs %ld vs %ld at %lx\n", num_local_cells, decomp_grid->get_grid_size(), sigma_grid_surface_value_field->get_grid_data_field()->read_data_size, this);
 	specified_sigma_grid_surface_value_field = original_3D_grid->specified_sigma_grid_surface_value_field;
 	
 	EXECUTION_REPORT(REPORT_LOG, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, get_a_leaf_grid(COORD_LABEL_LEV)->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_size(),

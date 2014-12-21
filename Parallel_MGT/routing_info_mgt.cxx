@@ -24,14 +24,9 @@ Routing_info *Routing_info_mgt::search_or_add_router(const char *remote_comp_nam
     if (router != NULL)
         return router;
 
-	if (words_are_the_same(remote_comp_name, "NULL"))
-		return NULL;
     router = new Routing_info(remote_comp_name, local_decomp_name, remote_decomp_name);
     routers.push_back(router);
-	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
-		printf("okok add router %lx: %ld\n", router, routers.size());
-		fflush(NULL);
-	}
+
     return router;
 }
 
@@ -46,10 +41,6 @@ Routing_info_mgt::~Routing_info_mgt()
 Routing_info *Routing_info_mgt::search_router(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
 {
     for (int i = 0; i < routers.size(); i ++) {
-		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
-			printf("okok qiguai why %d %ld %lx\n", i, routers.size(), routers[i]);
-			fflush(NULL);
-		}
         if (routers[i]->match_router(remote_comp_name, local_decomp_name, remote_decomp_name))
             return routers[i];
     }
@@ -117,11 +108,6 @@ Routing_info::~Routing_info()
 
 bool Routing_info::match_router(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
 {
-	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
-		printf("okok in match router: %lx\n", this);
-		fflush(NULL);
-	}
-
     return (words_are_the_same(this->remote_comp_name, remote_comp_name) &&
             words_are_the_same(this->local_decomp_name, local_decomp_name) &&
             words_are_the_same(this->remote_decomp_name, remote_decomp_name));
