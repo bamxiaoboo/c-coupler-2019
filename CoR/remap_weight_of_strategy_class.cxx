@@ -388,8 +388,8 @@ void Remap_weight_of_operator_class::renew_vertical_remap_weights(Remap_grid_cla
 			runtime_remap_operator_grid_dst->update_operator_grid_data();
 		current_runtime_remap_operator = new_remap_operator;
 		new_remap_operator->calculate_remap_weights();
-		new_remap_operator->get_remap_weights_group(0)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(0));
-		new_remap_operator->get_remap_weights_group(1)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(1));
+//		new_remap_operator->get_remap_weights_group(0)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(0));
+//		new_remap_operator->get_remap_weights_group(1)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(1));
 //		new_remap_operator->get_remap_weights_group(2)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(2));
 //		new_remap_operator->get_remap_weights_group(3)->compare_to_another_sparse_matrix(remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_remap_weights_group(3));
 		delete remap_weights_of_operator_instances[i]->duplicated_remap_operator;

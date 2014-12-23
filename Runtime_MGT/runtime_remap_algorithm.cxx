@@ -55,13 +55,13 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
 	if (sequential_remap_weights->get_num_operations_for_caculating_sigma_values_of_grid() > 0 && sequential_remap_weights->get_data_grid_src()->is_sigma_grid() && 
 		sequential_remap_weights->get_data_grid_src()->has_specified_sigma_grid_surface_value_field()) {
-		dynamic_surface_field_origin_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src())->get_decomp_grid();
+		dynamic_surface_field_origin_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid();
 	}
 	if (sequential_remap_weights->get_num_operations_for_caculating_sigma_values_of_grid() > 0 && sequential_remap_weights->get_data_grid_dst()->is_sigma_grid() && 
 		sequential_remap_weights->get_data_grid_dst()->has_specified_sigma_grid_surface_value_field()) {
 		EXECUTION_REPORT(REPORT_ERROR, dynamic_surface_field_origin_grid == NULL, 
 						 "The surface value fields (for 3D sigma grid) in source and target grids of remapping weights %s are both specified by users. Only one surface value field can be specified by users.", sequential_remap_weights->get_object_name());
-		dynamic_surface_field_origin_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, sequential_remap_weights->get_data_grid_dst())->get_decomp_grid();
+		dynamic_surface_field_origin_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, sequential_remap_weights->get_data_grid_dst(), false)->get_decomp_grid();
 	}
 	if (dynamic_surface_field_origin_grid != NULL) {
 		for (int i = 0; i < parallel_remap_weights->get_num_remap_weights_of_operators(); i ++) {
@@ -206,11 +206,11 @@ void Runtime_remap_algorithm::generate_parallel_interpolation_and_decomposition(
         j = 0;
 		remap_related_decomp_grids[i] = remap_related_grids[i];
         if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
-            remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, remap_related_grids[i])->get_decomp_grid();
+            remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_remap, remap_related_grids[i], false)->get_decomp_grid();
             j ++;
         }
         if (decomp_original_grids[1]->is_subset_of_grid(remap_related_grids[i])) {
-			remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, remap_related_grids[i])->get_decomp_grid();
+			remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, remap_related_grids[i], false)->get_decomp_grid();
             j ++;
         }
         EXECUTION_REPORT(REPORT_ERROR, j <= 1, "C-Coupler error2 in Runtime_remap_algorithm\n");
@@ -350,9 +350,9 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
 		                 "for runtime remapping algorithm %s, the field name does not match (%s and %s) at %d line", algorithm_cfg_name,
 						 src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name(), i+1);
 
-	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src())->get_decomp_grid()) 
+	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid()) 
         dynamic_surface_field_origin_mem = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false); 		
-	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, sequential_remap_weights->get_data_grid_dst())->get_decomp_grid()) 
+	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, sequential_remap_weights->get_data_grid_dst(), false)->get_decomp_grid()) 
         dynamic_surface_field_origin_mem = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_dst, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false); 		
 
     num_transfered_fields = src_double_remap_fields_before_rearrange.size()*2;
@@ -363,13 +363,13 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
         transfered_fields[j++] = src_double_remap_fields_before_rearrange[i];
     if (src_frac_field_before_rearrange != NULL)
         transfered_fields[j++] = src_frac_field_before_rearrange;
-	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src())->get_decomp_grid())	
+	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid())	
 		transfered_fields[j++] = dynamic_surface_field_origin_mem;
     for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
         transfered_fields[j++] = src_double_remap_fields_after_rearrange[i];
     if (src_frac_field_before_rearrange != NULL)
         transfered_fields[j++] = src_frac_field_after_rearrange;
-	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src())->get_decomp_grid())	{
+	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid())	{
 		transfered_fields[j++] = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_remap, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false); 
 	}	
 	num_transfered_fields = j;
@@ -425,10 +425,10 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		num_levels = field_size_src_before_rearrange / decomp_size_src_before_rearrange;
 		for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++) {
 			original_grid = remap_grid_manager->search_remap_grid_with_grid_name(decomps_info_mgr->search_decomp_info(src_double_remap_fields_before_rearrange[0]->get_decomp_name())->get_grid_name());
-			decomp_grid = decomp_grids_mgr->search_decomp_grid_info(src_double_remap_fields_before_rearrange[0]->get_decomp_name(), original_grid)->get_decomp_grid();
+			decomp_grid = decomp_grids_mgr->search_decomp_grid_info(src_double_remap_fields_before_rearrange[0]->get_decomp_name(), original_grid, false)->get_decomp_grid();
 			src_double_remap_fields_before_rearrange[i]->get_field_data()->interchange_grid_data(decomp_grid);
 			original_grid = remap_grid_manager->search_remap_grid_with_grid_name(decomps_info_mgr->search_decomp_info(src_double_remap_fields_after_rearrange[0]->get_decomp_name())->get_grid_name());
-			decomp_grid = decomp_grids_mgr->search_decomp_grid_info(src_double_remap_fields_after_rearrange[0]->get_decomp_name(), original_grid)->get_decomp_grid();
+			decomp_grid = decomp_grids_mgr->search_decomp_grid_info(src_double_remap_fields_after_rearrange[0]->get_decomp_name(), original_grid, false)->get_decomp_grid();
 			src_double_remap_fields_after_rearrange[i]->get_field_data()->interchange_grid_data(decomp_grid);
 		}
 	    for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++)
@@ -438,10 +438,6 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		                decomp_size_src_before_rearrange*sizeof(double));
 	    if (src_frac_field_before_rearrange != NULL)
 	        memcpy(src_frac_field_after_rearrange->get_data_buf(), src_frac_field_before_rearrange->get_data_buf(), decomp_size_src_before_rearrange*sizeof(double));
-	}
-
-	if (dynamic_surface_field_origin_grid != NULL && dynamic_surface_field_origin_grid->is_sigma_grid_surface_value_field_updated()) {
-		memcpy(dynamic_surface_field_origin_mem->get_data_buf(), dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_grid_data_field()->data_buf, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_grid_data_field()->read_data_size*sizeof(double));
 	}
 
 	runtime_rearrange_algorithm->allocate_src_dst_fields(is_algorithm_in_kernel_stage);
@@ -508,7 +504,15 @@ void Runtime_remap_algorithm::update_vertical_remap_weights_for_dynamic_sigma_gr
 	Remap_grid_class *data_grid_src, *data_grid_dst;
 
 	
-	if (dynamic_surface_field_origin_grid == NULL || !dynamic_surface_field_origin_grid->is_sigma_grid_surface_value_field_updated())
+	if (dynamic_surface_field_origin_grid == NULL) 
+		return;
+
+	decomp_grids_mgr->check_unique_decomp_for_dynamic_sigma_grid(dynamic_surface_field_origin_grid->get_original_grid(), "which is not allowed for setting bottom field of the sigma grid");
+	
+	if (dynamic_surface_field_origin_grid->get_sigma_grid_dynamic_surface_value_field() == NULL)
+		return;
+
+	if (!dynamic_surface_field_origin_grid->is_sigma_grid_surface_value_field_updated(dynamic_surface_field_origin_mem->get_field_data()))
 		return;
 
 	EXECUTION_REPORT(REPORT_ERROR, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_size() == dynamic_surface_field_origin_mem->get_size_of_field(), "C-Coupler error1 in update_vertical_remap_weights_for_dynamic_sigma_grid");
@@ -638,6 +642,8 @@ void Runtime_remap_algorithm::renew_sigma_values(bool is_algorithm_in_kernel_sta
 		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->copy_sigma_grid_surface_value_field(operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->get_field_data());
 		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->calculate_lev_sigma_values();
 		operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->set_coord_vertex_values_in_default();
+		for (int j = 0; j < operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->get_size_of_field(); j ++)
+			printf("okok surface %d %d: %lf\n", i,j, ((double*) operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->get_data_buf())[j]);
 	}
 }
 

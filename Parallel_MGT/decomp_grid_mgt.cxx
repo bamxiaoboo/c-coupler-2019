@@ -56,7 +56,7 @@ Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *or
 				for (j = i+1; j < num_leaf_grids; j ++)
 					if (leaf_grids[j]->is_subset_of_grid(decomp_info_grid))
 						leaf_grids[j] = NULL;
-				decomp_2D_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(decomp->get_grid_name()))->get_decomp_grid();
+				decomp_2D_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(decomp->get_grid_name()), false)->get_decomp_grid();
 				sub_grids[num_sub_grids++] = decomp_2D_grid;
 			}
 			else sub_grids[num_sub_grids++] = leaf_grids[i]->duplicate_grid(leaf_grids[i]); 
@@ -64,6 +64,7 @@ Decomp_grid_info::Decomp_grid_info(const char *decomp_name, Remap_grid_class *or
 		sprintf(decomp_grid_name, "DECOMP_GRID_%s", original_grid->get_grid_name());
         this->decomp_grid = new Remap_grid_class(decomp_grid_name, num_sub_grids, sub_grids, 0);
 		this->decomp_grid->set_decomp_name(decomp_name);
+		this->decomp_grid->set_original_grid(original_grid);
 		EXECUTION_REPORT(REPORT_LOG, true, "the size of decomp grid %s is %ld %d", this->decomp_grid->get_grid_name(), this->decomp_grid->get_grid_size(), num_sub_grids);
 		EXECUTION_REPORT(REPORT_LOG, true, "the size of decomp 2D grid %s is %ld vs %d", decomp_2D_grid->get_grid_name(), decomp_2D_grid->get_grid_size(), decomp->get_num_local_cells());
 		if (original_grid->has_grid_coord_label(COORD_LABEL_LEV))
@@ -123,12 +124,15 @@ Decomp_grid_info::~Decomp_grid_info()
 }
 
 
-Decomp_grid_info *Decomp_grid_mgt::search_decomp_grid_info(const char *decomp_name, Remap_grid_class *original_grid)
+Decomp_grid_info *Decomp_grid_mgt::search_decomp_grid_info(const char *decomp_name, Remap_grid_class *original_grid, bool diag)
 {
     for (int i = 0; i < decomp_grids_info.size(); i ++)
         if (decomp_grids_info[i]->match(decomp_name, original_grid))
             return decomp_grids_info[i];
 
+	if (diag)
+		EXECUTION_REPORT(REPORT_ERROR, true, "C-Coupler error in Decomp_grid_mgt::search_decomp_grid_info");
+		
     decomp_grids_info.push_back(new Decomp_grid_info(decomp_name, original_grid));
     decomp_grids_info[decomp_grids_info.size()-1]->register_decomp_grid_fields();
     return decomp_grids_info[decomp_grids_info.size()-1];
@@ -139,5 +143,30 @@ Decomp_grid_mgt::~Decomp_grid_mgt()
 {
     for (int i = 0; i < decomp_grids_info.size(); i ++)
         delete decomp_grids_info[i];
+}
+
+
+void Decomp_grid_mgt::check_unique_decomp_for_dynamic_sigma_grid(Remap_grid_class *original_grid, const char *error_string)
+{
+	Decomp_grid_info *decomp_grids[2];
+	int num_decomp_grids = 0, i;
+	bool is_dynamic_sigma_grid = false;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, original_grid->is_sigma_grid(), "C-Coupler error in Decomp_grid_mgt::check_unique_decomp_for_dynamic_sigma_grid");
+
+	for (i = 0; i < decomp_grids_info.size(); i ++)
+		if (decomp_grids_info[i]->get_original_grid()->is_the_same_grid_with(original_grid) && decomp_grids_info[i]->get_decomp_grid()->get_sigma_grid_dynamic_surface_value_field() != NULL)
+			is_dynamic_sigma_grid = true;
+
+	if (!is_dynamic_sigma_grid)
+		return;
+
+	for (i = 0; i < decomp_grids_info.size() && num_decomp_grids < 2; i ++)
+		if (decomp_grids_info[i]->get_original_grid()->is_the_same_grid_with(original_grid))
+			decomp_grids[num_decomp_grids ++] = decomp_grids_info[i];
+
+	EXECUTION_REPORT(REPORT_ERROR, num_decomp_grids <= 1, "Grid %s has at least two decompositions such as %s and %s, %s", original_grid->get_grid_name(),
+					 decomp_grids[0]->get_decomp_name(), decomp_grids[1]->get_decomp_name(), error_string);
 }
 

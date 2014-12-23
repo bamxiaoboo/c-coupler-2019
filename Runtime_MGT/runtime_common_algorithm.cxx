@@ -177,8 +177,8 @@ void Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
     if (!is_algorithm_in_kernel_stage || timer->is_timer_on()) {
         for (int i = 0; i < num_src_fields; i ++) {
-            memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->check_field_sum();
-			memory_manager->search_field_via_data_buf(src_fields_data_buffers[i])->use_field_values();
+            memory_manager->search_field_via_data_buf(src_fields_data_buffers[i], true)->check_field_sum();
+			memory_manager->search_field_via_data_buf(src_fields_data_buffers[i], true)->use_field_values();
         }		
 		performance_timing_mgr->performance_timing_start(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
 		if (c_coupler_algorithm != NULL)
@@ -186,8 +186,8 @@ void Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
 		else model_algorithm();
 		performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);
         for (int i = 0; i < num_dst_fields; i ++) {
-            memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->check_field_sum();
-			memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i])->define_field_values(false);
+            memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i], true)->check_field_sum();
+			memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i], true)->define_field_values(false);
         }
     }
 }

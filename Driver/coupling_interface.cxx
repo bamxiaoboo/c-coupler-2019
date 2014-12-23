@@ -37,6 +37,33 @@ extern "C" void withdraw_model_data_(const char *decomp_name, const char *field_
 }
 
 
+extern "C" void register_sigma_grid_bottom_field_(void *model_buf, const char *grid_name)
+{
+	Field_mem_info *bottom_field;
+	Remap_grid_class *field_grid, *sigma_grid;
+
+
+	sigma_grid = remap_grid_manager->search_remap_grid_with_grid_name(grid_name);
+	EXECUTION_REPORT(REPORT_ERROR, sigma_grid != NULL, "\"%s\" has not been defined in the CoR script", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR, sigma_grid->is_sigma_grid(), "grid \"%s\" is not a sigma grid", grid_name);
+
+	bottom_field = memory_manager->search_field_via_data_buf(model_buf, false);
+	EXECUTION_REPORT(REPORT_ERROR, bottom_field != NULL && bottom_field->get_is_registered_model_buf(), "the model bottom field for the sigma grid \"%s\" has not been registered to C-Coupler", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(bottom_field->get_grid_name(), "NULL"), "scalar model variable \"%s\" cannot be used as the model bottom field for a sigma grid", bottom_field->get_field_name());
+
+	field_grid = remap_grid_manager->search_remap_grid_with_grid_name(bottom_field->get_grid_name());
+	EXECUTION_REPORT(REPORT_ERROR, field_grid != NULL, "C-Coupler error in register_sigma_grid_bottom_field");
+	EXECUTION_REPORT(REPORT_ERROR, field_grid->get_is_sphere_grid(), "field \"%s\" that will be set as the model bottom field for the sigma grid \"%s\" is not on a sphere grid: \"%s\" is not a sphere grid",
+                     bottom_field->get_field_name(), grid_name, field_grid->get_grid_name());
+	EXECUTION_REPORT(REPORT_ERROR, field_grid->is_subset_of_grid(sigma_grid), "the grid \"%s\" for the grid bottom field is not a sub grid for the sigma grid \"%s\"", 
+					 bottom_field->get_grid_name(), grid_name);
+	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
+					 "the data type of the bottom field for the sigma grid \"%s\" must be real4 or real8", grid_name); 
+	// check the whether the parallel decomposition covers all grid points
+	decomp_grids_mgr->search_decomp_grid_info(bottom_field->get_decomp_name(), sigma_grid, true)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(bottom_field->get_field_data());
+}                  
+
+
 extern "C" void coupling_add_decomposition_(const char *decomp_name, const char *grid_name,
                                             int *num_cells_in_decomp, int *decomp_cell_indexes)
 {
@@ -243,7 +270,7 @@ extern "C" void coupling_check_grid_values_consistency_(const char *decomp_name,
     if (words_are_the_same(data_type, DATA_TYPE_INT))
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(label, GRID_MASK_LABEL), "when the data type of grid values for checking consistency is integer, the label must be mask\n");
 
-    Decomp_grid_info *decomp_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name));
+    Decomp_grid_info *decomp_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name), false);
 	if (decomp_grid->get_decomp_grid() == NULL)
 		return;
     

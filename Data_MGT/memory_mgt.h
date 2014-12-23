@@ -84,7 +84,7 @@ class Memory_mgt
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool);
         void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
-        Field_mem_info *search_field_via_data_buf(const void*);
+        Field_mem_info *search_field_via_data_buf(const void*, bool);
 		void write_restart_fields();
 		void check_all_restart_fields_have_been_read();
 		bool is_model_data_renewed_in_current_time_step(void*);

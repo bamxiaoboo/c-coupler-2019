@@ -100,6 +100,7 @@ class Remap_grid_class
 		double sigma_grid_top_value;
 		double sigma_grid_scale_factor;
 		bool specified_sigma_grid_surface_value_field;
+		Remap_grid_data_class *sigma_grid_dynamic_surface_value_field;
         
 
         /* Functions of checking the coordinate values of grid */
@@ -216,11 +217,14 @@ class Remap_grid_class
 		Remap_grid_data_class *get_sigma_grid_surface_value_field() { return sigma_grid_surface_value_field; }
 		bool has_specified_sigma_grid_surface_value_field() { return specified_sigma_grid_surface_value_field; }
 		void allocate_sigma_grid_specific_fields(Remap_grid_data_class*, Remap_grid_data_class*, double, double);
-		bool is_sigma_grid_surface_value_field_updated() { return specified_sigma_grid_surface_value_field; }
+		void set_sigma_grid_dynamic_surface_value_field(Remap_grid_data_class *); 
+		Remap_grid_data_class *get_sigma_grid_dynamic_surface_value_field() { return sigma_grid_dynamic_surface_value_field; }
+		bool is_sigma_grid_surface_value_field_updated(Remap_grid_data_class *);
 		void copy_sigma_grid_surface_value_field(Remap_grid_data_class*);
 		void set_lev_grid_sigma_info(const char*, double, double);
 		void renew_lev_grid_coord_values(double*, double*);
 		bool has_super_grids_of_setting_mask_value() { return super_grids_of_setting_mask_value.size() > 0; }
+		void set_original_grid(Remap_grid_class *grid) { original_grid = grid; }
 
         /* Function for checking coordinate values consistency with coupler */
         bool check_coord_values_consistency(const char*, const char*, const void*);

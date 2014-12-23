@@ -58,6 +58,7 @@ void Remap_grid_class::initialize_grid_class_data()
 	this->sigma_grid_sigma_value_field = NULL;
 	this->sigma_grid_surface_value_field = NULL;
 	this->specified_sigma_grid_surface_value_field = false;
+	this->sigma_grid_dynamic_surface_value_field = NULL;
 }
 
 
@@ -812,6 +813,53 @@ bool Remap_grid_class::is_sigma_grid()
 		return false;
 
 	return get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field != NULL;
+}
+
+
+bool Remap_grid_class::is_sigma_grid_surface_value_field_updated(Remap_grid_data_class *previous_surface_value_field)
+{
+	bool result = false;
+	
+
+	if (sigma_grid_dynamic_surface_value_field == NULL)
+		return false;
+
+	EXECUTION_REPORT(REPORT_ERROR, sigma_grid_dynamic_surface_value_field->get_grid_data_field()->required_data_size == previous_surface_value_field->get_grid_data_field()->required_data_size,
+		             "C-Coupler error1 in Remap_grid_class::is_sigma_grid_surface_value_field_updated");
+	if (words_are_the_same(sigma_grid_dynamic_surface_value_field->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT)) {
+		for (int i = 0; i < sigma_grid_dynamic_surface_value_field->get_grid_data_field()->required_data_size; i ++) {
+			if (((float*)sigma_grid_dynamic_surface_value_field->get_grid_data_field()->data_buf)[i] != ((double*) previous_surface_value_field->get_grid_data_field()->data_buf)[i])
+				result = true;
+			((double*) previous_surface_value_field->get_grid_data_field()->data_buf)[i] = ((float*)sigma_grid_dynamic_surface_value_field->get_grid_data_field()->data_buf)[i];
+		}
+	}
+	else {
+		for (int i = 0; i < sigma_grid_dynamic_surface_value_field->get_grid_data_field()->required_data_size; i ++) {
+			if (((double*)sigma_grid_dynamic_surface_value_field->get_grid_data_field()->data_buf)[i] != ((double*) previous_surface_value_field->get_grid_data_field()->data_buf)[i])
+				result = true;		
+			((double*) previous_surface_value_field->get_grid_data_field()->data_buf)[i] = ((double*)sigma_grid_dynamic_surface_value_field->get_grid_data_field()->data_buf)[i];
+		}
+	}
+
+	if (result)
+		EXECUTION_REPORT(REPORT_LOG, true, "surface field for sigma grid %s has been updated", grid_name);
+	
+	return result;
+}
+
+
+void Remap_grid_class::set_sigma_grid_dynamic_surface_value_field(Remap_grid_data_class *value_field)
+{
+	EXECUTION_REPORT(REPORT_ERROR, this->is_sigma_grid(), "C-Coupler error1 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
+	EXECUTION_REPORT(REPORT_ERROR, value_field->get_coord_value_grid()->is_subset_of_grid(this), "C-Coupler error2 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
+
+	printf("okok  good3 %lx  %s\n", this, grid_name);
+	
+	this->specified_sigma_grid_surface_value_field = true;
+	if (sigma_grid_surface_value_field == NULL)
+		sigma_grid_surface_value_field = value_field->duplicate_grid_data_field(value_field->get_coord_value_grid(), 1, true, true);
+	else EXECUTION_REPORT(REPORT_ERROR, value_field->get_coord_value_grid() == sigma_grid_surface_value_field->get_coord_value_grid(), "C-Coupler error3 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
+	sigma_grid_dynamic_surface_value_field = value_field;
 }
 
 

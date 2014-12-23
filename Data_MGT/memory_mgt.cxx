@@ -69,7 +69,7 @@ Field_mem_info::Field_mem_info(const char *comp_name,
     else {
         if (use_full_grid)
             decomp_grid = remap_grid_manager->search_remap_grid_with_grid_name(grid_name);
-        else decomp_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name))->get_decomp_grid();
+        else decomp_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name), false)->get_decomp_grid();
         grided_field_data = new Remap_grid_data_class(decomp_grid, remap_data_field);
         remap_data_field->set_fill_value(NULL);
     }
@@ -129,8 +129,8 @@ void Field_mem_info::use_field_values()
     if (last_define_time == timer_mgr->get_current_full_time())
         return;
 
-//    EXECUTION_REPORT(REPORT_ERROR, last_define_time != 0x7fffffffffffffff, "field %s %s is used before define it\n", field_name, decomp_name);
-//    EXECUTION_REPORT(REPORT_ERROR, last_define_time <= timer_mgr->get_current_full_time(), "C-Coupler error in set_use_field\n");
+    EXECUTION_REPORT(REPORT_ERROR, last_define_time != 0x7fffffffffffffff, "field %s %s is used before define it\n", field_name, decomp_name);
+    EXECUTION_REPORT(REPORT_ERROR, last_define_time <= timer_mgr->get_current_full_time(), "C-Coupler error in set_use_field\n");
     is_restart_field = true;
 }
 
@@ -151,10 +151,15 @@ bool Field_mem_info::match_field_mem(const char *comp_name,
     if (words_are_the_same(this->comp_name, comp_name) &&
         words_are_the_same(this->decomp_name, decomp_name) &&
         words_are_the_same(this->field_name, field_name)) {
-           EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
-        if (this->buf_type == buf_type)
-            return true;
+//        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
     }
+
+	if (words_are_the_same(this->comp_name, comp_name) &&
+		words_are_the_same(this->decomp_name, decomp_name) &&
+		words_are_the_same(this->field_name, field_name) &&
+		words_are_the_same(this->grid_name, grid_name) && 
+		this->buf_type == buf_type)
+			return true;
 
     return false;
 }
@@ -178,10 +183,16 @@ bool Field_mem_info::match_field_mem(const char *comp_name,
         words_are_the_same(this->decomp_name, decomp_name) &&
         words_are_the_same(this->field_name, field_name) &&
         words_are_the_same(this->get_field_data()->get_grid_data_field()->data_type_in_application, data_type)) {
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
-        if (this->buf_type == buf_type)
-            return true;
+//        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(this->grid_name, grid_name), "conflict in matching grid of field %s: there are two grids (%s and %s) for the same field\n", field_name, grid_name, this->grid_name);
     }
+
+	if (words_are_the_same(this->comp_name, comp_name) &&
+		words_are_the_same(this->decomp_name, decomp_name) &&
+		words_are_the_same(this->field_name, field_name) &&
+		words_are_the_same(this->get_field_data()->get_grid_data_field()->data_type_in_application, data_type) &&
+		words_are_the_same(this->grid_name, grid_name) && 
+		this->buf_type == buf_type)
+			return true;
 
     return false;
 }
@@ -340,7 +351,7 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *comp_name,
 	
     if (!words_are_the_same(grid_name, "NULL")) {
         EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "%s is not a grid when allocating memory for field\n", grid_name);
-        decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name));
+        decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name),false);
     }
 
     /* If memory buffer has been allocated, return it */
@@ -398,7 +409,7 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	
 	if (!words_are_the_same(local_grid_name, "NULL")) {
 		EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "%s is not a grid when registering data buffer\n", local_grid_name);
-		decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name));
+		decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name), false);
 	}
 
     EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
@@ -460,7 +471,7 @@ void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, con
     EXECUTION_REPORT(REPORT_ERROR, find_field_in_cfg, "field (%s %s) withdrawed by component %s is not a legal field (not in field_buf_register.cfg)\n", model_data_field_name, model_data_decomp_name, compset_communicators_info_mgr->get_current_comp_name());
     if (!words_are_the_same(local_grid_name, "NULL")) {
         EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "%s is not a grid when registering data buffer\n", local_grid_name);
-        decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name));
+        decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name), false);
     }
 
     EXECUTION_REPORT(REPORT_LOG, true, "withdraw field (%s %s %s) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0);
@@ -512,13 +523,14 @@ Field_mem_info *Memory_mgt::search_last_define_field(const char *comp_name, cons
 }
 
 
-Field_mem_info *Memory_mgt::search_field_via_data_buf(const void *data_buf)
+Field_mem_info *Memory_mgt::search_field_via_data_buf(const void *data_buf, bool diag)
 {
     for (int i = 0; i < fields_mem.size(); i ++)
         if (fields_mem[i]->get_data_buf() == data_buf)
             return fields_mem[i];
 
-    EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error in search_field_via_data_buf\n");
+	if (diag)
+	    EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error in search_field_via_data_buf\n");
     return NULL;
 }
 

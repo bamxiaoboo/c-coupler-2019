@@ -73,6 +73,7 @@ Remap_grid_data_class::Remap_grid_data_class(const char *field_data_name,
     grid_data_field->data_buf = new char[num_value_points*get_data_type_size(grid_data_type)];
     grid_data_field->required_data_size = num_value_points;
     grid_data_field->read_data_size = num_value_points;
+	coord_value_grid = NULL;
     if (grid_name != NULL) {
         EXECUTION_REPORT(REPORT_ERROR, num_value_points == remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_grid_size(),
                      "the size of span array must be the same as the size of grid \"%s\"\n",

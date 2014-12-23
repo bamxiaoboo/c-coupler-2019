@@ -130,6 +130,15 @@
 
 
 
+   interface c_coupler_register_sigma_grid_bottom_field ; module procedure &
+        c_coupler_register_sigma_grid_bottom_field_1d_float,   &
+        c_coupler_register_sigma_grid_bottom_field_2d_float,   &
+        c_coupler_register_sigma_grid_bottom_field_1d_double,  &
+        c_coupler_register_sigma_grid_bottom_field_2d_double
+   end interface
+
+
+
    interface c_coupler_check_grid_values ; module procedure &
         c_coupler_check_float_grid_values, &
         c_coupler_check_double_grid_values, &
@@ -199,6 +208,7 @@
    END SUBROUTINE  c_coupler_initialize
 
 
+
    SUBROUTINE c_coupler_finalize()
    include 'mpif.h'
    integer ierr
@@ -206,6 +216,7 @@
    call finalize_coupling_managers()
    call MPI_FINALIZE(ierr)
    END SUBROUTINE  c_coupler_finalize
+
 
 
    SUBROUTINE c_coupler_execute_procedure(procedure_name, procedure_stage)
@@ -216,6 +227,7 @@
    call coupling_execute_procedure(trim(procedure_name)//char(0), trim(procedure_stage)//char(0))
 
    END SUBROUTINE c_coupler_execute_procedure
+
 
 
    SUBROUTINE c_coupler_withdraw_model_data(decomp_name, field_name, grid_name)
@@ -233,6 +245,50 @@
    call withdraw_model_data(trim(decomp_name)//char(0), trim(field_name)//char(0), trim(local_grid_name)//char(0))
 
    END SUBROUTINE c_coupler_withdraw_model_data
+
+
+
+   SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_1d_float(data_buf, grid_name)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
+   character(len=*)                           :: grid_name
+   
+   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
+   
+   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_1d_float
+
+
+
+   SUBROUTINE c_coupler_register_sigma_grid_bottom_field_2d_float(data_buf,grid_name)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
+   character(len=*)                           :: grid_name
+   
+   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
+   
+   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_2d_float
+
+
+
+   SUBROUTINE c_coupler_register_sigma_grid_bottom_field_1d_double(data_buf,grid_name)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
+   character(len=*)                           :: grid_name
+   
+   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
+   
+   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_1d_double
+
+
+
+   SUBROUTINE c_coupler_register_sigma_grid_bottom_field_2d_double(data_buf,grid_name)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:)       :: data_buf
+   character(len=*)                           :: grid_name
+   
+   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
+   
+   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_2d_double
 
 
 
