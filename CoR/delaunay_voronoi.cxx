@@ -88,17 +88,17 @@ void Triangle::initialize_triangle_with_edges(Edge *edge1, Edge *edge2, Edge *ed
 		             "remap software error1 in new Triangle");
 	EXECUTION_REPORT(REPORT_ERROR, edge1->tail==edge2->head && edge2->tail==edge3->head && edge3->tail==edge1->head, "remap software error2 in new Triangle");
    	
-	v1 = pt1;
+	v[0] = pt1;
 	if (pt1.position_to_edge(pt2, pt3) == 1) {
-		v2 = pt2;
-		v3 = pt3;
+		v[1] = pt2;
+		v[2] = pt3;
 		this->edge[0] = edge1;
 		this->edge[1] = edge2;
 		this->edge[2] = edge3;
 	}
 	else {
-		v2 = pt3;
-		v3 = pt2;
+		v[1] = pt3;
+		v[2] = pt2;
 		this->edge[0] = edge3->twin_edge;
 		this->edge[1] = edge2->twin_edge;
 		this->edge[2] = edge1->twin_edge;
@@ -152,11 +152,11 @@ int Triangle::find_best_candidate_point()
 		return -1;
 
 	for (int i = 0; i < remained_points_in_triangle.size(); i ++) {
-		min_dist = remained_points_in_triangle[i].calculate_distance(v1);
-		dist = remained_points_in_triangle[i].calculate_distance(v2);
+		min_dist = remained_points_in_triangle[i].calculate_distance(v[0]);
+		dist = remained_points_in_triangle[i].calculate_distance(v[1]);
 		if (min_dist > dist)
 			min_dist = dist;
-		dist = remained_points_in_triangle[i].calculate_distance(v3);
+		dist = remained_points_in_triangle[i].calculate_distance(v[2]);
 		if (min_dist > dist)
 			min_dist = dist;
 		if (max_min_dist < min_dist) {
@@ -177,9 +177,9 @@ Triangle::~Triangle()
 Point Triangle::get_center_coordinates()
 {
 	double temp_lon1, temp_lon2, temp_lon3, min_lon;
-	temp_lon1 = v1.lon;
-	temp_lon2 = v2.lon;
-	temp_lon3 = v3.lon;
+	temp_lon1 = v[0].lon;
+	temp_lon2 = v[1].lon;
+	temp_lon3 = v[2].lon;
 	min_lon = temp_lon1;
 	if (min_lon > temp_lon2)
 		min_lon = temp_lon2;
@@ -191,7 +191,7 @@ Point Triangle::get_center_coordinates()
 		temp_lon2 -= 360;
 	if (temp_lon3-min_lon > 180)
 		temp_lon3 -= 360;
-	center.lat = (v1.lat+v2.lat+v3.lat) / 3;
+	center.lat = (v[0].lat+v[1].lat+v[2].lat) / 3;
 	center.lon = (temp_lon1+temp_lon2+temp_lon3) / 3;
 	if (center.lon < 0)
 		center.lon += 360;
@@ -307,17 +307,17 @@ int Point::position_to_edge(const Point &pt1, const Point &pt2) const
 int Point::position_to_triangle(const Triangle *triangle) const
 {
 	int pos, ret = 0;
-	pos = position_to_edge(triangle->v1, triangle->v2);
+	pos = position_to_edge(triangle->v[0], triangle->v[1]);
 	if (pos == -1)
 		return -1;
 	else if (pos == 0)
 		ret = 1;
-	pos = position_to_edge(triangle->v2, triangle->v3);
+	pos = position_to_edge(triangle->v[1], triangle->v[2]);
 	if (pos == -1)
 		return -1;
 	else if (pos == 0)
 		ret = 2;
-	pos = position_to_edge(triangle->v3, triangle->v1);
+	pos = position_to_edge(triangle->v[2], triangle->v[0]);
 	if (pos == -1)
 		return -1;
 	else if (pos == 0)
@@ -618,11 +618,11 @@ void Delaunay_Voronoi::triangularization_process(Triangle *triangle, bool is_glo
 	triangle->remained_points_in_triangle.erase(triangle->remained_points_in_triangle.begin()+best_candidate_point_id);
 
 	if (best_candidate_point.position_to_triangle(triangle) == 0) {
-		Edge *e_v1_can = new Edge(triangle->v1, best_candidate_point);
+		Edge *e_v1_can = new Edge(triangle->v[0], best_candidate_point);
 		Edge *e_can_v1 = e_v1_can->generate_twins_edge();
-		Edge *e_v2_can = new Edge(triangle->v2, best_candidate_point);
+		Edge *e_v2_can = new Edge(triangle->v[1], best_candidate_point);
 		Edge *e_can_v2 = e_v2_can->generate_twins_edge();
-		Edge *e_v3_can = new Edge(triangle->v3, best_candidate_point);
+		Edge *e_v3_can = new Edge(triangle->v[2], best_candidate_point);
 		Edge *e_can_v3 = e_v3_can->generate_twins_edge();
 		Triangle *t_v1_v2_can = new Triangle(triangle->edge[0], e_v2_can, e_can_v1);
 		Triangle *t_v2_v3_can = new Triangle(triangle->edge[1], e_v3_can, e_can_v2);
@@ -645,21 +645,21 @@ void Delaunay_Voronoi::triangularization_process(Triangle *triangle, bool is_glo
 		Edge *eil, *elj, *eji;
 		switch (best_candidate_point.position_to_triangle(triangle)) {
 			case 1:
-				vi = triangle->v1;
-				vj = triangle->v2;
-				vk = triangle->v3;
+				vi = triangle->v[0];
+				vj = triangle->v[1];
+				vk = triangle->v[2];
 				eij = triangle->edge[0];
 				break;
 			case 2:
-				vi = triangle->v2;
-				vj = triangle->v3;
-				vk = triangle->v1;
+				vi = triangle->v[1];
+				vj = triangle->v[2];
+				vk = triangle->v[0];
 				eij = triangle->edge[1];
 				break;
 			case 3:
-				vi = triangle->v3;
-				vj = triangle->v1;
-				vk = triangle->v2;
+				vi = triangle->v[2];
+				vj = triangle->v[0];
+				vk = triangle->v[1];
 				eij = triangle->edge[2];
 				break;
 			default:
@@ -784,25 +784,40 @@ void Delaunay_Voronoi::legalize_triangles(const Point &vr, Edge *edge, vector<Tr
 
 void Delaunay_Voronoi::generate_Voronoi_diagram()
 {
-	for (int i = 0; i < result_leaf_triangles.size(); i ++)
+	int num_none_virtual_vertexes, none_virtual_vertexes[3];
+	int empty_id;
+	int i, j;
+
+	
+	for (i = 0; i < result_leaf_triangles.size(); i ++)
 		if (!result_leaf_triangles[i]->is_leaf) 
 			printf("detect false leaf triangle\n");
 		else {
 			result_leaf_triangles[i]->center = result_leaf_triangles[i]->get_center_coordinates();
-			printf("leaf triangle <%lf %lf>  <%lf %lf>  <%lf %lf>\n", result_leaf_triangles[i]->v1.lon, result_leaf_triangles[i]->v1.lat,
-				result_leaf_triangles[i]->v2.lon, result_leaf_triangles[i]->v2.lat, result_leaf_triangles[i]->v3.lon, result_leaf_triangles[i]->v3.lat);
-			EXECUTION_REPORT(REPORT_ERROR, is_triangle_legal(result_leaf_triangles[i]->v1,result_leaf_triangles[i]->edge[1])&&
-				             is_triangle_legal(result_leaf_triangles[i]->v2,result_leaf_triangles[i]->edge[2])&&
-				             is_triangle_legal(result_leaf_triangles[i]->v3,result_leaf_triangles[i]->edge[0]),
+			printf("leaf triangle <%lf %lf>  <%lf %lf>  <%lf %lf>\n", result_leaf_triangles[i]->v[0].lon, result_leaf_triangles[i]->v[0].lat,
+				result_leaf_triangles[i]->v[1].lon, result_leaf_triangles[i]->v[1].lat, result_leaf_triangles[i]->v[2].lon, result_leaf_triangles[i]->v[2].lat);
+			EXECUTION_REPORT(REPORT_ERROR, is_triangle_legal(result_leaf_triangles[i]->v[0],result_leaf_triangles[i]->edge[1])&&
+				             is_triangle_legal(result_leaf_triangles[i]->v[1],result_leaf_triangles[i]->edge[2])&&
+				             is_triangle_legal(result_leaf_triangles[i]->v[2],result_leaf_triangles[i]->edge[0]),
 				             "remap_software error in generate_Voronoi_diagram");
-			if (result_leaf_triangles[i]->v1.id != -1 && result_leaf_triangles[i]->v2.id != -1 && result_leaf_triangles[i]->v3.id != -1) {
-				cells[result_leaf_triangles[i]->v1.id].vertexes_lats.push_back(result_leaf_triangles[i]->center.lat);
-				cells[result_leaf_triangles[i]->v1.id].vertexes_lons.push_back(result_leaf_triangles[i]->center.lon);
-				cells[result_leaf_triangles[i]->v2.id].vertexes_lats.push_back(result_leaf_triangles[i]->center.lat);
-				cells[result_leaf_triangles[i]->v2.id].vertexes_lons.push_back(result_leaf_triangles[i]->center.lon);
-				cells[result_leaf_triangles[i]->v3.id].vertexes_lats.push_back(result_leaf_triangles[i]->center.lat);
-				cells[result_leaf_triangles[i]->v3.id].vertexes_lons.push_back(result_leaf_triangles[i]->center.lon);
-			}			
+			for (j = 0, num_none_virtual_vertexes = 0; j < 3; j ++)
+				if (result_leaf_triangles[i]->v[j].id != -1)
+					none_virtual_vertexes[num_none_virtual_vertexes ++] = result_leaf_triangles[i]->v[j].id;
+			if (num_none_virtual_vertexes == 0)
+				continue;
+			if (num_none_virtual_vertexes == 1) {
+				result_leaf_triangles[i]->center.lat = cells[none_virtual_vertexes[0]].center.lat;
+				result_leaf_triangles[i]->center.lon = cells[none_virtual_vertexes[0]].center.lon;
+			}
+			if (num_none_virtual_vertexes == 2) {
+				result_leaf_triangles[i]->center.lat = (cells[none_virtual_vertexes[0]].center.lat+cells[none_virtual_vertexes[1]].center.lat) / 2;
+				result_leaf_triangles[i]->center.lon = (cells[none_virtual_vertexes[0]].center.lon+cells[none_virtual_vertexes[1]].center.lon) / 2;;
+			}
+			for (j = 0, num_none_virtual_vertexes = 0; j < 3; j ++)
+				if (result_leaf_triangles[i]->v[j].id != -1) {
+					cells[result_leaf_triangles[i]->v[j].id].vertexes_lats.push_back(result_leaf_triangles[i]->center.lat);
+					cells[result_leaf_triangles[i]->v[j].id].vertexes_lons.push_back(result_leaf_triangles[i]->center.lon);
+				}		
 		}
 }
 

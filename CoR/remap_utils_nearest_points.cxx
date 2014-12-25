@@ -158,9 +158,17 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
 				src_cell_index = i;
 				nearest_dist = current_dist;
 			}
-			*threshold_distance = nearest_dist*1.1;
 		}
 	}
+	else {
+		get_cell_center_coord_values_of_src_grid(src_cell_index, src_cell_center_values);
+		nearest_dist = calculate_distance_of_two_points_2D(dst_cell_center_values[0],
+															   dst_cell_center_values[1],
+															   src_cell_center_values[0],
+															   src_cell_center_values[1],
+															   is_sphere_grid);
+	}
+	*threshold_distance = nearest_dist*1.1;
 
     while(!successful) {
         num_points_within_threshold_dist = 0;

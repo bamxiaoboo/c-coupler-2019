@@ -131,6 +131,7 @@ class Remap_weight_of_strategy_class
         Remap_grid_class **get_remap_related_grids(int&);
         Remap_weight_of_strategy_class *generate_parallel_remap_weights(Remap_grid_class**, Remap_grid_class**, int **);
         const char *get_object_name() { return object_name; }
+		void renew_object_name(const char*);
 		void write_remap_weights_into_array(char**, long&, bool);
 		void read_remap_weights_from_array(const char*, long, bool, Remap_grid_class**, bool);
 		void check_remap_weights_format();

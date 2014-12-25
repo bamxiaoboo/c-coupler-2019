@@ -113,8 +113,7 @@ void Remap_strategy_class::check_field_data_grid_center_values_for_remapping(Rem
 }
 
 
-void Remap_strategy_class::execute_remap_strategy(const char *field_data_name_src, const char *field_data_name_dst, 
-                                                  Remap_weight_of_strategy_class *remap_weight_of_strategy)
+void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_class *remap_weight_of_strategy)
 {
     int i, j;
     Remap_grid_class *remap_src_data_grid, *remap_dst_data_grid, *current_remap_src_data_grid;
@@ -130,35 +129,13 @@ void Remap_strategy_class::execute_remap_strategy(const char *field_data_name_sr
     int num_runtime_mask_sub_grids_src, num_runtime_mask_sub_grids_dst;
     long runtime_remap_times_iter;
     double last_time, current_time;
-    char tmp_str[256];
 
 
-    if (field_data_name_src != NULL) {
-        field_data_src = remap_field_data_manager->search_remap_field_data(field_data_name_src);
-        field_data_dst = remap_field_data_manager->search_remap_field_data(field_data_name_dst);
-		field_data_src->transfer_field_attributes_to_another(field_data_dst);
-        EXECUTION_REPORT(REPORT_ERROR, field_data_src != NULL && field_data_dst != NULL, "remap software error1 in execute_remap_strategy\n");
-        EXECUTION_REPORT(REPORT_WARNING, field_data_src->have_data_content(), 
-                      "source field data \"%s\" does not have essential data; before the current remapping calculation, its data should have been read from IO or calculated by remapping\n",
-                      field_data_name_src);
-        EXECUTION_REPORT(REPORT_WARNING, !field_data_dst->have_data_content(), 
-                      "destination field data \"%s\" should not have essentia data, which have been read from IO or calculated by remapping\n",
-                      field_data_name_dst);
-        remap_src_data_grid = field_data_src->get_coord_value_grid();
-        remap_dst_data_grid = field_data_dst->get_coord_value_grid();
-        EXECUTION_REPORT(REPORT_ERROR, remap_src_data_grid != NULL, 
-                     "\"%s\" is not a field data but a normal array data. It can not be the source data of remapping process\n",
-                     field_data_src->get_grid_data_field()->field_name_in_application);
-        EXECUTION_REPORT(REPORT_ERROR, remap_dst_data_grid != NULL, 
-                     "\"%s\" is not a field data but a normal array data. It can not be the destination data of remapping process\n",
-                     field_data_dst->get_grid_data_field()->field_name_in_application);
-    }
-    else {
-        field_data_src = NULL;
-        field_data_dst = NULL;
-        remap_src_data_grid = remap_weight_of_strategy->get_data_grid_src();
-        remap_dst_data_grid = remap_weight_of_strategy->get_data_grid_dst();
-    }
+
+    field_data_src = NULL;
+    field_data_dst = NULL;
+    remap_src_data_grid = remap_weight_of_strategy->get_data_grid_src();
+    remap_dst_data_grid = remap_weight_of_strategy->get_data_grid_dst();
 
     remap_src_data_grid->end_grid_definition_stage(NULL);
     remap_dst_data_grid->end_grid_definition_stage(NULL);
@@ -246,6 +223,49 @@ void Remap_strategy_class::execute_remap_strategy(const char *field_data_name_sr
         delete current_remap_src_data_grid;
     }
 
-	EXECUTION_REPORT(REPORT_ERROR, j+1 == remap_weight_of_strategy->get_num_field_data_grids_in_remapping_process(), "C-Coupler error in execute_remap_strategy\n");
+	EXECUTION_REPORT(REPORT_ERROR, j+1 == remap_weight_of_strategy->get_num_field_data_grids_in_remapping_process(), "C-Coupler error in calculate_remapping_weights\n");
 }
+
+
+void Remap_strategy_class::remap_fields(const char *field_data_name_src, const char *field_data_name_dst)
+{
+    int i;
+    Remap_grid_class *remap_src_data_grid, *remap_dst_data_grid;
+    Remap_grid_data_class *field_data_src, *field_data_dst;
+	Remap_weight_of_strategy_class *remap_weight_of_strategy;
+
+
+    field_data_src = remap_field_data_manager->search_remap_field_data(field_data_name_src);
+    field_data_dst = remap_field_data_manager->search_remap_field_data(field_data_name_dst);
+	field_data_src->transfer_field_attributes_to_another(field_data_dst);
+    EXECUTION_REPORT(REPORT_ERROR, field_data_src != NULL && field_data_dst != NULL, "remap software error1 in Remap_strategy_class::remap_fields\n");
+    EXECUTION_REPORT(REPORT_WARNING, field_data_src->have_data_content(), 
+                     "source field data \"%s\" does not have essential data; before the current remapping calculation, its data should have been read from IO or calculated by remapping\n",
+                     field_data_name_src);
+    EXECUTION_REPORT(REPORT_WARNING, !field_data_dst->have_data_content(), 
+                     "destination field data \"%s\" should not have essentia data, which have been read from IO or calculated by remapping\n",
+                     field_data_name_dst);
+    remap_src_data_grid = field_data_src->get_coord_value_grid();
+    remap_dst_data_grid = field_data_dst->get_coord_value_grid();
+    EXECUTION_REPORT(REPORT_ERROR, remap_src_data_grid != NULL, 
+                     "\"%s\" is not a field data but a normal array data. It can not be the source data of remapping process\n",
+                     field_data_src->get_grid_data_field()->field_name_in_application);
+    EXECUTION_REPORT(REPORT_ERROR, remap_dst_data_grid != NULL, 
+                     "\"%s\" is not a field data but a normal array data. It can not be the destination data of remapping process\n",
+                     field_data_dst->get_grid_data_field()->field_name_in_application);
+
+    remap_src_data_grid->end_grid_definition_stage(NULL);
+    remap_dst_data_grid->end_grid_definition_stage(NULL);
+
+	if (remap_src_data_grid->is_sigma_grid() || remap_dst_data_grid->is_sigma_grid()) {
+		for (i = 0; i < remap_operators.size(); i ++)
+			if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
+				break;
+		EXECUTION_REPORT(REPORT_ERROR, i < remap_operators.size(), "One grid in %s or %s is a sigma grid. The interpolation between them must have vertical interpolation", remap_src_data_grid->get_grid_name(), remap_dst_data_grid->get_grid_name());
+	}
+
+	remap_weight_of_strategy = remap_weights_of_strategy_manager->search_or_add_remap_weight_of_strategy(remap_src_data_grid, remap_dst_data_grid, this, NULL, NULL, NULL, false);
+	remap_weight_of_strategy->do_remap(field_data_src, field_data_dst);
+}
+
 

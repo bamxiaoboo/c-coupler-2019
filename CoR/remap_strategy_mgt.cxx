@@ -35,9 +35,8 @@ void Remap_strategy_mgt::execute(const char*function, Remap_statement_operand **
         check_is_parameter_object_type_remap_scheme(function, 1, statement_operands[0], "the remap scheme used to do remapping");
         check_is_parameter_object_type_field_data(function, 2, statement_operands[1], "the src field of remapping");
         check_is_parameter_object_type_field_data(function, 3, statement_operands[2], "the dst field of remapping");        
-        remap_strategy_manager->search_remap_strategy(statement_operands[0]->object->object_name)->execute_remap_strategy(statement_operands[1]->object->object_name, 
-                                                                                                                          statement_operands[2]->object->object_name,
-                                                                                                                          NULL);
+        remap_strategy_manager->search_remap_strategy(statement_operands[0]->object->object_name)->remap_fields(statement_operands[1]->object->object_name, 
+                                                                                                                statement_operands[2]->object->object_name);
     }
     else EXECUTION_REPORT(REPORT_ERROR, false, "\"%s\" is an undefined function\n", function);
 }

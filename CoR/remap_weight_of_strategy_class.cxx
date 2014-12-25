@@ -423,14 +423,14 @@ Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *objec
     data_grid_src = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_src);
     data_grid_dst = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_dst);
 
-	EXECUTION_REPORT(REPORT_ERROR, data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
+	EXECUTION_REPORT(REPORT_ERROR, remap_strategy != NULL && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
 
 	generate_remapping_related_grids();
 	build_operations_for_calculating_sigma_values_of_grids();
 	calculate_sigma_values_of_grids();
 
 	if (!read_from_io)
-		remap_strategy->execute_remap_strategy(NULL, NULL, this);
+		remap_strategy->calculate_remapping_weights(this);
 	else {
 		if (words_are_the_same(weight_IO_format, "SCRIP")) 
 			((IO_netcdf*) (io_manager->search_IO_object(input_IO_file_name)))->read_remap_weights(this, remap_strategy, is_master_process_in_computing_node);
@@ -1226,4 +1226,12 @@ void Remap_weight_of_strategy_class::calculate_sigma_values_of_grids()
 	}
 }
 
+
+void Remap_weight_of_strategy_class::renew_object_name(const char*new_object_name)
+{
+	if (words_are_the_same(object_name, new_object_name))
+		return;
+	
+	EXECUTION_REPORT(REPORT_ERROR, strncmp(object_name, "TEMP_WEIGHT", strlen("TEMP_WEIGHT")) == 0, "Remap weights %s is the same as %s. Please do not calculate the same remap weights more than once", object_name, new_object_name);
+}
 

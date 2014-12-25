@@ -853,8 +853,7 @@ void Remap_grid_class::set_sigma_grid_dynamic_surface_value_field(Remap_grid_dat
 	EXECUTION_REPORT(REPORT_ERROR, this->is_sigma_grid(), "C-Coupler error1 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
 	EXECUTION_REPORT(REPORT_ERROR, value_field->get_coord_value_grid()->is_subset_of_grid(this), "C-Coupler error2 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
 
-	printf("okok  good3 %lx  %s\n", this, grid_name);
-	
+
 	this->specified_sigma_grid_surface_value_field = true;
 	if (sigma_grid_surface_value_field == NULL)
 		sigma_grid_surface_value_field = value_field->duplicate_grid_data_field(value_field->get_coord_value_grid(), 1, true, true);

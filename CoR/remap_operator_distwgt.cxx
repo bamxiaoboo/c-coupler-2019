@@ -26,6 +26,11 @@ void Remap_operator_distwgt::set_parameter(const char *parameter_name, const cha
         delete [] weigt_values_of_one_dst_cell;
         weigt_values_of_one_dst_cell = new double [num_nearest_points];
     }
+	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
+		if (words_are_the_same(parameter_value, "true"))
+	        enable_extrapolate = true;
+		else EXECUTION_REPORT(REPORT_ERROR, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
+	}
     else EXECUTION_REPORT(REPORT_ERROR, false, 
                       "\"%s\" is a illegal parameter of remap operator \"%s\"\n",
                       parameter_name,
@@ -38,6 +43,7 @@ Remap_operator_distwgt::Remap_operator_distwgt()
     found_nearest_points_distance = NULL;
     found_nearest_points_src_indexes = NULL;
     weigt_values_of_one_dst_cell = NULL;
+	enable_extrapolate = false;
 }
 
 
@@ -53,6 +59,7 @@ Remap_operator_distwgt::Remap_operator_distwgt(const char *object_name, int num_
 {
     num_nearest_points = 4;
     num_power = 1;
+	enable_extrapolate = false;
     found_nearest_points_distance = new double [src_grid->get_grid_size()];
     found_nearest_points_src_indexes = new long [src_grid->get_grid_size()];
     weigt_values_of_one_dst_cell = new double [num_nearest_points];
@@ -71,7 +78,7 @@ void Remap_operator_distwgt::compute_remap_weights_of_one_dst_cell(long dst_cell
                                                found_nearest_points_src_indexes,
                                                weigt_values_of_one_dst_cell,
                                                get_is_sphere_grid(),
-                                               false);
+                                               enable_extrapolate);
     finalize_computing_remap_weights_of_one_cell();    
 }
 

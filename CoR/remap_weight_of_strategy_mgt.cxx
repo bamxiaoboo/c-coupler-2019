@@ -57,12 +57,11 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
         check_is_parameter_object_type_remap_scheme(function, 1, statement_operands[1], "the remap scheme corresponding to the remap weights");
         check_is_parameter_object_type_grid(function, 2, statement_operands[2], "the src grid of remap weights (the grid of src field)\n");
         check_is_parameter_object_type_grid(function, 3, statement_operands[3], "the dst grid of remap weights (the grid of dst field)\n");
-        remap_weights_of_strategies.push_back(new Remap_weight_of_strategy_class(statement_operands[0]->object->object_name,
-                                                                                 statement_operands[1]->object->object_name,
-                                                                                 statement_operands[2]->object->object_name,
-                                                                                 statement_operands[3]->object->object_name,
-                                                                                 NULL, NULL,
-                                                                                 false));
+        remap_weights_of_strategies.push_back(generate_new_remap_weights(statement_operands[0]->object->object_name,
+                                                                         statement_operands[1]->object->object_name,
+                                                                         statement_operands[2]->object->object_name,
+                                                                         statement_operands[3]->object->object_name,
+                                                                         NULL, NULL, false));
 		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_REMAP)){
@@ -85,16 +84,56 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
         check_is_parameter_string_type(function, 5, statement_operands[5], "the format of remap weights in IO file (SCRIP or C-Coupler)");
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(statement_operands[5]->extension_names[0], "SCRIP") || words_are_the_same(statement_operands[5]->extension_names[0], "C-Coupler") ,
                      "the fifth input parameter of function \"%s\" must be a string of \"SCRIP\" or \"C-Coupler\"\n", function);
-        remap_weights = new Remap_weight_of_strategy_class(statement_operands[0]->object->object_name,
-                                                           statement_operands[1]->object->object_name,
-                                                           statement_operands[2]->object->object_name,
-                                                           statement_operands[3]->object->object_name,
-                                                           statement_operands[4]->object->object_name,
-                                                           statement_operands[5]->extension_names[0],
-                                                           true);
+        remap_weights = generate_new_remap_weights(statement_operands[0]->object->object_name,
+                                                   statement_operands[1]->object->object_name,
+                                                   statement_operands[2]->object->object_name,
+                                                   statement_operands[3]->object->object_name,
+                                                   statement_operands[4]->object->object_name,
+                                                   statement_operands[5]->extension_names[0],
+                                                   true);
         remap_weights_of_strategies.push_back(remap_weights);
 		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
+}
+
+
+Remap_weight_of_strategy_class *Remap_weight_of_strategy_mgt::search_or_add_remap_weight_of_strategy(Remap_grid_class *field_grid_src, Remap_grid_class *field_grid_dst, Remap_strategy_class *remap_strategy, const char *weight_object_name,
+																											 const char *input_IO_file_name, const char *weight_IO_format, bool read_from_io)
+{
+	char temp_object_name[512];
+
+	
+    for (int i = 0; i < remap_weights_of_strategies.size(); i ++) 
+        if (field_grid_src == remap_weights_of_strategies[i]->get_data_grid_src() && field_grid_dst == remap_weights_of_strategies[i]->get_data_grid_dst() && remap_strategy == remap_weights_of_strategies[i]->get_remap_strategy()) {
+			if (weight_object_name != NULL)
+				remap_weights_of_strategies[i]->renew_object_name(weight_object_name);
+            return remap_weights_of_strategies[i];
+        }
+
+	if (weight_object_name != NULL)
+		strcpy(temp_object_name, weight_object_name);
+	else sprintf(temp_object_name, "TEMP_WEIGHT_%s_%s_%s", remap_strategy->get_strategy_name(), field_grid_src->get_grid_name(), field_grid_dst->get_grid_name());
+	remap_weights_of_strategies.push_back(new Remap_weight_of_strategy_class(temp_object_name,remap_strategy->get_strategy_name(), field_grid_src->get_grid_name(), field_grid_dst->get_grid_name(),
+                                                                             input_IO_file_name, weight_IO_format, read_from_io));
+
+    return remap_weights_of_strategies[remap_weights_of_strategies.size()-1];
+}
+
+
+Remap_weight_of_strategy_class *Remap_weight_of_strategy_mgt::generate_new_remap_weights(const char *object_name, const char *remap_strategy_name, const char *data_grid_name_src, const char *data_grid_name_dst,
+                                                                                         const char *input_IO_file_name, const char *weight_IO_format, bool read_from_io)
+{
+	Remap_strategy_class *remap_strategy;
+	Remap_grid_class *data_grid_src, *data_grid_dst;
+	
+		
+    remap_strategy = remap_strategy_manager->search_remap_strategy(remap_strategy_name);
+    data_grid_src = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_src);
+    data_grid_dst = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_dst);
+
+	EXECUTION_REPORT(REPORT_ERROR, remap_strategy != NULL && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
+
+	return search_or_add_remap_weight_of_strategy(data_grid_src, data_grid_dst, remap_strategy, object_name, input_IO_file_name, weight_IO_format, read_from_io);
 }
 
 

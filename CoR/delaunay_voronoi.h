@@ -62,9 +62,7 @@ class Point
 class Triangle
 {
 	public:
-		Point v1;	/* vertex of triangle */
-		Point v2;	/* vertex of triangle */
-		Point v3;	/* vertex of triangle */
+		Point v[3];	/* vertexes of triangle */
 		Point center;	/* circumcenter */
 		Edge *edge[3];
 		bool is_leaf;
