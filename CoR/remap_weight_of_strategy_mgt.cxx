@@ -57,11 +57,9 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
         check_is_parameter_object_type_remap_scheme(function, 1, statement_operands[1], "the remap scheme corresponding to the remap weights");
         check_is_parameter_object_type_grid(function, 2, statement_operands[2], "the src grid of remap weights (the grid of src field)\n");
         check_is_parameter_object_type_grid(function, 3, statement_operands[3], "the dst grid of remap weights (the grid of dst field)\n");
-        remap_weights_of_strategies.push_back(generate_new_remap_weights(statement_operands[0]->object->object_name,
-                                                                         statement_operands[1]->object->object_name,
-                                                                         statement_operands[2]->object->object_name,
-                                                                         statement_operands[3]->object->object_name,
-                                                                         NULL, NULL, false));
+        generate_new_remap_weights(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name,
+			                       statement_operands[2]->object->object_name, statement_operands[3]->object->object_name,
+			                       NULL, NULL, false);
 		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_REMAP)){
@@ -84,14 +82,9 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
         check_is_parameter_string_type(function, 5, statement_operands[5], "the format of remap weights in IO file (SCRIP or C-Coupler)");
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(statement_operands[5]->extension_names[0], "SCRIP") || words_are_the_same(statement_operands[5]->extension_names[0], "C-Coupler") ,
                      "the fifth input parameter of function \"%s\" must be a string of \"SCRIP\" or \"C-Coupler\"\n", function);
-        remap_weights = generate_new_remap_weights(statement_operands[0]->object->object_name,
-                                                   statement_operands[1]->object->object_name,
-                                                   statement_operands[2]->object->object_name,
-                                                   statement_operands[3]->object->object_name,
-                                                   statement_operands[4]->object->object_name,
-                                                   statement_operands[5]->extension_names[0],
-                                                   true);
-        remap_weights_of_strategies.push_back(remap_weights);
+        remap_weights = generate_new_remap_weights(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name,
+                                                   statement_operands[2]->object->object_name, statement_operands[3]->object->object_name,
+                                                   statement_operands[4]->object->object_name, statement_operands[5]->extension_names[0], true);
 		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
 }
@@ -149,7 +142,7 @@ Remap_weight_of_strategy_class *Remap_weight_of_strategy_mgt::search_remap_weigh
 
 Remap_weight_of_strategy_mgt::~Remap_weight_of_strategy_mgt()
 {
-    for (int i = 0; i < remap_weights_of_strategies.size(); i ++) 
+    for (int i = 0; i < remap_weights_of_strategies.size(); i ++)
         delete remap_weights_of_strategies[i];
 }
 

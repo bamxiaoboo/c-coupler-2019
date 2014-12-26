@@ -149,9 +149,10 @@ extern "C" void finalize_coupling_managers_()
 {
 	performance_timing_mgr->performance_timing_output();
 	delete performance_timing_mgr;
+    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting performance_timing_mgr");
 	if (grid_remap_manager != NULL)
         delete grid_remap_manager;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting grid manages");
+    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting grid managers");
     delete fields_info;
     EXECUTION_REPORT(REPORT_LOG, true, "finish deleting fields info");
     delete memory_manager;

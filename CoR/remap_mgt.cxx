@@ -441,12 +441,20 @@ Remap_mgt::~Remap_mgt()
     }
 
     delete io_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "io_manager");
     delete remap_weights_of_strategy_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "remap_weights_of_strategy_manager");
 	delete sequential_remap_weight_of_operator_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "sequential_remap_weight_of_operator_manager");
 	delete parallel_remap_weight_of_operator_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "parallel_remap_weight_of_operator_manager");
     delete remap_strategy_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "remap_strategy_manager");
     delete remap_grid_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "remap_grid_manager");
     delete remap_operator_manager;
+	EXECUTION_REPORT(REPORT_LOG, true, "remap_operator_manager");
     delete remap_field_data_manager; 
+	EXECUTION_REPORT(REPORT_LOG, true, "remap_field_data_manager");
 }
 

@@ -527,6 +527,11 @@ bool Remap_weight_of_strategy_class::match_object_name(const char*object_name)
 
 Remap_weight_of_strategy_class::~Remap_weight_of_strategy_class()
 {
+	if (!public_remap_weights_of_operators) {
+		printf("delete remap_weights %s  %lx\n", object_name, this);
+		fflush(NULL);
+	}
+	
 	if (!public_remap_weights_of_operators)
 	    for (int i = 0; i < remap_weights_of_operators.size(); i ++)
     	    delete remap_weights_of_operators[i];
@@ -1085,7 +1090,7 @@ void Remap_weight_of_strategy_class::build_operations_for_calculating_sigma_valu
 	Operation_for_caculating_sigma_values *operation_for_caculating_sigma_values;
 	Remap_strategy_class *new_remap_strategy;
 	int i, j, num_operator_field_data_grids;
-	char temp1_object_name[256], temp2_object_name[256];
+	char temp1_object_name[256];
 	int original_execution_phase_number, num_leaf_grids;
 
 	
@@ -1191,14 +1196,12 @@ void Remap_weight_of_strategy_class::build_operations_for_calculating_sigma_valu
 		sprintf(temp1_object_name, "remap_strategy_of_%s_for_interpolating_surface_field_between_%s_and_%s\0", original_remap_operators[(i-1)/2]->get_operator_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name());
 		new_remap_strategy = new Remap_strategy_class(temp1_object_name, 1, &operator_for_interpolating_surface_fields);
 		remap_strategy_manager->add_remap_strategy(new_remap_strategy);
-		sprintf(temp2_object_name, "sequential_remap_weights_of_%s_for_interpolating_surface_field_between_%s_and_%s\0", original_remap_operators[(i-1)/2]->get_operator_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name());
 		original_execution_phase_number = execution_phase_number;
 		execution_phase_number = 1;
 		EXECUTION_REPORT(REPORT_LOG, true, "Generate remapping weights for surface fields of sigma grid from sphere grid %s to %s", operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name());
-		sequential_weights_of_strategy_for_interpolating_surface_fields = new Remap_weight_of_strategy_class(temp2_object_name, temp1_object_name, operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), 
-																											 operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), NULL, NULL, false);
+		sequential_weights_of_strategy_for_interpolating_surface_fields = remap_weights_of_strategy_manager->search_or_add_remap_weight_of_strategy(operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid(), new_remap_strategy, NULL, NULL, NULL, false);
 		execution_phase_number = original_execution_phase_number;
-		remap_weights_of_strategy_manager->add_remap_weight_of_strategy(sequential_weights_of_strategy_for_interpolating_surface_fields);
+		printf("okok qiguai address %s: %lx\n", sequential_weights_of_strategy_for_interpolating_surface_fields->get_object_name(),sequential_weights_of_strategy_for_interpolating_surface_fields);
 		operation_for_caculating_sigma_values->remap_weights = sequential_weights_of_strategy_for_interpolating_surface_fields;
 	}
 }
