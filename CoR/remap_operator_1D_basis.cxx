@@ -70,6 +70,32 @@ void Remap_operator_1D_basis::set_common_parameter(const char *parameter_name, c
 						 "The parameter \"%s\" of the 1D remapping operator \"%s\" must be bigger than 0",
 						 parameter_name, operator_name);
 	}
+	else if (words_are_the_same(parameter_name, "use_logarithmic_field_value")) {
+		EXECUTION_REPORT(REPORT_ERROR, !set_use_logarithmic_field_value,
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
+						 parameter_name, operator_name);
+		if (words_are_the_same(parameter_value, "true")) 
+			use_logarithmic_field_value = true;
+		else if (words_are_the_same(parameter_value, "false"))
+			use_logarithmic_field_value = false;
+		else EXECUTION_REPORT(REPORT_ERROR, false, 
+                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
+                      parameter_name, operator_name);
+		set_use_logarithmic_field_value = true;
+	}
+	else if (words_are_the_same(parameter_name, "use_logarithmic_coordinate")) {
+		EXECUTION_REPORT(REPORT_ERROR, !set_use_logarithmic_coordinate,
+						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
+						 parameter_name, operator_name);
+		if (words_are_the_same(parameter_value, "true")) 
+			use_logarithmic_coordinate = true;
+		else if (words_are_the_same(parameter_value, "false"))
+			use_logarithmic_coordinate = false;
+		else EXECUTION_REPORT(REPORT_ERROR, false, 
+                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
+                      parameter_name, operator_name);
+		set_use_logarithmic_coordinate = true;
+	}
 	else if (words_are_the_same(parameter_name, "extrapolation")) {
 		EXECUTION_REPORT(REPORT_ERROR, !periodic,
 						 "The parameter \"%s\" of the 1D remapping operator \"%s\" can not be set when the 1D remapping operator is periodic",
@@ -118,6 +144,10 @@ void Remap_operator_1D_basis::copy_1D_remap_operator_info(Remap_operator_1D_basi
 	enable_extrapolation = original_grid->enable_extrapolation;
 	period = original_grid->period;
 	num_useful_src_cells = original_grid->num_useful_src_cells;
+	use_logarithmic_field_value = original_grid->use_logarithmic_field_value;
+	set_use_logarithmic_field_value = original_grid->set_use_logarithmic_field_value;
+	use_logarithmic_coordinate = original_grid->use_logarithmic_coordinate;
+	set_use_logarithmic_coordinate = original_grid->set_use_logarithmic_coordinate;
 }
 
 
@@ -128,6 +158,10 @@ void Remap_operator_1D_basis::initialize_1D_remap_operator()
     periodic = false;
 	enable_extrapolation = false;
 	set_enable_extrapolation = false;
+	use_logarithmic_field_value = false;
+	set_use_logarithmic_field_value = false;
+	use_logarithmic_coordinate = false;
+	set_use_logarithmic_coordinate = false;
 
 	allocate_1D_remap_operator_common_arrays_space();
 }
@@ -252,6 +286,19 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 	}
 	else array_size_src = num_useful_src_cells;
 
+	if (use_logarithmic_coordinate) {
+		for (i = 0; i < array_size_src; i ++) {
+			EXECUTION_REPORT(REPORT_ERROR, coord_values_src[i] > 0, "1D remapping operator %s cannot use logarithmic values of coodinate because its source grid %s has non-positive coordinate values",
+							 object_name, src_grid->get_grid_name());
+			coord_values_src[i] = log(coord_values_src[i]);
+		}
+		for (i = 0; i < dst_grid->get_grid_size(); i ++) {
+			EXECUTION_REPORT(REPORT_ERROR, coord_values_dst[i] > 0, "1D remapping operator %s cannot use logarithmic values of coodinate because its source grid %s has non-positive coordinate values",
+							 object_name, dst_grid->get_grid_name());
+			coord_values_dst[i] = log(coord_values_dst[i]);
+		}			
+	}
+
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		src_cell_index_left[i] = -1;
 		src_cell_index_right[i] = -1;
@@ -273,5 +320,40 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 			src_cell_index_right[i] ++;
 		}
 	}
+}
+
+
+void Remap_operator_1D_basis::preprocess_field_value(double *data_values_src)
+{
+	int i;
+	double eps = 1.0e-8;
+
+	
+	for (i = 0; i < array_size_src; i ++)
+		packed_data_values_src[i] = data_values_src[useful_src_cells_global_index[i]];
+
+	if (use_logarithmic_field_value) {
+		base_field_value = packed_data_values_src[0];
+		for (i = 1; i < array_size_src; i ++)
+			if (base_field_value > packed_data_values_src[i])
+				base_field_value = packed_data_values_src[i];
+		base_field_value = base_field_value - eps;
+		for (i = 0; i < array_size_src; i ++)
+			packed_data_values_src[i] = log(packed_data_values_src[i] - base_field_value);
+	}
+}
+
+
+void Remap_operator_1D_basis::postprocess_field_value(double *data_values_dst)
+{
+	int i, dst_index;
+
+	
+	if (use_logarithmic_field_value) {
+		for (i = 0; i < remap_weights_groups[1]->get_num_remaped_dst_cells_indexes(); i ++) {
+			dst_index = (remap_weights_groups[1]->get_remaped_dst_cells_indexes())[i];
+			data_values_dst[dst_index] = exp(data_values_dst[dst_index]) + base_field_value;
+		}	
+	}	
 }
 

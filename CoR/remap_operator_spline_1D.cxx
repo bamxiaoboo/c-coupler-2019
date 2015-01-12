@@ -250,8 +250,7 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 	for (i = 0; i < array_size_src; i++)
 		array_alpha[i] = 2.0;
 	
-	for (i = 0; i < array_size_src; i ++)
-		packed_data_values_src[i] = data_values_src[useful_src_cells_global_index[i]];
+	preprocess_field_value(data_values_src);
 
 	for (i = 1; i < array_size_src-1; i++)
 		array_d[i] = 6.0*((packed_data_values_src[i+1]-packed_data_values_src[i])/array_h[i]-(packed_data_values_src[i]-packed_data_values_src[i-1])/array_h[i-1])/(array_h[i-1]+array_h[i]);
@@ -327,6 +326,8 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 			}
 		}
 	}
+
+	postprocess_field_value(data_values_dst);
 }
 
 

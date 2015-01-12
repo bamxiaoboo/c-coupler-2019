@@ -527,11 +527,6 @@ bool Remap_weight_of_strategy_class::match_object_name(const char*object_name)
 
 Remap_weight_of_strategy_class::~Remap_weight_of_strategy_class()
 {
-	if (!public_remap_weights_of_operators) {
-		printf("delete remap_weights %s  %lx\n", object_name, this);
-		fflush(NULL);
-	}
-	
 	if (!public_remap_weights_of_operators)
 	    for (int i = 0; i < remap_weights_of_operators.size(); i ++)
     	    delete remap_weights_of_operators[i];
@@ -1097,21 +1092,13 @@ void Remap_weight_of_strategy_class::build_operations_for_calculating_sigma_valu
 	if (operations_for_caculating_sigma_values_of_grid.size() > 0)
 		return;
 
-	if (data_grid_src->get_num_dimensions() == 3 && data_grid_src->has_grid_coord_label(COORD_LABEL_LAT) && 
-		data_grid_src->has_grid_coord_label(COORD_LABEL_LON) && data_grid_src->has_grid_coord_label(COORD_LABEL_LEV) && 
-		data_grid_src->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values() != NULL &&
-		data_grid_src->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values()->is_sigma_grid() &&
-		data_grid_src->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values()->has_specified_sigma_grid_surface_value_field()) {
+	if (data_grid_src->is_sigma_grid() && data_grid_src->has_specified_sigma_grid_surface_value_field()) {
 		EXECUTION_REPORT(REPORT_ERROR, data_grid_src == data_grid_src->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values(), 
 						 "%s should be a 3D sigma grid, but the vertical coordinate values are set in another grid %s. %s cannot be used as a source grid of remapping weights",
 						 data_grid_src->get_grid_name(), data_grid_src->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values()->get_grid_name(), data_grid_src->get_grid_name());
         dynamic_surface_field_origin_grid = data_grid_src;
 	}
-	if (data_grid_dst->get_num_dimensions() == 3 && data_grid_dst->has_grid_coord_label(COORD_LABEL_LAT) && 
-		data_grid_dst->has_grid_coord_label(COORD_LABEL_LON) && data_grid_dst->has_grid_coord_label(COORD_LABEL_LEV) && 
-		data_grid_dst->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values() != NULL &&
-		data_grid_dst->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values()->is_sigma_grid() &&
-		data_grid_dst->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values()->has_specified_sigma_grid_surface_value_field()) {
+	if (data_grid_dst->is_sigma_grid() && data_grid_dst->has_specified_sigma_grid_surface_value_field()) {
 		EXECUTION_REPORT(REPORT_ERROR, data_grid_dst == data_grid_dst->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values(), 
 						 "%s should be a 3D sigma grid, but the vertical coordinate values are set in another grid %s. %s cannot be used as a source grid of remapping weights",
 						 data_grid_dst->get_grid_name(), data_grid_dst->get_a_leaf_grid(COORD_LABEL_LEV)->get_super_grid_of_setting_coord_values()->get_grid_name(), data_grid_dst->get_grid_name());
@@ -1119,8 +1106,16 @@ void Remap_weight_of_strategy_class::build_operations_for_calculating_sigma_valu
 						 "The surface value fields (for 3D sigma grid) in source and target grids of remapping weights %s are both specified by users. Only one surface value field can be specified by users.", get_object_name());
         dynamic_surface_field_origin_grid = data_grid_dst;
 	}
-	if (dynamic_surface_field_origin_grid == NULL)
+	
+	if (dynamic_surface_field_origin_grid == NULL) {
+		if (data_grid_src->is_sigma_grid() && data_grid_dst->is_sigma_grid()) 
+			EXECUTION_REPORT(REPORT_ERROR, false, "The bottom field of sigma grid \"%s\" or \"%s\" should be set before generating remapping weights \"%s\"", data_grid_src->get_grid_name(), data_grid_dst->get_grid_name(), object_name);
+		else if (data_grid_src->is_sigma_grid())
+			EXECUTION_REPORT(REPORT_ERROR, false, "The bottom field of sigma grid \"%s\" should be set before generating remapping weights \"%s\"", data_grid_src->get_grid_name(), object_name);
+		else if (data_grid_dst->is_sigma_grid())
+			EXECUTION_REPORT(REPORT_ERROR, false, "The bottom field of sigma grid \"%s\" should be set before generating remapping weights \"%s\"", data_grid_dst->get_grid_name(), object_name);
 		return;
+	}
 
 	if (num_field_data_grids_in_remapping_process > 0) {
 		if (data_grid_src->has_specified_sigma_grid_surface_value_field()) {
@@ -1201,7 +1196,6 @@ void Remap_weight_of_strategy_class::build_operations_for_calculating_sigma_valu
 		EXECUTION_REPORT(REPORT_LOG, true, "Generate remapping weights for surface fields of sigma grid from sphere grid %s to %s", operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name());
 		sequential_weights_of_strategy_for_interpolating_surface_fields = remap_weights_of_strategy_manager->search_or_add_remap_weight_of_strategy(operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid(), new_remap_strategy, NULL, NULL, NULL, false);
 		execution_phase_number = original_execution_phase_number;
-		printf("okok qiguai address %s: %lx\n", sequential_weights_of_strategy_for_interpolating_surface_fields->get_object_name(),sequential_weights_of_strategy_for_interpolating_surface_fields);
 		operation_for_caculating_sigma_values->remap_weights = sequential_weights_of_strategy_for_interpolating_surface_fields;
 	}
 }

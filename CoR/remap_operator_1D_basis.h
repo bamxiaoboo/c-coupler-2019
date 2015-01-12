@@ -26,6 +26,10 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		bool set_period;
 		bool set_enable_extrapolation;
 		bool enable_extrapolation;
+		bool use_logarithmic_field_value;
+		bool set_use_logarithmic_field_value;
+		bool use_logarithmic_coordinate;
+		bool set_use_logarithmic_coordinate;
 		double period;
 		double *coord_values_src;
 		double *coord_values_dst;
@@ -36,6 +40,8 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		int *src_cell_index_left;
 		int *src_cell_index_right;
 
+		double base_field_value;
+
 		void initialize_1D_remap_operator();
 		void copy_1D_remap_operator_info(Remap_operator_1D_basis*);
 		void allocate_1D_remap_operator_common_arrays_space();
@@ -43,6 +49,8 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		void search_src_cells_around_dst_cell_recursively(double, int, int,  int&, int&);
 		void set_common_parameter(const char*, const char*);
 		void calculate_dst_src_mapping_info();
+		void preprocess_field_value(double*);
+		void postprocess_field_value(double*);
 
     public:
 		Remap_operator_1D_basis() {}

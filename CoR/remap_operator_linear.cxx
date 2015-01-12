@@ -19,20 +19,7 @@ void Remap_operator_linear::set_parameter(const char *parameter_name, const char
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
 
-	if (words_are_the_same(parameter_name, "use_logarithm")) {
-		EXECUTION_REPORT(REPORT_ERROR, !set_use_logarithm,
-						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
-						 parameter_name, operator_name);
-		if (words_are_the_same(parameter_value, "true")) 
-			use_logarithm = true;
-		else if (words_are_the_same(parameter_value, "false"))
-			use_logarithm = false;
-		else EXECUTION_REPORT(REPORT_ERROR, false, 
-                      "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
-                      parameter_name, operator_name);
-		set_use_logarithm = true;
-	}
-    else set_common_parameter(parameter_name, parameter_value);
+	set_common_parameter(parameter_name, parameter_value);
 }
 
 
@@ -106,8 +93,6 @@ void Remap_operator_linear::calculate_remap_weights()
 Remap_operator_linear::Remap_operator_linear(const char *object_name, int num_remap_grids, Remap_grid_class **remap_grids)
                                        : Remap_operator_1D_basis(object_name, REMAP_OPERATOR_NAME_LINEAR, num_remap_grids, remap_grids)
 {
-	use_logarithm = false;
-	set_use_logarithm = false;
     remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
 	remap_weights_groups.push_back(new Remap_weight_sparse_matrix(this));
 	
@@ -116,8 +101,7 @@ Remap_operator_linear::Remap_operator_linear(const char *object_name, int num_re
 
 void Remap_operator_linear::allocate_local_arrays()
 {
-	logarithm_data_value_src = common_buffer_for_1D_remap_operator + 3*(src_grid->get_grid_size()+2);
-	temp_decomp_map_src = (long*) (common_buffer_for_1D_remap_operator + 4*(src_grid->get_grid_size()+2));
+	temp_decomp_map_src = (long*) (common_buffer_for_1D_remap_operator + 3*(src_grid->get_grid_size()+2));
 }
 
 
@@ -128,10 +112,9 @@ Remap_operator_linear::~Remap_operator_linear()
 
 void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
 {
-	int i, dst_index;
+	int i;
 	long temp_long_value1, temp_long_value2;
 	double temp_double_value, base_value;
-	bool can_use_logarithm;
 	double eps = 1.0e-8;
 	
 	
@@ -147,24 +130,11 @@ void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, 
 		useful_src_cells_global_index[i] = temp_long_value2;
 	}
 
-	for (i = 0; i < array_size_src; i ++)
-		packed_data_values_src[i] = data_values_src[useful_src_cells_global_index[i]];
+	preprocess_field_value(data_values_src);
 
-	if (use_logarithm) {
-		base_value = packed_data_values_src[0];
-		for (i = 1; i < array_size_src; i ++)
-			if (base_value > packed_data_values_src[i])
-				base_value = packed_data_values_src[i];
-		base_value = base_value - eps;
-		for (i = 0; i < array_size_src; i ++)
-			logarithm_data_value_src[i] = log(packed_data_values_src[i] - base_value);
-		remap_weights_groups[1]->remap_values(logarithm_data_value_src, data_values_dst);
-		for (i = 0; i < remap_weights_groups[1]->get_num_remaped_dst_cells_indexes(); i ++) {
-			dst_index = (remap_weights_groups[1]->get_remaped_dst_cells_indexes())[i];
-			data_values_dst[dst_index] = exp(data_values_dst[dst_index]) + base_value;
-		}	
-	}
-	else remap_weights_groups[1]->remap_values(packed_data_values_src, data_values_dst);
+	remap_weights_groups[1]->remap_values(packed_data_values_src, data_values_dst);
+
+	postprocess_field_value(data_values_dst);
 }
 
 
@@ -200,8 +170,6 @@ Remap_operator_basis *Remap_operator_linear::duplicate_remap_operator(bool fully
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
 	((Remap_operator_linear *) duplicated_remap_operator)->initialize_1D_remap_operator();
 	((Remap_operator_linear *) duplicated_remap_operator)->copy_1D_remap_operator_info(this);
-	((Remap_operator_linear *) duplicated_remap_operator)->use_logarithm = this->use_logarithm;
-	((Remap_operator_linear *) duplicated_remap_operator)->set_use_logarithm = this->set_use_logarithm;
 
     return duplicated_remap_operator;
 }
