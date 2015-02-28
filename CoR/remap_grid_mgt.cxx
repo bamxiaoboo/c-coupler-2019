@@ -156,12 +156,17 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
         search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->add_partial_grid_area(statement_operands[1]->extension_names[0]);
     }
 	else if (words_are_the_same(function, FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO)) {
-		EXECUTION_REPORT(REPORT_ERROR, num_operands == 4, "function \"%s\" has four input parameters\n", function);
+		char *hybrid_grid_coefficient_field_name = NULL;
+		EXECUTION_REPORT(REPORT_ERROR, num_operands == 4 || num_operands == 5, "function \"%s\" has four input parameters\n", function);
 		check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the level grid (vertical grid) to be set the sigma information");
 		check_is_parameter_object_type_field_data(function, 2, statement_operands[1], "the vector of sigma values");
 		double top_value = get_float_value_from_parameter(function, 3, statement_operands[2], "the vertical coordinate value of top layer in the sigma grid");
 		double scale_factor = get_float_value_from_parameter(function, 4, statement_operands[3], "the scale factor corresponding to the sigma grid");
-		search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->set_lev_grid_sigma_info(statement_operands[1]->object->object_name, top_value, scale_factor);
+		if (num_operands == 5) {
+			check_is_parameter_object_type_field_data(function, 5, statement_operands[4], "the vector of coefficients for hybrid grid");
+			hybrid_grid_coefficient_field_name = statement_operands[4]->object->object_name;
+		}
+		search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->set_lev_grid_sigma_info(statement_operands[1]->object->object_name, top_value, scale_factor, hybrid_grid_coefficient_field_name);
 	}
     else if (words_are_the_same(function, FUNCTION_WORD_ADD_AREA_BOUND)) {
         EXECUTION_REPORT(REPORT_ERROR, num_operands == 6, "function \"%s\" has six input parameters\n", function);

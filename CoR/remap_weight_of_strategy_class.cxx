@@ -66,6 +66,7 @@ Remap_weight_of_operator_instance_class *Remap_weight_of_operator_instance_class
             overlap_with_decomp_counter ++;
         }
     EXECUTION_REPORT(REPORT_ERROR, overlap_with_decomp_counter == 0 || overlap_with_decomp_counter == 2, "C-Coupler error3 in generate_parallel_remap_weights of Remap_weight_of_operator_instance_class\n");
+	EXECUTION_REPORT(REPORT_ERROR, this->duplicated_remap_operator != NULL, "C-Coupler error4 in generate_parallel_remap_weights of Remap_weight_of_operator_instance_class\n");
 
     if (overlap_with_decomp_counter > 0)
         parallel_remap_weights_of_operator_instance->duplicated_remap_operator = this->duplicated_remap_operator->generate_parallel_remap_operator(decomp_original_grids, global_cells_local_indexes_in_decomps);
@@ -107,8 +108,8 @@ void Remap_weight_of_operator_class::calculate_src_decomp(Remap_grid_data_class 
     long remap_beg_iter, remap_end_iter, index_size_iter, field_array_offset;
     long *decomp_map_values_src, *decomp_map_values_dst;
 	
-    EXECUTION_REPORT(REPORT_ERROR, field_data_src->get_coord_value_grid()->is_similar_grid_with(field_data_grid_src), "C-Coupler error1 in do_remap of Remap_weight_of_operator_class");
-    EXECUTION_REPORT(REPORT_ERROR, field_data_dst->get_coord_value_grid()->is_similar_grid_with(field_data_grid_dst), "C-Coupler error2 in do_remap of Remap_weight_of_operator_class");
+    EXECUTION_REPORT(REPORT_ERROR, field_data_src->get_coord_value_grid()->is_similar_grid_with(field_data_grid_src), "C-Coupler error1 in calculate_src_decomp of Remap_weight_of_operator_class");
+    EXECUTION_REPORT(REPORT_ERROR, field_data_dst->get_coord_value_grid()->is_similar_grid_with(field_data_grid_dst), "C-Coupler error2 in calculate_src_decomp of Remap_weight_of_operator_class");
 	field_data_src->interchange_grid_data(field_data_grid_src);
 	field_data_dst->interchange_grid_data(field_data_grid_dst);
 
@@ -140,7 +141,8 @@ void Remap_weight_of_operator_class::calculate_src_decomp(Remap_grid_data_class 
 	            index_size_iter *= index_size_array[k];
 	        }
 	        decomp_map_values_src = ((long*) field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
-	        decomp_map_values_dst = ((long*) field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();
+	        decomp_map_values_dst = ((long*) field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();			
+			EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->duplicated_remap_operator != NULL, "C-Coupler error3 in do_remap of Remap_weight_of_operator_class");
 	        remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_values_src, decomp_map_values_dst);
 	    }
 	}
@@ -307,6 +309,7 @@ void Remap_weight_of_operator_class::do_remap(Remap_grid_data_class *field_data_
 #endif	        
             data_value_src = ((double*) field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
             data_value_dst = ((double*) field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();
+			EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->duplicated_remap_operator != NULL, "C-Coupler error3 in do_remap of Remap_weight_of_operator_class");
             remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_remap_values_caculation(data_value_src, data_value_dst);
         }
     }
@@ -365,6 +368,7 @@ void Remap_weight_of_operator_class::renew_vertical_remap_weights(Remap_grid_cla
 	prepare_index_size_array();
 
 	for (i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
+		EXECUTION_REPORT(REPORT_ERROR, remap_weights_of_operator_instances[i]->duplicated_remap_operator != NULL, "C-Coupler error7 in renew_vertical_remap_weights of Remap_weight_of_operator_class"); 
 		new_remap_operator = remap_weights_of_operator_instances[i]->duplicated_remap_operator->duplicate_remap_operator(true);
 		new_remap_operator->set_src_grid(runtime_remap_grid_src);
 		new_remap_operator->set_dst_grid(runtime_remap_grid_dst);
@@ -807,6 +811,7 @@ void Remap_weight_of_strategy_class::write_remap_weights_into_array(char **array
 			tmp_long_value = remap_weight_of_operator_instance->get_remap_end_iter();
 			write_data_into_array(&tmp_long_value, sizeof(long), &output_array, array_size, max_array_size);
 	        remap_operator_of_one_instance = remap_weights_of_operators[k]->remap_weights_of_operator_instances[i]->duplicated_remap_operator;
+		    EXECUTION_REPORT(REPORT_ERROR, remap_operator_of_one_instance != NULL, "C-Coupler software error1 in write_remap_weights_into_array");
 	        memset(operator_name, 0, 256);
 			if (write_grid) {
 				strcpy(operator_name, remap_operator_of_one_instance->get_operator_name());
@@ -1164,7 +1169,7 @@ void Remap_weight_of_strategy_class::build_operations_for_calculating_sigma_valu
 			continue;
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i-1]->is_sigma_grid(), "C-Coupler error4 in build_operations_for_calculating_sigma_values_of_grids");			
 		EXECUTION_REPORT(REPORT_ERROR,  operator_field_data_grids[i-1]->is_sigma_grid(), "C-Coupler error5 in build_operations_for_calculating_sigma_values_of_grids");
-		operator_field_data_grids[i]->allocate_sigma_grid_specific_fields(NULL, NULL, 0, 0);
+		operator_field_data_grids[i]->allocate_sigma_grid_specific_fields(NULL, NULL, NULL, 0, 0);
 		EXECUTION_REPORT(REPORT_ERROR, !operator_field_data_grids[i]->has_specified_sigma_grid_surface_value_field(), "C-Coupler error6 in build_operations_for_calculating_sigma_values_of_grids");
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field() != NULL, "C-Coupler error8 in build_operations_for_calculating_sigma_values_of_grids");
 		operation_for_caculating_sigma_values = new Operation_for_caculating_sigma_values;

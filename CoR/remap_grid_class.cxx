@@ -55,6 +55,7 @@ void Remap_grid_class::initialize_grid_class_data()
     this->boundary_max_lon = NULL_COORD_VALUE;
     this->boundary_min_lat = NULL_COORD_VALUE;
     this->boundary_max_lat = NULL_COORD_VALUE;
+	this->hybrid_grid_coefficient_field = NULL;
 	this->sigma_grid_sigma_value_field = NULL;
 	this->sigma_grid_surface_value_field = NULL;
 	this->specified_sigma_grid_surface_value_field = false;
@@ -190,7 +191,7 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *field_data_grid,
         sub_grids.push_back(sized_grids_field_data[i]);
 
 	if (is_sigma_grid())
-		allocate_sigma_grid_specific_fields(NULL, NULL, 0, 0);
+		allocate_sigma_grid_specific_fields(NULL, NULL, NULL, 0, 0);
 }
 
 
@@ -236,6 +237,9 @@ Remap_grid_class::~Remap_grid_class()
 
 	if (sigma_grid_sigma_value_field != NULL)
 		delete sigma_grid_sigma_value_field;
+
+	if (hybrid_grid_coefficient_field != NULL)
+		delete hybrid_grid_coefficient_field;
 
 	if (sigma_grid_surface_value_field != NULL)
 		delete sigma_grid_surface_value_field;
@@ -378,6 +382,8 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
 	duplicated_grid->sigma_grid_top_value = this->sigma_grid_top_value;
 	if (this->sigma_grid_sigma_value_field != NULL)
 		duplicated_grid->sigma_grid_sigma_value_field = this->sigma_grid_sigma_value_field->duplicate_grid_data_field(duplicated_grid, 1, true, true);
+	if (this->hybrid_grid_coefficient_field != NULL)
+		duplicated_grid->hybrid_grid_coefficient_field = this->hybrid_grid_coefficient_field->duplicate_grid_data_field(duplicated_grid, 1, true, true);
     if (this->redundant_cell_mark_field != NULL) {
         duplicated_grid->redundant_cell_mark_field = this->redundant_cell_mark_field->duplicate_grid_data_field(this, 1, true, true);
         duplicated_grid->redundant_cell_mark = (bool *) duplicated_grid->redundant_cell_mark_field->grid_data_field->data_buf;
@@ -782,21 +788,26 @@ void Remap_grid_class::gen_lev_coord_from_sigma(char extension_names[16][256],
 
     sscanf(lev_coord_top_str, "%lf", &data_top);
 	this->specified_sigma_grid_surface_value_field = true;
-	allocate_sigma_grid_specific_fields(grid_lev_sigma_coord->grid_center_fields[0], field_lev_coord_bot, data_top, scale_factor);
+	allocate_sigma_grid_specific_fields(NULL, grid_lev_sigma_coord->grid_center_fields[0], field_lev_coord_bot, data_top, scale_factor);
 	calculate_lev_sigma_values();
 	get_a_leaf_grid(COORD_LABEL_LEV)->super_grid_of_setting_coord_values = this;
 }
 
 
-void Remap_grid_class::set_lev_grid_sigma_info(const char *sigma_value_field_name, double top_value, double scale_factor)
+void Remap_grid_class::set_lev_grid_sigma_info(const char *sigma_value_field_name, double top_value, double scale_factor, const char *hybrid_grid_coefficient_field_name)
 {
-	Remap_grid_data_class *sigma_value_field;
+	Remap_grid_data_class *sigma_value_field, *hybrid_grid_coefficient_field;
 	
 	EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1 && words_are_the_same(coord_label, COORD_LABEL_LEV), 
 					 "Grid %s must be a 1D grid at vertical direction (the label of grid is \"lev\": only lev grid can be set sigma info", grid_name);
 	sigma_value_field = remap_field_data_manager->search_remap_field_data(sigma_value_field_name);
-	EXECUTION_REPORT(REPORT_ERROR, sigma_value_field != NULL, "C-Coupler error in set_lev_grid_sigma_info");
-	allocate_sigma_grid_specific_fields(sigma_value_field, NULL, top_value, scale_factor);
+	if (hybrid_grid_coefficient_field_name != NULL) {
+		hybrid_grid_coefficient_field = remap_field_data_manager->search_remap_field_data(hybrid_grid_coefficient_field_name);
+		EXECUTION_REPORT(REPORT_ERROR, hybrid_grid_coefficient_field != NULL, "C-Coupler error1 in set_lev_grid_sigma_info");
+	}
+	else hybrid_grid_coefficient_field = NULL;
+	EXECUTION_REPORT(REPORT_ERROR, sigma_value_field != NULL, "C-Coupler error2 in set_lev_grid_sigma_info");
+	allocate_sigma_grid_specific_fields(hybrid_grid_coefficient_field, sigma_value_field, NULL, top_value, scale_factor);
 }
 
 
@@ -862,22 +873,32 @@ void Remap_grid_class::set_sigma_grid_dynamic_surface_value_field(Remap_grid_dat
 }
 
 
-void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class *sigma_grid_sigma_value_field, Remap_grid_data_class *sigma_grid_surface_value_field, double data_top, double scale_factor)
+void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class *hybrid_grid_coefficient_field, Remap_grid_data_class *sigma_grid_sigma_value_field, Remap_grid_data_class *sigma_grid_surface_value_field, double data_top, double scale_factor)
 {
 	int num_sized_sub_grids, i, j;
 	Remap_grid_class *sized_sub_grids[256];
 	Remap_grid_class *sphere_grid, *existing_grid;
-	
+
 
 	if (this->sigma_grid_surface_value_field != NULL)
 		return;
 
 	if (sigma_grid_sigma_value_field != NULL) {
 		EXECUTION_REPORT(REPORT_ERROR, enable_to_set_coord_values, "Grid %s has been used (for example, interpolation) before. It cannot be set to a sigma grid", grid_name);
+		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->hybrid_grid_coefficient_field == NULL, "Hybrid coefficient of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field == NULL, "Sigma information of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->grid_center_fields.size() == 0, "1D grid %s has been set to non-sigma grid before. Therefore it cannot be set sigma information", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, this->grid_center_fields.size() == 0, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
+		EXECUTION_REPORT(REPORT_ERROR, sigma_grid_sigma_value_field->get_grid_data_field()->required_data_size == this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_size(), 
+						 "The size of field %s is different from the size of grid %s. Field %s cannot be used for sigma or hybrid grid %s",
+						 sigma_grid_sigma_value_field->get_grid_data_field()->field_name_in_application, this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name(), sigma_grid_sigma_value_field->get_grid_data_field()->field_name_in_application);
 		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field = sigma_grid_sigma_value_field->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, true, true);
+		if (hybrid_grid_coefficient_field != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, hybrid_grid_coefficient_field->get_grid_data_field()->required_data_size == this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_size(), 
+							 "The size of field %s is different from the size of grid %s. Field %s cannot be used for sigma or hybrid grid %s",
+							 hybrid_grid_coefficient_field->get_grid_data_field()->field_name_in_application, this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name(), hybrid_grid_coefficient_field->get_grid_data_field()->field_name_in_application);
+			this->get_a_leaf_grid(COORD_LABEL_LEV)->hybrid_grid_coefficient_field = hybrid_grid_coefficient_field->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, true, true);
+		}
 		if (sigma_grid_surface_value_field != NULL) {
 			this->sigma_grid_surface_value_field = sigma_grid_surface_value_field->duplicate_grid_data_field(sigma_grid_surface_value_field->get_coord_value_grid(), 1, true, true);
 			grid_center_fields.push_back(sigma_grid_sigma_value_field->duplicate_grid_data_field(this, 1, false, false));

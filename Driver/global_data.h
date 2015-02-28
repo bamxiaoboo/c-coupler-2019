@@ -27,6 +27,7 @@
 #include "execution_report.h"
 #include "performance_timing_mgt.h"
 #include "external_algorithm_mgt.h"
+#include "ensemble_mgt.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -44,10 +45,11 @@ extern Field_info_mgt *fields_info;
 extern Memory_mgt *memory_manager;
 extern Runtime_process_mgt *runtime_process_mgr;
 extern Restart_mgt *restart_mgr;
-extern Remap_mgt *grid_remap_manager;
+extern Remap_mgt *grid_remap_mgr;
 extern Fields_gather_scatter_mgt *fields_gather_scatter_mgr;
 extern Decomp_grid_mgt *decomp_grids_mgr;
 extern Performance_timing_mgt *performance_timing_mgr;
 extern External_algorithm_mgt *external_algorithm_mgr;
+extern Ensemble_mgt *ensemble_mgr;
 
 #endif

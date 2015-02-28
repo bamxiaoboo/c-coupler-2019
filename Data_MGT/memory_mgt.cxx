@@ -129,7 +129,7 @@ void Field_mem_info::use_field_values()
     if (last_define_time == timer_mgr->get_current_full_time())
         return;
 
-    EXECUTION_REPORT(REPORT_ERROR, last_define_time != 0x7fffffffffffffff, "field %s %s is used before define it\n", field_name, decomp_name);
+    EXECUTION_REPORT(REPORT_ERROR, last_define_time != 0x7fffffffffffffff, "field (%s %s) is used before define it\n", field_name, decomp_name);
     EXECUTION_REPORT(REPORT_ERROR, last_define_time <= timer_mgr->get_current_full_time(), "C-Coupler error in set_use_field\n");
     is_restart_field = true;
 }

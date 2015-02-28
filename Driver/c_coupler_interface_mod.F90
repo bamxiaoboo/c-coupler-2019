@@ -139,6 +139,21 @@
 
 
 
+   interface c_coupler_add_field_for_perturbing_roundoff_errors ; module procedure &
+        c_coupler_add_field_for_perturbing_roundoff_errors_double_0D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_double_1D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_double_2D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_double_3D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_double_4D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_float_0D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_float_1D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_float_2D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_float_3D, &
+        c_coupler_add_field_for_perturbing_roundoff_errors_float_4D
+   end interface
+
+
+
    interface c_coupler_check_grid_values ; module procedure &
         c_coupler_check_float_grid_values, &
         c_coupler_check_double_grid_values, &
@@ -174,6 +189,7 @@
    integer :: comp_comm
    character *512    :: nml_filename
    logical, optional :: non_orbit
+   integer have_random_seed_for_perturb_roundoff_errors
 
    call MPI_INIT(ierr)
 
@@ -188,7 +204,7 @@
                         trim(original_case_name)//char(0), trim(original_config_time)//char(0))
    call initialize_coupler_timer(start_date, start_second, stop_date, stop_second, reference_date, leap_year, cpl_interface_time_step, &
                                  trim(rest_freq_unit)//char(0), rest_freq_count, stop_latency_seconds)
-   call initialize_coupling_managers(restart_date, restart_second, trim(restart_read_file)//char(0));
+   call initialize_coupling_managers(restart_date, restart_second, trim(restart_read_file)//char(0))
 
    if (.not.(present(non_orbit) .and. non_orbit)) then
       call parse_orb_nml(nml_filename)
@@ -204,6 +220,15 @@
 
    reduce_buf_real16_size = 1
    allocate(reduce_buf_real16(reduce_buf_real16_size))
+
+   if (ensemble_member_id .gt. 0) then
+       have_random_seed_for_perturb_roundoff_errors = 0
+       if (random_seed_for_perturb_roundoff_errors .ge. 0) then
+           have_random_seed_for_perturb_roundoff_errors = 1
+       endif
+       call coupling_initialize_ensemble_manager(ensemble_member_id, have_random_seed_for_perturb_roundoff_errors, &
+                          random_seed_for_perturb_roundoff_errors, trim(roundoff_errors_perturbation_type)//char(0))
+   endif
    
    END SUBROUTINE  c_coupler_initialize
 
@@ -2101,6 +2126,105 @@
 
    END FUNCTION c_coupler_is_model_logical_4D_data_active_in_coupling
 
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_0D(data_buf)
+   implicit none
+   real(R8), INTENT(IN)         :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_0D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_1D(data_buf)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_1D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_2D(data_buf)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:)         :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_2D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_3D(data_buf)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:,:)       :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_3D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_4D(data_buf)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:,:,:)     :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_4D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_0D(data_buf)
+   implicit none
+   real(R4), INTENT(IN)         :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_0D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_1D(data_buf)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_1D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_2D(data_buf)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_2D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_3D(data_buf)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:,:)     :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_3D
+
+
+
+   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_4D(data_buf)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:,:,:)   :: data_buf
+
+   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
+
+   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_4D
 
 
    SUBROUTINE c_coupler_register_field_info(fld_name, units, long_name)

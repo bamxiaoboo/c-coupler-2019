@@ -95,6 +95,7 @@ class Remap_grid_class
 		double boundary_max_lon;
 		double boundary_max_lat;
 		double boundary_min_lat;
+		Remap_grid_data_class *hybrid_grid_coefficient_field;
 		Remap_grid_data_class *sigma_grid_sigma_value_field;
 		Remap_grid_data_class *sigma_grid_surface_value_field;
 		double sigma_grid_top_value;
@@ -216,12 +217,12 @@ class Remap_grid_class
 		Remap_grid_data_class *get_sigma_grid_sigma_value_field();
 		Remap_grid_data_class *get_sigma_grid_surface_value_field() { return sigma_grid_surface_value_field; }
 		bool has_specified_sigma_grid_surface_value_field() { return specified_sigma_grid_surface_value_field; }
-		void allocate_sigma_grid_specific_fields(Remap_grid_data_class*, Remap_grid_data_class*, double, double);
+		void allocate_sigma_grid_specific_fields(Remap_grid_data_class*, Remap_grid_data_class*, Remap_grid_data_class*, double, double);
 		void set_sigma_grid_dynamic_surface_value_field(Remap_grid_data_class *); 
 		Remap_grid_data_class *get_sigma_grid_dynamic_surface_value_field() { return sigma_grid_dynamic_surface_value_field; }
 		bool is_sigma_grid_surface_value_field_updated(Remap_grid_data_class *);
 		void copy_sigma_grid_surface_value_field(Remap_grid_data_class*);
-		void set_lev_grid_sigma_info(const char*, double, double);
+		void set_lev_grid_sigma_info(const char*, double, double, const char*);
 		void renew_lev_grid_coord_values(double*, double*);
 		bool has_super_grids_of_setting_mask_value() { return super_grids_of_setting_mask_value.size() > 0; }
 		void set_original_grid(Remap_grid_class *grid) { original_grid = grid; }

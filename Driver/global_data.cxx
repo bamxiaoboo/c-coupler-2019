@@ -22,9 +22,10 @@ Field_info_mgt *fields_info = NULL;
 Memory_mgt *memory_manager = NULL;
 Runtime_process_mgt *runtime_process_mgr = NULL;
 Restart_mgt *restart_mgr = NULL;
-Remap_mgt *grid_remap_manager = NULL;
+Remap_mgt *grid_remap_mgr = NULL;
 Fields_gather_scatter_mgt *fields_gather_scatter_mgr = NULL;
 Decomp_grid_mgt *decomp_grids_mgr = NULL;
 Performance_timing_mgt *performance_timing_mgr = NULL;
 External_algorithm_mgt *external_algorithm_mgr = NULL;
+Ensemble_mgt *ensemble_mgr = NULL;
 

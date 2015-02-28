@@ -33,6 +33,9 @@ module parse_compset_nml_mod
    integer       , public :: stop_latency_seconds
    logical       , public :: leap_year
    character *512, public :: restart_read_file
+   integer       , public :: ensemble_member_id
+   integer       , public :: random_seed_for_perturb_roundoff_errors
+   character *512, public :: roundoff_errors_perturbation_type
 
 
 contains
@@ -47,6 +50,7 @@ subroutine parse_compset_nml(compset_nml_filename)
                       config_time, comp_run_data_dir, comp_model_nml, comp_log_filename, &
                       restart_date, restart_second, original_case_name, original_config_time, &
                       restart_read_file, cpl_interface_time_step, stop_latency_seconds, leap_year
+   namelist /ensemble_setting_nml/ ensemble_member_id, random_seed_for_perturb_roundoff_errors, roundoff_errors_perturbation_type
 
    exp_model = "none"
    case_name = "none"
@@ -70,9 +74,13 @@ subroutine parse_compset_nml(compset_nml_filename)
    stop_latency_seconds = -1
    leap_year = .false.
    restart_read_file = "none"
+   ensemble_member_id = -99999
+   random_seed_for_perturb_roundoff_errors = -99999
+   roundoff_errors_perturbation_type = "none"
 
    open (10,file=compset_nml_filename,form='formatted',status='OLD')
    read (10,nml=compset_nml,iostat=rcode)
+   read (10,nml=ensemble_setting_nml,iostat=rcode)
    close(10)
    
    if (rcode /= 0) then
@@ -163,9 +171,15 @@ subroutine parse_compset_nml(compset_nml_filename)
       call mpi_abort (MPI_COMM_WORLD, 1)
    end if
 
-   if (stop_date .le. start_date) then
-      write(6,*) "stop_date must be at least one day after the start_date in coupling namelist:", compset_nml_filename
+   if (stop_date .lt. start_date) then
+      write(6,*) "stop_date must be at least the same day of or one day after the start_date in coupling namelist:", compset_nml_filename
       call mpi_abort (MPI_COMM_WORLD, 1)
+   end if
+   if (stop_date .eq. start_date) then
+      if (stop_second .le. start_second) then
+          write(6,*) "stop_second must be after the start_second in coupling namelist:", compset_nml_filename, " because the start_date and stop_date are the same"
+          call mpi_abort (MPI_COMM_WORLD, 1)
+      end if
    end if
 
    if (rest_freq_count .lt. 0) then
@@ -181,6 +195,13 @@ subroutine parse_compset_nml(compset_nml_filename)
    if (stop_latency_seconds .lt. 0) then
       write(6,*) "stop_latency_seconds has not been correctly set in coupling namelist:", compset_nml_filename
       call mpi_abort (MPI_COMM_WORLD, 1)
+   end if
+
+   if (ensemble_member_id .gt. 0 .and. random_seed_for_perturb_roundoff_errors .gt. 0) then
+       if (roundoff_errors_perturbation_type .eq. "none") then
+           write(6,*) "[ERROR]: Users want to use the ensemble experiment of perturbing roundoff errors. However, the perturbation type is not set. Please set the perturbation type"
+           call mpi_abort (MPI_COMM_WORLD, 1) 
+       end if
    end if
 
 end subroutine parse_compset_nml

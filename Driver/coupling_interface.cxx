@@ -103,8 +103,8 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
     strcat(full_name, line);
     execution_phase_number = 1;
 	if (words_are_the_same(line, "NULL"))
-		grid_remap_manager = NULL;
-	else grid_remap_manager = new Remap_mgt(full_name);
+		grid_remap_mgr = NULL;
+	else grid_remap_mgr = new Remap_mgt(full_name);
 	line_number = -1;
 	execution_phase_number = 2;
 	
@@ -140,6 +140,8 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
 
     restart_mgr = new Restart_mgt(*restart_date, *restart_second, restart_read_file);
 
+	ensemble_mgr = new Ensemble_mgt();
+
     fclose(root_cfg_fp);
     EXECUTION_REPORT(REPORT_LOG, true, "coupling initialization finishes (%s)", root_cfg_name);
 }
@@ -150,8 +152,8 @@ extern "C" void finalize_coupling_managers_()
 	performance_timing_mgr->performance_timing_output();
 	delete performance_timing_mgr;
     EXECUTION_REPORT(REPORT_LOG, true, "finish deleting performance_timing_mgr");
-	if (grid_remap_manager != NULL)
-        delete grid_remap_manager;
+	if (grid_remap_mgr != NULL)
+        delete grid_remap_mgr;
     EXECUTION_REPORT(REPORT_LOG, true, "finish deleting grid managers");
     delete fields_info;
     EXECUTION_REPORT(REPORT_LOG, true, "finish deleting fields info");
@@ -172,6 +174,7 @@ extern "C" void finalize_coupling_managers_()
 		delete restart_read_timer_mgr;
     EXECUTION_REPORT(REPORT_LOG, true, "before deleting communicator manager");
     delete compset_communicators_info_mgr;
+	delete ensemble_mgr;
 }
 
 
@@ -191,6 +194,19 @@ extern "C" int comm_initialize_(const char *exp_model, const char *current_comp_
 }
 
 
+extern "C" void coupling_initialize_ensemble_manager_(int *ensemble_id, int *have_random_seed_for_perturbation, int *root_random_seed_for_perturbation, const char *perturbation_type)
+{
+	EXECUTION_REPORT(REPORT_ERROR, ensemble_mgr != NULL, "C-Coupler software error: ensemble_mgr is not created before the initialization");
+	ensemble_mgr->Initialize(*ensemble_id, *have_random_seed_for_perturbation, *root_random_seed_for_perturbation, perturbation_type);
+}
+
+
+extern "C" void coupling_add_field_for_perturbing_roundoff_errors_(void *data_buf)
+{
+	ensemble_mgr->register_a_field_for_perturbation(data_buf);
+}
+
+
 extern "C" void coupling_execute_procedure_(const char *procedure_name, const char *procedure_stage)
 {
     EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
@@ -204,6 +220,7 @@ extern "C" void coupling_advance_timer_()
     timer_mgr->advance_coupling_step();
 	if (restart_read_timer_mgr != NULL)
 		restart_read_timer_mgr->advance_coupling_step();
+	ensemble_mgr->run();
 }
 
 
