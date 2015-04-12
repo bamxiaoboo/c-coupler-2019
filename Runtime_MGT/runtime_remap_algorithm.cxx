@@ -52,7 +52,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
     sscanf(line, "%d", &algorithm_mode);
     sequential_remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(remap_weights_name);
 	generate_parallel_interpolation_and_decomposition(remap_weights_name);
-
+	
 	if (sequential_remap_weights->get_num_operations_for_caculating_sigma_values_of_grid() > 0 && sequential_remap_weights->get_data_grid_src()->is_sigma_grid() && 
 		sequential_remap_weights->get_data_grid_src()->has_specified_sigma_grid_surface_value_field()) {
 		dynamic_surface_field_origin_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid();
@@ -143,7 +143,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(Runtime_remap_algorithm *parent
 	EXECUTION_REPORT(REPORT_LOG, true, "after generating rearrange rearrange algorithm for runtime_remap_algorithm");
 	EXECUTION_REPORT(REPORT_LOG, true, "before generating raarrange router for runtime_remap_algorithm");
 	rearrange_src_router = routing_info_mgr->search_or_add_router(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, decomp_name_remap);
-	EXECUTION_REPORT(REPORT_LOG, true, "after generating raarrange router for runtime_remap_algorithm");	
+	EXECUTION_REPORT(REPORT_LOG, true, "after generating raarrange router for runtime_remap_algorithm %s", algorithm_cfg_name);	
 	runtime_rearrange_algorithm = new Runtime_transfer_algorithm(2, transfered_fields, rearrange_src_router, timer);
 }
 
@@ -203,6 +203,7 @@ void Runtime_remap_algorithm::generate_parallel_interpolation_and_decomposition(
 
     remap_related_grids = sequential_remap_weights->get_remap_related_grids(num_remap_related_grids);
     remap_related_decomp_grids = new Remap_grid_class *[num_remap_related_grids];
+
     for (i = 0; i < num_remap_related_grids; i ++) {
         j = 0;
 		remap_related_decomp_grids[i] = remap_related_grids[i];
@@ -246,7 +247,7 @@ void Runtime_remap_algorithm::generate_parallel_interpolation_and_decomposition(
 		}
 		parallel_remap_weights = new Remap_weight_of_strategy_class();
 		parallel_remap_weights->set_basic_fields(sequential_remap_weights->get_object_name(), sequential_remap_weights->get_remap_strategy(), remap_related_decomp_grids[0], remap_related_decomp_grids[1]);
-		parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, array_size, false, remap_related_decomp_grids, true);
+		parallel_remap_weights->read_remap_weights_from_array(remap_weight_array, NULL, array_size, false, remap_related_decomp_grids, true);
 		delete [] remap_weight_array;
 	}
 	else {
@@ -391,9 +392,10 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
     if (src_frac_field_before_rearrange != NULL)
         transfered_fields[j++] = src_frac_field_before_rearrange;
 	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid())	{
-		if (dynamic_surface_field_origin_mem->get_is_registered_model_buf()) {
+		if (dynamic_surface_field_origin_grid->get_sigma_grid_dynamic_surface_value_field() != NULL) {
 			EXECUTION_REPORT(REPORT_LOG, true, "Surface field of 3D grid %s will be rearraged for dynamic 3D interpolation.", dynamic_surface_field_origin_grid->get_grid_name());
 			transfered_fields[j++] = dynamic_surface_field_origin_mem;
+			dynamic_surface_field_origin_mem->define_field_values(false);
 		}
 	}
     for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
@@ -401,7 +403,7 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
     if (src_frac_field_before_rearrange != NULL)
         transfered_fields[j++] = src_frac_field_after_rearrange;
 	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid())	{
-		if (dynamic_surface_field_origin_mem->get_is_registered_model_buf())
+		if (dynamic_surface_field_origin_grid->get_sigma_grid_dynamic_surface_value_field() != NULL)
 			transfered_fields[j++] = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_remap, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false); 
 	}	
 	num_transfered_fields = j;
@@ -424,6 +426,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
     double *temp_src_values;
 	Remap_grid_class *decomp_grid, *original_grid;
 	Decomp_info *decomp;
+	bool grid_dynamic_surface_field_updated;
 
 
 	if (parallel_remap_weights == NULL)
@@ -472,13 +475,20 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	        memcpy(src_frac_field_after_rearrange->get_data_buf(), src_frac_field_before_rearrange->get_data_buf(), decomp_size_src_before_rearrange*sizeof(double));
 	}
 
+	grid_dynamic_surface_field_updated = false;
+	if (dynamic_surface_field_origin_grid != NULL) {
+		decomp_grids_mgr->check_unique_registered_decomp_for_dynamic_sigma_grid(dynamic_surface_field_origin_grid->get_original_grid(), "which is not allowed for setting bottom field of the sigma grid");
+		if (dynamic_surface_field_origin_grid->get_sigma_grid_dynamic_surface_value_field() != NULL && dynamic_surface_field_origin_grid->is_sigma_grid_surface_value_field_updated(dynamic_surface_field_origin_mem->get_field_data()))
+			grid_dynamic_surface_field_updated = true;
+	}
+
 	runtime_rearrange_algorithm->allocate_src_dst_fields(is_algorithm_in_kernel_stage);
     runtime_rearrange_algorithm->run(is_algorithm_in_kernel_stage);
-
 	for (i = 0; i < src_double_remap_fields_after_rearrange.size(); i ++)
 		src_double_remap_fields_after_rearrange[i]->check_field_sum();
 
-	update_vertical_remap_weights_for_dynamic_sigma_grid(is_algorithm_in_kernel_stage);
+	if (grid_dynamic_surface_field_updated)
+		update_vertical_remap_weights_for_dynamic_sigma_grid(is_algorithm_in_kernel_stage);
 
     /* Do remap */
     field_size_src_before_rearrange = src_double_remap_fields_after_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
@@ -535,17 +545,6 @@ void Runtime_remap_algorithm::update_vertical_remap_weights_for_dynamic_sigma_gr
 {
 	Remap_grid_class *data_grid_src, *data_grid_dst;
 
-	
-	if (dynamic_surface_field_origin_grid == NULL) 
-		return;
-
-	decomp_grids_mgr->check_unique_decomp_for_dynamic_sigma_grid(dynamic_surface_field_origin_grid->get_original_grid(), "which is not allowed for setting bottom field of the sigma grid");
-	
-	if (dynamic_surface_field_origin_grid->get_sigma_grid_dynamic_surface_value_field() == NULL)
-		return;
-
-	if (!dynamic_surface_field_origin_grid->is_sigma_grid_surface_value_field_updated(dynamic_surface_field_origin_mem->get_field_data()))
-		return;
 
 	EXECUTION_REPORT(REPORT_ERROR, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_size() == dynamic_surface_field_origin_mem->get_size_of_field(), "C-Coupler error1 in update_vertical_remap_weights_for_dynamic_sigma_grid");
 	EXECUTION_REPORT(REPORT_LOG, true, "Need to update vertical remap weights %s due to dynamic sigma grid", parallel_remap_weights->get_object_name());
@@ -648,6 +647,8 @@ void Runtime_remap_algorithm::renew_sigma_values(bool is_algorithm_in_kernel_sta
 
 
 	EXECUTION_REPORT(REPORT_ERROR, operations_for_dynamic_sigma_grid.size() > 0, "C-Coupler error1 in renew_sigma_values of Runtime_remap_algorithm");
+
+	dynamic_surface_field_origin_mem->define_field_values(false);
 
 	operations_for_dynamic_sigma_grid[0]->current_3D_sigma_grid_src->copy_sigma_grid_surface_value_field(operations_for_dynamic_sigma_grid[0]->surface_field_of_sigma_grid_src->get_field_data());	
 	operations_for_dynamic_sigma_grid[0]->current_3D_sigma_grid_src->calculate_lev_sigma_values();

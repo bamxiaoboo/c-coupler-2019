@@ -36,6 +36,7 @@ void Remap_mgt::push_back_all_words()
     push_back_words("function", FUNCTION_WORD_ADD_BIN_FILE);
     push_back_words("function", FUNCTION_WORD_NEW_1D_GRID);
     push_back_words("function", FUNCTION_WORD_NEW_PARTIAL_GRID);
+	push_back_words("function", FUNCTION_WORD_NEW_MIDDLE_GRID);
     push_back_words("function", FUNCTION_WORD_ADD_GRID_AREA);
     push_back_words("function", FUNCTION_WORD_ADD_AREA_BOUND);
     push_back_words("function", FUNCTION_WORD_COMBINE_GRIDS);
@@ -48,6 +49,7 @@ void Remap_mgt::push_back_all_words()
     push_back_words("function", FUNCTION_WORD_READ_FIELD);
 	push_back_words("function", FUNCTION_WORD_SET_BOUNDARY);
     push_back_words("function", FUNCIION_WORD_LEV_COORD_FROM_SIGMA);
+	push_back_words("function", FUNCIION_WORD_LEV_COORD_FROM_HYBRID);
     push_back_words("function", FUNCTION_WORD_EXTRACT_MASK);
     push_back_words("function", FUNCTION_WORD_COMPUTE_OCN_MASK);
     push_back_words("function", FUNCTION_WORD_ALLOC_FIELD);
@@ -298,6 +300,7 @@ void Remap_mgt::process_statement()
 				words_are_the_same(remap_statement->function, FUNCTION_WORD_SET_BOUNDARY) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_COMPUTE_OCN_MASK) ||
                 words_are_the_same(remap_statement->function, FUNCIION_WORD_LEV_COORD_FROM_SIGMA) ||
+                words_are_the_same(remap_statement->function, FUNCIION_WORD_LEV_COORD_FROM_HYBRID) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_EXTRACT_MASK) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_FSPAN) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_ISPAN))
@@ -314,7 +317,8 @@ void Remap_mgt::process_statement()
             }
             else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_1D_GRID) ||
                      words_are_the_same(remap_statement->function, FUNCTION_WORD_COMBINE_GRIDS) ||
-                     words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_PARTIAL_GRID)) {
+                     words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_PARTIAL_GRID) ||
+                     words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_MIDDLE_GRID)) {
                 strcpy(remap_statement->result_operand->object->object_type, OBJECT_TYPE_GRID);
             }
             else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_OPERATOR)) {

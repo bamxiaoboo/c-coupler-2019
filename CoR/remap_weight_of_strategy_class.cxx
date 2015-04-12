@@ -844,18 +844,24 @@ void Remap_weight_of_strategy_class::write_remap_weights_into_array(char **array
 }
 
 
-void Remap_weight_of_strategy_class::read_data_from_array(void *data, int data_size, const char *input_array, long &current_array_pos, long array_size, bool read_weight_values)
+void Remap_weight_of_strategy_class::read_data_from_array(void *data, int data_size, const char *input_array, FILE *fp_binary, long &current_array_pos, long array_size, bool read_weight_values)
 {
 	EXECUTION_REPORT(REPORT_ERROR, current_array_pos+data_size <= array_size, "the access of array is out-of-bound when reading for remapping weights %s", object_name);
 
-	if (read_weight_values)
-		for (long i = 0; i < data_size; i ++)
-			((char*)data)[i] = input_array[current_array_pos+i];
+	if (read_weight_values) {
+		if (input_array != NULL) {
+			for (long i = 0; i < data_size; i ++)
+				((char*)data)[i] = input_array[current_array_pos+i];
+		}
+		else fread((char*)data, 1, data_size, fp_binary);
+	}
+	else if (fp_binary != NULL)
+		fseek(fp_binary, data_size, SEEK_CUR);
 	current_array_pos += data_size;
 }
 
 
-void Remap_weight_of_strategy_class::read_grid_info_from_array(Remap_grid_class *grid, bool consider_area_or_volumn, const char *input_array, long &current_array_pos, long array_size)
+void Remap_weight_of_strategy_class::read_grid_info_from_array(Remap_grid_class *grid, bool consider_area_or_volumn, const char *input_array, FILE *fp_binary, long &current_array_pos, long array_size)
 {
     long grid_size;
     int grid_num_dimensions, i, gid, rid, num_leaf_grids, tmp_int_value;
@@ -863,9 +869,9 @@ void Remap_weight_of_strategy_class::read_grid_info_from_array(Remap_grid_class 
     double *area_or_volumn;
     
 
-	read_data_from_array(&grid_size, sizeof(long), input_array, current_array_pos, array_size, true);
+	read_data_from_array(&grid_size, sizeof(long), input_array, fp_binary, current_array_pos, array_size, true);
     EXECUTION_REPORT(REPORT_ERROR, grid_size == grid->get_grid_size(), "the grid size of %s does not match the binary file\n", grid->get_grid_name());
-	read_data_from_array(&grid_num_dimensions, sizeof(int), input_array, current_array_pos, array_size, true);
+	read_data_from_array(&grid_num_dimensions, sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
     EXECUTION_REPORT(REPORT_ERROR, grid_num_dimensions == grid->get_num_dimensions(), "the number of dimensions of grid %s does not match the binary file\n", grid->get_grid_name());
     grid->get_leaf_grids(&num_leaf_grids, leaf_grids, grid);
     for (i = 0; i < num_leaf_grids; i ++) {
@@ -877,16 +883,16 @@ void Remap_weight_of_strategy_class::read_grid_info_from_array(Remap_grid_class 
             gid = 3;
         else if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_TIME))
             gid = 4;
-		read_data_from_array(&rid, sizeof(int), input_array, current_array_pos, array_size, true);
+		read_data_from_array(&rid, sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
         EXECUTION_REPORT(REPORT_ERROR, gid == rid, "the arrange of coordinate systems of grid %s does not match the binary file\n", grid->get_grid_name());
     }
 
     if (consider_area_or_volumn) {
-		read_data_from_array(&tmp_int_value, sizeof(int), input_array, current_array_pos, array_size, true);
+		read_data_from_array(&tmp_int_value, sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
         if (tmp_int_value == 1) {
             EXECUTION_REPORT(REPORT_ERROR, grid->get_area_or_volumn() != NULL, "the area or volumn of grid %s does not match the binary file\n", grid->get_grid_name());
             area_or_volumn = new double [grid->get_grid_size()];
-			read_data_from_array(area_or_volumn, sizeof(double)*grid->get_grid_size(), input_array, current_array_pos, array_size, true);
+			read_data_from_array(area_or_volumn, sizeof(double)*grid->get_grid_size(), input_array, fp_binary, current_array_pos, array_size, true);
             for (long i = 0; i < grid->get_grid_size(); i ++)
                 EXECUTION_REPORT(REPORT_ERROR, grid->get_area_or_volumn()[i] == area_or_volumn[i], "the area or volumn of grid %s does not match the binary file\n", grid->get_grid_name());
             delete [] area_or_volumn;            
@@ -899,7 +905,7 @@ void Remap_weight_of_strategy_class::read_grid_info_from_array(Remap_grid_class 
 void Remap_weight_of_strategy_class::read_remap_operator_instance_from_array(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst,
 															  Remap_grid_class *operator_grid_src, Remap_grid_class *operator_grid_dst,
                                                               Remap_operator_basis *remap_operator, long remap_begin_iter, long remap_end_iter,
-                                                              const char *input_array, long &current_array_pos, long array_size,
+                                                              const char *input_array, FILE *fp_binary, long &current_array_pos, long array_size,
                                                               bool read_weight_values)    
 {
     Remap_operator_basis *duplicated_remap_operator;
@@ -913,21 +919,21 @@ void Remap_weight_of_strategy_class::read_remap_operator_instance_from_array(Rem
 	if (read_weight_values)
 	    duplicated_remap_operator = remap_operator->duplicate_remap_operator(false);
 	else duplicated_remap_operator = NULL;
-	read_data_from_array(&num_remap_weights_groups, sizeof(int), input_array, current_array_pos, array_size, true);
+	read_data_from_array(&num_remap_weights_groups, sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
     for (i = 0; i < num_remap_weights_groups; i ++) {
-		read_data_from_array(&num_weights, sizeof(long), input_array, current_array_pos, array_size, true);
+		read_data_from_array(&num_weights, sizeof(long), input_array, fp_binary, current_array_pos, array_size, true);
 		if (read_weight_values) {
 	        indexes_src_grid = new long [num_weights];
 	        indexes_dst_grid = new long [num_weights];
     	    weight_values = new double [num_weights];
 		}
-		read_data_from_array(indexes_src_grid, sizeof(long)*num_weights, input_array, current_array_pos, array_size, read_weight_values);
-		read_data_from_array(indexes_dst_grid, sizeof(long)*num_weights, input_array, current_array_pos, array_size, read_weight_values);
-		read_data_from_array(weight_values, sizeof(double)*num_weights, input_array, current_array_pos, array_size, read_weight_values);
-		read_data_from_array(&num_remaped_dst_cells_indexes, sizeof(long), input_array, current_array_pos, array_size, true);
+		read_data_from_array(indexes_src_grid, sizeof(long)*num_weights, input_array, fp_binary, current_array_pos, array_size, read_weight_values);
+		read_data_from_array(indexes_dst_grid, sizeof(long)*num_weights, input_array, fp_binary, current_array_pos, array_size, read_weight_values);
+		read_data_from_array(weight_values, sizeof(double)*num_weights, input_array, fp_binary, current_array_pos, array_size, read_weight_values);
+		read_data_from_array(&num_remaped_dst_cells_indexes, sizeof(long), input_array, fp_binary, current_array_pos, array_size, true);
 		if (read_weight_values)
 	        remaped_dst_cells_indexes = new long [num_remaped_dst_cells_indexes];
-		read_data_from_array(remaped_dst_cells_indexes, sizeof(long)*num_remaped_dst_cells_indexes, input_array, current_array_pos, array_size, read_weight_values);
+		read_data_from_array(remaped_dst_cells_indexes, sizeof(long)*num_remaped_dst_cells_indexes, input_array, fp_binary, current_array_pos, array_size, read_weight_values);
 		if (read_weight_values) {
 	        weight_sparse_matrix = new Remap_weight_sparse_matrix(remap_operator, num_weights, indexes_src_grid, indexes_dst_grid, weight_values, num_remaped_dst_cells_indexes, remaped_dst_cells_indexes);
     	    duplicated_remap_operator->add_weight_sparse_matrix(weight_sparse_matrix);
@@ -942,7 +948,7 @@ void Remap_weight_of_strategy_class::read_remap_operator_instance_from_array(Rem
 }
 
 
-void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *input_array, long array_size, bool read_grid, Remap_grid_class **remap_related_decomp_grids, bool read_weight_values)
+void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *input_array, FILE *fp_binary, long array_size, bool read_grid, Remap_grid_class **remap_related_decomp_grids, bool read_weight_values)
 {
     Remap_grid_class *field_grid_src, *field_grid_dst, *current_field_grid_src, *current_field_grid_dst;
 	Remap_grid_class *operator_grid_src, *operator_grid_dst;
@@ -960,8 +966,8 @@ void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *i
 	    field_grid_dst = get_data_grid_dst();
 		m = 1;
 		EXECUTION_REPORT(REPORT_ERROR, remap_related_decomp_grids == NULL, "software error in read_remap_weights_from_array");
-    	read_grid_info_from_array(field_grid_src, true, input_array, current_array_pos, array_size);
-    	read_grid_info_from_array(field_grid_dst, true, input_array, current_array_pos, array_size);
+    	read_grid_info_from_array(field_grid_src, true, input_array, fp_binary, current_array_pos, array_size);
+    	read_grid_info_from_array(field_grid_dst, true, input_array, fp_binary, current_array_pos, array_size);
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, remap_related_decomp_grids != NULL, "software error in read_remap_weights_from_array");
@@ -969,13 +975,13 @@ void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *i
     	field_grid_dst = remap_related_decomp_grids[field_data_grids_iter++];
 	}
 
-	read_data_from_array(&num_remap_operator_instances, sizeof(int), input_array, current_array_pos, array_size, true);
+	read_data_from_array(&num_remap_operator_instances, sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
     num_remap_operator = 0;
     current_field_grid_src = field_grid_src;
     for (i = 0; i < num_remap_operator_instances; i ++) {
-		read_data_from_array(&current_remap_iter, sizeof(long), input_array, current_array_pos, array_size, true);
-		read_data_from_array(&remap_end_iter, sizeof(long), input_array, current_array_pos, array_size, true);
-		read_data_from_array(operator_name, sizeof(char)*256, input_array, current_array_pos, array_size, true);
+		read_data_from_array(&current_remap_iter, sizeof(long), input_array, fp_binary, current_array_pos, array_size, true);
+		read_data_from_array(&remap_end_iter, sizeof(long), input_array, fp_binary, current_array_pos, array_size, true);
+		read_data_from_array(operator_name, sizeof(char)*256, input_array, fp_binary, current_array_pos, array_size, true);
 		if (read_grid) {
 			if (i == 0)
 				strcpy(last_operator_name, operator_name);
@@ -987,17 +993,17 @@ void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *i
 			EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(operator_name, remap_operator->get_operator_name()),
 							 "the remap operator %s does not match the binary file, which should be %s\n", 
 							 operator_name, remap_operator->get_operator_name());
-			read_data_from_array(&tmp_grid_size, sizeof(long), input_array, current_array_pos, array_size, true);
-			read_data_from_array(&tmp_grid_num_dimensions, sizeof(int), input_array, current_array_pos, array_size, true);
+			read_data_from_array(&tmp_grid_size, sizeof(long), input_array, fp_binary, current_array_pos, array_size, true);
+			read_data_from_array(&tmp_grid_num_dimensions, sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
 	        EXECUTION_REPORT(REPORT_ERROR, tmp_grid_num_dimensions == field_grid_src->get_num_dimensions(), "remap software error2 in read_remap_weights_from_array binary\n");
 	        for (j = 0; j < tmp_grid_num_dimensions; j ++)
-				read_data_from_array(&coord_system_ids[j], sizeof(int), input_array, current_array_pos, array_size, true);
+				read_data_from_array(&coord_system_ids[j], sizeof(int), input_array, fp_binary, current_array_pos, array_size, true);
 	        num_sized_sub_grids = 0;
 			current_field_grid_src = field_data_grids_in_remapping_process[1+num_remap_operator*2];
 			current_field_grid_dst = field_data_grids_in_remapping_process[2+num_remap_operator*2];
-	        read_grid_info_from_array(current_field_grid_dst, false, input_array, current_array_pos, array_size);
-    	    read_grid_info_from_array(remap_operator->get_src_grid(), false, input_array, current_array_pos, array_size);
-        	read_grid_info_from_array(remap_operator->get_dst_grid(), false, input_array, current_array_pos, array_size);
+	        read_grid_info_from_array(current_field_grid_dst, false, input_array, fp_binary, current_array_pos, array_size);
+    	    read_grid_info_from_array(remap_operator->get_src_grid(), false, input_array, fp_binary, current_array_pos, array_size);
+        	read_grid_info_from_array(remap_operator->get_dst_grid(), false, input_array, fp_binary, current_array_pos, array_size);
 			operator_grid_src = remap_operator->get_src_grid();
 			operator_grid_dst = remap_operator->get_dst_grid();
 
@@ -1011,7 +1017,7 @@ void Remap_weight_of_strategy_class::read_remap_weights_from_array(const char *i
 			operator_grid_dst = remap_related_decomp_grids[field_data_grids_iter+3];
 			field_data_grids_iter += 4;
 		}
-		read_remap_operator_instance_from_array(current_field_grid_src, current_field_grid_dst, operator_grid_src, operator_grid_dst, remap_operator, current_remap_iter, remap_end_iter, input_array, current_array_pos, array_size, read_weight_values);
+		read_remap_operator_instance_from_array(current_field_grid_src, current_field_grid_dst, operator_grid_src, operator_grid_dst, remap_operator, current_remap_iter, remap_end_iter, input_array, fp_binary, current_array_pos, array_size, read_weight_values);
     }
     EXECUTION_REPORT(REPORT_ERROR, current_field_grid_dst->is_similar_grid_with(field_grid_dst), "remap software error4 in read_remap_weights_from_array\n");
 	EXECUTION_REPORT(REPORT_ERROR, current_array_pos == array_size, "the input array does not match the remapping weights %s when reading", object_name);

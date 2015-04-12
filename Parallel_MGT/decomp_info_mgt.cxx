@@ -35,6 +35,7 @@ Decomp_info::Decomp_info(const char *decomp_name, const char *model_name, const 
     strcpy(this->model_name, model_name);
     this->num_local_cells = num_local_cells_in_decomp;
     local_cell_global_indx = NULL;
+	is_registered = false;
 
     /* the parallel decomposition of coupling process determined by the runtime */
     if (num_local_cells < 0) {
@@ -70,7 +71,7 @@ Decomp_info::Decomp_info(const char *decomp_name, const char *model_name, const 
 				if (cell_indexes_in_decomp[i] <= 0)
 					local_cell_global_indx[i] = -1;
 				else {
-	                EXECUTION_REPORT(REPORT_ERROR, cell_indexes_in_decomp[i] >= 0 && cell_indexes_in_decomp[i] <= decomp_grid->get_grid_size(), 
+	                EXECUTION_REPORT(REPORT_ERROR, cell_indexes_in_decomp[i] > 0 && cell_indexes_in_decomp[i] <= decomp_grid->get_grid_size(), 
 	                             "the cell index in parallel decompostion of %s is out of the bound of grid size\n",
 	                             decomp_name);
 	                local_cell_global_indx[i] = cell_indexes_in_decomp[i] - 1;  // -1 because fortran array index starts from 1 but c/c++ starts from 0
@@ -105,6 +106,13 @@ void Decomp_info::gen_decomp_grid_data()
 }
 
 
+void Decomp_info::check_local_cell_global_indx()
+{
+    for (int i = 0; i < num_local_cells; i ++)
+        EXECUTION_REPORT(REPORT_ERROR, local_cell_global_indx[i] >= -1 && local_cell_global_indx[i] < num_global_cells, "C-Coupler error in check_local_cell_global_indx\n");
+}
+
+
 Decomp_info_mgt::~Decomp_info_mgt()
 {
     for (int i = 0; i < decomps_info.size(); i ++)
@@ -120,6 +128,7 @@ void Decomp_info_mgt::add_decomp_from_model_interface(const char *decomp_name, c
                      "Decomp %s has been defined more than once in component %s\n", decomp_name, compset_communicators_info_mgr->get_current_comp_name());
     decomps_info.push_back(new Decomp_info(decomp_name,compset_communicators_info_mgr->get_current_comp_name(),decomp_grid_name,num_local_cells_in_decomp,cell_indexes_in_decomp));
     decomps_info[decomps_info.size()-1]->gen_decomp_grid_data();
+	decomps_info[decomps_info.size()-1]->set_decomp_registered();
 }
 
 
@@ -198,10 +207,8 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 
     decomp_src = decomps_info_mgr->search_decomp_info(decomp_name_src);
     decomp_dst = decomps_info_mgr->search_decomp_info(decomp_name_dst);
-    for (i = 0; i < decomp_src->get_num_local_cells(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, decomp_src->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");
-    for (i = 0; i < decomp_dst->get_num_local_cells(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, decomp_dst->get_local_cell_global_indx() >= 0, "C-Coupler error1 in generate_remap_weights_src_decomp\n");	
+	decomp_src->check_local_cell_global_indx();
+	decomp_dst->check_local_cell_global_indx();
 
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_procs_computing_node_comp_group) == MPI_SUCCESS);
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
@@ -240,14 +247,16 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 											decomp_map_src, decomp_map_dst);
 		EXECUTION_REPORT(REPORT_LOG, true, "after calculate_src_decomp");
 	}
-	
+
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(decomp_map_src, decomp_src->get_num_global_cells(), MPI_LONG, 0, compset_communicators_info_mgr->get_computing_node_comp_group())  == MPI_SUCCESS);
 
     original_map_src = new long [decomp_src->get_num_global_cells()];
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
         original_map_src[i] = 0;
+
     for (long i = 0; i < decomp_src->get_num_local_cells(); i ++)
-        original_map_src[decomp_src->get_local_cell_global_indx()[i]] = (((long)1)<<current_proc_id_computing_node_comp_group);
+		if (decomp_src->get_local_cell_global_indx()[i] >= 0)
+	        original_map_src[decomp_src->get_local_cell_global_indx()[i]] = (((long)1)<<current_proc_id_computing_node_comp_group);
     num_local_cells = decomp_src->get_num_local_cells();
     for (long i = 0; i < decomp_src->get_num_global_cells(); i ++)
         if ((decomp_map_src[i]&(((long)1)<<current_proc_id_computing_node_comp_group)) != 0 && (original_map_src[i]&(((long)1)<<current_proc_id_computing_node_comp_group)) == 0)

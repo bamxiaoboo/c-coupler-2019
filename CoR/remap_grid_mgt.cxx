@@ -95,14 +95,31 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
         check_is_parameter_grid_center_field(function, statement_operands[0], NULL);
         check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "the field with values at the bottom of 3D grid");
         get_float_value_from_parameter(function, 2, statement_operands[2], "the value corresponding to 3D grid top\n");
-        check_is_parameter_object_type_grid(function, 3, statement_operands[3], "the grid of sigma coordinate");
+        check_is_parameter_object_type_field_data(function, 3, statement_operands[3], "the field with sigma coordinate");
 		if (num_operands == 5)
 	        scale_factor = get_float_value_from_parameter(function, 4, statement_operands[4], "the scale factor value\n");
-        search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->gen_lev_coord_from_sigma(statement_operands[0]->extension_names, 
-                                                                                                               statement_operands[1]->object->object_name, 
-                                                                                                               statement_operands[2]->extension_names[0],
-                                                                                                               statement_operands[3]->object->object_name, 
-                                                                                                               scale_factor);
+        search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->gen_lev_coord_from_sigma_or_hybrid(statement_operands[0]->extension_names, 
+                                                                                                                         statement_operands[1]->object->object_name, 
+                                                                                                                         statement_operands[2]->extension_names[0],
+                                                                                                                         statement_operands[3]->object->object_name,
+                                                                                                                         NULL, scale_factor);
+    }
+    else if (words_are_the_same(function, FUNCIION_WORD_LEV_COORD_FROM_HYBRID)) {
+		double scale_factor = 1.0;
+        EXECUTION_REPORT(REPORT_ERROR, num_operands == 5 || num_operands == 6, "function \"%s\" must have one result parameter and four or five input parameters\n", function);
+        check_is_parameter_grid_center_field(function, statement_operands[0], NULL);
+        check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "the field with values at the bottom of 3D grid");
+        get_float_value_from_parameter(function, 2, statement_operands[2], "the constant reference value corresponding to hybrid grid\n");
+        check_is_parameter_object_type_field_data(function, 3, statement_operands[3], "the field with sigma coordinate");
+		check_is_parameter_object_type_field_data(function, 4, statement_operands[4], "the field with hybrid grid coefficient");
+		if (num_operands == 6)
+	        scale_factor = get_float_value_from_parameter(function, 5, statement_operands[5], "the scale factor value\n");
+        search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->gen_lev_coord_from_sigma_or_hybrid(statement_operands[0]->extension_names, 
+                                                                                                                         statement_operands[1]->object->object_name, 
+                                                                                                                         statement_operands[2]->extension_names[0],
+                                                                                                                         statement_operands[3]->object->object_name,
+                                                                                                                         statement_operands[4]->object->object_name,
+                                                                                                                         scale_factor);
     }
     /* Check the semantics of function "read_field", and then use IO object to read the data */
     else if (words_are_the_same(function, FUNCTION_WORD_READ_FIELD)) {
@@ -148,6 +165,12 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
         check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the partial grid to be generated");
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the whole grid");
         remap_grids.push_back(new Remap_grid_class(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name));
+    }
+    else if (words_are_the_same(function, FUNCTION_WORD_NEW_MIDDLE_GRID)) {
+        EXECUTION_REPORT(REPORT_ERROR, num_operands == 2, "function \"%s\" can have only one source operand which is the whole grid\n", function);
+        check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the middle level grid to be generated");
+        check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the level grid");
+        remap_grids.push_back(new Remap_grid_class(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name, "level"));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_ADD_GRID_AREA)) {
         EXECUTION_REPORT(REPORT_ERROR, num_operands == 2, "function \"%s\" has two input parameters\n", function);

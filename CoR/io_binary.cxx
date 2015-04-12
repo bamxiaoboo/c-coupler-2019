@@ -105,7 +105,6 @@ void IO_binary::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
 void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights, Remap_strategy_class *remap_strategy, bool read_weight_values)
 {    
 	long array_size;
-	char *input_array;
 	
 
     EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(open_format, "r"), "can not read binary file %s: %s, whose open format is not read\n", object_name, file_name);
@@ -118,8 +117,8 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
         fp_binary = fopen(file_name, "r"); 
 		fseek(fp_binary, 0, SEEK_END);
 		long array_size = ftell(fp_binary);
+		int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group = 0;
 #ifndef ONLY_CoR
-		int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group;
 		MPI_Status status;
 		int temp_int;
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_proc_computing_node_comp_group) == MPI_SUCCESS);
@@ -128,11 +127,8 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 			MPI_Recv(&temp_int, 1, MPI_INT, current_proc_id_computing_node_comp_group-1, current_proc_id_computing_node_comp_group-1, compset_communicators_info_mgr->get_computing_node_comp_group(), &status);
 #endif
 		EXECUTION_REPORT(REPORT_LOG, true, "begin reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
-		char *input_array = new char [array_size];
 		fseek(fp_binary, 0, SEEK_SET);
-		fread(input_array, array_size, 1, fp_binary);
-		remap_weights->read_remap_weights_from_array(input_array, array_size, true, NULL, read_weight_values);
-		delete [] input_array;
+		remap_weights->read_remap_weights_from_array(NULL, fp_binary, array_size, true, NULL, read_weight_values);
 		fclose(fp_binary);
 		EXECUTION_REPORT(REPORT_LOG, true, "Finish reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
 #ifndef ONLY_CoR

@@ -43,7 +43,7 @@ class Decomp_grid_mgt
     public:
         Decomp_grid_mgt() {}
         Decomp_grid_info *search_decomp_grid_info(const char*, Remap_grid_class*, bool);
-		void check_unique_decomp_for_dynamic_sigma_grid(Remap_grid_class *, const char*);
+		void check_unique_registered_decomp_for_dynamic_sigma_grid(Remap_grid_class *, const char*);
         ~Decomp_grid_mgt();
 };
 

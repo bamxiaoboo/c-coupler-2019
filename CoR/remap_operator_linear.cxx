@@ -55,7 +55,6 @@ void Remap_operator_linear::calculate_remap_weights()
 		weight_src_indexes[0] = src_cell_index_left[i];
 		weight_src_indexes[1] = src_cell_index_right[i];
 		if (coord_values_src[src_cell_index_left[i]] == coord_values_src[src_cell_index_right[i]]) {
-			EXECUTION_REPORT(REPORT_ERROR, coord_values_dst[i] == coord_values_src[src_cell_index_left[i]], "C-Coupler error in Remap_operator_linear::calculate_remap_weights");
 			remap_weight_values[0] = 0.5;
 			remap_weight_values[1] = 0.5;
 		}

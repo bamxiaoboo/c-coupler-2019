@@ -105,9 +105,9 @@ class Remap_weight_of_strategy_class
 		Remap_grid_data_class *runtime_mask_fields_in_remapping_process[512];
 		std::vector<Operation_for_caculating_sigma_values*> operations_for_caculating_sigma_values_of_grid;
 
-		void read_grid_info_from_array(Remap_grid_class*, bool, const char *, long&, long);
-		void read_data_from_array(void*, int, const char*, long&, long, bool);
-		void read_remap_operator_instance_from_array(Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, long, long, const char*, long&, long, bool);
+		void read_grid_info_from_array(Remap_grid_class*, bool, const char *, FILE*, long&, long);
+		void read_data_from_array(void*, int, const char*, FILE*, long&, long, bool);
+		void read_remap_operator_instance_from_array(Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, long, long, const char*, FILE*, long&, long, bool);
 		void write_grid_info_into_array(Remap_grid_class*, bool, char **, long&, long &);
 		void write_data_into_array(void*, int, char**, long&, long &);
 
@@ -133,7 +133,7 @@ class Remap_weight_of_strategy_class
         const char *get_object_name() { return object_name; }
 		void renew_object_name(const char*);
 		void write_remap_weights_into_array(char**, long&, bool);
-		void read_remap_weights_from_array(const char*, long, bool, Remap_grid_class**, bool);
+		void read_remap_weights_from_array(const char*, FILE*, long, bool, Remap_grid_class**, bool);
 		void check_remap_weights_format();
 		void add_remap_weight_of_operators_to_manager(bool);
 		int get_num_remap_weights_of_operators() { return remap_weights_of_operators.size(); }

@@ -60,6 +60,7 @@ extern "C" void register_sigma_grid_bottom_field_(void *model_buf, const char *g
 	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
 					 "the data type of the bottom field for the sigma grid \"%s\" must be real4 or real8", grid_name); 
 	// check the whether the parallel decomposition covers all grid points
+	EXECUTION_REPORT(REPORT_LOG, true, "Register surface field of grid %s on decomposition %s", grid_name, bottom_field->get_decomp_name());
 	decomp_grids_mgr->search_decomp_grid_info(bottom_field->get_decomp_name(), sigma_grid, true)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(bottom_field->get_field_data());
 }                  
 
@@ -212,6 +213,18 @@ extern "C" void coupling_execute_procedure_(const char *procedure_name, const ch
     EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n");
     runtime_process_mgr->execute_coupling_procedure(procedure_name, procedure_stage);
+}
+
+
+extern "C" void coupling_perturb_roundoff_errors_for_an_array_(void *field_data_buf, const char *data_type, int *field_size)
+{
+	ensemble_mgr->perturb_a_model_array(field_data_buf, data_type, *field_size);
+}
+
+
+extern "C" void coupling_perturb_roundoff_errors_()
+{
+	ensemble_mgr->run();
 }
 
 

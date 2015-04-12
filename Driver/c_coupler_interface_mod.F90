@@ -152,6 +152,18 @@
         c_coupler_add_field_for_perturbing_roundoff_errors_float_4D
    end interface
 
+   interface c_coupler_perturb_roundoff_errors_for_an_array ; module procedure &
+        c_coupler_perturb_roundoff_errors_for_an_array_double_0D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_double_1D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_double_2D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_double_3D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_double_4D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_float_0D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_float_1D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_float_2D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_float_3D, &
+        c_coupler_perturb_roundoff_errors_for_an_array_float_4D
+   end interface
 
 
    interface c_coupler_check_grid_values ; module procedure &
@@ -2227,6 +2239,116 @@
    END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_4D
 
 
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_0D(data_buf, array_size)
+   implicit none
+   real(R8), INTENT(IN)         :: data_buf
+   integer, INTENT(IN)          :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_0D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_1D(data_buf, array_size)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
+   integer, INTENT(IN)                        :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_1D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_2D(data_buf, array_size)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:)         :: data_buf
+   integer, INTENT(IN)                          :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_2D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_3D(data_buf, array_size)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:,:)       :: data_buf
+   integer, INTENT(IN)                          :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_3D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_4D(data_buf, array_size)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:,:,:)     :: data_buf
+   integer, INTENT(IN)                          :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_4D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_0D(data_buf, array_size)
+   implicit none
+   real(R4), INTENT(IN)         :: data_buf
+   integer, INTENT(IN)          :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_0D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_1D(data_buf, array_size)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
+   integer, INTENT(IN)                        :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_1D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_2D(data_buf, array_size)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
+   integer, INTENT(IN)                        :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_2D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_3D(data_buf, array_size)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:,:)     :: data_buf
+   integer, INTENT(IN)                        :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_3D
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_4D(data_buf, array_size)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:,:,:)   :: data_buf
+   integer, INTENT(IN)                        :: array_size
+
+   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
+
+   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_4D
+
+
    SUBROUTINE c_coupler_register_field_info(fld_name, units, long_name)
    implicit none
    character(len=*), intent(in) :: fld_name      
@@ -2236,6 +2358,16 @@
    call coupling_add_field_info(trim(fld_name)//char(0), trim(units)//char(0), trim(long_name)//char(0)) 
 
    END SUBROUTINE c_coupler_register_field_info
+
+
+
+   SUBROUTINE c_coupler_perturb_roundoff_errors
+   implicit none
+
+   call coupling_perturb_roundoff_errors
+   
+   END SUBROUTINE c_coupler_perturb_roundoff_errors
+
 
 
  END MODULE c_coupler_interface_mod

@@ -73,6 +73,7 @@ class Remap_grid_class
         int num_dimensions;
         int num_vertexes;
         Remap_grid_class *whole_grid;
+		Remap_grid_class *edge_grid;
         std::vector<Partial_area *> partial_areas;
         Remap_grid_class *super_grid_of_setting_coord_values;
         Remap_grid_class *first_super_grid_of_enable_setting_coord_value;
@@ -150,6 +151,7 @@ class Remap_grid_class
         Remap_grid_class(const char*, int, Remap_grid_class**, long);
         Remap_grid_class(Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, bool);
         Remap_grid_class(const char*, const char*);
+		Remap_grid_class(const char*, const char*, const char*);
         ~Remap_grid_class();
 
         /* Functions of getting grid properties or data */
@@ -168,6 +170,7 @@ class Remap_grid_class
         Remap_grid_class *get_super_grid_of_setting_coord_values() const { return super_grid_of_setting_coord_values; }
         Remap_grid_class *get_first_super_grid_of_enable_setting_coord_value() { return first_super_grid_of_enable_setting_coord_value; }
         void get_leaf_grids(int *, Remap_grid_class**, Remap_grid_class*);
+		Remap_grid_class *get_a_leaf_grid_of_sigma_or_hybrid();
 		Remap_grid_class *get_a_leaf_grid(const char*);
         void get_sized_sub_grids(int*, Remap_grid_class**);
         void get_masked_sub_grids(int*, Remap_grid_class**);
@@ -211,7 +214,7 @@ class Remap_grid_class
         Remap_grid_class *duplicate_grid(Remap_grid_class*);
         Remap_grid_class *generate_decomp_grid(const int*, int, const char*);
 		void generate_3D_grid_decomp_sigma_values(Remap_grid_class*, Remap_grid_class*, const int*, int);
-        void gen_lev_coord_from_sigma(char extension_names[16][256], const char*, const char*, const char*, double);
+        void gen_lev_coord_from_sigma_or_hybrid(char extension_names[16][256], const char*, const char*, const char*, const char*, double);
 		void calculate_lev_sigma_values();
 		bool is_sigma_grid();
 		Remap_grid_data_class *get_sigma_grid_sigma_value_field();

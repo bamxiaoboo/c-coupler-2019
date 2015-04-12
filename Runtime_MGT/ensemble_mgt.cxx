@@ -124,6 +124,37 @@ void Ensemble_mgt::perturb_a_field_through_xor_last_bit_with_a_bit(void *field_d
 }
 
 
+void Ensemble_mgt::perturb_an_array(void *field_data_buf, const char *data_type, long field_size, int current_random_number)
+{
+	if (perturbation_type_id == 1)
+		perturb_a_field_through_set_last_bit_to_1(field_data_buf, data_type, field_size, current_random_number);
+	else if (perturbation_type_id == 2)
+		perturb_a_field_through_set_last_bit_to_0(field_data_buf, data_type, field_size, current_random_number);
+	else if (perturbation_type_id == 3)
+		perturb_a_field_through_reverse_last_bit(field_data_buf, data_type, field_size, current_random_number);
+	else if (perturbation_type_id == 4)
+		perturb_a_field_through_xor_last_bit_with_a_bit(field_data_buf, data_type, field_size, current_random_number);
+	else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error in Ensemble_mgt::run");
+}
+
+
+void Ensemble_mgt::perturb_a_model_array(void *field_data_buf, const char *data_type, long field_size)
+{
+	int current_random_number;
+
+	
+	if (ensemble_member_id <= 0 || !have_random_seed_for_perturbation)
+		return;
+
+	current_random_number = rand();
+	if ((current_random_number & (0x000000001)) == 0)
+		return;
+
+	EXECUTION_REPORT(REPORT_LOG, true, "Perturb the values of a model array with random roundoff errors");
+	perturb_an_array(field_data_buf, data_type, field_size, current_random_number);
+}
+
+
 void Ensemble_mgt::run()
 {
 	int current_random_number;
@@ -138,19 +169,8 @@ void Ensemble_mgt::run()
 
 	for (int i = 0; i < registered_fields_for_perturbation.size(); i ++) {
 		EXECUTION_REPORT(REPORT_LOG, true, "Perturb the values of field %s (on grid %s) with random roundoff errors", registered_fields_for_perturbation[i]->get_field_name(), registered_fields_for_perturbation[i]->get_grid_name());
-		if (perturbation_type_id == 1)
-			perturb_a_field_through_set_last_bit_to_1(registered_fields_for_perturbation[i]->get_data_buf(), registered_fields_for_perturbation[i]->get_field_data()->get_grid_data_field()->data_type_in_application,
-													  registered_fields_for_perturbation[i]->get_size_of_field(), current_random_number);
-		else if (perturbation_type_id == 2)
-			perturb_a_field_through_set_last_bit_to_0(registered_fields_for_perturbation[i]->get_data_buf(), registered_fields_for_perturbation[i]->get_field_data()->get_grid_data_field()->data_type_in_application,
-													  registered_fields_for_perturbation[i]->get_size_of_field(), current_random_number);
-		else if (perturbation_type_id == 3)
-			perturb_a_field_through_reverse_last_bit(registered_fields_for_perturbation[i]->get_data_buf(), registered_fields_for_perturbation[i]->get_field_data()->get_grid_data_field()->data_type_in_application,
-													 registered_fields_for_perturbation[i]->get_size_of_field(), current_random_number);
-		else if (perturbation_type_id == 4)
-			perturb_a_field_through_xor_last_bit_with_a_bit(registered_fields_for_perturbation[i]->get_data_buf(), registered_fields_for_perturbation[i]->get_field_data()->get_grid_data_field()->data_type_in_application,
-													        registered_fields_for_perturbation[i]->get_size_of_field(), current_random_number);
-		else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error in Ensemble_mgt::run");
+		perturb_an_array(registered_fields_for_perturbation[i]->get_data_buf(), registered_fields_for_perturbation[i]->get_field_data()->get_grid_data_field()->data_type_in_application,
+						 registered_fields_for_perturbation[i]->get_size_of_field(), current_random_number);
 	}
 }
 

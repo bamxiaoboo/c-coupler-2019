@@ -29,6 +29,7 @@ class Ensemble_mgt
 		void perturb_a_field_through_set_last_bit_to_0(void*, const char*, long, int);
 		void perturb_a_field_through_reverse_last_bit(void*, const char*, long, int);
 		void perturb_a_field_through_xor_last_bit_with_a_bit(void*, const char*, long, int);
+		void perturb_an_array(void*, const char*, long, int);
 
 	public:
 		Ensemble_mgt();
@@ -36,6 +37,7 @@ class Ensemble_mgt
 		~Ensemble_mgt() {}
 		void register_a_field_for_perturbation(void *);
 		void perturb_fields_with_roundoff_errors();
+		void perturb_a_model_array(void*, const char*, long);
 		void run();
 };
 

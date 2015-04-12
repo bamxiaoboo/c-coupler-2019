@@ -146,14 +146,14 @@ Decomp_grid_mgt::~Decomp_grid_mgt()
 }
 
 
-void Decomp_grid_mgt::check_unique_decomp_for_dynamic_sigma_grid(Remap_grid_class *original_grid, const char *error_string)
+void Decomp_grid_mgt::check_unique_registered_decomp_for_dynamic_sigma_grid(Remap_grid_class *original_grid, const char *error_string)
 {
 	Decomp_grid_info *decomp_grids[2];
 	int num_decomp_grids = 0, i;
 	bool is_dynamic_sigma_grid = false;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, original_grid->is_sigma_grid(), "C-Coupler error in Decomp_grid_mgt::check_unique_decomp_for_dynamic_sigma_grid");
+	EXECUTION_REPORT(REPORT_ERROR, original_grid->is_sigma_grid(), "C-Coupler error1 in Decomp_grid_mgt::check_unique_registered_decomp_for_dynamic_sigma_grid");
 
 	for (i = 0; i < decomp_grids_info.size(); i ++)
 		if (decomp_grids_info[i]->get_original_grid()->is_the_same_grid_with(original_grid) && decomp_grids_info[i]->get_decomp_grid()->get_sigma_grid_dynamic_surface_value_field() != NULL)
@@ -163,10 +163,13 @@ void Decomp_grid_mgt::check_unique_decomp_for_dynamic_sigma_grid(Remap_grid_clas
 		return;
 
 	for (i = 0; i < decomp_grids_info.size() && num_decomp_grids < 2; i ++)
-		if (decomp_grids_info[i]->get_original_grid()->is_the_same_grid_with(original_grid))
-			decomp_grids[num_decomp_grids ++] = decomp_grids_info[i];
+		if (decomp_grids_info[i]->get_original_grid()->is_the_same_grid_with(original_grid)) {
+			EXECUTION_REPORT(REPORT_ERROR, decomps_info_mgr->search_decomp_info(decomp_grids_info[i]->get_decomp_name()) != NULL, "C-Coupler error2 in Decomp_grid_mgt::check_unique_registered_decomp_for_dynamic_sigma_grid");
+			if (decomps_info_mgr->search_decomp_info(decomp_grids_info[i]->get_decomp_name())->is_registered_decomp())
+				decomp_grids[num_decomp_grids ++] = decomp_grids_info[i];
+		}
 
-	EXECUTION_REPORT(REPORT_ERROR, num_decomp_grids <= 1, "Grid %s has at least two decompositions such as %s and %s, %s", original_grid->get_grid_name(),
+	EXECUTION_REPORT(REPORT_ERROR, num_decomp_grids <= 1, "Grid %s has at least two registerred decompositions such as %s and %s, %s", original_grid->get_grid_name(),
 					 decomp_grids[0]->get_decomp_name(), decomp_grids[1]->get_decomp_name(), error_string);
 }
 

@@ -25,11 +25,11 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		bool set_periodic;
 		bool set_period;
 		bool set_enable_extrapolation;
-		bool enable_extrapolation;
 		bool use_logarithmic_field_value;
 		bool set_use_logarithmic_field_value;
 		bool use_logarithmic_coordinate;
 		bool set_use_logarithmic_coordinate;
+		int extrapolation_approach;
 		double period;
 		double *coord_values_src;
 		double *coord_values_dst;

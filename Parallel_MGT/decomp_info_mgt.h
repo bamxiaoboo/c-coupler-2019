@@ -23,6 +23,7 @@ class Decomp_info
         int num_global_cells;
         int num_local_cells;
         int *local_cell_global_indx;
+		bool is_registered;
 
     public:
         Decomp_info(const char *, const char*, const char*, int, const int *);
@@ -35,6 +36,9 @@ class Decomp_info
         int get_num_global_cells() { return num_global_cells; }
         const char *get_model_name() { return model_name; }
         bool get_is_fully_grid_decomp() { return num_local_cells == num_global_cells; }
+		bool is_registered_decomp() { return is_registered; }
+		void set_decomp_registered() { is_registered = true; };
+		void check_local_cell_global_indx();
 };
 
 

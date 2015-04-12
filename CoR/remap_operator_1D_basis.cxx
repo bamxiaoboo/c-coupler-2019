@@ -96,16 +96,30 @@ void Remap_operator_1D_basis::set_common_parameter(const char *parameter_name, c
                       parameter_name, operator_name);
 		set_use_logarithmic_coordinate = true;
 	}
-	else if (words_are_the_same(parameter_name, "extrapolation")) {
+	else if (words_are_the_same(parameter_name, "enable_extrapolate")) {
 		EXECUTION_REPORT(REPORT_ERROR, !periodic,
 						 "The parameter \"%s\" of the 1D remapping operator \"%s\" can not be set when the 1D remapping operator is periodic",
 						 parameter_name, operator_name);
+		EXECUTION_REPORT(REPORT_ERROR, !set_enable_extrapolation,
+						 "Extrapolation of remapping operator %s has been enabled before. Extrapolation cannot be enabled again", operator_name);
 		if (words_are_the_same(parameter_value, "true"))
-	        enable_extrapolation = true;
+	        enable_extrapolate = true;
 		else if (words_are_the_same(parameter_value, "false"))
-			enable_extrapolation = false;
+			enable_extrapolate = false;
 		else EXECUTION_REPORT(REPORT_ERROR, false, 
                       "The value of parameter \"%s\" of the 1D remapping operator \"%s\" must be \"true\" or \"false\"",
+                      parameter_name, operator_name);		
+		set_enable_extrapolation = true;
+	}
+	else if (words_are_the_same(parameter_name, "extrapolation_approach")) {
+		EXECUTION_REPORT(REPORT_ERROR, set_enable_extrapolation,
+						 "Extrapolation of remapping operator %s is not set to enabled. Therefore, the approach of extrapolation cannot be set", operator_name);
+		EXECUTION_REPORT(REPORT_ERROR, extrapolation_approach == 0,
+						 "Extrapolation approach of remapping operator %s has been set before. It cannot be set again", operator_name);
+		if (words_are_the_same(parameter_value, "with_boundary"))
+	        extrapolation_approach = 1;
+		else EXECUTION_REPORT(REPORT_ERROR, false, 
+                      "The value of parameter \"%s\" of the 1D remapping operator \"%s\" must be \"with_boundary\" currently",
                       parameter_name, operator_name);		
 		set_enable_extrapolation = true;
 	}
@@ -141,7 +155,8 @@ void Remap_operator_1D_basis::copy_1D_remap_operator_info(Remap_operator_1D_basi
 	set_periodic = original_grid->set_periodic;
 	set_period = original_grid->set_period;
 	set_enable_extrapolation = original_grid->set_enable_extrapolation;
-	enable_extrapolation = original_grid->enable_extrapolation;
+	enable_extrapolate = original_grid->enable_extrapolate;
+	extrapolation_approach = original_grid->extrapolation_approach;
 	period = original_grid->period;
 	num_useful_src_cells = original_grid->num_useful_src_cells;
 	use_logarithmic_field_value = original_grid->use_logarithmic_field_value;
@@ -156,12 +171,13 @@ void Remap_operator_1D_basis::initialize_1D_remap_operator()
 	set_periodic = false;
 	set_period = false;
     periodic = false;
-	enable_extrapolation = false;
+	enable_extrapolate = false;
 	set_enable_extrapolation = false;
 	use_logarithmic_field_value = false;
 	set_use_logarithmic_field_value = false;
 	use_logarithmic_coordinate = false;
 	set_use_logarithmic_coordinate = false;
+	extrapolation_approach = 0;
 
 	allocate_1D_remap_operator_common_arrays_space();
 }
@@ -309,15 +325,21 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 		for (j = 0; j < array_size_src && coord_values_src[j] <= coord_values_dst[i]; j ++);
 		if (j > 0 && j < array_size_src)
 			EXECUTION_REPORT(REPORT_ERROR, src_cell_index_left[i] == j-1 && src_cell_index_right[i] == j, "error error3\n"); 
-		if ((src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1) && !enable_extrapolation)
+		if ((src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1) && !enable_extrapolate)
 			continue;
 		if (src_cell_index_right[i] == -1) {
 			src_cell_index_right[i] = src_cell_index_left[i];
-			src_cell_index_left[i] --;
+			if (extrapolation_approach == 0)
+				src_cell_index_left[i] --;
+			else if (extrapolation_approach == 1)
+				src_cell_index_left[i] = src_cell_index_left[i];
 		}
 		if (src_cell_index_left[i] == -1) {
 			src_cell_index_left[i] = src_cell_index_right[i];
-			src_cell_index_right[i] ++;
+			if (extrapolation_approach == 0)
+				src_cell_index_right[i] ++;
+			else if (extrapolation_approach == 1)
+				src_cell_index_right[i] = src_cell_index_right[i];
 		}
 	}
 }

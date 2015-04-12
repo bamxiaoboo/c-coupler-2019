@@ -128,7 +128,7 @@ Remap_operator_spline_1D::Remap_operator_spline_1D(const char *object_name, int 
 	set_periodic = false;
 	set_period = false;
     periodic = false;
-	enable_extrapolation = false;
+	enable_extrapolate = false;
 	set_enable_extrapolation = false;
 	keep_monotonicity = false;
 	set_keep_monotonicity = false;
@@ -271,10 +271,14 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
 			continue;
-		data_values_dst[i] = array_d[src_cell_index_left[i]]*final_factor1[i];
-		data_values_dst[i] += array_d[src_cell_index_right[i]]*final_factor2[i];
-		data_values_dst[i] += (data_values_src[src_cell_index_left[i]]-array_d[src_cell_index_left[i]]*final_factor3[i])*final_factor4[i];
-		data_values_dst[i] += (data_values_src[src_cell_index_right[i]]-array_d[src_cell_index_right[i]]*final_factor3[i])*final_factor5[i];
+		if (src_cell_index_left[i] == src_cell_index_right[i])
+			data_values_dst[i] = data_values_src[src_cell_index_left[i]];
+		else {
+			data_values_dst[i] = array_d[src_cell_index_left[i]]*final_factor1[i];
+			data_values_dst[i] += array_d[src_cell_index_right[i]]*final_factor2[i];
+			data_values_dst[i] += (data_values_src[src_cell_index_left[i]]-array_d[src_cell_index_left[i]]*final_factor3[i])*final_factor4[i];
+			data_values_dst[i] += (data_values_src[src_cell_index_right[i]]-array_d[src_cell_index_right[i]]*final_factor3[i])*final_factor5[i];
+		}
 	}
 
 	if (keep_monotonicity) {
@@ -328,6 +332,9 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 	}
 
 	postprocess_field_value(data_values_dst);
+
+	for (i = 0; i < dst_grid->get_grid_size(); i ++)
+		printf("okok result %d: %lf\n", i, data_values_dst[i]);
 }
 
 
