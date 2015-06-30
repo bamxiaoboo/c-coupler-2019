@@ -112,7 +112,8 @@ void report_header(int report_type, bool &condition)
 void report_ender(int report_type)
 {
     printf("\n");
-    fflush(NULL);	
+	fflush(NULL);	
+
 	if (report_type == REPORT_ERROR)
 		assert(false);
 }
@@ -168,6 +169,19 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 }
 
 
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const void *str2, const char *str3) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, str2, str3);
+
+	report_ender(report_type);
+}
+
+
 void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3) 
 {
 	report_header(report_type, condition);
@@ -194,6 +208,32 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 }
 
 
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, int value2, const char *str2) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+    printf(str1, value1, value2, str2);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, const char *str2, int value2, long value3) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+    printf(str1, value1, str2, value2, value3);
+
+	report_ender(report_type);
+}
+
+
 void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1) 
 {
 	report_header(report_type, condition);
@@ -202,6 +242,32 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 		return;
 
 	printf(str1, str2, str3, str4, value1);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, long value2) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, str2, str3, str4, value1, value2);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, const char *str5) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, str2, str3, str4, value1, str5);
 
 	report_ender(report_type);
 }
@@ -228,6 +294,32 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 		return;
 
 	printf(str1, str2, str3, str4, str5, value1);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, str2, str3, str4, str5, str6);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, const char *str6) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, str2, str3, str4, str5, value1, str6);
 
 	report_ender(report_type);
 }
@@ -298,6 +390,19 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int val
 }
 
 
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, const char *str2, const char *str3) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, value1, str2, str3);
+
+	report_ender(report_type);
+}
+
+
 void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, int value1) 
 {
 	report_header(report_type, condition);
@@ -306,6 +411,19 @@ void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const c
 		return;
 
 	printf(str1, str2, value1);
+
+	report_ender(report_type);
+}
+
+
+void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, int value1, const char *str3) 
+{
+	report_header(report_type, condition);
+
+	if (!condition)
+		return;
+
+	printf(str1, str2, value1, str3);
 
 	report_ender(report_type);
 }

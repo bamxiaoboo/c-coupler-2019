@@ -143,7 +143,7 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
         mpibuf = new char [num_total_cells*num_points_in_each_cell*num_levels*get_data_type_size(data_type)];
         decomps_info_mgr->generate_fully_decomp(fully_decomp_name, decomps_info_mgr->search_decomp_info(original_decomp_name)->get_grid_name());
 		EXECUTION_REPORT(REPORT_LOG, true, "allocate global field for gather/scatter");
-		global_field_mem = alloc_full_grid_mem(local_field->get_comp_name(), fully_decomp_name, grid_name, local_field->get_field_name(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application, 0, false);
+		global_field_mem = alloc_full_grid_mem(local_field->get_comp_name(), fully_decomp_name, grid_name, local_field->get_field_name(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application, 0, false, "  C-Coupler error  ");
     }
 	if (num_local_cells > 0)
 		delete [] local_cell_global_indx;
@@ -307,11 +307,11 @@ void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem
 }
 
 
-void Fields_gather_scatter_mgt::read_scatter_field(IO_netcdf *nc_file, Field_mem_info *local_field)
+void Fields_gather_scatter_mgt::read_scatter_field(IO_netcdf *nc_file, Field_mem_info *local_field, int time_pos)
 {
     Gather_scatter_rearrange_info *rearrage_info = apply_gather_scatter_rearrange_info(local_field);
     if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
-        nc_file->read_data(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field());
+        nc_file->read_data(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field(), time_pos);
     rearrage_info->scatter_field(local_field);
 }
 

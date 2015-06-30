@@ -97,7 +97,7 @@ void Decomp_info::gen_decomp_grid_data()
 
 
     num_global_cells = cpl_get_grid_size(grid_name);
-    local_grid_index = (int *) alloc_mem(model_name, decomp_name, grid_name, "index", DATA_TYPE_INT, 0, false)->get_data_buf();
+    local_grid_index = (int *) alloc_mem(model_name, decomp_name, grid_name, "index", DATA_TYPE_INT, 0, false, "  C-Coupler error  ")->get_data_buf();
 	memory_manager->search_field_via_data_buf(local_grid_index, true)->define_field_values(false);
 
     for (i = 0; i < num_local_cells; i ++) {
@@ -140,6 +140,7 @@ void Decomp_info_mgt::add_decomps_from_cfg_file(const char *cfg_name)
     char model_name[NAME_STR_SIZE];
     char grid_name[NAME_STR_SIZE];
     char *line_p;
+	int i = 0;
 
 
     if (words_are_the_same(cfg_name, "NULL"))
@@ -148,9 +149,10 @@ void Decomp_info_mgt::add_decomps_from_cfg_file(const char *cfg_name)
 
     while(get_next_line(line, file_cfg)) {
         line_p = line;
-        get_next_attr(decomp_name, &line_p);
-        get_next_attr(model_name, &line_p);
-        get_next_attr(grid_name, &line_p);
+		i ++;
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(decomp_name, &line_p), "Please specify the decomposition name of the %dth parallel decomposition in the configuration file \"%s\".", i, cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(model_name, &line_p), "Please specify the name of the component that owns the %dth parallel decomposition in the configuration file \"%s\".", i, cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(grid_name, &line_p), "Please specify the grid name of the %dth parallel decomposition in the configuration file \"%s\".", i, cfg_name);
         decomps_info.push_back(new Decomp_info(decomp_name,model_name,grid_name,-1,NULL));
         decomps_info[decomps_info.size()-1]->gen_decomp_grid_data();
     }

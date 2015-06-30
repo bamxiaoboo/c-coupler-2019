@@ -3006,7 +3006,10 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 	if (!original_3D_grid->is_sigma_grid())
 		return;
 
-	EXECUTION_REPORT(REPORT_ERROR, original_3D_grid->grid_center_fields.size() == 1 && this->grid_center_fields.size() == 0, "C-Coupler error1 in generate_3D_grid_decomp_sigma_values\n");
+	if (original_3D_grid->grid_center_fields.size() == 0)
+		return;
+
+	EXECUTION_REPORT(REPORT_ERROR, original_3D_grid->grid_center_fields.size() == 1 && this->grid_center_fields.size() == 0, "C-Coupler error2 in generate_3D_grid_decomp_sigma_values\n");
 	
 	grid_center_fields.push_back(original_3D_grid->grid_center_fields[0]->duplicate_grid_data_field(this, 1, false, false));
 	sigma_grid_surface_value_field = original_3D_grid->get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(decomp_grid, 1, false, false);
@@ -3022,7 +3025,7 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 	this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
 	for (int i = 0; i < num_leaf_grids; i ++)
 		if (leaf_grids[i]->has_grid_coord_label(COORD_LABEL_LEV)) {
-			EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->grid_size > 0 && leaf_grids[i]->grid_center_fields.size() == 0, "C-Coupler error2 in generate_3D_grid_decomp_sigma_values\n");			
+			EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->grid_size > 0 && leaf_grids[i]->grid_center_fields.size() == 0, "C-Coupler error3 in generate_3D_grid_decomp_sigma_values\n");			
 			leaf_grids[i]->super_grid_of_setting_coord_values = this;
 		}
 		

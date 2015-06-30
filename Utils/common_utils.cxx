@@ -77,38 +77,55 @@ bool is_end_of_file(FILE *fp)
 }
 
 
-int get_next_integer_attr(char **line)
+bool get_next_integer_attr(char **line, int &value)
 {
     char attr[NAME_STR_SIZE];
 
+	
+	value = -1;
 
-    EXECUTION_REPORT(REPORT_ERROR, get_next_attr(attr, line), "Can not read integer value from config file");
+    if (!get_next_attr(attr, line))
+		return false;
+	for (int i = 0; i < strlen(attr); i ++) {
+		if (i == 0 && attr[0] == '-')
+			continue;
+        if (attr[i]-'0'< 0 || attr[i]-'9' > 0) 
+            return false;		
+	}
+    value = atoi(attr);
 
-    return atoi(attr);
+	return true;
 }
 
 
-int get_next_integer_attr(char **line, bool &has_integer)
+bool get_next_double_attr(char **line, double &value)
 {
     char attr[NAME_STR_SIZE];
+	int dot_number = 0;
+	int figure_number = 0;
 
 
-    has_integer = get_next_attr(attr, line);
+	if (!get_next_attr(attr, line))
+		return false;
 
-	if (has_integer) 
-        return atoi(attr);
-	else return -1;
-}
+	for (int i = 0; i < strlen(attr); i ++) {
+		if (i == 0 && attr[0] == '-')
+			continue;
+		if (attr[i] == '.') {
+			dot_number ++;
+			if (figure_number == 0)
+				return false;
+			if (dot_number > 1)
+				return false;
+			continue;
+		}
+        if (attr[i]-'0' < 0 || attr[i]-'9' > 0) 
+            return false;
+		figure_number ++;
+	}
+    value = atof(attr);
 
-
-double get_next_double_attr(char **line)
-{
-    char attr[NAME_STR_SIZE];
-
-
-    EXECUTION_REPORT(REPORT_ERROR, get_next_attr(attr, line), "Can not read double value from config file");
-
-    return atof(attr);
+	return true;
 }
 
 

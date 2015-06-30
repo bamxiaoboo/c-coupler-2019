@@ -16,9 +16,8 @@
 
 extern bool get_next_line(char *, FILE *);
 extern bool get_next_attr(char *, char **);
-extern int get_next_integer_attr(char **);
-extern int get_next_integer_attr(char **, bool&);
-extern double get_next_double_attr(char **line);
+extern bool get_next_integer_attr(char **, int&);
+extern bool get_next_double_attr(char **line, double&);
 extern bool is_end_of_file(FILE *);
 
 extern FILE *open_config_file(const char *, const char *);

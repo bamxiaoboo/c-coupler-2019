@@ -42,8 +42,8 @@ class Coupling_timer
         int delay_count;
         
     public:
-        Coupling_timer(const char*, int, int);
-        Coupling_timer(char**);
+        Coupling_timer(const char*, int, int, const char*);
+        Coupling_timer(char**, const char*);
 		Coupling_timer(Coupling_timer*);
         ~Coupling_timer() {}
         bool is_timer_on();
@@ -81,9 +81,6 @@ class Timer_mgt
         Coupling_timer *restart_timer;
         std::vector<Comps_transfer_time_info*> comps_transfer_time_infos;
 
-        long calculate_elapsed_day(int, int, int);
-		void check_is_time_legal(int, int, int, int, const char*);
-
     public:
         Timer_mgt(int, int, int, int, int, bool, int, const char*, int, int);
         ~Timer_mgt();
@@ -113,14 +110,21 @@ class Timer_mgt
         long get_num_total_step() { return num_total_steps; }
         int get_comp_stop_latency_seconds() { return stop_latency_seconds; }
 		int get_current_num_days_in_year();
-        void check_timer_format(const char*, int, int);
+        void check_timer_format(const char*, int, int, const char*);
         Comps_transfer_time_info *allocate_comp_transfer_time_info(int);
 		bool check_time_consistency_between_components(long);
+        long calculate_elapsed_day(int, int, int);
 		void get_elapsed_days_from_start_date(int*, int*);
 		void get_elapsed_days_from_reference_date(int*, int*);
 		void get_current_time(int&, int&, int&, int&, int);
 		void reset_timer();
+		bool check_is_time_legal(int, int, int, int, const char*);
+		bool get_is_leap_year_on() { return leap_year_on; }
 };
+
+
+extern int num_days_of_month_of_nonleap_year[];
+extern int num_days_of_month_of_leap_year[];
 
 
 #endif

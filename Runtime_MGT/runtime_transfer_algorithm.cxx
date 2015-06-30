@@ -141,7 +141,7 @@ void Runtime_transfer_algorithm::preprocess(bool is_algorithm_in_kernel_stage)
 				 	 comm_tag, compset_communicators_info_mgr->get_global_comm_group(), &recv_statuses[0]);
 			for (i = 0; i < num_transfered_fields; i ++)
 				EXECUTION_REPORT(REPORT_ERROR, !currently_transferred_fields_mark[i] && fields_transfer_info_string[i*10] == 0 || currently_transferred_fields_mark[i] && fields_transfer_info_string[i*10] == 1,
-				                 "Mismatch happens for transferring field %s between components %s and %s", transferred_fields_mem[i]->get_field_name(), compset_communicators_info_mgr->get_current_comp_name(), remote_comp_name);
+				                 "Mismatch happens for transferring field %s between components %s and %s. Please check the configuration file %s and its counterpart", transferred_fields_mem[i]->get_field_name(), compset_communicators_info_mgr->get_current_comp_name(), remote_comp_name, algorithm_cfg_name);
 		}
 	}
 #endif
@@ -234,10 +234,10 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 			if (transferred_fields_mem[i] != NULL)
 				continue;
 			if (!(!is_algorithm_in_kernel_stage || fields_timers[i]->is_timer_on()) && 
-				memory_manager->search_last_define_field(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], buf_marks[i], false) == NULL)
+				memory_manager->search_last_define_field(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], buf_marks[i], false, transfer_fields_cfg_file) == NULL)
 				continue;
-	        transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], NULL, buf_marks[i], true);
-			add_runtime_datatype_transformation(transferred_fields_mem[i], true, fields_timers[i]);
+	        transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], NULL, buf_marks[i], true, transfer_fields_cfg_file);
+			add_runtime_datatype_transformation(transferred_fields_mem[i], true, fields_timers[i], transfer_fields_cfg_file);
 			transferred_fields_mem[i] = add_one_field_for_cumulate_average(transferred_fields_mem[i], fields_timers[i]);
 			strcpy(fields_transfer_info_string+10*i+1, transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
 	        fields_data_type_sizes[i] = get_data_type_size(transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
@@ -286,16 +286,16 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 				if (average_mark[i]) {
 					continue;
 				}
-		        transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], NULL, buf_marks[i], true);
-				add_runtime_datatype_transformation(transferred_fields_mem[i], true, fields_timers[i]);
+		        transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], NULL, buf_marks[i], true, transfer_fields_cfg_file);
+				add_runtime_datatype_transformation(transferred_fields_mem[i], true, fields_timers[i], transfer_fields_cfg_file);
 				strcpy(fields_transfer_info_string+10*i+1, transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
 			}
 			else {
 				if (num_src_fields == 0)
-					transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], fields_transfer_info_string+10*i+1, buf_marks[i], false);	
+					transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], fields_transfer_info_string+10*i+1, buf_marks[i], false, transfer_fields_cfg_file);	
 				else transferred_fields_mem[i] = alloc_mem(comp_names[i-num_src_fields], field_remote_decomp_names[i-num_src_fields], field_grid_names[i-num_src_fields], field_names[i-num_src_fields], 
-														   transferred_fields_mem[i-num_src_fields]->get_field_data()->get_grid_data_field()->data_type_in_application, buf_marks[i-num_src_fields], false);
-				add_runtime_datatype_transformation(transferred_fields_mem[i], false, fields_timers[i]);
+														   transferred_fields_mem[i-num_src_fields]->get_field_data()->get_grid_data_field()->data_type_in_application, buf_marks[i-num_src_fields], false, transfer_fields_cfg_file);
+				add_runtime_datatype_transformation(transferred_fields_mem[i], false, fields_timers[i], transfer_fields_cfg_file);
 			}
 	        fields_data_type_sizes[i] = get_data_type_size(transferred_fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application);
 	        transferred_fields_data_buffers[i] =  transferred_fields_mem[i]->get_data_buf();
@@ -313,6 +313,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 		}
 	}
 
+	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
 	fields_allocated = true;
 }
 
@@ -356,7 +357,7 @@ void Runtime_transfer_algorithm::unpack_MD_data(int remote_proc_index, int field
                 unpack_segment_data((double*)((char*)mpi_recv_buf+(*offset)), (double*)transferred_fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
                 break;
             default:
-                EXECUTION_REPORT(REPORT_ERROR, false, "unsupported data type in runtime transfer algorithm\n");
+                EXECUTION_REPORT(REPORT_ERROR, false, "unsupported data type in runtime transfer algorithm %s. Please verify.", algorithm_cfg_name);
                 break;
         }
         (*offset) += num_elements_in_segments[i]*field_grids_num_lev[field_index]*fields_data_type_sizes[field_index];
@@ -394,7 +395,7 @@ void Runtime_transfer_algorithm::pack_MD_data(long remote_proc_index, long field
                 pack_segment_data((double*)((char*)mpi_send_buf+(*offset)), (double*)transferred_fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
                 break;
             default:
-                EXECUTION_REPORT(REPORT_ERROR, false, "unsupported data type in runtime transfer algorithm\n");
+                EXECUTION_REPORT(REPORT_ERROR, false, "unsupported data type in runtime transfer algorithm %s. Please verify.", algorithm_cfg_name);
                 break;
         }
         (*offset) += num_elements_in_segments[i]*field_grids_num_lev[field_index]*fields_data_type_sizes[field_index];
@@ -422,8 +423,8 @@ void Runtime_transfer_algorithm::recv_data(bool is_algorithm_in_kernel_stage)
 		for (i = num_src_fields; i < num_transfered_fields; i ++)
 			if (!is_algorithm_in_kernel_stage || fields_timers[i]->is_timer_on()) {
 				restart_mgr->get_field_datatype_for_transfer(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], buf_marks[i], data_type);
-				transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], data_type, buf_marks[i], false);	
-				add_runtime_datatype_transformation(transferred_fields_mem[i], false, fields_timers[i]);
+				transferred_fields_mem[i] = alloc_mem(comp_names[i], field_local_decomp_names[i], field_grid_names[i], field_names[i], data_type, buf_marks[i], false, transfer_fields_cfg_file);	
+				add_runtime_datatype_transformation(transferred_fields_mem[i], false, fields_timers[i], transfer_fields_cfg_file);
 				restart_mgr->read_one_restart_field(transferred_fields_mem[i]);
 				transferred_fields_mem[i] = NULL;
 			}
@@ -548,7 +549,7 @@ void Runtime_transfer_algorithm::send_data(bool is_algorithm_in_kernel_stage)
     for (m = 0; m < num_src_fields; m ++)
         if (currently_transferred_fields_mark[m]) {   
             transferred_fields_mem[m]->check_field_sum();
-			transferred_fields_mem[m]->use_field_values();
+			transferred_fields_mem[m]->use_field_values(transfer_fields_cfg_file);
         }
 		
 	EXECUTION_REPORT(REPORT_LOG, true, "after sending data at %ld", timer_mgr->get_current_full_time());
@@ -577,7 +578,7 @@ void Runtime_transfer_algorithm::sendrecv_data(bool is_algorithm_in_kernel_stage
     for (m = 0; m < num_src_fields; m ++)
         if (currently_transferred_fields_mark[m]) {   
             transferred_fields_mem[m]->check_field_sum();
-			transferred_fields_mem[m]->use_field_values();
+			transferred_fields_mem[m]->use_field_values("  C-Coupler error  ");
         }
 
 
@@ -591,7 +592,7 @@ void Runtime_transfer_algorithm::sendrecv_data(bool is_algorithm_in_kernel_stage
         for (m = 0; m < num_src_fields; m ++)
             if (currently_transferred_fields_mark[m])
                 pack_MD_data(i, m, &offset, buffer_size);
-        EXECUTION_REPORT(REPORT_ERROR, offset-old_offset == send_size_with_remote_procs[i], "C-Coupler error1 in sendrecv_data\n");        
+        EXECUTION_REPORT(REPORT_ERROR, offset-old_offset == send_size_with_remote_procs[i], "C-Coupler error1 in sendrecv_data");        
         mpi_ierr = MPI_Isend((char *)mpi_send_buf+remote_proc_begin_pos_in_buffer, send_size_with_remote_procs[i], MPI_CHAR, i, comm_tag, local_comm, (send_requests+i));
 		check_mpi_error("MPI error of MPI_Isend in sendrecv_data of runtime_transfer_algorithm");
     }
@@ -714,17 +715,17 @@ void Runtime_transfer_algorithm::check_cfg_info_consistency()
 		get_next_attr(field_local_decomp_names[i], &local_line_p);
 		get_next_attr(field_remote_decomp_names[i], &local_line_p);
 		get_next_attr(field_grid_names[i], &local_line_p);
-		buf_marks[i] = get_next_integer_attr(&local_line_p);
+		get_next_integer_attr(&local_line_p, buf_marks[i]);
 		get_next_attr(frequency_unit, &local_line_p);
-		frequency_count = get_next_integer_attr(&local_line_p);
+		get_next_integer_attr(&local_line_p, frequency_count);
 		get_next_attr(comp_name, &remote_line_p);
 		get_next_attr(remote_field_name, &remote_line_p);
 		get_next_attr(remote_field_local_decomp_name, &remote_line_p);
 		get_next_attr(remote_field_remote_decomp_names, &remote_line_p);
 		get_next_attr(remote_field_grid_name, &remote_line_p);
-		remote_buf_mark = get_next_integer_attr(&remote_line_p);
+		get_next_integer_attr(&remote_line_p, remote_buf_mark);
 		get_next_attr(remote_frequency_unit, &remote_line_p);
-		remote_frequency_count = get_next_integer_attr(&remote_line_p);
+		get_next_integer_attr(&remote_line_p, remote_frequency_count);
 		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(field_names[i], remote_field_name), 
 			             "the field name %s in configuration file %s is not the same as the field name %s in the counterpart configuration file",
 			             field_names[i], transfer_fields_cfg_file, remote_field_name);
@@ -764,15 +765,16 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
 
     fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_TRANSFER_ALG_DIR);
 
-    get_next_line(comm_direction, fp_cfg);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(comm_direction, fp_cfg), "Please specify the type of runtime transfer algorithm (\"send\", \"recv\" or \"sendrecv\") in the configuration file %s", algorithm_cfg_name);
 
     /* Set comm_tag and transfer_fields_cfg_file according to config file */
-    get_next_line(remote_comp_name, fp_cfg);
-    get_next_line(line, fp_cfg);
-    sscanf(line, "%d", &comm_tag);
-    get_next_line(transfer_fields_cfg_file, fp_cfg);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(remote_comp_name, fp_cfg), "Please specify the name of the remote component for the data transfer in the configuration file %s", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the MPI tag (integer) for the data transfer in the configuration file %s", algorithm_cfg_name);
+	local_line = line;
+	EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&local_line, comm_tag), "Please verify the MPI tag (integer) for the data transfer in the configuration file %s", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(transfer_fields_cfg_file, fp_cfg), "please specify the configuration file of fields for the data transfer in the configuration file %s", algorithm_cfg_name);
     fclose(fp_cfg);
-    
+
     /* Allocate and initialize the information arrays for runtime transfer algorithm */
     num_fields_in_cfg = get_num_fields_in_config_file(transfer_fields_cfg_file, RUNTIME_TRANSFER_ALG_DIR);
 
@@ -791,9 +793,9 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
 		num_dst_fields = num_fields_in_cfg;
 		num_transfered_fields = 2 * num_fields_in_cfg;
 		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(remote_comp_name, compset_communicators_info_mgr->get_current_comp_name()),
-						 "For the sendrecv data transfer algorithm, the remote component must be the same as the current component");
+						 "For the \"sendrecv\" data transfer algorithm, the remote component must be the same as the current component \"%s\"", compset_communicators_info_mgr->get_current_comp_name());
 	}
-	else EXECUTION_REPORT(REPORT_ERROR, false, "The type of runtime transfer algorithm must be one of send, recv and sendrecv\n", algorithm_cfg_name);
+	else EXECUTION_REPORT(REPORT_ERROR, false, "The type of runtime transfer algorithm must be one of \"send\", \"recv\" and \"sendrecv\". Please verify the configuration file %s", algorithm_cfg_name);
 
 	allocate_basic_data_structure(num_src_fields, num_dst_fields);
     initialize_local_data_structures();
@@ -803,14 +805,14 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
     for(i = 0; i < num_fields_in_cfg; i ++) {
         get_next_line(line, fp_cfg);
         local_line = line;        
-        get_next_attr(comp_names[i], &local_line);
-        get_next_attr(field_names[i], &local_line);
-        get_next_attr(field_local_decomp_names[i], &local_line);
-        get_next_attr(field_remote_decomp_names[i], &local_line);
-        get_next_attr(field_grid_names[i], &local_line);
-        buf_marks[i] = get_next_integer_attr(&local_line);
-		fields_timers[i] = new Coupling_timer(&local_line);
-		if (get_next_attr(use_average, &local_line)) {
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_names[i], &local_line), "Please specify the component name for the %dth field in the configuration file %s", i+1, transfer_fields_cfg_file);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_names[i], &local_line), "Please specify the field name for the %dth field in the configuration file %s", i+1, transfer_fields_cfg_file);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_local_decomp_names[i], &local_line), "Please specify the local parallel decomposition name for the %dth field in the configuration file %s", i+1, transfer_fields_cfg_file);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_remote_decomp_names[i], &local_line), "Please specify the remote parallel decomposition name for the %dth field in the configuration file %s", i+1, transfer_fields_cfg_file);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_grid_names[i], &local_line), "Please specify the grid name for the %dth field in the configuration file %s", i+1, transfer_fields_cfg_file);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&local_line, buf_marks[i]), "Please verify or specify the buffer label (an integer) for the %dth field in the configuration file %s", i+1, transfer_fields_cfg_file);
+		fields_timers[i] = new Coupling_timer(&local_line, transfer_fields_cfg_file);
+		if (num_src_fields > 0 && num_dst_fields == 0 && get_next_attr(use_average, &local_line)) {
 			EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(use_average, "average"), "the keyword for specifying averaging must be \"average\" but not %s", use_average);
 			average_mark[i] = true;
 		}

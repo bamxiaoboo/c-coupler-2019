@@ -19,6 +19,7 @@
 
 #define COMP_TYPE_CPL              "cpl"
 #define COMP_TYPE_ATM              "atm"
+#define COMP_TYPE_ATM_CHEM         "atm_chem"
 #define COMP_TYPE_OCN              "ocn"
 #define COMP_TYPE_LND              "lnd"
 #define COMP_TYPE_SEA_ICE          "sice"

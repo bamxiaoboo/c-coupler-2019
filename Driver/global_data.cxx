@@ -28,4 +28,6 @@ Decomp_grid_mgt *decomp_grids_mgr = NULL;
 Performance_timing_mgt *performance_timing_mgr = NULL;
 External_algorithm_mgt *external_algorithm_mgr = NULL;
 Ensemble_mgt *ensemble_mgr = NULL;
+Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr = NULL;
+
 

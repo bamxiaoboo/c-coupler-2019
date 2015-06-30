@@ -28,6 +28,7 @@
 #include "performance_timing_mgt.h"
 #include "external_algorithm_mgt.h"
 #include "ensemble_mgt.h"
+#include "runtime_datamodel_algorithm.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -51,5 +52,6 @@ extern Decomp_grid_mgt *decomp_grids_mgr;
 extern Performance_timing_mgt *performance_timing_mgr;
 extern External_algorithm_mgt *external_algorithm_mgr;
 extern Ensemble_mgt *ensemble_mgr;
+extern Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr;
 
 #endif

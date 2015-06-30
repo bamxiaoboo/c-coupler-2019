@@ -39,7 +39,7 @@ class Field_mem_info
         Remap_grid_data_class *grided_field_data;
 
     public:
-        Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool);
+        Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool, const char*);
         bool match_field_mem(const char*, const char*, const char*, const char*, const int);
 		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int);
 		bool match_field_mem(void*);
@@ -61,7 +61,7 @@ class Field_mem_info
 		void calculate_field_conservative_sum(Field_mem_info*);
         void check_field_sum();
 		void define_field_values(bool);
-		void use_field_values();
+		void use_field_values(const char*);
 		bool field_has_been_defined();
 		long get_last_define_time() { return last_define_time; }
 		void set_define_order_count(long count) { define_order_count = count; }
@@ -76,13 +76,14 @@ class Memory_mgt
         std::vector<Field_mem_info *> fields_mem;
         std::vector<Registered_field_info *> registered_fields_info;
 		long field_define_order_counter;
+		char field_register_cfg_file[NAME_STR_SIZE];
 
 		void add_registered_field_info(const char*, const char*, const char*);
         
     public: 
         Memory_mgt(const char *);
-        Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool);
-        void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool);
+        Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
+        void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool, int);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
         Field_mem_info *search_field_via_data_buf(const void*, bool);
 		void write_restart_fields();
@@ -90,13 +91,15 @@ class Memory_mgt
 		bool is_model_data_renewed_in_current_time_step(void*);
 		bool is_model_data_active_in_coupling(void*);
 		void check_sum_of_all_fields();
-		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int, bool);
+		void add_field_instance(Field_mem_info *, const char*);
+		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int, bool, const char*);
 		Field_mem_info *search_registerred_field(const char*, const char*, const char*, const char*, int);
+		int get_num_fields() { return fields_mem.size(); }
         ~Memory_mgt();
 };
 
 
-extern Field_mem_info *alloc_mem(const char *, const char *, const char *, const char *, const char *, const int,  bool);
-extern Field_mem_info *alloc_full_grid_mem(const char *, const char *, const char *, const char *, const char*, const int, bool);
+extern Field_mem_info *alloc_mem(const char *, const char *, const char *, const char *, const char *, const int,  bool, const char*);
+extern Field_mem_info *alloc_full_grid_mem(const char *, const char *, const char *, const char *, const char*, const int, bool, const char*);
 
 #endif

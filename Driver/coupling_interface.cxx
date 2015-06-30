@@ -19,13 +19,13 @@
 int coupling_process_control_counter = 0;
 
 
-extern "C" void register_model_data_(void *model_buf, const char *decomp_name, const char *field_name, const char *data_type, const char *grid_name, int *have_fill_value, void *fill_value, bool *is_restart_field)
+extern "C" void register_model_data_(void *model_buf, int *data_size, const char *decomp_name, const char *field_name, const char *data_type, const char *grid_name, int *have_fill_value, void *fill_value, bool *is_restart_field)
 {
     EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n"); 
     if ((*have_fill_value) == 1)
-        memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, fill_value, *is_restart_field);
-    else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, NULL, *is_restart_field);
+        memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, fill_value, *is_restart_field, *data_size);
+    else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, NULL, *is_restart_field, *data_size);
 }
 
 
@@ -99,7 +99,7 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
     root_cfg_fp = open_config_file(root_cfg_name);
 
     EXECUTION_REPORT(REPORT_LOG, true, "execute CoR to generate grid and remap operators");
-    get_next_line(line, root_cfg_fp);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
     sprintf(full_name, "%s/\0", C_COUPLER_CONFIG_DIR);
     strcat(full_name, line);
     execution_phase_number = 1;
@@ -111,19 +111,22 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
 	
     EXECUTION_REPORT(REPORT_LOG, true, "build fields info");
     /* Generate the data structure for managing field info */
-    get_next_line(shared_field_attribute, root_cfg_fp);
-	get_next_line(private_field_attribute, root_cfg_fp);
+	EXECUTION_REPORT(REPORT_ERROR, get_next_line(shared_field_attribute, root_cfg_fp), "Please specify the configuration file for the field attributes shared by all components in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
+	EXECUTION_REPORT(REPORT_ERROR, get_next_line(private_field_attribute, root_cfg_fp), "Please specify the configuration file for the field attributes privately owned by the component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", 
+		             compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     fields_info = new Field_info_mgt(shared_field_attribute, private_field_attribute);
 
     EXECUTION_REPORT(REPORT_LOG, true, "build memory_mgt info");
     /* Generate memory management */
-    get_next_line(line, root_cfg_fp);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the field instances that will be registered by the code of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+		             compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);    
     memory_manager = new Memory_mgt(line);
 
     /* Initialize the objects for parallel decomposition */
     decomps_info_mgr = new Decomp_info_mgt();
     decomp_grids_mgr = new Decomp_grid_mgt();
-    get_next_line(line, root_cfg_fp);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the default parallel decompositions of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+					 compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     EXECUTION_REPORT(REPORT_LOG, true, "build decomposition info %s", line);
     decomps_info_mgr->add_decomps_from_cfg_file(line);
     
@@ -132,9 +135,11 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
 
 	EXECUTION_REPORT(REPORT_LOG, true, "build runtime process manager");    
     runtime_process_mgr = new Runtime_process_mgt();
-    get_next_line(line, root_cfg_fp);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the runtime algorithms of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+					 compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     runtime_process_mgr->add_runtime_algorithms(line);
-    get_next_line(line, root_cfg_fp);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the runtime procedures of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+					 compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     runtime_process_mgr->add_runtime_procedures(line);
 
     fields_gather_scatter_mgr = new Fields_gather_scatter_mgt();
@@ -142,6 +147,8 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
     restart_mgr = new Restart_mgt(*restart_date, *restart_second, restart_read_file);
 
 	ensemble_mgr = new Ensemble_mgt();
+
+	datamodel_field_read_handler_mgr = new Datamodel_field_read_handler_mgt();
 
     fclose(root_cfg_fp);
     EXECUTION_REPORT(REPORT_LOG, true, "coupling initialization finishes (%s)", root_cfg_name);
@@ -176,6 +183,7 @@ extern "C" void finalize_coupling_managers_()
     EXECUTION_REPORT(REPORT_LOG, true, "before deleting communicator manager");
     delete compset_communicators_info_mgr;
 	delete ensemble_mgr;
+	delete datamodel_field_read_handler_mgr;
 }
 
 

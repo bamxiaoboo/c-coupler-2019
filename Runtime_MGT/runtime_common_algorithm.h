@@ -25,6 +25,8 @@ class Runtime_common_algorithm : public Runtime_algorithm_basis
         void **src_fields_data_buffers;
         void **dst_fields_data_buffers;
         int *num_elements_in_field_buffers;
+		char input_field_file_name[NAME_STR_SIZE];
+		char output_field_file_name[NAME_STR_SIZE];
 		
     public:
         Runtime_common_algorithm(const char * cfg);

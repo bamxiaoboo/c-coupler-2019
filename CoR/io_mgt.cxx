@@ -115,7 +115,7 @@ void IO_mgt::read_data(const char *IO_object_name, Remap_data_field *read_data_f
     EXECUTION_REPORT(REPORT_ERROR, IO_object != NULL,
                  "\"%s\" must be a defined IO object when reading data\n",
                  IO_object_name);    
-    IO_object->read_data(read_data_field);
+    IO_object->read_data(read_data_field, -1);
 }
 
 

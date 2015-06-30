@@ -59,7 +59,7 @@ class Fields_gather_scatter_mgt
 		Fields_gather_scatter_mgt() {}
         ~Fields_gather_scatter_mgt();
         void gather_write_field(IO_netcdf*, Field_mem_info*, bool, int, int, bool);
-        void read_scatter_field(IO_netcdf*, Field_mem_info*);
+        void read_scatter_field(IO_netcdf*, Field_mem_info*, int);
 };
 
 

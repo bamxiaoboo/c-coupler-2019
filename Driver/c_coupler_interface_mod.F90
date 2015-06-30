@@ -348,10 +348,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_double_0D_data
 
@@ -375,10 +375,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_double_1D_data
 
@@ -402,10 +402,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_double_2D_data
 
@@ -429,10 +429,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_double_3D_data
 
@@ -456,10 +456,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_double_4D_data
 
@@ -483,10 +483,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_float_0D_data
 
@@ -510,10 +510,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_float_1D_data
 
@@ -537,10 +537,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_float_2D_data
 
@@ -564,10 +564,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_float_3D_data
 
@@ -591,10 +591,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_float_4D_data
 
@@ -618,10 +618,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_integer_0D_data
 
@@ -645,10 +645,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_integer_1D_data
 
@@ -672,10 +672,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_integer_2D_data
 
@@ -699,10 +699,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_integer_3D_data
 
@@ -726,10 +726,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_integer_4D_data
 
@@ -753,10 +753,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_logical_0D_data
 
@@ -780,10 +780,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_logical_1D_data
 
@@ -807,10 +807,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_logical_2D_data
 
@@ -834,10 +834,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_logical_3D_data
 
@@ -861,10 +861,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_logical_4D_data
 
@@ -888,10 +888,10 @@
 
    if (present(fill_value)) then
        have_fill_value = 1
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("string")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("string")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
    else
        have_fill_value = 0
-       call register_model_data(data_buf, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("string")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
+       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("string")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
    end if
    END SUBROUTINE c_coupler_register_model_string_data
 

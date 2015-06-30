@@ -13,6 +13,7 @@
 #include "runtime_common_algorithm.h"
 #include "runtime_datamodel_algorithm.h"
 #include "runtime_cumulate_average_algorithm.h"
+#include "runtime_merge_algorithm.h"
 #include "global_data.h"
 #include <stdio.h>
 
@@ -87,6 +88,8 @@ void Runtime_procedure_mgt::execute(const char *procedure_stage)
 				runtime_algorithms[i]->runtime_algorithm_object = new Runtime_transfer_algorithm(runtime_algorithms[i]->algorithm_cfg_name); 
 			else if (words_are_the_same(runtime_algorithms[i]->algorithm_type, "averaging"))
 				runtime_algorithms[i]->runtime_algorithm_object = new Runtime_cumulate_average_algorithm(runtime_algorithms[i]->algorithm_cfg_name);
+			else if (words_are_the_same(runtime_algorithms[i]->algorithm_type, "merge_fields"))
+				runtime_algorithms[i]->runtime_algorithm_object = new Runtime_merge_algorithm(runtime_algorithms[i]->algorithm_cfg_name);
 			else EXECUTION_REPORT(REPORT_ERROR, false, "error type of runtime algorithm %s", runtime_algorithms[i]->algorithm_type);
 			EXECUTION_REPORT(REPORT_LOG, true, "Finish generating algorithm %s with id %d", runtime_algorithms[i]->algorithm_cfg_name, i);
 		}
@@ -163,8 +166,8 @@ void Runtime_process_mgt::add_runtime_procedures(const char *procedures_cfg_file
             line_p = line;
             get_next_attr(procedure_name, &line_p);
             runtime_procedure = new Runtime_procedure_mgt(procedure_name);
-            start_algorithm_id = get_next_integer_attr(&line_p);
-            end_algorithm_id = get_next_integer_attr(&line_p);
+            get_next_integer_attr(&line_p, start_algorithm_id);
+            get_next_integer_attr(&line_p, end_algorithm_id);
             EXECUTION_REPORT(REPORT_ERROR, end_algorithm_id >= start_algorithm_id, 
                          "the start algorithm id can not be larger than the end algorithm id in coupling procedure %s of component %s\n", 
                          procedure_name, compset_communicators_info_mgr->get_current_comp_name());

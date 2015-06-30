@@ -40,7 +40,7 @@ class Runtime_algorithm_basis
 		Runtime_datatype_transformer datatype_transformer_after_run;
 
         void runtime_algorithm_common_initialize(const int, const int);
-		void add_runtime_datatype_transformation(Field_mem_info*, bool, Coupling_timer*);
+		void add_runtime_datatype_transformation(Field_mem_info*, bool, Coupling_timer*, const char*);
 
     public:
         Runtime_algorithm_basis();

@@ -108,13 +108,14 @@ void IO_netcdf::datatype_from_application_to_netcdf(const char *application_data
 }
 
 
-void IO_netcdf::read_data(Remap_data_field *read_data_field)
+void IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos)
 {
     int i, num_attributes, num_dimensions, variable_id, dimension_ids[256];
     char variable_name[256];
     nc_type nc_data_type;
     unsigned long data_size, dimension_size;
     Remap_field_attribute field_attribute;
+	size_t starts[256], counts[256];
 
 
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
@@ -128,7 +129,16 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field)
     for (i = 0, data_size = 1; i < num_dimensions; i ++) {
         rcode = nc_inq_dimlen(ncfile_id, dimension_ids[i], &dimension_size);
         report_nc_error();
-        data_size *= dimension_size;
+		if (time_pos != -1 && i == 0) {
+			EXECUTION_REPORT(REPORT_ERROR, time_pos>=0 && time_pos < dimension_size, "C-Coupler error in IO_netcdf::read_data");
+			starts[0] = time_pos;
+			counts[0] = 1;
+		}
+		else {
+			starts[i] = 0;
+			counts[i] = dimension_size;
+			data_size *= dimension_size;
+		}
     }
     read_data_field->read_data_size = data_size;
     if (read_data_field->data_buf != NULL)
@@ -183,32 +193,32 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field)
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_CHAR), 
                      "the data type of field (\"%s\" in program and  \"%s\" in netcdf file) must be the same (char)\n",
                      read_data_field->field_name_in_application, read_data_field->field_name_in_IO_file);
-        rcode = nc_get_var_uchar(ncfile_id, variable_id, (unsigned char *) read_data_field->data_buf);
+        rcode = nc_get_vara_uchar(ncfile_id, variable_id, starts, counts, (unsigned char *) read_data_field->data_buf);
     }
     else if (words_are_the_same(read_data_field->data_type_in_application, DATA_TYPE_BOOL)) {
         char *temp_buffer = new char[read_data_field->required_data_size*8];
         if (words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE)) {
-            rcode = nc_get_var_double(ncfile_id, variable_id, (double*) temp_buffer);            
+            rcode = nc_get_vara_double(ncfile_id, variable_id, starts, counts, (double*) temp_buffer);            
             for (i = 0; i < read_data_field->required_data_size; i ++)
                 ((bool *) read_data_field->data_buf)[i] = ((double *) temp_buffer)[i] != 0;
         }
         else if (words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_FLOAT)) {
-            rcode = nc_get_var_float(ncfile_id, variable_id, (float*) temp_buffer);
+            rcode = nc_get_vara_float(ncfile_id, variable_id, starts, counts, (float*) temp_buffer);
             for (i = 0; i < read_data_field->required_data_size; i ++)
                 ((bool *) read_data_field->data_buf)[i] = ((float *) temp_buffer)[i] != 0;
         }
         else if (words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_INT)) {
-            rcode = nc_get_var_int(ncfile_id, variable_id, (int*) temp_buffer);
+            rcode = nc_get_vara_int(ncfile_id, variable_id, starts, counts, (int*) temp_buffer);
             for (i = 0; i < read_data_field->required_data_size; i ++)
                 ((bool *) read_data_field->data_buf)[i] = ((int *) temp_buffer)[i] != 0;
         }
         else if (words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_SHORT)) {
-            rcode = nc_get_var_short(ncfile_id, variable_id, (short*) temp_buffer);
+            rcode = nc_get_vara_short(ncfile_id, variable_id, starts, counts, (short*) temp_buffer);
             for (i = 0; i < read_data_field->required_data_size; i ++)
                 ((bool *) read_data_field->data_buf)[i] = ((short *) temp_buffer)[i] != 0;
         }
         else if (words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_CHAR))
-            rcode = nc_get_var_uchar(ncfile_id, variable_id, (unsigned char *) read_data_field->data_buf);
+            rcode = nc_get_vara_uchar(ncfile_id, variable_id, starts, counts, (unsigned char *) read_data_field->data_buf);
         else EXECUTION_REPORT(REPORT_ERROR, false, 
                           "the data type of field (\"%s\" in program and  \"%s\" in netcdf file) in netcdf is \"%s\", which is not support\n",
                           read_data_field->field_name_in_application, 
@@ -226,12 +236,12 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field)
                      "the data type of field (\"%s\" in program and  \"%s\" in netcdf file) in netcdf file must be float, double, long, int or short\n",
                      read_data_field->field_name_in_application, 
                      read_data_field->field_name_in_IO_file);
-        rcode = nc_get_var_float(ncfile_id, variable_id, (float*) read_data_field->data_buf);
+        rcode = nc_get_vara_float(ncfile_id, variable_id, starts, counts, (float*) read_data_field->data_buf);
     }
     else if (words_are_the_same(read_data_field->data_type_in_application, DATA_TYPE_INT)) 
-        rcode = nc_get_var_int(ncfile_id, variable_id, (int *) read_data_field->data_buf);
+        rcode = nc_get_vara_int(ncfile_id, variable_id, starts, counts, (int *) read_data_field->data_buf);
     else if (words_are_the_same(read_data_field->data_type_in_application, DATA_TYPE_SHORT)) 
-        rcode = nc_get_var_short(ncfile_id, variable_id, (short *) read_data_field->data_buf);
+        rcode = nc_get_vara_short(ncfile_id, variable_id, starts, counts, (short *) read_data_field->data_buf);
     else if (words_are_the_same(read_data_field->data_type_in_application, DATA_TYPE_DOUBLE)) {
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_FLOAT) || 
                      words_are_the_same(read_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE) ||
@@ -241,7 +251,7 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field)
                      "the data type of field (\"%s\" in program and  \"%s\" in netcdf file) in netcdf file must be float, double, long, int or short\n",
                      read_data_field->field_name_in_application, 
                      read_data_field->field_name_in_IO_file);
-        rcode = nc_get_var_double(ncfile_id, variable_id, (double*) read_data_field->data_buf);
+        rcode = nc_get_vara_double(ncfile_id, variable_id, starts, counts, (double*) read_data_field->data_buf);
     }
 
     report_nc_error();
@@ -317,7 +327,7 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
     Remap_grid_class *sized_sub_grids[256];
     char tmp_string[256];
     int var_ncid, dim_ncids[256];
-    unsigned long starts[256], counts[256];
+    size_t starts[256], counts[256];
     nc_type nc_data_type;
 
 
@@ -373,7 +383,10 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
         report_nc_error();
         io_data_size *= dimension_size;
     }
-    EXECUTION_REPORT(REPORT_ERROR, field_data->get_grid_data_field()->required_data_size == io_data_size, "C-Coupler error: the data size in field for writing and IO file must be the same\n");
+	printf("okok %llx\n", interchange_grid);
+	if (interchange_grid != NULL)
+		printf("okok grid %s\n", interchange_grid->get_grid_name());
+    EXECUTION_REPORT(REPORT_ERROR, field_data->get_grid_data_field()->required_data_size == io_data_size, "C-Coupler error: the data size in field for writing and IO file must be the same: %ld : %ld", field_data->get_grid_data_field()->required_data_size, io_data_size);
     if (!is_grid_data && io_with_time_info) {
         for (i = num_dims; i > 0; i --) {
             dim_ncids[i] = dim_ncids[i-1];
@@ -749,6 +762,51 @@ void IO_netcdf::get_global_text(const char *text_title, char *text_value, int st
     report_nc_error();
     nc_close(ncfile_id);
     report_nc_error();
+}
+
+
+void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *num_dims, int **dim_size_ptr, char *data_type)
+{
+	int i, variable_id, *dim_ids, *dim_size;
+	long total_size;
+	size_t dim_len;
+	nc_type nc_var_type;
+	char *data_array;
+
+	
+    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
+    report_nc_error();
+	printf("okok1 %s\n", field_name);
+    rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
+    report_nc_error();
+	rcode = nc_inq_varndims(ncfile_id, variable_id, num_dims);
+	report_nc_error();
+	dim_ids = new int [*num_dims];
+	dim_size = new int [*num_dims];
+	rcode = nc_inq_vardimid(ncfile_id, variable_id, dim_ids);
+	report_nc_error();
+	for (i = 0; i < *num_dims; i ++) {
+		rcode = nc_inq_dimlen(ncfile_id, dim_ids[i], &dim_len);
+		report_nc_error();
+		dim_size[i] = dim_len;
+	}
+	rcode = nc_inq_vartype(ncfile_id, variable_id, &nc_var_type);
+	report_nc_error();
+	datatype_from_netcdf_to_application(nc_var_type, data_type, field_name);
+
+	total_size = get_data_type_size(data_type);
+	for (i = 0; i < *num_dims; i ++)
+		total_size *= dim_size[i];
+	data_array = new char [total_size];
+	rcode = nc_get_var(ncfile_id, variable_id, data_array);
+
+	*data_array_ptr = data_array;
+	*dim_size_ptr = dim_size;
+
+	delete [] dim_ids;
+
+	nc_close(ncfile_id);
+	report_nc_error();
 }
 
 

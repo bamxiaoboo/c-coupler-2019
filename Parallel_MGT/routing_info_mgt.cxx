@@ -145,6 +145,8 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
     cell_indx_each_remote_proc = new int *[num_remote_procs];
     send_reqs = new MPI_Request [num_remote_procs];
     recv_reqs = new MPI_Request [num_remote_procs];
+
+	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
     
     for (i = 0; i < num_remote_procs; i ++) {
         remote_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comm_id, i);
@@ -187,6 +189,8 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
     delete [] cell_indx_each_remote_proc;
     delete [] send_reqs;
     delete [] recv_reqs;
+
+	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
 }
 
 
@@ -281,6 +285,7 @@ void Routing_info::build_2D_self_router(const char *decomp_name_remap, const cha
     int i;
 
 
+	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
     EXECUTION_REPORT(REPORT_LOG, true, "begin building 2D self router");
 
     decomp_remap = decomps_info_mgr->search_decomp_info(decomp_name_remap);
@@ -333,6 +338,7 @@ void Routing_info::build_2D_self_router(const char *decomp_name_remap, const cha
         remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = false;
     }
 
+	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
 	EXECUTION_REPORT(REPORT_LOG, true, "finish computing routing info for self router for receiving");
 }
 

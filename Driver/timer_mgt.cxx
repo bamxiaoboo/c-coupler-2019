@@ -24,21 +24,21 @@ int num_days_of_month_of_nonleap_year[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 3
 int num_days_of_month_of_leap_year[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 
-Coupling_timer::Coupling_timer(const char *freq_unit, int freq_count, int del_count)
+Coupling_timer::Coupling_timer(const char *freq_unit, int freq_count, int del_count, const char *cfg_name)
 {
     strcpy(frequency_unit, freq_unit);
     frequency_count = freq_count;
     delay_count = del_count;
-    timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count);
+    timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count, cfg_name);
 }
 
 
-Coupling_timer::Coupling_timer(char **line)
+Coupling_timer::Coupling_timer(char **line, const char *cfg_name)
 {
     get_next_attr(frequency_unit, line);
-    frequency_count = get_next_integer_attr(line);
-    delay_count = get_next_integer_attr(line);
-    timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count);
+    get_next_integer_attr(line, frequency_count);
+    get_next_integer_attr(line, delay_count);
+    timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count, cfg_name);
 }
 
 
@@ -56,15 +56,31 @@ bool Coupling_timer::is_timer_on()
 }
 
 
-void Timer_mgt::check_is_time_legal(int year, int month, int day, int second, const char *report_label)
+bool Timer_mgt::check_is_time_legal(int year, int month, int day, int second, const char *report_label)
 {
-	EXECUTION_REPORT(REPORT_ERROR, year >= 0, "the %s year of simulation run can not be negative", report_label);
-	EXECUTION_REPORT(REPORT_ERROR, second >=0 && second <= 86400, "the %s second of simulation run must between 0 and 86400", report_label);
-	EXECUTION_REPORT(REPORT_ERROR, second%sec_per_step == 0 && (86400-second)%sec_per_step == 0, "%s second of simulation run must integer multiple of the time step", report_label);
-    EXECUTION_REPORT(REPORT_ERROR, month >= 1 && month <= 12, "the %s month must be between 1 and 12\n", report_label);
-	if (leap_year_on && (((year%4) == 0 && (year%100) != 0) || (year%400) == 0))
-        EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_leap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_leap_year[month-1]);
-	else EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_nonleap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_nonleap_year[month-1]);
+	if (report_label != NULL) {
+		EXECUTION_REPORT(REPORT_ERROR, year >= 0, "the %s year of simulation run can not be negative", report_label);
+		EXECUTION_REPORT(REPORT_ERROR, second >=0 && second <= 86400, "the %s second of simulation run must between 0 and 86400", report_label);
+		EXECUTION_REPORT(REPORT_ERROR, second%sec_per_step == 0 && (86400-second)%sec_per_step == 0, "%s second of simulation run must integer multiple of the time step", report_label);
+    	EXECUTION_REPORT(REPORT_ERROR, month >= 1 && month <= 12, "the %s month must be between 1 and 12\n", report_label);
+		if (leap_year_on && (((year%4) == 0 && (year%100) != 0) || (year%400) == 0))
+        	EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_leap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_leap_year[month-1]);
+		else EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_nonleap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_nonleap_year[month-1]);
+		return true;
+	}
+	else {
+		if (!(year >= 0) || !(second >=0 && second <= 86400) || !(month >= 1 && month <= 12))
+			return false;
+		if (leap_year_on && (((year%4) == 0 && (year%100) != 0) || (year%400) == 0)) {
+			if (!(day >= 1 && day <= num_days_of_month_of_leap_year[month-1]))
+				return false;
+		}
+		else {
+			if (!(day >= 1 && day <= num_days_of_month_of_nonleap_year[month-1]))
+				return false;
+		}
+		return true;
+	}
 }
 
 
@@ -111,7 +127,7 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
 
     timer_mgr = this;
     restart_timer = NULL;
-    restart_timer = new Coupling_timer(rest_freq_unit, rest_freq_count, 0);
+    restart_timer = new Coupling_timer(rest_freq_unit, rest_freq_count, 0, "C-Coupler error");
     if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS))
         rest_freq_seconds = NUM_DAYS_PER_NONLEAP_YEAR*86400*rest_freq_count;
     else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_MONTHS))
@@ -158,6 +174,8 @@ long Timer_mgt::calculate_elapsed_day(int year, int month, int day)
 {
 	int num_leap_year;
 
+
+	check_is_time_legal(year, month, day, 0, "(at calculate_elapsed_day)");
 
 	if (!leap_year_on)
 	    return year*NUM_DAYS_PER_NONLEAP_YEAR + elapsed_days_on_start_of_month_of_nonleap_year[month-1] + day - 1;
@@ -326,7 +344,7 @@ int Timer_mgt::get_current_date()
 }
 
 
-void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int delay_count)
+void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int delay_count, const char *cfg_name)
 {
     bool too_small_end_time;
     bool fit_small_rest_freq;
@@ -334,12 +352,12 @@ void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_cou
     
     EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
                  words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
-                 "frequency unit must be one of seconds, days, months and years\n");
-    EXECUTION_REPORT(REPORT_ERROR, frequency_count > 0, "frquency count must be larger than 0\n");
-    EXECUTION_REPORT(REPORT_ERROR, delay_count >= 0, "delay count must be positive\n");
+                 "The frequency unit in timer must be one of \"seconds\", \"days\", \"months\" and \"years\". Please verify the timers in the configuration file %s", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, frequency_count > 0, "The frquency count in timer must be larger than 0. Please verify the timers in the configuration file %s", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, delay_count >= 0, "The delay count in timer must be positive. Please verify the timers in the configuration file %s", cfg_name);
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
-        EXECUTION_REPORT(REPORT_ERROR, frequency_count%sec_per_step == 0, "the frequency count must be the integer multiple coupling step when frequency unit is seconds\n");
-        EXECUTION_REPORT(REPORT_ERROR, delay_count%sec_per_step == 0, "the delay count must be the integer multiple coupling step when frequency unit is seconds\n");        
+        EXECUTION_REPORT(REPORT_ERROR, frequency_count%sec_per_step == 0, "The frequency count in timer must be the integer multiple coupling step when frequency unit is seconds. Please verify the timers in the configuration file %s", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR, delay_count%sec_per_step == 0, "The delay count in timer must be the integer multiple coupling step when frequency unit is seconds. Please verify the timers in the configuration file %s", cfg_name);        
     }
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS))
         too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count;
@@ -349,7 +367,7 @@ void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_cou
         too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*86400*31;
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS))
         too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*86400*NUM_DAYS_PER_LEAP_YEAR;
-    EXECUTION_REPORT(REPORT_ERROR, !too_small_end_time, "the model integral time should be larger than the coupling delay time <%s, %d>\n", frequency_unit, delay_count);
+    EXECUTION_REPORT(REPORT_ERROR, !too_small_end_time, "The integration time of the simulation should be larger than the coupling delay time <%s, %d>. Please verify the timers in the configuration file %s", frequency_unit, delay_count, cfg_name);
 
     if (restart_timer == NULL)
         return;
@@ -384,7 +402,7 @@ void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_cou
     }
 
 	/* This checker may not be right */
-    EXECUTION_REPORT(REPORT_WARNING, fit_small_rest_freq, "the writing of restart data files is frequent\n");
+    EXECUTION_REPORT(REPORT_WARNING, fit_small_rest_freq, "the writing of restart data files may be to frequent\n");
 }
 
 

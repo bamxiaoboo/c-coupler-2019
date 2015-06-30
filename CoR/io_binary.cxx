@@ -70,9 +70,10 @@ void IO_binary::write_field_data(Remap_grid_data_class *field_data,
 }
 
 
-void IO_binary::read_data(Remap_data_field *read_data_field)
+void IO_binary::read_data(Remap_data_field *read_data_field, int time_pos)
 {
-    EXECUTION_REPORT(REPORT_ERROR, false, "remap software error4 in using binary io\n");
+    EXECUTION_REPORT(REPORT_ERROR, false, "remap software error4-1 in using binary io\n");
+	EXECUTION_REPORT(REPORT_ERROR, time_pos==-1, "remap software error4-2 in using binary io\n");
 }
 
 

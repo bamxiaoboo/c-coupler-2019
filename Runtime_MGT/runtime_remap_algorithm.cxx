@@ -42,14 +42,15 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 
     cfg_fp = open_config_file(cfg_name, RUNTIME_REMAP_ALG_DIR);
 
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(remap_weights_name, cfg_fp));
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(decomp_name_src, cfg_fp));
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(decomp_name_dst, cfg_fp));
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(remap_weights_name, cfg_fp), "Please specify remapping weights for the runtime remapping algorithm \"%s\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(decomp_name_src, cfg_fp), "Please specify the parallel decomposition of source fields for the runtime remapping algorithm \"%s\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(decomp_name_dst, cfg_fp), "Please specify the parallel decomposition of target fields for the runtime remapping algorithm \"%s\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp), "Please specify the timer for triggering the execution of the runtime remapping algorithm \"%s\"", cfg_name);
 	line_p = line;
-    timer = new Coupling_timer(&line_p);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp));
-    sscanf(line, "%d", &algorithm_mode);
+    timer = new Coupling_timer(&line_p, cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp), "Please specify the mode (value of \"1\" means consevative remapping and other values mean non-conservative remapping) of the runtime remapping algorithm \"%s\"", cfg_name);
+	line_p = line;
+	EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p, algorithm_mode), "The mode of a runtime remapping algorithm must be an integer. Please verify the configuration file \"%s\"", cfg_name);
     sequential_remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(remap_weights_name);
 	generate_parallel_interpolation_and_decomposition(remap_weights_name);
 	
@@ -84,20 +85,20 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	}
 
     if (algorithm_mode == 1) {
-        get_next_line(line, cfg_fp);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp), "Please specify the source fraction field for the conservative dynamic remapping algorithm %s", algorithm_cfg_name);
         line_p = line;
-        get_next_attr(comp_name, &line_p);
-        get_next_attr(field_name, &line_p);
-        src_frac_field_before_rearrange = alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true); 
-        src_frac_field_after_rearrange = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, false); 
-		src_area_field_after_rearrange = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_remap)->get_model_name(), decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, false);
-		temp_src_field = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 10, false);
-        get_next_line(line, cfg_fp);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_name, &line_p), "Please specify the component name of the source fraction field for the conservative dynamic remapping algorithm %s", algorithm_cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_name, &line_p), "Please specify the field name of the source fraction field for the conservative dynamic remapping algorithm %s", algorithm_cfg_name);
+        src_frac_field_before_rearrange = alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true, algorithm_cfg_name); 
+        src_frac_field_after_rearrange = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, false, algorithm_cfg_name); 
+		src_area_field_after_rearrange = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_remap)->get_model_name(), decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, false, algorithm_cfg_name);
+		temp_src_field = alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 10, false, algorithm_cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, cfg_fp), "Please specify the destination fraction field for the conservative dynamic remapping algorithm %s", algorithm_cfg_name);
         line_p = line;
-        get_next_attr(comp_name, &line_p);
-        get_next_attr(field_name, &line_p);
-        dst_frac_field = alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true);
-		dst_area_field = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_dst)->get_model_name(), decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, true);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_name, &line_p), "Please specify the component name of the destination fraction field for the conservative dynamic remapping algorithm %s", algorithm_cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_name, &line_p), "Please specify the field name of the destionation fraction field for the conservative dynamic remapping algorithm %s", algorithm_cfg_name);
+        dst_frac_field = alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, 0, true, algorithm_cfg_name);
+		dst_area_field = alloc_mem(decomps_info_mgr->search_decomp_info(decomp_name_dst)->get_model_name(), decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), AREA_GF, DATA_TYPE_DOUBLE, 0, true, algorithm_cfg_name);
     }
     else {
         src_frac_field_before_rearrange = NULL;
@@ -107,8 +108,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
         dst_frac_field = NULL;
     }
 
-    get_next_line(cfg_file_name_src_fields, cfg_fp);
-	get_next_line(cfg_file_name_dst_fields, cfg_fp);
+    EXECUTION_REPORT(REPORT_ERROR, get_next_line(cfg_file_name_src_fields, cfg_fp), "Please specify the configuration file of source fields for the runtime remapping algorithm \"%s\"", cfg_name);
+	EXECUTION_REPORT(REPORT_ERROR, get_next_line(cfg_file_name_dst_fields, cfg_fp), "Please specify the configuration file of target fields for the runtime remapping algorithm \"%s\"", cfg_name);
     fclose(cfg_fp);
 }
 
@@ -134,7 +135,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(Runtime_remap_algorithm *parent
 	this->sequential_remap_weights = sequential_remap_weights;
 	generate_parallel_interpolation_and_decomposition(sequential_remap_weights->get_object_name());
 	src_double_remap_fields_before_rearrange.push_back(surface_field_mem_src);
-	src_double_remap_fields_after_rearrange.push_back(alloc_mem(surface_field_mem_src->get_comp_name(), decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), surface_field_mem_src->get_field_name(), DATA_TYPE_DOUBLE, 0, false));
+	src_double_remap_fields_after_rearrange.push_back(alloc_mem(surface_field_mem_src->get_comp_name(), decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), surface_field_mem_src->get_field_name(), DATA_TYPE_DOUBLE, 0, false, "  C-Coupler error  "));
 	dst_double_remap_fields.push_back(surface_field_mem_dst);
 
 	transfered_fields[0] = src_double_remap_fields_before_rearrange[0];
@@ -323,7 +324,8 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
     char comp_name[NAME_STR_SIZE];
     char field_name[NAME_STR_SIZE];    
     char line[NAME_STR_SIZE*3];
-    char *line_p;
+	char attr_str[NAME_STR_SIZE];
+    char *line_p, *line_p2;
     int num_transfered_fields;
     Field_mem_info **transfered_fields;
 	Field_mem_info *last_define_mem;
@@ -341,20 +343,23 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
 	fields_allocated = true;
 
     /* set the source variables */
+	i = 0;
     field_fp = open_config_file(cfg_file_name_src_fields, RUNTIME_REMAP_ALG_DIR);
     while(get_next_line(line, field_fp)) {
+		i ++;
         line_p = line;
-        get_next_attr(comp_name, &line_p);
-        get_next_attr(field_name, &line_p);
-		buf_mark = get_next_integer_attr(&line_p, has_integer);
-		if (!has_integer)
-			buf_mark = 0;
-        src_double_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, true));
-		last_define_mem = memory_manager->search_last_define_field(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark, true);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_name, &line_p), "Please specify the component name for the %dth field in the configuration file %s", i, cfg_file_name_src_fields);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_name, &line_p), "Please specify the field name for the %dth field in the configuration file %s", i, cfg_file_name_src_fields);
+		line_p2 = line_p;
+		if (get_next_attr(attr_str, &line_p))
+			EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p2, buf_mark), "The buffer mark of field should be an integer. Please verify the %dth field in the configuration file %s", i, cfg_file_name_src_fields);
+		else buf_mark = 0; 
+        src_double_remap_fields_before_rearrange.push_back(alloc_mem(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, true, cfg_file_name_src_fields));
+		last_define_mem = memory_manager->search_last_define_field(comp_name, decomp_name_src, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, buf_mark, true, cfg_file_name_src_fields);
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(last_define_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(last_define_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
                      "src field %s can not be used to remap because its data type is not real4 or real8", field_name);
-		add_runtime_datatype_transformation(src_double_remap_fields_before_rearrange[src_double_remap_fields_before_rearrange.size()-1], true, timer);
-        src_double_remap_fields_after_rearrange.push_back(alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false));
+		add_runtime_datatype_transformation(src_double_remap_fields_before_rearrange[src_double_remap_fields_before_rearrange.size()-1], true, timer, cfg_file_name_src_fields);
+        src_double_remap_fields_after_rearrange.push_back(alloc_mem(comp_name, decomp_name_remap, sequential_remap_weights->get_data_grid_src()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false, cfg_file_name_src_fields));
     }
     fclose(field_fp);
 
@@ -362,13 +367,14 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
     field_fp = open_config_file(cfg_file_name_dst_fields, RUNTIME_REMAP_ALG_DIR);
     while(get_next_line(line, field_fp)) {
         line_p = line;
-        get_next_attr(comp_name, &line_p);
-        get_next_attr(field_name, &line_p);
-		buf_mark = get_next_integer_attr(&line_p, has_integer);
-		if (!has_integer)
-			buf_mark = 0;
-        dst_double_remap_fields.push_back(alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false));
-		add_runtime_datatype_transformation(dst_double_remap_fields[dst_double_remap_fields.size()-1], false, timer);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_name, &line_p), "Please specify the component name for the %dth field in the configuration file %s", i, cfg_file_name_dst_fields);
+        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_name, &line_p), "Please specify the field name for the %dth field in the configuration file %s", i, cfg_file_name_dst_fields);
+		line_p2 = line_p;
+		if (get_next_attr(attr_str, &line_p))
+			EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p2, buf_mark), "The buffer mark of field should be an integer. Please verify the %dth field in the configuration file %s", i, cfg_file_name_dst_fields);
+		else buf_mark = 0; 
+        dst_double_remap_fields.push_back(alloc_mem(comp_name, decomp_name_dst, sequential_remap_weights->get_data_grid_dst()->get_grid_name(), field_name, DATA_TYPE_DOUBLE, buf_mark, false, cfg_file_name_dst_fields));
+		add_runtime_datatype_transformation(dst_double_remap_fields[dst_double_remap_fields.size()-1], false, timer, cfg_file_name_dst_fields);
     }
     fclose(field_fp);
 
@@ -379,9 +385,9 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
 						 src_double_remap_fields_after_rearrange[i]->get_field_name(), dst_double_remap_fields[i]->get_field_name(), i+1);
 
 	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid()) 
-        dynamic_surface_field_origin_mem = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false);
+        dynamic_surface_field_origin_mem = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_src, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false, "  C-Coupler error  ");
 	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_dst, sequential_remap_weights->get_data_grid_dst(), false)->get_decomp_grid()) 
-        dynamic_surface_field_origin_mem = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_dst, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false);
+        dynamic_surface_field_origin_mem = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_dst, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false, "  C-Coupler error  ");
 
     num_transfered_fields = src_double_remap_fields_before_rearrange.size()*2;
     if (src_frac_field_before_rearrange != NULL)
@@ -404,7 +410,7 @@ void Runtime_remap_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
         transfered_fields[j++] = src_frac_field_after_rearrange;
 	if (dynamic_surface_field_origin_grid == decomp_grids_mgr->search_decomp_grid_info(decomp_name_src, sequential_remap_weights->get_data_grid_src(), false)->get_decomp_grid())	{
 		if (dynamic_surface_field_origin_grid->get_sigma_grid_dynamic_surface_value_field() != NULL)
-			transfered_fields[j++] = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_remap, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false); 
+			transfered_fields[j++] = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), decomp_name_remap, dynamic_surface_field_origin_grid->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false, "  C-Coupler error  "); 
 	}	
 	num_transfered_fields = j;
 
@@ -442,7 +448,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
     field_size_src_before_rearrange = src_double_remap_fields_before_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
     field_size_src_after_rearrange = src_double_remap_fields_after_rearrange[0]->get_field_data()->get_grid_data_field()->required_data_size;
     for (i = 0; i < src_double_remap_fields_before_rearrange.size(); i ++)
-        src_double_remap_fields_before_rearrange[i]->use_field_values();
+        src_double_remap_fields_before_rearrange[i]->use_field_values(cfg_file_name_src_fields);
 	decomp_size_src_before_rearrange = decomps_info_mgr->search_decomp_info(src_double_remap_fields_before_rearrange[0]->get_decomp_name())->get_num_local_cells();
 	decomp_size_src_after_rearrange = decomps_info_mgr->search_decomp_info(src_double_remap_fields_after_rearrange[0]->get_decomp_name())->get_num_local_cells();
 
@@ -497,7 +503,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
         src_field_values = (double*) src_double_remap_fields_after_rearrange[i]->get_data_buf();
         dst_field_values = (double*) dst_double_remap_fields[i]->get_data_buf();
         if (src_frac_field_before_rearrange != NULL) {
-			src_frac_field_before_rearrange->use_field_values();
+			src_frac_field_before_rearrange->use_field_values(algorithm_cfg_name);
             temp_src_values = (double*) temp_src_field->get_data_buf();
             src_frac_values = (double*) src_frac_field_after_rearrange->get_data_buf();
             for (j = 0; j < field_size_src_before_rearrange; j ++)
@@ -521,7 +527,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
                 }
             }
         }
-		dst_frac_field->use_field_values();
+		dst_frac_field->use_field_values(algorithm_cfg_name);
     }    
     for (i = 0; i < dst_double_remap_fields.size(); i ++) {
 		dst_double_remap_fields[i]->define_field_values(false);
@@ -609,8 +615,8 @@ void Runtime_remap_algorithm::build_operations_for_dynamic_sigma_grid()
 		operation_for_dynamic_sigma_grid = new Operation_for_dynamic_sigma_grid;
 		operation_for_dynamic_sigma_grid->current_3D_sigma_grid_dst = operator_field_data_grids[i];
 		operation_for_dynamic_sigma_grid->current_3D_sigma_grid_src = operator_field_data_grids[i-1];
-		operation_for_dynamic_sigma_grid->surface_field_of_sigma_grid_src = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), operator_field_data_grids[i-1]->get_decomp_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false);
-		operation_for_dynamic_sigma_grid->surface_field_of_sigma_grid_dst = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), operator_field_data_grids[i]->get_decomp_name(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false);
+		operation_for_dynamic_sigma_grid->surface_field_of_sigma_grid_src = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), operator_field_data_grids[i-1]->get_decomp_name(), operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false, "  C-Coupler error  ");
+		operation_for_dynamic_sigma_grid->surface_field_of_sigma_grid_dst = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), operator_field_data_grids[i]->get_decomp_name(), operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid()->get_grid_name(), SURFACE_FIELD_GF, DATA_TYPE_DOUBLE, 0, false, "  C-Coupler error  ");
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i-1]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid() == sequential_remap_weights->get_operation_for_caculating_sigma_values_of_grid(k)->current_3D_sigma_grid_src->get_sigma_grid_surface_value_field()->get_coord_value_grid(), "C-Coupler error9 in update_vertical_remap_weights_of_dynamic_sigma_grid");
 		EXECUTION_REPORT(REPORT_ERROR, operator_field_data_grids[i]->get_sigma_grid_surface_value_field()->get_coord_value_grid()->get_original_grid() == sequential_remap_weights->get_operation_for_caculating_sigma_values_of_grid(k)->current_3D_sigma_grid_dst->get_sigma_grid_surface_value_field()->get_coord_value_grid(), "C-Coupler error10 in update_vertical_remap_weights_of_dynamic_sigma_grid");
 		operation_for_dynamic_sigma_grid->runtime_remap_algorithm = NULL;
@@ -660,7 +666,7 @@ void Runtime_remap_algorithm::renew_sigma_values(bool is_algorithm_in_kernel_sta
 							operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_src->get_grid_name(), operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->get_grid_name());
 			EXECUTION_REPORT(REPORT_ERROR, operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_src->get_sigma_grid_surface_value_field()->get_grid_data_field()->read_data_size == operations_for_dynamic_sigma_grid[i]->current_3D_sigma_grid_dst->get_sigma_grid_surface_value_field()->get_grid_data_field()->read_data_size,
 							 "C-Coupler error2 in renew_sigma_values of Runtime_remap_algorithm");
-			operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_src->use_field_values();
+			operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_src->use_field_values("  C-Coupler error  ");
 			memcpy(operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->get_data_buf(), operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_src->get_data_buf(), operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->get_size_of_field()*sizeof(double));
 			operations_for_dynamic_sigma_grid[i]->surface_field_of_sigma_grid_dst->define_field_values(false);
 		}

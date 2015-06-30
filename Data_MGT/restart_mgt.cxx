@@ -97,7 +97,7 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 	current_restart_full_time = -1;
 	restart_read_num_time_step = ((int)0xffffffff);
 	restart_begin_full_time = ((long)restart_date)*100000+restart_second;
-    scalar_int_field = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), "NULL", "NULL", "scalar_int", DATA_TYPE_INT, 0, false);
+    scalar_int_field = alloc_mem(compset_communicators_info_mgr->get_current_comp_name(), "NULL", "NULL", "scalar_int", DATA_TYPE_INT, 0, false, "  C-Coupler error  ");
 
 	EXECUTION_REPORT(REPORT_LOG, true, "default current_restart_num_time_step is %ld", current_restart_num_time_step);
 	
@@ -283,7 +283,7 @@ void Restart_mgt::read_one_restart_field(Field_mem_info *restart_field_mem)
     restart_field_mem->get_field_mem_full_name(full_field_name);
     sprintf(restart_field_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s_%ld", full_field_name, restart_read_timer_mgr->get_current_full_time());
     EXECUTION_REPORT(REPORT_LOG, true, "read restart field %s", restart_field_mem->get_field_data()->get_grid_data_field()->field_name_in_IO_file);
-    fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, restart_field_mem);    
+    fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, restart_field_mem, -1);    
 	restart_field_mem->define_field_values(true);
 	restart_field_mem->check_field_sum();
 }
@@ -310,7 +310,6 @@ void Restart_mgt::get_field_datatype_for_transfer(const char *comp_name, const c
 		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+5), "%ld", &tmp_long_value);
 		restart_buf_mark = (tmp_long_value & 0xffffffff);
 		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+6), "%ld", &field_restart_time);
-		printf("okok1 %s %s %s %s %d %ld\n", restart_comp_name, restart_decomp_name, restart_grid_name, restart_field_name, restart_buf_mark, field_restart_time);
 		if (field_restart_time == restart_read_timer_mgr->get_current_full_time() && buf_mark == restart_buf_mark && words_are_the_same(comp_name, restart_comp_name) &&
 			words_are_the_same(decomp_name, restart_decomp_name) && words_are_the_same(grid_name, restart_grid_name) && words_are_the_same(field_name, restart_field_name)) {
 			strcpy(out_datatype, data_type);
@@ -319,7 +318,6 @@ void Restart_mgt::get_field_datatype_for_transfer(const char *comp_name, const c
 		}
 	}
 
-	printf("okok %s %s %s %s %d %ld\n", comp_name, decomp_name, grid_name, field_name, buf_mark, restart_read_timer_mgr->get_current_full_time());
 	EXECUTION_REPORT(REPORT_ERROR, false, "Cannot find transfer field (%s, %s, %s) from restart file in restart window for the transfer algorithm", comp_name, decomp_name, field_name);
 }
 
@@ -350,10 +348,10 @@ void Restart_mgt::read_check_restart_basic_info()
 	             compset_communicators_info_mgr->get_original_config_time(), original_config_time);
 	
     strcpy(scalar_int_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "restart_date");
-    fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, scalar_int_field);
+    fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, scalar_int_field, -1);
     restart_date = ((int*)scalar_int_field->get_data_buf())[0];
     strcpy(scalar_int_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "start_date");
-    fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, scalar_int_field);
+    fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, scalar_int_field, -1);
     start_date = ((int*)scalar_int_field->get_data_buf())[0];
 
 	start_full_time = ((long)start_date)*100000;
@@ -442,7 +440,7 @@ void Restart_mgt::read_restart_fields_on_restart_date()
 		buf_type = (tmp_long_value & 0xffffffff);
 		sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+6), "%ld", &field_restart_time);
 		if (field_restart_time == restart_begin_full_time) {
-			field = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false);
+			field = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, restart_read_nc_file->get_file_name());
 			EXECUTION_REPORT(REPORT_LOG, true, "read field %s %s %s %d from restart data file", comp_name, decomp_name, field_name, buf_type);
 			read_one_restart_field(field);
 		}

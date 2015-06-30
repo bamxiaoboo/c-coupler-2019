@@ -25,9 +25,9 @@ class IO_binary: public IO_basis
         void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool);
 
     public:
-        IO_binary(const char *, const char *, const char *);
+        IO_binary(const char*, const char*, const char*);
         ~IO_binary();
-        void read_data(Remap_data_field *);
+        void read_data(Remap_data_field*, int);
         void write_grided_data(Remap_grid_data_class*, bool, int, int, bool);
         void write_remap_weights(Remap_weight_of_strategy_class*);
         long get_dimension_size(const char*);

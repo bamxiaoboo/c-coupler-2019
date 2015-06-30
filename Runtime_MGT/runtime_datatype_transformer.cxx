@@ -62,7 +62,7 @@ void Runtime_datatype_transformer::transform_fields_datatype()
 	for (int i = 0; i < src_fields.size(); i ++) {
 		if (timers[i] != NULL && !timers[i]->is_timer_on())
 			return;
-		src_fields[i]->use_field_values();
+		src_fields[i]->use_field_values("");
 		dst_fields[i]->define_field_values(false);
 		data_type_src = src_fields[i]->get_field_data()->get_grid_data_field()->data_type_in_application;
 		data_type_dst = dst_fields[i]->get_field_data()->get_grid_data_field()->data_type_in_application;
