@@ -115,7 +115,8 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 	        if(words_are_the_same(decomp_name, "NULL")) 
 				continue;
 	        for (j = 0; j < num_distinct_decomp_infos_of_fields; j ++) {
-	            if (words_are_the_same(exist_decomps[j], decomp_name))
+	            if (words_are_the_same(exist_decomps[j], decomp_name) ||
+					decomps_info_mgr->search_decomp_info(exist_decomps[j])->get_num_local_cells() == decomps_info_mgr->search_decomp_info(decomp_name)->get_num_local_cells())
 	               break;
 	        }
 	        if (j == num_distinct_decomp_infos_of_fields) 
@@ -145,7 +146,8 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 	        if(words_are_the_same(decomp_name, "NULL")) 
 				continue;
 	        for(j = 0; j < num_distinct_decomp_infos_of_fields; j ++)
-	            if(words_are_the_same(exist_decomps[j], decomp_name))
+	            if(words_are_the_same(exist_decomps[j], decomp_name) 
+				    || decomps_info_mgr->search_decomp_info(exist_decomps[j])->get_num_local_cells() == decomps_info_mgr->search_decomp_info(decomp_name)->get_num_local_cells())
 	                break;
 	        if(j == num_distinct_decomp_infos_of_fields)
 	            strcpy(exist_decomps[num_distinct_decomp_infos_of_fields++], decomp_name);

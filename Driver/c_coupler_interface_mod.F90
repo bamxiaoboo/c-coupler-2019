@@ -31,6 +31,7 @@
    public :: c_coupler_allreduce_real16
    public :: c_coupler_log_case_info_in_netcdf_file
    public :: c_coupler_check_sum_for_all_fields
+   public :: c_coupler_export_field_instance
 
    interface c_coupler_register_model_data ; module procedure &
         c_coupler_register_model_double_0D_data, &
@@ -202,8 +203,12 @@
    character *512    :: nml_filename
    logical, optional :: non_orbit
    integer have_random_seed_for_perturb_roundoff_errors
+   logical mpi_running       ! returned value indicates if MPI_INIT has been called
 
-   call MPI_INIT(ierr)
+   call mpi_initialized (mpi_running, ierr)
+   if (.not.mpi_running) then
+       call MPI_INIT(ierr)
+   endif
 
    call getarg(1, nml_filename)
    call parse_compset_nml(nml_filename)
@@ -282,6 +287,21 @@
    call withdraw_model_data(trim(decomp_name)//char(0), trim(field_name)//char(0), trim(local_grid_name)//char(0))
 
    END SUBROUTINE c_coupler_withdraw_model_data
+
+
+
+
+   SUBROUTINE c_coupler_export_field_instance(data_buf, field_name, decomp_name, grid_name)
+   implicit none
+   character(len=*), intent(in) :: decomp_name
+   character(len=*), intent(in) :: field_name
+   character(len=*), intent(in) :: grid_name
+   real(R8),         intent(in) :: data_buf
+  
+   call export_field_data(data_buf, 1, trim(field_name)//char(0), &
+      trim(decomp_name)//char(0), trim(grid_name)//char(0), trim("real8")//char(0))
+
+   END SUBROUTINE c_coupler_export_field_instance
 
 
 
@@ -1500,6 +1520,19 @@
    c_coupler_get_step_size = step_size
 
  END FUNCTION c_coupler_get_step_size
+
+
+
+ integer FUNCTION c_coupler_get_field_size(data_buf, annotation)
+   implicit none  
+   real(R8),DIMENSION(:)      :: data_buf
+   character(len=*), intent(in) :: annotation
+   integer :: field_size
+
+   call coupling_get_field_size(data_buf, trim(annotation)//char(0), field_size)
+   c_coupler_get_field_size = field_size
+
+ END FUNCTION c_coupler_get_field_size
 
 
 

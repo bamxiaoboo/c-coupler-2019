@@ -332,9 +332,6 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 	}
 
 	postprocess_field_value(data_values_dst);
-
-	for (i = 0; i < dst_grid->get_grid_size(); i ++)
-		printf("okok result %d: %lf\n", i, data_values_dst[i]);
 }
 
 

@@ -146,6 +146,11 @@ void Remap_weight_sparse_matrix::remap_values(double *data_values_src, double *d
 
     for (long i = 0; i < num_weights; i ++)
         data_values_dst[cells_indexes_dst[i]] += data_values_src[cells_indexes_src[i]] * weight_values[i];
+
+        for (long i = 0; i < num_weights; i ++)
+    if (83414==cells_indexes_dst[i]) 
+            printf("qiguai %d: %lf %lf\n", cells_indexes_src[i], data_values_src[cells_indexes_src[i]], weight_values[i]);
+
 }
 
 

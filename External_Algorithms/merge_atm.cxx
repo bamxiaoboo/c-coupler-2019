@@ -119,7 +119,21 @@ void merge_atm(void ** buf_src, void ** buf_dst, int * length)
     memcpy(data_atm[ATM_IFRAC], bun_frac_a[IFRAC], (* length)*sizeof(double));
     memcpy(data_atm[ATM_OFRAC], bun_frac_a[OFRAC], (* length)*sizeof(double));
     memcpy(data_atm[ATM_SST], data_ocn[OCN_SST], (* length)*sizeof(double));
-
 }
 
 
+
+void merge_carbon_flux(void ** buf_src, void ** buf_dst, int * length)
+{
+    double *carbon_flux_ocn = ((double**) buf_src)[0];
+    double *carbon_flux_lnd = ((double**) buf_src)[1];
+    double *carbon_flux_atm = ((double**) buf_dst)[0];
+    double *frac_o = ((double**) buf_src)[2];
+    double *frac_l = ((double**) buf_src)[3];
+    int field_size = length[0];
+
+
+    for (int i = 0; i < field_size; i ++)
+         carbon_flux_atm[i] = carbon_flux_ocn[i]*frac_o[i] + carbon_flux_lnd[i]*frac_l[i];
+
+}

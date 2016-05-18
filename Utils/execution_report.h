@@ -48,6 +48,7 @@ extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, c
 extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char *, int, const char*);
 extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char*, int, void*);
 extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char*, const char*);
+extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
 extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char*, const char*, int);
 extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char*, const char*, const char*);
 extern void EXECUTION_REPORT(int, bool, const char*, const char*, const char*, const char*, const char*, int, const char*);

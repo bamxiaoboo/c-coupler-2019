@@ -40,8 +40,8 @@ class Field_mem_info
 
     public:
         Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool, const char*);
-        bool match_field_mem(const char*, const char*, const char*, const char*, const int);
-		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int);
+        bool match_field_mem(const char*, const char*, const char*, const char*, const int, const char*);
+		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int, const char*);
 		bool match_field_mem(void*);
         bool get_is_restart_field() { return is_restart_field; }
 		bool get_is_registered_model_buf() { return is_registered_model_buf; }
@@ -96,6 +96,8 @@ class Memory_mgt
 		Field_mem_info *search_registerred_field(const char*, const char*, const char*, const char*, int);
 		int get_num_fields() { return fields_mem.size(); }
         ~Memory_mgt();
+		void export_field_data(void*, const char*, const char*, const char*, const char *, int);
+		int get_field_size(void*, const char*);
 };
 
 

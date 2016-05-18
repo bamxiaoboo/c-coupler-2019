@@ -27,7 +27,8 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         bool *currently_transferred_fields_mark;
         void *mpi_send_buf;
         void *mpi_recv_buf;
-        char transfer_fields_cfg_file[NAME_STR_SIZE];
+        char local_transfer_fields_cfg_file[NAME_STR_SIZE];
+		char remote_transfer_fields_cfg_file[NAME_STR_SIZE];
         char remote_comp_name[NAME_STR_SIZE];
         MPI_Request *send_requests;
         MPI_Status *send_statuses;

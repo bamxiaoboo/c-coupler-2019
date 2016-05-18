@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include "c_coupler_interface.h"
 
 ///The index of data_buf
 #define	ICE_MASK	0
@@ -56,27 +57,29 @@ void frac_init_ocn(void ** data_buf,void ** data_dst,int * length)
 	double ** frac_buf = (double **) data_dst;
 	bool *mask = (bool *) frac_buf[ICE_MASK];
 	int i;
+        int atm_field_size = c_coupler_get_field_size(frac_buf[ATM_OFRAC], "Get atm and lnd field size in frac_init_ocn");
+        int ocn_field_size = c_coupler_get_field_size(frac_buf[ICE_IFRAC], "Get ocn and sea ice field size in frac_init_ocn");
 	
 	/**
 	 * Initialize values on ice grid (based on zero ice fraction).
 	 */
-	memset(frac_buf[ICE_AFRAC], 0, sizeof(double) * length[ICE_LENGTH]);
-	memset(frac_buf[ICE_IFRAC], 0, sizeof(double) * length[ICE_LENGTH]);
-	memset(frac_buf[ICE_LFRAC], 0, sizeof(double) * length[ICE_LENGTH]);
-	memset(frac_buf[ICE_OFRAC], 0, sizeof(double) * length[ICE_LENGTH]);
-	memset(frac_buf[ATM_AFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[ATM_IFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[ATM_OFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[ATM_LFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[LND_AFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[LND_IFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[LND_OFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
-	memset(frac_buf[LND_LFRAC], 0, sizeof(double) * length[ATM_LENGTH]);
+	memset(frac_buf[ICE_AFRAC], 0, sizeof(double) * ocn_field_size);
+	memset(frac_buf[ICE_IFRAC], 0, sizeof(double) * ocn_field_size);
+	memset(frac_buf[ICE_LFRAC], 0, sizeof(double) * ocn_field_size);
+	memset(frac_buf[ICE_OFRAC], 0, sizeof(double) * ocn_field_size);
+	memset(frac_buf[ATM_AFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[ATM_IFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[ATM_OFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[ATM_LFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[LND_AFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[LND_IFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[LND_OFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[LND_LFRAC], 0, sizeof(double) * atm_field_size);
 	int count = 0;
-	for(i = 0; i < length[ICE_LENGTH]; i ++)
+	for(i = 0; i < ocn_field_size; i ++)
 		if (mask[i])
 			count ++;
-	for(i = 0; i < length[ICE_LENGTH]; i ++) {
+	for(i = 0; i < ocn_field_size; i ++) {
 		if(mask[i]) {
 			frac_buf[ICE_AFRAC][i] = 1.0;
 			frac_buf[ICE_OFRAC][i] = 1.0;
@@ -86,10 +89,10 @@ void frac_init_ocn(void ** data_buf,void ** data_dst,int * length)
 	/**
 	 * Initialize values on ocn grid (same as for ice grid).
 	 */
-	memcpy(frac_buf[OCN_AFRAC], frac_buf[ICE_AFRAC], sizeof(double) * length[OCN_LENGTH]);
-	memcpy(frac_buf[OCN_IFRAC], frac_buf[ICE_IFRAC], sizeof(double) * length[OCN_LENGTH]);
-	memcpy(frac_buf[OCN_LFRAC], frac_buf[ICE_LFRAC], sizeof(double) * length[OCN_LENGTH]);
-	memcpy(frac_buf[OCN_OFRAC], frac_buf[ICE_OFRAC], sizeof(double) * length[OCN_LENGTH]);
+	memcpy(frac_buf[OCN_AFRAC], frac_buf[ICE_AFRAC], sizeof(double) * ocn_field_size);
+	memcpy(frac_buf[OCN_IFRAC], frac_buf[ICE_IFRAC], sizeof(double) * ocn_field_size);
+	memcpy(frac_buf[OCN_LFRAC], frac_buf[ICE_LFRAC], sizeof(double) * ocn_field_size);
+	memcpy(frac_buf[OCN_OFRAC], frac_buf[ICE_OFRAC], sizeof(double) * ocn_field_size);
 }
 
 /**
@@ -100,13 +103,14 @@ void frac_init_ocn(void ** data_buf,void ** data_dst,int * length)
 void frac_init_atm(void ** data_buf, void ** data_dst, int * length)
 {
 	double ** frac_buf = (double **) data_buf;
+        int atm_field_size = c_coupler_get_field_size(frac_buf[ATM_OFRAC], "Get atm and lnd field size in frac_init_ocn");
 
 
 	/**
 	 * Clean up atm fraction on atm grid: must be 1 everywhere.
 	 * Clean up ice fraction on atm grid: must be 0 everywhere.
 	 */
-	for(int i = 0; i < length[ATM_LENGTH]; i ++)
+	for(int i = 0; i < atm_field_size; i ++)
 	{
 		frac_buf[ATM_AFRAC][i] = 1.0;
 		frac_buf[ATM_IFRAC][i] = 0.0;
@@ -116,7 +120,7 @@ void frac_init_atm(void ** data_buf, void ** data_dst, int * length)
 	 * Compute lnd fraction on atm grid: lnd = 1 - ocn.
 	 * It's a requirement to elminate land points smaller than .001
 	 */
-	for(int i = 0; i < length[ATM_LENGTH]; i ++)
+	for(int i = 0; i < atm_field_size; i ++)
 	{
 		if(frac_buf[ATM_OFRAC][i] > 1.0)
 			frac_buf[ATM_OFRAC][i] = 1.0;
@@ -130,10 +134,10 @@ void frac_init_atm(void ** data_buf, void ** data_dst, int * length)
 	 * Copy fraction on atm grid to fraction on lnd grid.
 	 * Then clean up the ocn and ice fraction on lnd grid.
 	 */
-	memcpy(frac_buf[LND_AFRAC], frac_buf[ATM_AFRAC], sizeof(double) * length[LND_LENGTH]);
-	memcpy(frac_buf[LND_LFRAC], frac_buf[ATM_LFRAC], sizeof(double) * length[LND_LENGTH]);
-	memset(frac_buf[LND_IFRAC], 0, sizeof(double) * length[LND_LENGTH]);
-	memset(frac_buf[LND_OFRAC], 0, sizeof(double) * length[LND_LENGTH]);
+	memcpy(frac_buf[LND_AFRAC], frac_buf[ATM_AFRAC], sizeof(double) * atm_field_size);
+	memcpy(frac_buf[LND_LFRAC], frac_buf[ATM_LFRAC], sizeof(double) * atm_field_size);
+	memset(frac_buf[LND_IFRAC], 0, sizeof(double) * atm_field_size);
+	memset(frac_buf[LND_OFRAC], 0, sizeof(double) * atm_field_size);
 }
 
 /**
@@ -146,12 +150,13 @@ void frac_set_ocn(void ** data_buf,void ** data_dst,int * length)
 	double ** frac_buf = (double **) data_buf;
 	bool *mask = (bool *) data_buf[ICE_MASK];
 	int i;
+        int ocn_field_size = c_coupler_get_field_size(frac_buf[ICE_IFRAC], "Get ocn and sea ice field size in frac_set_ocn");
 
 
 	/**
 	 * Set/Update values on ice grid, confine values into [0,1], mask =0 => frac=0
 	 */
-	for(i = 0; i < length[ICE_LENGTH]; i ++)
+	for(i = 0; i < ocn_field_size; i ++)
 	{
 		if(frac_buf[ICE_IFRAC][i] > 1.0)
 			frac_buf[ICE_IFRAC][i] = 1.0;
@@ -165,7 +170,7 @@ void frac_set_ocn(void ** data_buf,void ** data_dst,int * length)
 	/**
 	 * Set/Update values on ocn grid (assum ice & ocn have same domain)
 	 */
-	for(i = 0; i < length[OCN_LENGTH]; i ++)
+	for(i = 0; i < ocn_field_size; i ++)
 	{
 		frac_buf[OCN_IFRAC][i] = frac_buf[ICE_IFRAC][i];
 		frac_buf[OCN_AFRAC][i] = 1.0 - frac_buf[ICE_IFRAC][i];
@@ -180,11 +185,12 @@ void frac_set_ocn(void ** data_buf,void ** data_dst,int * length)
 void frac_set_atm(void ** data_buf,void ** data_dst,int * length)
 {
 	double ** frac_buf = (double **) data_buf;
+        int atm_field_size = c_coupler_get_field_size(frac_buf[ATM_OFRAC], "Get atm and lnd field size in frac_set_atm");
 
 	/**
 	 * Set/Update values on atm grid.
 	 */
-	for(int i = 0; i < length[ATM_LENGTH]; i ++)
+	for(int i = 0; i < atm_field_size; i ++)
 	{
 		if(frac_buf[ATM_IFRAC][i] > 1.0)
 			frac_buf[ATM_IFRAC][i] = 1.0;

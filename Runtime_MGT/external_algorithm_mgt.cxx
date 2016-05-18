@@ -21,6 +21,7 @@
 #include "fst_diag.h"
 #include "fields_mult.h"
 #include "fields_add.h"
+#include "fields_copy.h"
 #include "merge_surface_data.h"
 
 
@@ -34,6 +35,7 @@ External_algorithm_mgt::External_algorithm_mgt()
 	register_external_algorithm("flux_epbal", flux_epbal, NULL);
 	register_external_algorithm("flux_solar", flux_solar, NULL);
 	register_external_algorithm("merge_ocn", merge_ocn, NULL);
+	register_external_algorithm("merge_carbon_flux", merge_carbon_flux, NULL);
 	register_external_algorithm("map_npfix", map_npfix, NULL);
 	register_external_algorithm("flux_albo", flux_albo, NULL);
 	register_external_algorithm("flux_atmOcn", flux_atmOcn, NULL);
@@ -43,6 +45,7 @@ External_algorithm_mgt::External_algorithm_mgt()
 	register_external_algorithm("diag_solar", diag_solar, NULL);
 	register_external_algorithm("fields_mult", fields_mult, NULL);
 	register_external_algorithm("fields_add", fields_add, NULL);
+	register_external_algorithm("field_copy", fields_copy, NULL);
 	register_external_algorithm("reset_surface_data", reset_surface_data, NULL);
 	register_external_algorithm("merge_one_kind_surface_data", merge_one_kind_surface_data, NULL);
 }

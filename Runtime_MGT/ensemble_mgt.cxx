@@ -101,26 +101,26 @@ void Ensemble_mgt::perturb_a_field_through_reverse_last_bit(void *field_data_buf
 void Ensemble_mgt::perturb_a_field_through_xor_last_bit_with_a_bit(void *field_data_buf, const char *data_type, long field_size, int current_random_number)
 {	
 	if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
-		int number_perturbing_bit = (current_random_number >> 1)%32;
-		int perturbing_bitmap = (((int)1) << number_perturbing_bit);
+		unsigned int number_perturbing_bit = (((unsigned int) current_random_number) >> 1)%32;
+		unsigned int perturbing_bitmap = (((unsigned int)1) << number_perturbing_bit);
 		for (long i = 0; i < field_size; i ++) {
-			int perturbing_bit_value = ((((int*)field_data_buf)[i] & perturbing_bitmap) >> number_perturbing_bit);
+			unsigned int perturbing_bit_value = ((((unsigned int*)field_data_buf)[i] & perturbing_bitmap) >> number_perturbing_bit);
 			if (!(perturbing_bit_value == 0 || perturbing_bit_value == 1))
-				EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error in perturb_a_field_through_xor_last_bit_with_a_bit");
-			((int*) field_data_buf)[i] = ((int*) field_data_buf)[i] ^ perturbing_bit_value;
+				EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error1 in perturb_a_field_through_xor_last_bit_with_a_bit");
+			((unsigned int*) field_data_buf)[i] = ((unsigned int*) field_data_buf)[i] ^ perturbing_bit_value;
 		}
 	}
 	else if (words_are_the_same(data_type, DATA_TYPE_DOUBLE)) {
-		int number_perturbing_bit = (current_random_number >> 1)%64;
-		long perturbing_bitmap = (((long)1) << number_perturbing_bit);
+		unsigned int number_perturbing_bit = (((unsigned int) current_random_number) >> 1)%64;
+		unsigned long perturbing_bitmap = (((unsigned long)1) << number_perturbing_bit);
 		for (long i = 0; i < field_size; i ++) {
-			long perturbing_bit_value = ((((long*)field_data_buf)[i] & perturbing_bitmap) >> number_perturbing_bit);
+			unsigned long perturbing_bit_value = ((((unsigned long*)field_data_buf)[i] & perturbing_bitmap) >> number_perturbing_bit);
 			if (!(perturbing_bit_value == 0 || perturbing_bit_value == 1))
-				EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error in perturb_a_field_through_xor_last_bit_with_a_bit");
-			((long*) field_data_buf)[i] = ((long*) field_data_buf)[i] ^ perturbing_bit_value;
+				EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error2 in perturb_a_field_through_xor_last_bit_with_a_bit");
+			((unsigned long*) field_data_buf)[i] = ((unsigned long*) field_data_buf)[i] ^ perturbing_bit_value;
 		}
 	}
-	else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error in perturb_a_field_through_xor_last_bit_with_a_bit");
+	else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error3 in perturb_a_field_through_xor_last_bit_with_a_bit");
 }
 
 

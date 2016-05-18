@@ -139,7 +139,7 @@ template <class T1, class T2> long Radix_sort<T1,T2>::partition(long segment_sta
 {
     do {
         while (radix_values[radix_id][++segment_start] > pivot);
-        while (segment_end >= 0 && radix_values[radix_id][--segment_end] < pivot);
+        while (segment_end > 0 && radix_values[radix_id][--segment_end] < pivot);
         radix_sort_swap(segment_start, segment_end);
     } while (segment_start < segment_end);
     radix_sort_swap(segment_start, segment_end);

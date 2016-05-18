@@ -1,16 +1,15 @@
 /***************************************************************
   *  Copyright (c) 2013, Tsinghua University.
   *  This is a source file of C-Coupler.
-  *  This file was transformed from NCAR coupler CPL6. 
+  *  This file was initially finished by Dr. Li Liu. 
   *  If you have any problem, 
   *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
   ***************************************************************/
 
 
-#ifndef _MERGE_ATM_H_
-#define _MERGE_ATM_H_
+#ifndef FIELDS_COPY
+#define FIELDS_COPY
 
-extern void merge_atm(void ** buf_src, void ** buf_dst, int * length);
-extern void merge_carbon_flux(void ** buf_src, void ** buf_dst, int * length);
+extern void fields_copy(void **, void **, int *);
 
-#endif //_MERGE_ATM_H_
+#endif

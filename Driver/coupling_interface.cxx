@@ -21,11 +21,26 @@ int coupling_process_control_counter = 0;
 
 extern "C" void register_model_data_(void *model_buf, int *data_size, const char *decomp_name, const char *field_name, const char *data_type, const char *grid_name, int *have_fill_value, void *fill_value, bool *is_restart_field)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
-                 "C-Coupler interface coupling_interface_initialize has not been called\n"); 
+    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, "C-Coupler interface coupling_interface_initialize has not been called\n"); 
     if ((*have_fill_value) == 1)
         memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, fill_value, *is_restart_field, *data_size);
     else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, NULL, *is_restart_field, *data_size);
+}
+
+
+extern "C" void coupling_get_field_size_(void *model_buf, const char *annotation, int *field_size)
+{
+    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+		             "C-Coupler interface coupling_interface_initialize has not been called before running the code corresponding to annotation \"%s\"\n", annotation); 
+	*field_size = memory_manager->get_field_size(model_buf, annotation);
+}
+
+
+extern "C" void export_field_data_(void *model_buf, int *data_size, const char *field_name, const char *decomp_name, const char *grid_name, const char *data_type)
+{
+    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+                 "C-Coupler interface coupling_interface_initialize has not been called\n"); 
+    memory_manager->export_field_data(model_buf, field_name, decomp_name, grid_name, data_type, *data_size);
 }
 
 

@@ -52,6 +52,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(const char *cfg_name)
 	line_p = line;
 	EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p, algorithm_mode), "The mode of a runtime remapping algorithm must be an integer. Please verify the configuration file \"%s\"", cfg_name);
     sequential_remap_weights = remap_weights_of_strategy_manager->search_remap_weight_of_strategy(remap_weights_name);
+	EXECUTION_REPORT(REPORT_ERROR, sequential_remap_weights != NULL, "Remapping weights \"%s\" is not defined according the corresponding CoR script. Please verify the configuration file \"%s\"", remap_weights_name, cfg_name);
 	generate_parallel_interpolation_and_decomposition(remap_weights_name);
 	
 	if (sequential_remap_weights->get_num_operations_for_caculating_sigma_values_of_grid() > 0 && sequential_remap_weights->get_data_grid_src()->is_sigma_grid() && 
@@ -508,6 +509,8 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
             src_frac_values = (double*) src_frac_field_after_rearrange->get_data_buf();
             for (j = 0; j < field_size_src_before_rearrange; j ++)
                 temp_src_values[j] = src_field_values[j] * src_frac_values[j];
+            for (j = 0; j < field_size_src_before_rearrange; j ++)
+                printf("frac is %d: %lf %lf\n", j, src_field_values[j], src_frac_values[j]);
 			//temp_src_field->calculate_field_conservative_sum(src_area_field_after_rearrange);
             parallel_remap_weights->do_remap(temp_src_field->get_field_data(), dst_double_remap_fields[i]->get_field_data());
 			dst_double_remap_fields[i]->calculate_field_conservative_sum(dst_area_field);
@@ -533,6 +536,18 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		dst_double_remap_fields[i]->define_field_values(false);
 		dst_double_remap_fields[i]->check_field_sum();
 	}
+
+    if (words_are_the_same(sequential_remap_weights->get_object_name(), "bccam_to_mom_bilinear_wgts")) {
+        printf("remap dst\n");
+        for (int k = 0; k < dst_double_remap_fields[0]->get_size_of_field(); k ++)
+            printf("dst value of %d is %lf\n", k, ((double*)dst_double_remap_fields[0]->get_data_buf())[k]);
+    }
+    if (words_are_the_same(sequential_remap_weights->get_object_name(), "bccam_to_mom_bilinear_wgts")) {
+        printf("remap src\n");
+        for (int k = 0; k < src_double_remap_fields_after_rearrange[0]->get_size_of_field(); k ++)
+            printf("src value of %d is %lf   %lx\n", k, ((double*)src_double_remap_fields_after_rearrange[0]->get_data_buf())[k], src_double_remap_fields_after_rearrange[0]->get_data_buf());
+    }
+
 
 	if (this->parent == NULL)
 		performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);

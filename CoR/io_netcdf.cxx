@@ -859,9 +859,10 @@ void IO_netcdf::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
                      "the dst grid in netcdf file does not match the dst grid of remap operator\n");
         area = new double [grid_size];
         rcode = nc_inq_varid(ncfile_id, "area_b", &var_id);
-        report_nc_error();
-        rcode = nc_get_var_double(ncfile_id, var_id, remap_weights->get_data_grid_dst()->get_area_or_volumn());
-        report_nc_error();
+		if (rcode == NC_NOERR) {
+    	    rcode = nc_get_var_double(ncfile_id, var_id, remap_weights->get_data_grid_dst()->get_area_or_volumn());
+	        report_nc_error();
+		}
         rcode = nc_inq_dimid(ncfile_id, "n_s", &var_id);
         report_nc_error();
         rcode = nc_inq_dimlen(ncfile_id, var_id, &num_weights);

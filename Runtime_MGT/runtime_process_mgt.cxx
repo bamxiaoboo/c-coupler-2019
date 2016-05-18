@@ -209,7 +209,7 @@ void Runtime_process_mgt::execute_coupling_procedure(const char *procedure_name,
 	Runtime_procedure_mgt *runtime_procedure = search_coupling_procedure(procedure_name);
 	if (runtime_procedure != NULL)
 		runtime_procedure->execute(procedure_stage);
-	else EXECUTION_REPORT(REPORT_LOG, true, "WARNING: coupling procedure %s has not been set in the corresponding configuration file\n", procedure_name);
+	else EXECUTION_REPORT(REPORT_ERROR, false, "WARNING: coupling procedure %s has not been set in the corresponding configuration file\n", procedure_name);
 }
 
 

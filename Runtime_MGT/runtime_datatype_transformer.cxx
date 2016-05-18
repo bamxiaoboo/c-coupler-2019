@@ -39,7 +39,8 @@ void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Fi
     if (words_are_the_same(data_type_src, DATA_TYPE_DOUBLE) || words_are_the_same(data_type_src, DATA_TYPE_FLOAT)) 
         data_types_matched = words_are_the_same(data_type_dst, DATA_TYPE_DOUBLE) || words_are_the_same(data_type_dst, DATA_TYPE_FLOAT);
     else if (words_are_the_same(data_type_src, DATA_TYPE_LONG) || words_are_the_same(data_type_src, DATA_TYPE_INT) || words_are_the_same(data_type_src, DATA_TYPE_SHORT) || words_are_the_same(data_type_src, DATA_TYPE_BOOL)) 
-        data_types_matched = words_are_the_same(data_type_dst, DATA_TYPE_LONG) || words_are_the_same(data_type_dst, DATA_TYPE_INT) || words_are_the_same(data_type_dst, DATA_TYPE_SHORT) || words_are_the_same(data_type_dst, DATA_TYPE_BOOL);
+        data_types_matched = words_are_the_same(data_type_dst, DATA_TYPE_LONG) || words_are_the_same(data_type_dst, DATA_TYPE_INT) || words_are_the_same(data_type_dst, DATA_TYPE_SHORT) || words_are_the_same(data_type_dst, DATA_TYPE_BOOL)
+                             || words_are_the_same(data_type_dst, DATA_TYPE_FLOAT) || words_are_the_same(data_type_dst, DATA_TYPE_DOUBLE);
 
 	EXECUTION_REPORT(REPORT_ERROR, data_types_matched, "data types %s and %s for field %s does not match each other", data_type_src, data_type_dst, src_field->get_field_name());
 
