@@ -49,6 +49,7 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
 		int mpi_ierr;
 		char *fields_transfer_info_string;
 		bool is_remapping_rearrange_algorithm;
+		bool allocate_new_fields;
 
         void pack_MD_data(long, long, int*, int);
         void unpack_MD_data(int, int, int, long, int*);

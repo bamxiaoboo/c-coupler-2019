@@ -509,8 +509,6 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
             src_frac_values = (double*) src_frac_field_after_rearrange->get_data_buf();
             for (j = 0; j < field_size_src_before_rearrange; j ++)
                 temp_src_values[j] = src_field_values[j] * src_frac_values[j];
-            for (j = 0; j < field_size_src_before_rearrange; j ++)
-                printf("frac is %d: %lf %lf\n", j, src_field_values[j], src_frac_values[j]);
 			//temp_src_field->calculate_field_conservative_sum(src_area_field_after_rearrange);
             parallel_remap_weights->do_remap(temp_src_field->get_field_data(), dst_double_remap_fields[i]->get_field_data());
 			dst_double_remap_fields[i]->calculate_field_conservative_sum(dst_area_field);
@@ -536,18 +534,6 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		dst_double_remap_fields[i]->define_field_values(false);
 		dst_double_remap_fields[i]->check_field_sum();
 	}
-
-    if (words_are_the_same(sequential_remap_weights->get_object_name(), "bccam_to_mom_bilinear_wgts")) {
-        printf("remap dst\n");
-        for (int k = 0; k < dst_double_remap_fields[0]->get_size_of_field(); k ++)
-            printf("dst value of %d is %lf\n", k, ((double*)dst_double_remap_fields[0]->get_data_buf())[k]);
-    }
-    if (words_are_the_same(sequential_remap_weights->get_object_name(), "bccam_to_mom_bilinear_wgts")) {
-        printf("remap src\n");
-        for (int k = 0; k < src_double_remap_fields_after_rearrange[0]->get_size_of_field(); k ++)
-            printf("src value of %d is %lf   %lx\n", k, ((double*)src_double_remap_fields_after_rearrange[0]->get_data_buf())[k], src_double_remap_fields_after_rearrange[0]->get_data_buf());
-    }
-
 
 	if (this->parent == NULL)
 		performance_timing_mgr->performance_timing_stop(TIMING_TYPE_COMPUTATION, 0, compset_communicators_info_mgr->get_current_comp_id(), algorithm_cfg_name);

@@ -29,6 +29,7 @@
 #include "external_algorithm_mgt.h"
 #include "ensemble_mgt.h"
 #include "runtime_datamodel_algorithm.h"
+#include "object_type_prefix.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"

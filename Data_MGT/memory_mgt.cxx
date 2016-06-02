@@ -456,7 +456,7 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	if (model_data_buffer != NULL) {
 		field_mem = search_field_via_data_buf(model_data_buffer, false);
 		if (field_mem != NULL)
-			EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(field_mem->get_decomp_name(), model_data_decomp_name) && words_are_the_same(field_mem->get_field_name(), model_data_field_name) && words_are_the_same(field_mem->get_grid_name(), grid_name),
+			EXECUTION_REPORT(REPORT_WARNING, words_are_the_same(field_mem->get_decomp_name(), model_data_decomp_name) && words_are_the_same(field_mem->get_field_name(), model_data_field_name) && words_are_the_same(field_mem->get_grid_name(), grid_name),
 							 "Model data buffer currently registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\") has been registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\")",
 							 model_data_field_name, grid_name, model_data_decomp_name, field_mem->get_field_name(), field_mem->get_grid_name(), field_mem->get_decomp_name());
 	}
@@ -522,9 +522,11 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
     if (fill_value != NULL)
         field_mem->get_field_data()->get_grid_data_field()->set_fill_value(fill_value);
 
+/*
 	if (field_mem->get_size_of_field() > 0)
 		EXECUTION_REPORT(REPORT_ERROR, data_size == field_mem->get_size_of_field(), 
 			             "The size of the data buffer registered by the component model for field (field_name=\"%s\", decomposition=\"%s\", grid=\"%s\") is %d, which is not consistent with the size (%d) determined by the decomposition and grid\n", model_data_field_name, model_data_decomp_name, grid_name, data_size, field_mem->get_size_of_field());
+*/
 
 	if (field_mem->get_size_of_field() > 0)
 		EXECUTION_REPORT(REPORT_ERROR, model_data_buffer != NULL, "The data buffer for registered field (field_name=\"%s\", decomposition=\"%s\", grid=\"%s\") may not have been allocated. Please check the corresponding model code\n", model_data_field_name, model_data_decomp_name, grid_name);

@@ -120,13 +120,15 @@ Decomp_info_mgt::~Decomp_info_mgt()
 }
 
 
-void Decomp_info_mgt::add_decomp_from_model_interface(const char *decomp_name, const char *decomp_grid_name, 
+void Decomp_info_mgt::add_decomp_from_model_interface(const char *decomp_name, const char *decomp_grid_name, const char *comp_name,
                                                       int num_local_cells_in_decomp, int *cell_indexes_in_decomp)
 {    
     for (int j = 0; j < decomps_info.size(); j ++)
         EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(decomps_info[j]->get_decomp_name(), decomp_name), 
                      "Decomp %s has been defined more than once in component %s\n", decomp_name, compset_communicators_info_mgr->get_current_comp_name());
-    decomps_info.push_back(new Decomp_info(decomp_name,compset_communicators_info_mgr->get_current_comp_name(),decomp_grid_name,num_local_cells_in_decomp,cell_indexes_in_decomp));
+	if (comp_name == NULL)
+	    decomps_info.push_back(new Decomp_info(decomp_name,compset_communicators_info_mgr->get_current_comp_name(),decomp_grid_name,num_local_cells_in_decomp,cell_indexes_in_decomp));
+	else decomps_info.push_back(new Decomp_info(decomp_name,comp_name,decomp_grid_name,num_local_cells_in_decomp,cell_indexes_in_decomp));
     decomps_info[decomps_info.size()-1]->gen_decomp_grid_data();
 	decomps_info[decomps_info.size()-1]->set_decomp_registered();
 }

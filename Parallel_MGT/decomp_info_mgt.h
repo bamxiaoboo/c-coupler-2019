@@ -52,7 +52,7 @@ class Decomp_info_mgt
         ~Decomp_info_mgt();
         Decomp_info *search_decomp_info(const char *);
         void add_decomps_from_cfg_file(const char*);
-        void add_decomp_from_model_interface(const char*, const char*, int, int*);
+        void add_decomp_from_model_interface(const char*, const char*, const char*, int, int*);
         Decomp_info *generate_fully_decomp(const char*, const char*);
         Decomp_info *generate_remap_weights_src_decomp(const char*, const char*, const char*);
 };

@@ -85,7 +85,16 @@ extern "C" void coupling_add_decomposition_(const char *decomp_name, const char 
 {
     EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n");
-    decomps_info_mgr->add_decomp_from_model_interface(decomp_name, grid_name, *num_cells_in_decomp, decomp_cell_indexes);
+    decomps_info_mgr->add_decomp_from_model_interface(decomp_name, grid_name, NULL, *num_cells_in_decomp, decomp_cell_indexes);
+}
+
+
+extern "C" void coupling_add_decomposition_with_component_(const char *decomp_name, const char *grid_name, const char *comp_name,
+                                            int *num_cells_in_decomp, int *decomp_cell_indexes)
+{
+    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+                 "C-Coupler interface coupling_interface_initialize has not been called\n");
+    decomps_info_mgr->add_decomp_from_model_interface(decomp_name, grid_name, comp_name, *num_cells_in_decomp, decomp_cell_indexes);
 }
 
 
@@ -529,5 +538,12 @@ extern "C" void coupling_add_field_info_(const char *field_name, const char *fie
 {
 	EXECUTION_REPORT(REPORT_ERROR, fields_info != NULL, "the C-Coupler manager for the information of fields is not initialized");
 	fields_info->add_field_info(field_name, field_long_name, field_unit, "none");
+}
+
+
+extern "C" void coupling_register_component_(const char *comp_name, const char *comp_type, int *comm)
+{
+	EXECUTION_REPORT(REPORT_ERROR, compset_communicators_info_mgr != NULL, "The C-Coupler manager for manage communicators of components is not initialized");
+	compset_communicators_info_mgr->register_component(comp_name, comp_type, (MPI_Comm)(*comm));
 }
 
