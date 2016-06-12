@@ -34,7 +34,8 @@ class Comp_comm_group_mgt_global_node
 		int local_node_id;
 		int global_node_id;
 	    char comp_name[NAME_STR_SIZE];                // The name of component
-    	char comp_type[NAME_STR_SIZE];		
+    	char comp_type[NAME_STR_SIZE];	
+		char annotation[NAME_STR_SIZE];
 		Comp_comm_group_mgt_global_node *parent;
 		std::vector<Comp_comm_group_mgt_global_node*> children;
 		MPI_Comm comm_group;
@@ -62,6 +63,8 @@ class Comp_comm_group_mgt_global_node
 		int get_local_node_id() { return local_node_id; }
 		Comp_comm_group_mgt_global_node *get_child(int indx) { return children[indx]; }
 		void reset_local_node_id(int new_id) { local_node_id = new_id; }
+		Comp_comm_group_mgt_global_node *search_global_node(int);
+		bool is_definition_finalized() { return definition_finalized; }
 };
 
 
@@ -86,14 +89,27 @@ class Comp_comm_group_mgt_mgr
 	private:
 		std::vector<Comp_comm_group_mgt_local_node*> local_nodes;
 		Comp_comm_group_mgt_global_node *global_node_root;
+		bool definition_finalized;
+        char experiment_model[NAME_STR_SIZE];
+        char original_case_name[NAME_STR_SIZE];
+        char current_case_name[NAME_STR_SIZE];
+        char current_case_desc[NAME_STR_SIZE];
+        char running_case_mode[NAME_STR_SIZE];
+        char comp_namelist_filename[NAME_STR_SIZE];
+		char current_config_time[NAME_STR_SIZE];
+		char original_config_time[NAME_STR_SIZE];
 
 	public:
-		Comp_comm_group_mgt_mgr();
+		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
 		~Comp_comm_group_mgt_mgr();
-		int register_component(const char*, const char*, MPI_Comm&, int, const char*);
+		int register_component(const char*, const char*, MPI_Comm&, int);
 		void merge_comp_comm_info(int);
 		bool is_legal_local_comp_id(int);
 		void update_global_nodes(Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node*);
+		Comp_comm_group_mgt_global_node *get_global_node_of_local_comp(int);
+		Comp_comm_group_mgt_global_node *get_global_node_of_global_comp(int);
+		MPI_Comm get_comm_group_of_local_comp(int);
+		MPI_Comm get_comm_group_of_global_comp(int);
 };
 
 

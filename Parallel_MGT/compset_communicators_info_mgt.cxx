@@ -294,6 +294,7 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 	
 	strcpy(this->comp_name, comp_name);
 	strcpy(this->comp_type, comp_type);
+	strcpy(this->annotation, current_annotation);
 	this->local_node_id = local_node_id;
 	this->global_node_id = -1;
 	this->parent = parent;
@@ -305,8 +306,17 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 	if (comm != -1) {
 		comm_group = comm;
 		MPI_Barrier(comm);
+		char temp_comp_name[NAME_STR_SIZE], temp_comp_type[NAME_STR_SIZE];
+		int proc_local_id;
+		strcpy(temp_comp_name, comp_name);
+		strcpy(temp_comp_type, comp_type);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(comm, &proc_local_id) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(temp_comp_type, comp_type) && words_are_the_same(temp_comp_name, comp_name));  // add debug information
 	}
 	else {
+		EXECUTION_REPORT(REPORT_ERROR, parent != NULL, "Software error1 in Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node");
 		MPI_Barrier(parent->get_comm_group());
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(parent->get_comm_group(), &num_procs) == MPI_SUCCESS);
 		all_comp_name = new char [NAME_STR_SIZE*num_procs];
@@ -347,6 +357,15 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 	for (i = 0; i < num_procs; i ++)
 		local_processes_global_ids.push_back(processes_global_id[i]);
 	delete [] processes_global_id;
+
+	if (parent != NULL) {
+		for (i = 0; i < local_processes_global_ids.size(); i ++) {
+			for (j = 0; j < parent->local_processes_global_ids.size(); j ++)
+				if (local_processes_global_ids[i] == parent->local_processes_global_ids[j])
+					break;
+			EXECUTION_REPORT(REPORT_ERROR, j < parent->local_processes_global_ids.size());  // add debug information
+		}
+	}
 }
 
 
@@ -460,6 +479,21 @@ void Comp_comm_group_mgt_global_node::merge_comp_comm_info(bool is_root_node)
 }
 
 
+Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_global_node::search_global_node(int global_node_id)
+{
+	if (global_node_id == this->global_node_id)
+		return this;
+
+	for (int i = 0; i < children.size(); i ++) {
+		Comp_comm_group_mgt_global_node *global_node = children[i]->search_global_node(global_node_id);
+		if (global_node != NULL)
+			return global_node;
+	}
+
+	return NULL;
+}
+
+
 Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_name, const char *comp_type, Comp_comm_group_mgt_local_node *parent, MPI_Comm &comm, int local_id)
 {
 	self_local_node_id = local_id;
@@ -474,17 +508,31 @@ Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_
 }
 
 
-Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr()
+Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *experiment_model, const char *case_name, 
+	       const char *case_desc, const char *case_mode, const char *comp_namelist,
+           const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
 	MPI_Comm global_comm_group;
 
 	
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_dup(MPI_COMM_WORLD, &global_comm_group) == MPI_SUCCESS);
 	local_nodes.clear();
-	Comp_comm_group_mgt_local_node *root_node = new Comp_comm_group_mgt_local_node("ROOT", "ROOT", NULL, global_comm_group, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);
-	local_nodes.push_back(root_node);
-	global_node_root = root_node->get_global_node();
-	
+	global_node_root = NULL;
+	definition_finalized = false;
+
+	strcpy(this->experiment_model, experiment_model);
+    strcpy(current_case_name, case_name);
+    strcpy(current_case_desc, case_desc);
+    strcpy(running_case_mode, case_mode);
+    strcpy(comp_namelist_filename, comp_namelist);
+	strcpy(this->current_config_time, current_config_time);
+	strcpy(this->original_case_name, original_case_name);
+	strcpy(this->original_config_time, original_config_time);
+
+	if (words_are_the_same(case_mode, "initial")) {
+		strcpy(this->original_case_name, "none");
+		strcpy(this->original_config_time, "none");
+	}		
 }
 
 
@@ -534,20 +582,29 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 }
 
 
-int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, const char *annotation)
+int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id)
 {
-	int true_parent_id = 0;
+	int i, true_parent_id = 0;
 	Comp_comm_group_mgt_local_node *new_comp;
 
-	if (parent_local_id == -1)
-		parent_local_id = local_nodes[0]->get_local_node_id();
 
-	true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
-	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(parent_local_id), 
-		             "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong",
-		             comp_name, comp_type, annotation);
 
-	new_comp = new Comp_comm_group_mgt_local_node(comp_name, comp_type, local_nodes[true_parent_id], comm, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);
+	for (i = 0; i < local_nodes.size(); i ++)
+		if (words_are_the_same(local_nodes[i]->get_global_node()->get_comp_name(), comp_name))
+			break;
+	EXECUTION_REPORT(REPORT_ERROR, i == local_nodes.size());  // add debug information
+
+	if (parent_local_id == -1) {
+		new_comp = new Comp_comm_group_mgt_local_node(comp_name, comp_type, NULL, comm, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);	
+	}
+	else {
+		EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(parent_local_id), 
+			             "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong",
+			             comp_name, comp_type, current_annotation);
+		true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
+		EXECUTION_REPORT(REPORT_ERROR, !local_nodes[true_parent_id]->get_global_node()->is_definition_finalized()); // add debug information
+		new_comp = new Comp_comm_group_mgt_local_node(comp_name, comp_type, local_nodes[true_parent_id], comm, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);
+	}
 
 	return new_comp->get_local_node_id();
 }
@@ -573,7 +630,41 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id)
 		update_global_nodes(global_node_root, new_root);
 		delete global_node_root;
 		global_node_root = new_root;
+		definition_finalized = true;
 	}
 	MPI_Barrier(global_node->get_comm_group());
 }
+
+
+Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp(int local_comp_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(local_comp_id));  // add debug information
+
+	return local_nodes[(local_comp_id&TYPE_ID_SUFFIX_MASK)]->get_global_node();
+}
+
+
+Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_global_comp(int global_comp_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, definition_finalized); // add debug information
+		
+	Comp_comm_group_mgt_global_node *global_node = global_node_root->search_global_node(global_comp_id);
+	
+	EXECUTION_REPORT(REPORT_ERROR, global_node != NULL);  // add debug information
+	
+	return global_node;
+}
+
+
+MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_local_comp(int local_comp_id)
+{
+	get_global_node_of_local_comp(local_comp_id)->get_comm_group();
+}
+
+
+MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_global_comp(int global_comp_id)
+{
+	get_global_node_of_global_comp(global_comp_id)->get_comm_group();
+}
+
 

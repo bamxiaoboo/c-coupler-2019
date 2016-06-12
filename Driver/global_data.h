@@ -39,6 +39,7 @@ extern char software_name[];
 
 
 extern Compset_communicators_info_mgt *compset_communicators_info_mgr;
+extern Comp_comm_group_mgt_mgr *comp_comm_group_mgt_mgr;
 extern Routing_info_mgt *routing_info_mgr;
 extern Timer_mgt *timer_mgr;
 extern Timer_mgt *restart_read_timer_mgr;
@@ -54,5 +55,9 @@ extern Performance_timing_mgt *performance_timing_mgr;
 extern External_algorithm_mgt *external_algorithm_mgr;
 extern Ensemble_mgt *ensemble_mgr;
 extern Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr;
+
+extern const char *current_annotation;
+extern void push_annotation(const char*);
+extern void pop_annotation(const char*);
 
 #endif

@@ -1455,20 +1455,14 @@
 
 
 
-   SUBROUTINE c_coupler_register_decomposition(decomp_name, grid_name, num_local_cells, local_cell_indexes, comp_name)
+   SUBROUTINE c_coupler_register_decomposition(decomp_name, grid_name, num_local_cells, local_cell_indexes)
    implicit none
-   character(len=*),        intent(in)    ::  decomp_name
-   character(len=*),        intent(in)    ::  grid_name
-   integer, intent(in)                    ::  num_local_cells
-   integer, intent(in)                    ::  local_cell_indexes(:)
-   character(len=*), intent(in), optional ::  comp_name
+   character(len=*),     intent(in)    ::  decomp_name
+   character(len=*),     intent(in)    ::  grid_name
+   integer, intent(in)                 ::  num_local_cells
+   integer, intent(in)                 ::  local_cell_indexes(:)
    
-
-   if (present(comp_name)) then
-       call coupling_add_decomposition_with_component(trim(decomp_name)//char(0), trim(grid_name)//char(0), trim(comp_name)//char(0), num_local_cells, local_cell_indexes)
-   else
-       call coupling_add_decomposition(trim(decomp_name)//char(0), trim(grid_name)//char(0), num_local_cells, local_cell_indexes)
-   endif
+   call coupling_add_decomposition(trim(decomp_name)//char(0), trim(grid_name)//char(0), num_local_cells, local_cell_indexes);
 
    END SUBROUTINE c_coupler_register_decomposition
 
@@ -2407,17 +2401,6 @@
    
    END SUBROUTINE c_coupler_perturb_roundoff_errors
 
-
-
-   SUBROUTINE c_coupler_register_component(comp_name, comp_type, comm)
-   implicit none
-   character(len=*), intent(in) :: comp_name      
-   character(len=*), intent(in) :: comp_type
-   integer,          intent(in) :: comm
-
-   call coupling_register_component(trim(comp_name)//char(0),trim(comp_type)//char(0), comm)   
-
-   END SUBROUTINE c_coupler_register_component
 
 
  END MODULE c_coupler_interface_mod

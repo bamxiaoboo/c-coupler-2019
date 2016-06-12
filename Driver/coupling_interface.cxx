@@ -10,10 +10,12 @@
 #include "global_data.h"
 #include "cor_global_data.h"
 #include "remap_mgt.h"
+#include "quick_sort.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include "coupling_interface.h"
+#include <mpi.h>
 
 
 int coupling_process_control_counter = 0;
@@ -543,7 +545,86 @@ extern "C" void coupling_add_field_info_(const char *field_name, const char *fie
 
 extern "C" void coupling_register_component_(const char *comp_name, const char *comp_type, int *comm)
 {
-	EXECUTION_REPORT(REPORT_ERROR, compset_communicators_info_mgr != NULL, "The C-Coupler manager for manage communicators of components is not initialized");
+	EXECUTION_REPORT(REPORT_ERROR, compset_communicators_info_mgr != NULL, "Please register the root component before registering another component");
 	compset_communicators_info_mgr->register_component(comp_name, comp_type, (MPI_Comm)(*comm));
+}
+
+
+extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *comp_type, const char *annotation, int *comp_id, 
+										const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
+                                		const char *current_config_time, const char *original_case_name, const char *original_config_time)
+{
+	int flag;
+	MPI_Comm local_comm = -1;
+	int root_comp_id;
+
+
+	push_annotation(annotation);
+	
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before.");  // add debug information
+	MPI_Initialized(&flag);
+	if (flag == 0)
+		MPI_Init(NULL, NULL);
+	MPI_Barrier(MPI_COMM_WORLD);  // add debug information
+
+	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(exp_model, case_name, case_desc, case_mode, comp_namelist,
+                                		current_config_time, original_case_name, original_config_time);
+
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, local_comm, -1);
+
+	if (*comm != -1) {
+		int input_comm_size, new_comm_size;
+		int *input_comm_process_ids, *new_comm_process_ids, *temp_array;
+		int current_proc_global_id, current_proc_local_id;
+		MPI_Comm new_comm;
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(*comm) == MPI_SUCCESS);  // add debug information
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(*comm, &input_comm_size) == MPI_SUCCESS);
+		new_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(root_comp_id);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(new_comm, &new_comm_size) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, input_comm_size == new_comm_size);  // add debug information
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+		input_comm_process_ids = new int [input_comm_size];
+		new_comm_process_ids = new int [new_comm_size];
+		temp_array = new int [new_comm_size];
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, input_comm_process_ids, 1, MPI_INT, *comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, new_comm_process_ids, 1, MPI_INT, new_comm) == MPI_SUCCESS);
+		do_quick_sort(input_comm_process_ids, temp_array, 0, input_comm_size-1);
+		do_quick_sort(new_comm_process_ids, temp_array, 0, new_comm_size-1);
+		for (int i = 0; i < input_comm_size; i ++)
+			EXECUTION_REPORT(REPORT_ERROR, input_comm_process_ids[i] == new_comm_process_ids[i]);  // add debug information
+		delete [] input_comm_process_ids;
+		delete [] new_comm_process_ids;
+		delete [] temp_array;
+	}
+	else *comm = local_comm;
+
+	*comp_id = root_comp_id;
+
+	pop_annotation(annotation);
+}
+
+
+
+extern "C" void register_component_(int *parent_local_id, const char *comp_name, const char *comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL);  // add debug information
+	
+	push_annotation(annotation);
+
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, *comm, *parent_local_id);
+
+	pop_annotation(annotation);
+}
+
+
+extern "C" void end_registration(int *comp_id, const char * annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL);  // add debug information
+	
+	push_annotation(annotation);
+
+	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id);
+	
+	pop_annotation(annotation);
 }
 
