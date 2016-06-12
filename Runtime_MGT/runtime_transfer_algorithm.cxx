@@ -40,6 +40,7 @@ template <class T> void unpack_segment_data(T *mpi_buf, T *field_data_buf, int s
 
 Runtime_transfer_algorithm::Runtime_transfer_algorithm(const char *cfg_name)
 {
+	local_communicator_info = NULL;
 	is_remapping_rearrange_algorithm = false;
 	strcpy(algorithm_cfg_name, cfg_name);
 	fields_transfer_info_string = NULL;
@@ -53,7 +54,8 @@ Runtime_transfer_algorithm::Runtime_transfer_algorithm(int num_fields, Field_mem
 {
 	is_remapping_rearrange_algorithm = true;
     num_transfered_fields = num_fields;
-    strcpy(remote_comp_name, compset_communicators_info_mgr->get_current_comp_name());
+	local_communicator_info = compset_communicators_info_mgr->get_communicator_info_by_name(compset_communicators_info_mgr->get_current_comp_name()); // must be modified
+    strcpy(remote_comp_name, compset_communicators_info_mgr->get_current_comp_name()); // must be modified
     num_src_fields = num_fields/2;
     num_dst_fields = num_fields/2;
 	allocate_basic_data_structure(num_src_fields, num_dst_fields);
@@ -72,7 +74,7 @@ Runtime_transfer_algorithm::Runtime_transfer_algorithm(int num_fields, Field_mem
         strcpy(field_grid_names[i], fields_mem[i]->get_grid_name());
     }
 	fields_transfer_info_string = NULL;
-	routing_info_mgr->search_or_add_router(remote_comp_name, field_local_decomp_names[0], field_remote_decomp_names[0]);
+	routing_info_mgr->search_or_add_router(local_communicator_info->comp_name, remote_comp_name, field_local_decomp_names[0], field_remote_decomp_names[0]);
 	fields_allocated = false;
 	allocate_new_fields = false;
 }
@@ -130,7 +132,7 @@ void Runtime_transfer_algorithm::preprocess(bool is_algorithm_in_kernel_stage)
 	if (!(num_src_fields > 0 && num_dst_fields > 0))
 		check_cfg_info_consistency();
 	if (num_src_fields > 0 && num_dst_fields == 0) {
-		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		if (local_communicator_info->current_proc_local_id == 0) {
 			for (i = 0; i < num_transfered_fields; i ++)
 				if (currently_transferred_fields_mark[i])
 					fields_transfer_info_string[i*10] = 1;
@@ -145,7 +147,7 @@ void Runtime_transfer_algorithm::preprocess(bool is_algorithm_in_kernel_stage)
 				 	 comm_tag, compset_communicators_info_mgr->get_global_comm_group(), &recv_statuses[0]);
 			for (i = 0; i < num_transfered_fields; i ++)
 				EXECUTION_REPORT(REPORT_ERROR, !currently_transferred_fields_mark[i] && fields_transfer_info_string[i*10] == 0 || currently_transferred_fields_mark[i] && fields_transfer_info_string[i*10] == 1,
-				                 "Mismatch happens for transferring field %s between components %s and %s. Please check the configuration file %s and its counterpart", transferred_fields_mem[i]->get_field_name(), compset_communicators_info_mgr->get_current_comp_name(), remote_comp_name, algorithm_cfg_name);
+				                 "Mismatch happens for transferring field %s between components %s and %s. Please check the configuration file %s and its counterpart", transferred_fields_mem[i]->get_field_name(), local_communicator_info->comp_name, remote_comp_name, algorithm_cfg_name);
 		}
 	}
 #endif
@@ -164,7 +166,7 @@ void Runtime_transfer_algorithm::preprocess(bool is_algorithm_in_kernel_stage)
     /* Allocate memory buffer for sending or receiving */
     if (mpi_send_buf == NULL && num_src_fields > 0) {
         for (i = 0; i < num_src_fields; i ++) {
-            fields_routers[i] = routing_info_mgr->search_or_add_router(remote_comp_name, field_local_decomp_names[i], field_remote_decomp_names[i]);
+            fields_routers[i] = routing_info_mgr->search_or_add_router(local_communicator_info->comp_name, remote_comp_name, field_local_decomp_names[i], field_remote_decomp_names[i]);
             if (fields_routers[i]->get_num_dimensions() == 0)
                 field_grids_num_lev[i] = 1;
             else {
@@ -181,7 +183,7 @@ void Runtime_transfer_algorithm::preprocess(bool is_algorithm_in_kernel_stage)
     }
     if (mpi_recv_buf == NULL && num_dst_fields > 0) {
         for (i = num_src_fields; i < num_transfered_fields; i ++) {
-	        fields_routers[i] = routing_info_mgr->search_or_add_router(remote_comp_name, field_local_decomp_names[i-num_src_fields], field_remote_decomp_names[i-num_src_fields]);
+	        fields_routers[i] = routing_info_mgr->search_or_add_router(local_communicator_info->comp_name, remote_comp_name, field_local_decomp_names[i-num_src_fields], field_remote_decomp_names[i-num_src_fields]);
             if (fields_routers[i]->get_num_dimensions() == 0)
                 field_grids_num_lev[i] = 1;
             else {
@@ -241,13 +243,13 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 		local_hand_tag = 1;
 	else local_hand_tag = 0;
 	if (!(num_src_fields > 0 && num_dst_fields > 0)) {
-		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		if (local_communicator_info->current_proc_local_id == 0) {
 			remote_comp_id = compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name);
 			MPI_Sendrecv(&local_hand_tag, 1, MPI_INT, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comp_id, 0), comm_tag,
 				 	     &remote_hand_tag, 1, MPI_INT, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comp_id, 0), comm_tag,
 					     compset_communicators_info_mgr->get_global_comm_group(), send_statuses);
 		}
-		MPI_Bcast(&remote_hand_tag, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+		MPI_Bcast(&remote_hand_tag, 1, MPI_INT, 0, local_communicator_info->comm_group);
 	}
 
 	if (local_hand_tag == 1 && remote_hand_tag == 1)
@@ -289,18 +291,18 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 		check_cfg_info_consistency();
 
 	if (num_dst_fields > 0 && num_src_fields == 0) {
-		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		if (local_communicator_info->current_proc_local_id == 0) {
 			MPI_Recv(remote_transfer_fields_cfg_file, NAME_STR_SIZE, MPI_CHAR, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name), 0), 
 				 	 comm_tag+10000, compset_communicators_info_mgr->get_global_comm_group(), &recv_statuses[0]);
 			MPI_Recv(fields_transfer_info_string, num_transfered_fields*10, MPI_CHAR, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name), 0), 
 				 	 comm_tag+10000, compset_communicators_info_mgr->get_global_comm_group(), &recv_statuses[0]);
 			for (int i = 0; i < num_transfered_fields; i ++) {
 				EXECUTION_REPORT(REPORT_ERROR, !currently_transferred_fields_mark[i] && fields_transfer_info_string[i*10] == 0 || currently_transferred_fields_mark[i] && fields_transfer_info_string[i*10] == 1,
-				                 "Please check configuration file \"%s\" and \"%s\": mismatch happens between components %s and %s when transferring %dth field", local_transfer_fields_cfg_file, remote_transfer_fields_cfg_file, compset_communicators_info_mgr->get_current_comp_name(), remote_comp_name, i);
+				                 "Please check configuration file \"%s\" and \"%s\": mismatch happens between components %s and %s when transferring %dth field", local_transfer_fields_cfg_file, remote_transfer_fields_cfg_file, local_communicator_info->comp_name, remote_comp_name, i);
 			}
 		}
 		if (i <= num_transfered_fields)
-			MPI_Bcast(fields_transfer_info_string, num_transfered_fields*10, MPI_CHAR, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+			MPI_Bcast(fields_transfer_info_string, num_transfered_fields*10, MPI_CHAR, 0, local_communicator_info->comm_group);
 	}
 
 	/* Allocate the memory buffer for each field */
@@ -330,7 +332,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 	}
 
 	if (num_src_fields > 0 && num_dst_fields == 0) {
-		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		if (local_communicator_info->current_proc_local_id == 0) {
 			for (i = 0; i < num_transfered_fields; i ++)
 				if (currently_transferred_fields_mark[i])
 					fields_transfer_info_string[i*10] = 1;
@@ -347,7 +349,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 			break;
 	fields_allocated = (i == num_transfered_fields);
 
-	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Barrier(local_communicator_info->comm_group);
 }
 
 
@@ -616,7 +618,7 @@ void Runtime_transfer_algorithm::sendrecv_data(bool is_algorithm_in_kernel_stage
 
 
     /* For each remote process,  pack the data and then send out the data */
-    local_comm = compset_communicators_info_mgr->get_current_comp_comm_group();
+    local_comm = local_communicator_info->comm_group;
     for (i = 0, offset = 0; i < num_remote_procs; i ++) {
         if (send_size_with_remote_procs[i] == 0)
             continue;
@@ -718,8 +720,8 @@ void Runtime_transfer_algorithm::check_cfg_info_consistency()
 	int remote_comp_id, remote_num_transfered_fields;
     
 
-	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() != 0) {
-		MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	if (local_communicator_info->current_proc_local_id != 0) {
+		MPI_Barrier(local_communicator_info->comm_group);
 		return;
 	}
 
@@ -784,7 +786,7 @@ void Runtime_transfer_algorithm::check_cfg_info_consistency()
 	
 	EXECUTION_REPORT(REPORT_LOG, true, "finish checking consistency of transfer configuration fields information in %s with remote component %s", local_transfer_fields_cfg_file, remote_comp_name);
 
-	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Barrier(local_communicator_info->comm_group);
 }
 
 
@@ -816,18 +818,21 @@ void Runtime_transfer_algorithm::generate_algorithm_info_from_cfg_file()
 		num_transfered_fields = num_fields_in_cfg;
 		num_src_fields = num_transfered_fields;
 		num_dst_fields = 0;
+		local_communicator_info = compset_communicators_info_mgr->get_communicator_info_by_name(compset_communicators_info_mgr->get_current_comp_name());
 	}
 	else if  (words_are_the_same(comm_direction, "recv")) {
 		num_transfered_fields = num_fields_in_cfg;
 		num_src_fields = 0;
 		num_dst_fields = num_transfered_fields;
+		local_communicator_info = compset_communicators_info_mgr->get_communicator_info_by_name(compset_communicators_info_mgr->get_current_comp_name());
 	}
 	else if  (words_are_the_same(comm_direction, "sendrecv")) {
 		num_src_fields = num_fields_in_cfg;
 		num_dst_fields = num_fields_in_cfg;
 		num_transfered_fields = 2 * num_fields_in_cfg;
-		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(remote_comp_name, compset_communicators_info_mgr->get_current_comp_name()),
+		EXECUTION_REPORT(REPORT_ERROR, compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name) != -1,
 						 "For the \"sendrecv\" data transfer algorithm, the remote component must be the same as the current component \"%s\"", compset_communicators_info_mgr->get_current_comp_name());
+		local_communicator_info = compset_communicators_info_mgr->get_communicator_info_by_name(remote_comp_name);
 	}
 	else EXECUTION_REPORT(REPORT_ERROR, false, "The type of runtime transfer algorithm must be one of \"send\", \"recv\" and \"sendrecv\". Please verify the configuration file %s", algorithm_cfg_name);
 
@@ -888,11 +893,11 @@ void Runtime_transfer_algorithm::exchange_comp_time_info()
     send_buffer[1] = local_comp_frequency;
 
     remote_comp_id = comps_transfer_time_info->remote_comp_id;
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+    if (local_communicator_info->current_proc_local_id == 0)
         MPI_Sendrecv(send_buffer, 2, MPI_LONG, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comp_id, 0), comm_tag,
                      recv_buffer, 2, MPI_LONG, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comp_id, 0), comm_tag,
                      compset_communicators_info_mgr->get_global_comm_group(), send_statuses);
-    MPI_Bcast(recv_buffer, 2, MPI_LONG, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+    MPI_Bcast(recv_buffer, 2, MPI_LONG, 0, local_communicator_info->comm_group);
     comps_transfer_time_info->remote_comp_time = recv_buffer[0];
     comps_transfer_time_info->remote_comp_frequency = recv_buffer[1];
     comps_transfer_time_info->local_comp_time = timer_mgr->get_current_full_time();

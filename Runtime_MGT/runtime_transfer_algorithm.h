@@ -16,6 +16,7 @@
 #include "remap_grid_class.h"
 #include "timer_mgt.h"
 #include "memory_mgt.h"
+#include "compset_communicators_info_mgt.h"
 
 
 class Runtime_transfer_algorithm: public Runtime_algorithm_basis
@@ -50,6 +51,7 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
 		char *fields_transfer_info_string;
 		bool is_remapping_rearrange_algorithm;
 		bool allocate_new_fields;
+		Component_communicator_info *local_communicator_info;
 
         void pack_MD_data(long, long, int*, int);
         void unpack_MD_data(int, int, int, long, int*);

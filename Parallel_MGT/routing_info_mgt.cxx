@@ -15,7 +15,7 @@
 #include <string.h>
 
 
-Routing_info *Routing_info_mgt::search_or_add_router(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
+Routing_info *Routing_info_mgt::search_or_add_router(const char *local_comp_name, const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
 {
     Routing_info *router;
 
@@ -24,7 +24,7 @@ Routing_info *Routing_info_mgt::search_or_add_router(const char *remote_comp_nam
     if (router != NULL)
         return router;
 
-    router = new Routing_info(remote_comp_name, local_decomp_name, remote_decomp_name);
+    router = new Routing_info(local_comp_name, remote_comp_name, local_decomp_name, remote_decomp_name);
     routers.push_back(router);
 
     return router;
@@ -49,7 +49,7 @@ Routing_info *Routing_info_mgt::search_router(const char *remote_comp_name, cons
 }
 
 
-Routing_info::Routing_info(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
+Routing_info::Routing_info(const char *local_comp_name, const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
 {
 	char tmp_remote_decomp_name[NAME_STR_SIZE];
 	int remote_root_proc_global_id;
@@ -61,7 +61,8 @@ Routing_info::Routing_info(const char *remote_comp_name, const char *local_decom
     strcpy(this->remote_comp_name, remote_comp_name);
     strcpy(this->local_decomp_name, local_decomp_name);
     strcpy(this->remote_decomp_name, remote_decomp_name);
-    local_comm_id = compset_communicators_info_mgr->get_current_comp_id();
+	local_communicator_info = compset_communicators_info_mgr->get_communicator_info_by_name(local_comp_name);
+    local_comm_id = local_communicator_info->comp_id;
     remote_comm_id = compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name);
 	
     if (words_are_the_same(local_decomp_name, "NULL")) {
@@ -72,7 +73,7 @@ Routing_info::Routing_info(const char *remote_comp_name, const char *local_decom
     }
     else if (local_comm_id != remote_comm_id) {
         num_dimensions = 2;
-		if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+		if (local_communicator_info->current_proc_local_id == 0) {
 			remote_root_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comm_id, 0);
 			global_comm_group = compset_communicators_info_mgr->get_global_comm_group();
 			MPI_Isend((char*)local_decomp_name, NAME_STR_SIZE, MPI_CHAR, remote_root_proc_global_id, 1000+local_comm_id, global_comm_group, &send_req);
@@ -80,7 +81,7 @@ Routing_info::Routing_info(const char *remote_comp_name, const char *local_decom
 			MPI_Wait(&send_req, &status);
 			MPI_Wait(&recv_req, &status);
 		}
-		MPI_Bcast(tmp_remote_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+		MPI_Bcast(tmp_remote_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, local_communicator_info->comm_group);
 		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(remote_decomp_name, tmp_remote_decomp_name), "the decompositions' names do not match when building router from %s to (%s, %s)\n",
 					 local_decomp_name, remote_comp_name, remote_decomp_name);
         build_2D_remote_router(local_decomp_name);
@@ -129,7 +130,7 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
     int **cell_indx_each_remote_proc; 
     MPI_Request *send_reqs, *recv_reqs;
     MPI_Status status;
-    int local_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(local_comm_id, compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group());
+    int local_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(local_comm_id, local_communicator_info->current_proc_local_id);
 
 
     decomp_info = decomps_info_mgr->search_decomp_info(decomp_name);
@@ -146,7 +147,7 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
     send_reqs = new MPI_Request [num_remote_procs];
     recv_reqs = new MPI_Request [num_remote_procs];
 
-	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Barrier(local_communicator_info->comm_group);
     
     for (i = 0; i < num_remote_procs; i ++) {
         remote_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(remote_comm_id, i);
@@ -190,7 +191,7 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
     delete [] send_reqs;
     delete [] recv_reqs;
 
-	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Barrier(local_communicator_info->comm_group);
 }
 
 
@@ -285,7 +286,7 @@ void Routing_info::build_2D_self_router(const char *decomp_name_remap, const cha
     int i;
 
 
-	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Barrier(local_communicator_info->comm_group);
     EXECUTION_REPORT(REPORT_LOG, true, "begin building 2D self router");
 
     decomp_remap = decomps_info_mgr->search_decomp_info(decomp_name_remap);
@@ -294,7 +295,7 @@ void Routing_info::build_2D_self_router(const char *decomp_name_remap, const cha
 
     num_local_cells_remap = decomp_remap->get_num_local_cells();
     num_local_cells_local = decomp_local->get_num_local_cells();
-    num_comp_procs = compset_communicators_info_mgr->get_num_procs_in_comp(compset_communicators_info_mgr->get_current_comp_id());
+    num_comp_procs = local_communicator_info->num_comp_procs;
     num_local_cells_all_remap = new int [num_comp_procs];
     num_local_cells_all_local = new int [num_comp_procs];
     displ_remap = new int [num_comp_procs];
@@ -302,8 +303,8 @@ void Routing_info::build_2D_self_router(const char *decomp_name_remap, const cha
 
 	EXECUTION_REPORT(REPORT_LOG, true, "in building 2D self router, before allgather");
 
-    MPI_Allgather(&num_local_cells_remap, 1, MPI_INT, num_local_cells_all_remap, 1, MPI_INT, compset_communicators_info_mgr->get_current_comp_comm_group());
-    MPI_Allgather(&num_local_cells_local, 1, MPI_INT, num_local_cells_all_local, 1, MPI_INT, compset_communicators_info_mgr->get_current_comp_comm_group());
+    MPI_Allgather(&num_local_cells_remap, 1, MPI_INT, num_local_cells_all_remap, 1, MPI_INT, local_communicator_info->comm_group);
+    MPI_Allgather(&num_local_cells_local, 1, MPI_INT, num_local_cells_all_local, 1, MPI_INT, local_communicator_info->comm_group);
 
 	EXECUTION_REPORT(REPORT_LOG, true, "in building 2D self router, after allgather");
 
@@ -320,25 +321,25 @@ void Routing_info::build_2D_self_router(const char *decomp_name_remap, const cha
     }
     local_cells_global_index_all_local = new int [num_total_cells];
     MPI_Allgatherv((int*)decomp_remap->get_local_cell_global_indx(), num_local_cells_remap, MPI_INT, local_cells_global_index_all_remap, 
-                   num_local_cells_all_remap, displ_remap, MPI_INT, compset_communicators_info_mgr->get_current_comp_comm_group());
+                   num_local_cells_all_remap, displ_remap, MPI_INT, local_communicator_info->comm_group);
     MPI_Allgatherv((int*)decomp_local->get_local_cell_global_indx(), num_local_cells_local, MPI_INT, local_cells_global_index_all_local, 
-                   num_local_cells_all_local, displ_local, MPI_INT, compset_communicators_info_mgr->get_current_comp_comm_group());
+                   num_local_cells_all_local, displ_local, MPI_INT, local_communicator_info->comm_group);
 
     EXECUTION_REPORT(REPORT_LOG, true, "before computing routing info for self router");
 
     for (i = 0; i < num_comp_procs; i ++) {
-        compute_routing_info_between_decomps(num_local_cells_local, decomp_local->get_local_cell_global_indx(), num_local_cells_all_remap[i], local_cells_global_index_all_remap+displ_remap[i], num_global_cells, compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), i);
+        compute_routing_info_between_decomps(num_local_cells_local, decomp_local->get_local_cell_global_indx(), num_local_cells_all_remap[i], local_cells_global_index_all_remap+displ_remap[i], num_global_cells, local_communicator_info->current_proc_local_id, i);
         remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = true;
     }
 
 	EXECUTION_REPORT(REPORT_LOG, true, "finish computing routing info for self router for sending");
 	
     for (i = 0; i < num_comp_procs; i ++) {
-        compute_routing_info_between_decomps(num_local_cells_remap, decomp_remap->get_local_cell_global_indx(), num_local_cells_all_local[i], local_cells_global_index_all_local+displ_local[i], num_global_cells, compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), i);
+        compute_routing_info_between_decomps(num_local_cells_remap, decomp_remap->get_local_cell_global_indx(), num_local_cells_all_local[i], local_cells_global_index_all_local+displ_local[i], num_global_cells, local_communicator_info->current_proc_local_id, i);
         remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = false;
     }
 
-	MPI_Barrier(compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Barrier(local_communicator_info->comm_group);
 	EXECUTION_REPORT(REPORT_LOG, true, "finish computing routing info for self router for receiving");
 }
 
@@ -361,7 +362,7 @@ int Routing_info::get_num_elements_transferred_with_remote_proc(bool is_send, in
     }
     else {
         if (is_send) {
-            if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+            if (local_communicator_info->current_proc_local_id == 0)
                 return 1;
             else return 0;
         }

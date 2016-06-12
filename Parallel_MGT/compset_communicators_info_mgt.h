@@ -43,7 +43,6 @@ class Comp_comm_group_mgt_global_node
 		char *temp_array_buffer;
 		int buffer_content_size;
 		int buffer_max_size;
-		int num_global_children;
 		bool definition_finalized;
 
 	public:
@@ -157,6 +156,7 @@ class Compset_communicators_info_mgt
 		MPI_Comm get_computing_node_comp_group() { return computing_node_comp_group; }
         void write_case_info(IO_netcdf*);
 		void register_component(const char*, const char*, MPI_Comm);
+		Component_communicator_info *get_communicator_info_by_name(const char*);
 };
 
 #endif

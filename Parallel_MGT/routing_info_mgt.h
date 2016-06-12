@@ -13,6 +13,7 @@
 
 #include "common_utils.h" 
 #include "decomp_info_mgt.h"
+#include "compset_communicators_info_mgt.h"
 #include <vector>
 
 
@@ -40,9 +41,10 @@ class Routing_info
         long local_decomp_size;
 		long remap_decomp_size;
         std::vector<Routing_info_with_one_process *> remote_procs_routing_info;
+		Component_communicator_info *local_communicator_info;
 
     public:
-        Routing_info(const char *, const char *, const char*);
+        Routing_info(const char*, const char *, const char *, const char*);
         ~Routing_info();
         int get_true_routing_info_index(bool, int);
         int get_num_remote_procs() { return remote_procs_routing_info.size(); }
@@ -71,7 +73,7 @@ class Routing_info_mgt
         Routing_info_mgt() {}
         ~Routing_info_mgt();
         Routing_info *search_router(const char*, const char*, const char*);
-        Routing_info *search_or_add_router(const char*, const char*, const char*);
+        Routing_info *search_or_add_router(const char*, const char*, const char*, const char*);
 };
 
 #endif

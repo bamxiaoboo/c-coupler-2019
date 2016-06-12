@@ -76,7 +76,7 @@ void Compset_communicators_info_mgt::load_in_compset(const char *current_comp_na
         comp_comm_info = new Component_communicator_info;
         EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_comm_info->comp_name, &local_line), "C-Coupler error1 in Compset_communicators_info_mgt::load_in_compset");
 		EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_comm_info->comp_type, &local_line), "C-Coupler error2 in Compset_communicators_info_mgt::load_in_compset");
-        comp_comm_info->comp_id = comps_comms_info.size() + 1;
+        comp_comm_info->comp_id = comps_comms_info.size();
         comps_comms_info.push_back(comp_comm_info);
         EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_OCN) ||
                      words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_LND) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_SEA_ICE) ||
@@ -111,6 +111,8 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(global_comm_group, &num_global_procs) == MPI_SUCCESS);
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(global_comm_group, current_comp_id, 0, &current_comp_comm_group) == MPI_SUCCESS);
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(current_comp_comm_group, &current_proc_local_id) == MPI_SUCCESS);
+	comps_comms_info[current_comp_id]->comm_group = current_comp_comm_group;
+	comps_comms_info[current_comp_id]->current_proc_local_id = current_proc_local_id;
 
     /* Gather all components' communication info */
     all_procs_global_ids = new int [num_global_procs];
@@ -218,12 +220,28 @@ void Compset_communicators_info_mgt::register_component(const char *comp_name, c
 	strcpy(comp_comm_info->comp_name, comp_name);
 	strcpy(comp_comm_info->comp_type, comp_type);
 	comp_comm_info->comm_group = comm;
+	comp_comm_info->comp_id = comps_comms_info.size();
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(comm, &comp_comm_info->num_comp_procs) == MPI_SUCCESS);
 	comp_comm_info->comp_procs_global_ids = new int [comp_comm_info->num_comp_procs];
     EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(global_comm_group, &current_proc_global_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, comp_comm_info->comp_procs_global_ids, 1, MPI_INT, comm) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(comm, &comp_comm_info->current_proc_local_id) == MPI_SUCCESS);
 	comps_comms_info.push_back(comp_comm_info);
+}
+
+
+Component_communicator_info *Compset_communicators_info_mgt::get_communicator_info_by_name(const char *comp_name)
+{
+	int i;
+	
+
+	for (i = 0; i < comps_comms_info.size(); i ++)
+		if (words_are_the_same(comps_comms_info[i]->comp_name, comp_name))
+			break;
+
+	EXECUTION_REPORT(REPORT_ERROR, i < comps_comms_info.size(), "Component with name \"%s\" has not been registered. Please verify", comp_name);
+	
+	return comps_comms_info[i];
 }
 
 
@@ -283,7 +301,6 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 	buffer_max_size = 1024;
 	temp_array_buffer = new char [buffer_max_size];
 	definition_finalized = false;
-	num_global_children = 0;
 
 	if (comm != -1) {
 		comm_group = comm;
@@ -453,8 +470,7 @@ Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_
 	else {
 		parent_local_node_id = -1; 
 		global_node = new Comp_comm_group_mgt_global_node(comp_name, comp_type, local_id, NULL, comm);
-	}
-	
+	}	
 }
 
 
@@ -496,7 +512,7 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_global_nod
 								 "Software error1 in Comp_comm_group_mgt_mgr::update_global_nodes");
 				EXECUTION_REPORT(REPORT_ERROR, new_global_node->get_child(j)->get_local_node_id() == -1, "Software error2 in Comp_comm_group_mgt_mgr::update_global_nodes");
 				new_global_node->get_child(j)->reset_local_node_id(old_global_node->get_child(i)->get_local_node_id());
-				local_nodes[old_global_node->get_child(i)->get_local_node_id()]->reset_global_node(new_global_node->get_child(j));
+				local_nodes[old_global_node->get_child(i)->get_local_node_id()&TYPE_ID_SUFFIX_MASK]->reset_global_node(new_global_node->get_child(j));
 				update_global_nodes(old_global_node->get_child(i), new_global_node->get_child(j));
 				break;
 			}
@@ -520,12 +536,13 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 
 int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, const char *annotation)
 {
-	int true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
+	int true_parent_id = 0;
 	Comp_comm_group_mgt_local_node *new_comp;
 
 	if (parent_local_id == -1)
 		parent_local_id = local_nodes[0]->get_local_node_id();
-	
+
+	true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
 	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(parent_local_id), 
 		             "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong",
 		             comp_name, comp_type, annotation);
@@ -551,6 +568,8 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id)
 		global_node_id = 0;
 		Comp_comm_group_mgt_global_node *new_root = new Comp_comm_group_mgt_global_node(global_node, NULL, global_node_id);
 		EXECUTION_REPORT(REPORT_ERROR, global_node->get_buffer_content_size() == 0, "Software error1 in Comp_comm_group_mgt_mgr::merge_comp_comm_info");
+		new_root->reset_local_node_id(global_node_root->get_local_node_id());
+		local_nodes[global_node_root->get_local_node_id()&TYPE_ID_SUFFIX_MASK]->reset_global_node(new_root);
 		update_global_nodes(global_node_root, new_root);
 		delete global_node_root;
 		global_node_root = new_root;

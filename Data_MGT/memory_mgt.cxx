@@ -358,7 +358,7 @@ void Memory_mgt::add_field_instance(Field_mem_info *field_instance, const char *
 								 field_instance->get_field_name(), fields_mem[i]->get_grid_name(), field_instance->get_grid_name(), cfg_name);
 			else EXECUTION_REPORT(REPORT_ERROR, check_right,
 								  "An instance of field \"%s\" has been allocated but its grid \"%s\" conflicts with the grid \"%s\" of the current field instance (The dimension numbers of the two grids are different). Please check the model code of the component \"%s\".", 
-								  field_instance->get_field_name(), fields_mem[i]->get_grid_name(), field_instance->get_grid_name(), compset_communicators_info_mgr->get_current_comp_name());
+								  field_instance->get_field_name(), fields_mem[i]->get_grid_name(), field_instance->get_grid_name(), field_instance->get_comp_name());
 		}
 	fields_mem.push_back(field_instance);
 }
@@ -433,8 +433,10 @@ void Memory_mgt::export_field_data(void *model_buf, const char *field_name, cons
 {
 	Field_mem_info *field_instance;
 
-	
-	field_instance = search_last_define_field(compset_communicators_info_mgr->get_current_comp_name(), decomp_name, grid_name, field_name, 0, false, NULL);
+
+	if (!words_are_the_same(decomp_name,"NULL"))
+		field_instance = search_last_define_field(decomps_info_mgr->search_decomp_info(decomp_name)->get_model_name(), decomp_name, grid_name, field_name, 0, false, NULL);
+	else field_instance = search_last_define_field(compset_communicators_info_mgr->get_current_comp_name(), decomp_name, grid_name, field_name, 0, false, NULL);
 	EXECUTION_REPORT(REPORT_ERROR, field_instance != NULL, "the field instance (\"%s\", \"%s\", \"%s\") does not exist and cannot export it to a data buffer. Please check.", field_name, decomp_name, grid_name);
 	EXECUTION_REPORT(REPORT_ERROR, field_instance->get_size_of_field() == data_size, "the size of the field instance (\"%s\", \"%s\", \"%s\") does not equal the size of the data buffer for exporting. Please verify.", field_name, decomp_name, grid_name);
 	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(field_instance->get_field_data()->get_grid_data_field()->data_type_in_application, data_type), 
@@ -473,7 +475,7 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	    }
 		if (!words_are_the_same(model_data_decomp_name,"NULL")) {
 	    	EXECUTION_REPORT(REPORT_ERROR, find_field_in_cfg, "field (%s %s) registered by model %s is not a legal field (not in the configuration file \"%s\". Please check the model code of component \"%s\".",
-	        		         model_data_field_name, model_data_decomp_name, compset_communicators_info_mgr->get_current_comp_name(), field_register_cfg_file, compset_communicators_info_mgr->get_current_comp_name());
+	        		         model_data_field_name, model_data_decomp_name, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), field_register_cfg_file, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name());
 			strcpy(local_grid_name, registered_fields_info[i]->grid_name);
 		}
 		else strcpy(local_grid_name, "NULL");
@@ -482,22 +484,38 @@ void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, con
 	
 	if (!words_are_the_same(local_grid_name, "NULL")) {
 		EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "\"%s\" has not been defined as a grid when allocating memory for the corresponding field instance. Please check the model code of component \"%s\".", 
-			             grid_name, compset_communicators_info_mgr->get_current_comp_name());
+			             grid_name, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name());
 		decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name), false);
 	}
 
     EXECUTION_REPORT(REPORT_LOG, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
-	EXECUTION_REPORT(REPORT_ERROR, search_registerred_field(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0) == NULL,
-					 "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been registerred more than once by component \"%s\"). Please check the model code. ", 
-					 model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
 
-    for (j = 0; j < fields_mem.size(); j ++)
-        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, NULL)) {
-            field_mem = fields_mem[j];
-            break;
-        }
+	if (!words_are_the_same(model_data_decomp_name,"NULL"))	
+		EXECUTION_REPORT(REPORT_ERROR, search_registerred_field(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0) == NULL,
+						 "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been registerred more than once by component \"%s\"). Please check the model code. ", 
+						 model_data_field_name, model_data_decomp_name, local_grid_name, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name());
+	else EXECUTION_REPORT(REPORT_ERROR, search_registerred_field(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0) == NULL,
+						  "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been registerred more than once by component \"%s\"). Please check the model code. ", 
+						  model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
+
+    for (j = 0; j < fields_mem.size(); j ++) {
+		if (!words_are_the_same(model_data_decomp_name,"NULL"))	{
+	        if (fields_mem[j]->match_field_mem(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, NULL)) {
+    	        field_mem = fields_mem[j];
+        	    break;
+        	}
+		}
+		else {
+	        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, NULL)) {
+    	        field_mem = fields_mem[j];
+        	    break;
+        	}
+		}
+    }
     if (j == fields_mem.size()) {
-        field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, false, field_register_cfg_file);
+		if (!words_are_the_same(model_data_decomp_name,"NULL"))
+	        field_mem = new Field_mem_info(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, false, field_register_cfg_file);
+		else field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, false, field_register_cfg_file);
 		if (field_mem->get_size_of_field() != 0)
 			EXECUTION_REPORT(REPORT_ERROR, model_data_buffer != NULL,
 					 		 "Model data buffer currently registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\") is not allocated by the model program",
@@ -567,10 +585,18 @@ void Memory_mgt::withdraw_model_data_buf(const char *model_data_decomp_name, con
     EXECUTION_REPORT(REPORT_LOG, true, "withdraw field (%s %s %s) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0);
 
     for (j = 0; j < fields_mem.size(); j ++)
-        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0, NULL)) {
-            field_mem = fields_mem[j];
-            break;
-        }
+		if (!words_are_the_same(model_data_decomp_name,"NULL"))	{
+	        if (fields_mem[j]->match_field_mem(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0, NULL)) {
+	            field_mem = fields_mem[j];
+	            break;
+	        }
+		}
+		else {
+			if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0, NULL)) {
+	            field_mem = fields_mem[j];
+	            break;
+	        }
+		}
     EXECUTION_REPORT(REPORT_ERROR, j < fields_mem.size() || field_mem->get_is_registered_model_buf(), "The field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") to be withdrawn has not been registered. Please check the model code of component \"%s\"", model_data_field_name, model_data_decomp_name, grid_name, compset_communicators_info_mgr->get_current_comp_name());
     
     fields_mem.erase(fields_mem.begin()+j);
