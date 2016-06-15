@@ -41,6 +41,7 @@ class Comp_comm_group_mgt_global_node
 		MPI_Comm comm_group;
 		std::vector<int> local_processes_global_ids;
 		int current_proc_local_id;
+		int current_proc_global_id;
 		char *temp_array_buffer;
 		int buffer_content_size;
 		int buffer_max_size;
@@ -65,6 +66,7 @@ class Comp_comm_group_mgt_global_node
 		void reset_local_node_id(int new_id) { local_node_id = new_id; }
 		Comp_comm_group_mgt_global_node *search_global_node(int);
 		bool is_definition_finalized() { return definition_finalized; }
+		void print_global_nodes();
 };
 
 
@@ -90,6 +92,7 @@ class Comp_comm_group_mgt_mgr
 		std::vector<Comp_comm_group_mgt_local_node*> local_nodes;
 		Comp_comm_group_mgt_global_node *global_node_root;
 		bool definition_finalized;
+		int current_proc_global_id;
         char experiment_model[NAME_STR_SIZE];
         char original_case_name[NAME_STR_SIZE];
         char current_case_name[NAME_STR_SIZE];
@@ -105,6 +108,7 @@ class Comp_comm_group_mgt_mgr
 		int register_component(const char*, const char*, MPI_Comm&, int);
 		void merge_comp_comm_info(int);
 		bool is_legal_local_comp_id(int);
+		bool is_local_comp_definition_finalized(int);
 		void update_global_nodes(Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node*);
 		Comp_comm_group_mgt_global_node *get_global_node_of_local_comp(int);
 		Comp_comm_group_mgt_global_node *get_global_node_of_global_comp(int);

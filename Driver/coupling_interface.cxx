@@ -557,18 +557,29 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	int flag;
 	MPI_Comm local_comm = -1;
 	int root_comp_id;
+	int current_proc_global_id;
 
 
 	push_annotation(annotation);
 	
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before.");  // add debug information
 	MPI_Initialized(&flag);
-	if (flag == 0)
+	if (flag == 0) {
+		EXECUTION_REPORT(REPORT_PROGRESS, true, "The root component \"%s\" is initializing MPI", comp_name);
 		MPI_Init(NULL, NULL);
+	}
+	
+	EXECUTION_REPORT(REPORT_PROGRESS, true, "Before MPI_barrier at root component %s for synchronizing all processes.", comp_name);
 	MPI_Barrier(MPI_COMM_WORLD);  // add debug information
+	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+	if (current_proc_global_id == 0)
+		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier at all root components");
 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(exp_model, case_name, case_desc, case_mode, comp_namelist,
                                 		current_config_time, original_case_name, original_config_time);
+
+	if (*comm != -1)
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(*comm) == MPI_SUCCESS);  // add debug information
 
 	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, local_comm, -1);
 
@@ -577,7 +588,6 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		int *input_comm_process_ids, *new_comm_process_ids, *temp_array;
 		int current_proc_global_id, current_proc_local_id;
 		MPI_Comm new_comm;
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(*comm) == MPI_SUCCESS);  // add debug information
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(*comm, &input_comm_size) == MPI_SUCCESS);
 		new_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(root_comp_id);
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(new_comm, &new_comm_size) == MPI_SUCCESS);
@@ -607,9 +617,12 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 extern "C" void register_component_(int *parent_local_id, const char *comp_name, const char *comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL);  // add debug information
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL, "please call interface CCPL_register_root_component before calling interface CCPL_register_component");  // add debug information
 	
 	push_annotation(annotation);
+
+
+	EXECUTION_REPORT(REPORT_ERROR, *parent_local_id != -1, "The component \"%s\" to be registerred must have a parent component. However, the value of parent id is -1, which means it does not have a parent.", comp_name);  // add debug info
 
 	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, *comm, *parent_local_id);
 
@@ -617,9 +630,9 @@ extern "C" void register_component_(int *parent_local_id, const char *comp_name,
 }
 
 
-extern "C" void end_registration(int *comp_id, const char * annotation)
+extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL);  // add debug information
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL, "please call interface CCPL_register_root_component before calling interface CCPL_end_registration");  // add debug information
 	
 	push_annotation(annotation);
 

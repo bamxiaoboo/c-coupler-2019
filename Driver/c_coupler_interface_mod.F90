@@ -2403,4 +2403,85 @@
 
 
 
+   integer FUNCTION CCPL_register_root_component(comp_comm, annotation)
+   use parse_compset_nml_mod
+   implicit none
+   integer                     :: rcode
+   integer,external            :: chdir   ! LINUX system call
+   integer                     :: comp_id
+   integer :: ierr
+   integer :: comp_comm
+   character(len=*), optional  :: annotation
+   character *1024             :: local_annotation
+   character *512    :: nml_filename
+   integer have_random_seed_for_perturb_roundoff_errors
+   logical mpi_running       ! returned value indicates if MPI_INIT has been called
+
+
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+
+   call getarg(1, nml_filename)
+   call parse_compset_nml(nml_filename)
+   rcode=chdir(comp_run_data_dir(1:len_trim(comp_run_data_dir))) ! change working dir of current component
+   open(unit=5,file=comp_model_nml ,status='UNKNOWN')            ! open the namelist of component and connect it to unit 5
+   open(unit=6,file=comp_log_filename,position='APPEND')         ! open the log file of component running and connect it to unit 6 
+   write(6,*) 'before call c++ interface'
+   flush(6)
+   call register_root_component(comp_comm, trim(component_name)//char(0), trim(component_name)//char(0), trim(local_annotation)//char(0), comp_id, &
+                        trim(exp_model)//char(0),trim(case_name)//char(0), trim(case_desc)//char(0), trim(run_type)//char(0), &
+                        trim(comp_model_nml)//char(0), trim(config_time)//char(0), &
+                        trim(original_case_name)//char(0), trim(original_config_time)//char(0))
+   CCPL_register_root_component = comp_id
+   END FUNCTION CCPL_register_root_component
+
+
+
+   integer FUNCTION CCPL_register_component(parent_id, comp_name, comp_type, comp_comm, annotation)
+   implicit none
+   integer                     :: parent_id
+   integer                     :: comp_id
+   character(len=*), optional  :: annotation
+   character *1024             :: local_annotation
+   integer                     :: comp_comm
+   character(len=*)            :: comp_name
+   character(len=*)            :: comp_type
+   
+
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+
+   call register_component(parent_id, trim(comp_name)//char(0), trim(comp_type)//char(0), comp_comm, trim(local_annotation)//char(0), comp_id)
+   CCPL_register_component = comp_id
+
+   END FUNCTION CCPL_register_component
+
+
+
+   SUBROUTINE CCPL_end_registration(comp_id, annotation)
+   implicit none
+   integer                     :: comp_id
+   character(len=*), optional  :: annotation
+   character *1024             :: local_annotation
+
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+
+   call end_registration(comp_id, local_annotation)
+
+   END SUBROUTINE CCPL_end_registration
+
+
+   SUBROUTINE CCPL_finalize()
+   include 'mpif.h'
+   integer ierr
+   call MPI_FINALIZE(ierr)
+   END SUBROUTINE  CCPL_finalize
+
  END MODULE c_coupler_interface_mod
