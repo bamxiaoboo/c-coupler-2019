@@ -551,7 +551,7 @@ extern "C" void coupling_register_component_(const char *comp_name, const char *
 
 
 extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *comp_type, const char *annotation, int *comp_id, 
-										const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
+										const char *excutable_name, const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
                                 		const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
 	int flag;
@@ -575,7 +575,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	if (current_proc_global_id == 0)
 		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier at all root components");
 
-	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(exp_model, case_name, case_desc, case_mode, comp_namelist,
+	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(excutable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
                                 		current_config_time, original_case_name, original_config_time);
 
 	if (*comm != -1)

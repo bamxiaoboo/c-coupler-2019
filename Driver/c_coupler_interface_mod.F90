@@ -2414,6 +2414,7 @@
    character(len=*), optional  :: annotation
    character *1024             :: local_annotation
    character *512    :: nml_filename
+   character *512    :: exe_name
    integer have_random_seed_for_perturb_roundoff_errors
    logical mpi_running       ! returned value indicates if MPI_INIT has been called
 
@@ -2423,6 +2424,7 @@
        local_annotation = annotation
    endif
 
+   call getarg(0, exe_name)
    call getarg(1, nml_filename)
    call parse_compset_nml(nml_filename)
    rcode=chdir(comp_run_data_dir(1:len_trim(comp_run_data_dir))) ! change working dir of current component
@@ -2431,7 +2433,7 @@
    write(6,*) 'before call c++ interface'
    flush(6)
    call register_root_component(comp_comm, trim(component_name)//char(0), trim(component_name)//char(0), trim(local_annotation)//char(0), comp_id, &
-                        trim(exp_model)//char(0),trim(case_name)//char(0), trim(case_desc)//char(0), trim(run_type)//char(0), &
+                        trim(exe_name)//char(0), trim(exp_model)//char(0),trim(case_name)//char(0), trim(case_desc)//char(0), trim(run_type)//char(0), &
                         trim(comp_model_nml)//char(0), trim(config_time)//char(0), &
                         trim(original_case_name)//char(0), trim(original_config_time)//char(0))
    CCPL_register_root_component = comp_id
@@ -2473,7 +2475,7 @@
        local_annotation = annotation
    endif
 
-   call end_registration(comp_id, local_annotation)
+   call end_registration(comp_id, trim(local_annotation)//char(0))
 
    END SUBROUTINE CCPL_end_registration
 

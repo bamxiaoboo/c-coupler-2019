@@ -260,6 +260,8 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(Comp_comm_group
 	int num_procs, proc_id, num_children;
 
 
+	buffer_node->read_data_from_array_buffer(annotation_end, NAME_STR_SIZE);
+	buffer_node->read_data_from_array_buffer(annotation_start, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(comp_name, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(comp_type, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm));
@@ -283,8 +285,8 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(Comp_comm_group
 		for (int i = 0; i < num_children; i ++)
 			for (int j = i+1; j < num_children; j ++)
 				EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(children[i]->comp_name, children[j]->comp_name), 
-								 "different children components of the same component cannot have the same name. Please check the registration of the component \"%s\" of the parent \"%s\"",
-								 children[i]->comp_name, comp_name);
+								 "different children components of the same component cannot have the same name. Please check the registration of the component \"%s\" %s %s",
+								 children[i]->comp_name, children[i]->annotation_start, children[j]->annotation_start);
 	}
 }
 
@@ -299,7 +301,8 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 	
 	strcpy(this->comp_name, comp_name);
 	strcpy(this->comp_type, comp_type);
-	strcpy(this->annotation, current_annotation);
+	get_annotation(this->annotation_start);
+	annotation_end[0] = '\0';
 	this->local_node_id = local_node_id;
 	this->global_node_id = -1;
 	this->parent = parent;
@@ -314,24 +317,25 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 		comm_group = comm;
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(comm, &proc_local_id) == MPI_SUCCESS);
 		if (proc_local_id == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "Before the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\"", comp_name);	
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(comm) == MPI_SUCCESS); // add debug info
+			EXECUTION_REPORT(REPORT_PROGRESS, true, "Before the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
+		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(comm) == MPI_SUCCESS);
 		if (proc_local_id == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "After the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\"", comp_name);	
+			EXECUTION_REPORT(REPORT_PROGRESS, true, "After the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
 		strcpy(temp_comp_name, comp_name);
 		strcpy(temp_comp_type, comp_type);
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(temp_comp_type, comp_type) && words_are_the_same(temp_comp_name, comp_name));  // add debug information
+		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(temp_comp_type, comp_type) && words_are_the_same(temp_comp_name, comp_name), "When registerring a component with an available communicator, the component name and type must be the same among all processes, while the name is different (<\"%s\", \"%s\"> VS <\"%s\", \"%s\">) %s",
+			             temp_comp_name, temp_comp_type, comp_name, comp_type, annotation_start);
 	}
 	else {
-		EXECUTION_REPORT(REPORT_ERROR, parent != NULL);
+		EXECUTION_REPORT(REPORT_ERROR, parent != NULL, "Software error in Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node for checking parent");
 		parent_comm = parent->get_comm_group();
 		if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components", parent->get_comp_name());	
+			EXECUTION_REPORT(REPORT_PROGRESS, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);	
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(parent_comm) == MPI_SUCCESS);
 		if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components", parent->get_comp_name());	
+			EXECUTION_REPORT(REPORT_PROGRESS, true, "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);	
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(parent_comm, &current_proc_local_id_in_parent) == MPI_SUCCESS);
 		all_comp_name = new char [NAME_STR_SIZE*num_procs];
@@ -347,7 +351,8 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 				for (j = 0; j < unique_comp_name.size(); j ++)
 					if (words_are_the_same(unique_comp_name[j], all_comp_name+i*NAME_STR_SIZE)) {
 						EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE), 
-							             "The type of the component \"%s\" is different among its processes. Please verify", unique_comp_name[j]);
+							             "The type of the component is different (\"%s\" vs \"%s\") among the processes of component \"%s\" %s. Please verify.", 
+							             unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE, unique_comp_name[j], annotation_start);
 						break;
 					}
 				if (j == unique_comp_name.size()) {
@@ -380,7 +385,9 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 				if (local_processes_global_ids[i] == parent->local_processes_global_ids[j])
 					break;
 			if (current_proc_local_id == 0)
-				EXECUTION_REPORT(REPORT_ERROR, j < parent->local_processes_global_ids.size(), "The processes of component \"%s\" must be a subset of the processes of its parent \"%s\"", comp_name, parent->get_comp_name());  // add debug information
+				EXECUTION_REPORT(REPORT_ERROR, j < parent->local_processes_global_ids.size(), 
+				                 "The processes of component \"%s\" %s must be a subset of the processes of its parent \"%s\" %s", 
+				                 comp_name, annotation_start, parent->get_comp_name(), parent->annotation_start);
 		}
 		parent->children.push_back(this);
 	}
@@ -401,6 +408,8 @@ void Comp_comm_group_mgt_global_node::transform_node_into_array()
 	write_data_into_array_buffer(&comm_group, sizeof(MPI_Comm));
 	write_data_into_array_buffer(comp_type, NAME_STR_SIZE);
 	write_data_into_array_buffer(comp_name, NAME_STR_SIZE);
+	write_data_into_array_buffer(annotation_start, NAME_STR_SIZE);
+	write_data_into_array_buffer(annotation_end, NAME_STR_SIZE);
 }
 
 
@@ -437,13 +446,19 @@ void Comp_comm_group_mgt_global_node::merge_comp_comm_info(bool is_root_node)
 	char *temp_buffer;
 	
 
-	EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "The registration related to component \"%s\" has been finalized before. It cannot be finalized again. Please verify.",
-		             comp_name);
+	if (strlen(current_annotation) != 0)
+		EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "The registration related to component \"%s\" has been finalized before %s. It cannot be finalized again (corresponding to the annotation \"%s\"). Please verify.",
+			             comp_name, annotation_end, current_annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "The registration related to component \"%s\" has been finalized before %s. It cannot be finalized again. Please verify.",
+			              comp_name, annotation_end); 
 	definition_finalized = true;
+
+	get_annotation(this->annotation_end);
+
 	for (int i = 0; i < children.size(); i ++)
 		EXECUTION_REPORT(REPORT_ERROR, children[i]->definition_finalized, 
-		                 "The registration related to component \"%s\" has not been finalized yet. So the registration related to its parent component \"%s\" cannot be finalized. Please verify.",
-		                 children[i]->comp_name, comp_name);
+		                 "The registration related to component \"%s\" %s has not been finalized yet. So the registration related to its parent component \"%s\" cannot be finalized. Please verify.",
+		                 children[i]->comp_name, children[i]->annotation_start, comp_name, annotation_end);
 
 	for (i = 0, num_children_at_root = 0; i < children.size(); i ++)
 		if (children[i]->current_proc_local_id == 0) {
@@ -541,10 +556,13 @@ Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_
 }
 
 
-Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *experiment_model, const char *case_name, 
+Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name, const char *experiment_model, const char *case_name, 
 	       const char *case_desc, const char *case_mode, const char *comp_namelist,
            const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
+	int i, j;
+
+	
 	local_nodes.clear();
 	global_node_root = NULL;
 	definition_finalized = false;
@@ -557,6 +575,13 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *experiment_model, c
 	strcpy(this->current_config_time, current_config_time);
 	strcpy(this->original_case_name, original_case_name);
 	strcpy(this->original_config_time, original_config_time);
+
+	for (i = strlen(executable_name)-1; i >= 0; i --)
+		if (executable_name[i] == '/')
+			break;
+	i ++;
+	EXECUTION_REPORT(REPORT_ERROR, i < strlen(executable_name), "Software error1 in Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr");
+	strcpy(this->executable_name, executable_name+i);
 
 	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 
@@ -626,14 +651,22 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 	int i, true_parent_id = 0;
 	Comp_comm_group_mgt_local_node *root_local_node, *new_comp;
 	MPI_Comm global_comm = MPI_COMM_WORLD;
+	char annotation[NAME_STR_SIZE];
 
 
-	EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "Cannot register component \"%s\" because the stage of registering coupling configurations has been ended", comp_name);
+
+	get_annotation(annotation);
+	
+	if (definition_finalized)
+		EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "Cannot register component \"%s\" %s because the stage of registering coupling configurations of the whole coupled model has been ended %s", comp_name, annotation, local_nodes[0]->get_global_node()->get_annotation_end());
+	
 	for (i = 0; i < local_nodes.size(); i ++)
 		if (words_are_the_same(local_nodes[i]->get_global_node()->get_comp_name(), comp_name))
 			break;
-	EXECUTION_REPORT(REPORT_ERROR, i == local_nodes.size(),  
-			"A component with the name \"%s\" has already been registered. The same name cannot be used for registerring another component", comp_name);  // add debug information
+		
+	if (i < local_nodes.size())
+		EXECUTION_REPORT(REPORT_ERROR, i == local_nodes.size(),  
+						 "A component with the name \"%s\" has already been registered %s. The same name cannot be used for registerring another component %s", comp_name, local_nodes[i]->get_global_node()->get_annotation_start(), annotation);
 
 	if (parent_local_id == -1) {
 		root_local_node = new Comp_comm_group_mgt_local_node("ROOT", "ROOT", NULL, global_comm, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);
@@ -644,11 +677,12 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(parent_local_id), 
-			             "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong",
-			             comp_name, comp_type, current_annotation);
-		EXECUTION_REPORT(REPORT_ERROR, !is_local_comp_definition_finalized(parent_local_id), "cannot register component %s because parent definition has been ended", comp_name);  // add debug info
+			             "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong %s",
+			             comp_name, comp_type, annotation);
 		true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
-		EXECUTION_REPORT(REPORT_ERROR, !local_nodes[true_parent_id]->get_global_node()->is_definition_finalized()); // add debug information
+		EXECUTION_REPORT(REPORT_ERROR, !local_nodes[true_parent_id]->get_global_node()->is_definition_finalized(), 
+			             "Cannot register component %s %s because the registration corresponding to the parent \"%s\" %s has been ended", 
+			             comp_name, annotation, local_nodes[true_parent_id]->get_global_node()->get_comp_name(), local_nodes[true_parent_id]->get_global_node()->get_annotation_end()); // add debug information
 		new_comp = new Comp_comm_group_mgt_local_node(comp_name, comp_type, local_nodes[true_parent_id], comm, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);
 		local_nodes.push_back(new_comp);
 	}
@@ -661,15 +695,18 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id)
 {
 	Comp_comm_group_mgt_global_node *global_node;
 	int true_local_id = (comp_local_id & TYPE_ID_SUFFIX_MASK), global_node_id;
+	char annotation[NAME_STR_SIZE];
 
 
-	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(comp_local_id), "The comp_local_id \"%x\" for ending the coupling registration is wrong. Please check %s", comp_local_id, current_annotation);
+	get_annotation(annotation);
+
+	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(comp_local_id), "The comp_local_id \"%x\" for ending the coupling registration is wrong. Please check %s", comp_local_id, annotation);
 	global_node = local_nodes[true_local_id]->get_global_node();
 	if (global_node->get_current_proc_local_id()== 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "Before MPI_barrier of ending the registration of component \"%s\"", global_node->get_comp_name());	
+		EXECUTION_REPORT(REPORT_PROGRESS, true, "Before MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);	
 	MPI_Barrier(global_node->get_comm_group());
 	if (global_node->get_current_proc_local_id()== 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier of ending the registration of component \"%s\"", global_node->get_comp_name());		
+		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);
 	global_node->merge_comp_comm_info(true_local_id == 0);
 
 	if (true_local_id == 1)
@@ -694,7 +731,12 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id)
 
 Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp(int local_comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(local_comp_id));  // add debug information
+	char annotation[NAME_STR_SIZE];
+
+
+	get_annotation(annotation);
+	
+	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(local_comp_id), "The id of component is wrong %s. Please verify.", annotation); 
 
 	return local_nodes[(local_comp_id&TYPE_ID_SUFFIX_MASK)]->get_global_node();
 }
@@ -702,11 +744,11 @@ Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_loc
 
 Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_global_comp(int global_comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, definition_finalized); // add debug information
+	EXECUTION_REPORT(REPORT_ERROR, definition_finalized, "Software error in Comp_comm_group_mgt_mgr::get_global_node_of_global_comp");
 		
 	Comp_comm_group_mgt_global_node *global_node = global_node_root->search_global_node(global_comp_id);
 	
-	EXECUTION_REPORT(REPORT_ERROR, global_node != NULL);  // add debug information
+	EXECUTION_REPORT(REPORT_ERROR, global_node != NULL, "Software error in Comp_comm_group_mgt_mgr::get_global_node_of_global_comp");  // add debug information
 	
 	return global_node;
 }

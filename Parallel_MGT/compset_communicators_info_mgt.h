@@ -35,7 +35,8 @@ class Comp_comm_group_mgt_global_node
 		int global_node_id;
 	    char comp_name[NAME_STR_SIZE];                // The name of component
     	char comp_type[NAME_STR_SIZE];	
-		char annotation[NAME_STR_SIZE];
+		char annotation_start[NAME_STR_SIZE];
+		char annotation_end[NAME_STR_SIZE];
 		Comp_comm_group_mgt_global_node *parent;
 		std::vector<Comp_comm_group_mgt_global_node*> children;
 		MPI_Comm comm_group;
@@ -67,6 +68,8 @@ class Comp_comm_group_mgt_global_node
 		Comp_comm_group_mgt_global_node *search_global_node(int);
 		bool is_definition_finalized() { return definition_finalized; }
 		void print_global_nodes();
+		const char *get_annotation_start() { return annotation_start; }
+		const char *get_annotation_end() { return annotation_end; }
 };
 
 
@@ -101,9 +104,10 @@ class Comp_comm_group_mgt_mgr
         char comp_namelist_filename[NAME_STR_SIZE];
 		char current_config_time[NAME_STR_SIZE];
 		char original_config_time[NAME_STR_SIZE];
+		char executable_name[NAME_STR_SIZE];
 
 	public:
-		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
+		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
 		~Comp_comm_group_mgt_mgr();
 		int register_component(const char*, const char*, MPI_Comm&, int);
 		void merge_comp_comm_info(int);
@@ -114,6 +118,7 @@ class Comp_comm_group_mgt_mgr
 		Comp_comm_group_mgt_global_node *get_global_node_of_global_comp(int);
 		MPI_Comm get_comm_group_of_local_comp(int);
 		MPI_Comm get_comm_group_of_global_comp(int);
+		const char *get_executable_name() { return executable_name; }
 };
 
 

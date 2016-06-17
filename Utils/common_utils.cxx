@@ -183,3 +183,11 @@ int get_num_fields_in_config_file(const char *config_file_name, const char *conf
 }
 
 
+void get_annotation(char *annotation)
+{	
+	if (strlen(current_annotation) > 0)
+		sprintf(annotation, "(corresponding to the source code of executable \"%s\" with the annotation of \"%s\")", comp_comm_group_mgt_mgr->get_executable_name(), current_annotation);
+	else sprintf(annotation, "(corresponding to the source code of executable \"%s\")", comp_comm_group_mgt_mgr->get_executable_name());
+}
+
+
