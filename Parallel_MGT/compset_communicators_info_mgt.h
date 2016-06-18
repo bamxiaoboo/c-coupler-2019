@@ -119,6 +119,7 @@ class Comp_comm_group_mgt_mgr
 		MPI_Comm get_comm_group_of_local_comp(int);
 		MPI_Comm get_comm_group_of_global_comp(int);
 		const char *get_executable_name() { return executable_name; }
+		const char *get_annotation() { return local_nodes[0]->get_global_node()->get_annotation_start(); }
 };
 
 
