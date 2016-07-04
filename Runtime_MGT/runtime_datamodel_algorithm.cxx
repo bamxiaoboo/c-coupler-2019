@@ -110,31 +110,31 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
 
 
     fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_DATAMODEL_ALG_DIR);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the type (such as \"datamodel_read\" and \"datamodel_write\") for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the type (such as \"datamodel_read\" and \"datamodel_write\") for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
     line_p = line;
-    EXECUTION_REPORT(REPORT_ERROR, get_next_attr(datamodel_type, &line_p), "Please specify the type (such as \"datamodel_read\" and \"datamodel_write\") for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datamodel_type, "datamodel_write") || words_are_the_same(datamodel_type, "datamodel_read") || words_are_the_same(datamodel_type, "datamodel_check"), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(datamodel_type, &line_p), "Please specify the type (such as \"datamodel_read\" and \"datamodel_write\") for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datamodel_type, "datamodel_write") || words_are_the_same(datamodel_type, "datamodel_read") || words_are_the_same(datamodel_type, "datamodel_check"), 
                      "The type of runtime data model algorithm must be \"datamodel_write\", \"datamodel_read\" or \"datamodel_check\". Please check configuration file \"%s\"", algorithm_cfg_name);
     if (words_are_the_same(datamodel_type, "datamodel_write"))
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(write_type, &line_p) && (words_are_the_same(write_type, "inst") || words_are_the_same(write_type, "aver")), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(write_type, &line_p) && (words_are_the_same(write_type, "inst") || words_are_the_same(write_type, "aver")), 
                      "For the data model for writing data, please specify the type of the data for writing: \"aver\" (average) or \"inst\" (instantaneous). Please verify the configuration file \"%s\"", algorithm_cfg_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(IO_file_type, fp_cfg), "Please specify the file type (such as \"netcdf\") for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(IO_file_type, FILE_TYPE_NETCDF), "Only the file type \"netcdf\" is supported for runtime data model algorithm currently. Please verify configuration file \"%s\". For the support of more file types, please contact liuli-cess@tsinghua.edu.cn", algorithm_cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the timer for triggering the execution of the runtime data model algorithm \"%s\"", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(IO_file_type, fp_cfg), "Please specify the file type (such as \"netcdf\") for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(IO_file_type, FILE_TYPE_NETCDF), "Only the file type \"netcdf\" is supported for runtime data model algorithm currently. Please verify configuration file \"%s\". For the support of more file types, please contact liuli-cess@tsinghua.edu.cn", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the timer for triggering the execution of the runtime data model algorithm \"%s\"", algorithm_cfg_name);
     line_p = line;
     io_timer = new Coupling_timer(&line_p, algorithm_cfg_name);
     if (words_are_the_same(datamodel_type, "datamodel_write")) {
-        EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the timer for changing file name for data writing by the runtime data model algorithm \"%s\".", algorithm_cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the timer for changing file name for data writing by the runtime data model algorithm \"%s\".", algorithm_cfg_name);
         line_p = line;
         change_file_timer = new Coupling_timer(&line_p, algorithm_cfg_name);
     }
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(fields_cfg_file_name, fp_cfg), "Please specify the configuration file of fields for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(fields_cfg_file_name, fp_cfg), "Please specify the configuration file of fields for the runtime data model algorithm \"%s\"", algorithm_cfg_name);
     FILE *fp_tmp = open_config_file(fields_cfg_file_name, RUNTIME_DATAMODEL_ALG_DIR);
     fclose(fp_tmp);
 
     if (words_are_the_same(datamodel_type, "datamodel_read")) {
-        EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the field read handler for the runtime data model algorithm \"%s\" that is for reading fields from input data files", algorithm_cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the field read handler for the runtime data model algorithm \"%s\" that is for reading fields from input data files", algorithm_cfg_name);
         field_read_handler = datamodel_field_read_handler_mgr->get_a_handler(line);
     }
 
@@ -156,21 +156,21 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
         datamodel_fields.push_back(datamodel_field);
         get_next_line(line, fp_cfg);
         line_p = line;
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_names[i], &line_p), "Please specify the component name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_names[i], &line_p), "Please specify the field name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_local_decomp_names[i], &line_p), "Please specify the parallel decomposition name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_grid_names[i], &line_p), "Please specify the grid name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
-        EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p, buf_marks[i]), "Please verify or specify the buffer label (an integer) for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(comp_names[i], &line_p), "Please specify the component name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(field_names[i], &line_p), "Please specify the field name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(field_local_decomp_names[i], &line_p), "Please specify the parallel decomposition name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(field_grid_names[i], &line_p), "Please specify the grid name for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_integer_attr(&line_p, buf_marks[i]), "Please verify or specify the buffer label (an integer) for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
         if (words_are_the_same(datamodel_type, "datamodel_write")) {
             if (words_are_the_same(write_type, "aver"))
                 average_mark[i] = true;
         }
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(datamodel_field->field_name_in_IO_file, &line_p), "Please specify the variable name in the data file for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(datamodel_field->field_name_in_IO_file, &line_p), "Please specify the variable name in the data file for the %dth field in the configuration file \"%s\"", i+1, fields_cfg_file_name);
         if (words_are_the_same(datamodel_type, "datamodel_write") || words_are_the_same(datamodel_type, "datamodel_read")) {
             if (words_are_the_same(datamodel_type, "datamodel_write"))
-                EXECUTION_REPORT(REPORT_ERROR, get_next_attr(datamodel_field->field_datatype_IO_file, &line_p), "For the runtime data model algorithm \"%s\" for writing data, please specify the data type in IO file of field \"%s\"\n", algorithm_cfg_name, field_names[i]);
+                EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(datamodel_field->field_datatype_IO_file, &line_p), "For the runtime data model algorithm \"%s\" for writing data, please specify the data type in IO file of field \"%s\"\n", algorithm_cfg_name, field_names[i]);
             /* NOTE!!! The data type should be determined automatically in C-Coupler2 */
-            else EXECUTION_REPORT(REPORT_ERROR, get_next_attr(datamodel_field->field_datatype_IO_file, &line_p), "For the runtime data model algorithm \"%s\" for reading data, please specify the data type of field \"%s\" in C-Coupler\n", algorithm_cfg_name, field_names[i]);
+            else EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(datamodel_field->field_datatype_IO_file, &line_p), "For the runtime data model algorithm \"%s\" for reading data, please specify the data type of field \"%s\" in C-Coupler\n", algorithm_cfg_name, field_names[i]);
             get_data_type_size(datamodel_field->field_datatype_IO_file);
             strcpy(datamodel_field->cfg_info_remain_line, line_p);
         }        
@@ -198,7 +198,7 @@ void Runtime_datamodel_algorithm::generate_algorithm_info_from_cfg_file()
             }
         }
         if (write_grid_name)
-            EXECUTION_REPORT(REPORT_LOG, true, "Datamodel algorithm \"%s\" will write grid name into the names of grid dimensions", algorithm_cfg_name);
+            EXECUTION_REPORT(REPORT_LOG,-1, true, "Datamodel algorithm \"%s\" will write grid name into the names of grid dimensions", algorithm_cfg_name);
     }
 }
 
@@ -221,8 +221,8 @@ void Runtime_datamodel_algorithm::allocate_one_field(int field_indx)
         if ((words_are_the_same(datamodel_fields[field_indx]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE) || words_are_the_same(datamodel_fields[field_indx]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT))
             && words_are_the_same(datamodel_fields[field_indx]->field_datatype_IO_file, DATA_TYPE_SHORT)) {
             char *line_p = datamodel_fields[field_indx]->cfg_info_remain_line;
-            EXECUTION_REPORT(REPORT_ERROR, get_next_double_attr(&line_p, datamodel_fields[field_indx]->add_offset), "Please specify or verify the offset value for transforming the data representations between float and short, for the %dth field in the configuration file \"%s\"", field_indx, algorithm_cfg_name);
-            EXECUTION_REPORT(REPORT_ERROR, get_next_double_attr(&line_p, datamodel_fields[field_indx]->scale_factor), "Please specify or verify the scale factor value for transforming the data representations between float and short, for the %dth field in the configuration file \"%s\"", field_indx, algorithm_cfg_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, get_next_double_attr(&line_p, datamodel_fields[field_indx]->add_offset), "Please specify or verify the offset value for transforming the data representations between float and short, for the %dth field in the configuration file \"%s\"", field_indx, algorithm_cfg_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, get_next_double_attr(&line_p, datamodel_fields[field_indx]->scale_factor), "Please specify or verify the scale factor value for transforming the data representations between float and short, for the %dth field in the configuration file \"%s\"", field_indx, algorithm_cfg_name);
             datamodel_fields[field_indx]->have_scale_factor = true;
         }
     }    
@@ -244,7 +244,7 @@ void Runtime_datamodel_algorithm::allocate_src_dst_fields(bool is_algorithm_in_k
                 continue;
             allocate_one_field(i);
             datamodel_fields[i]->field_data_mem = add_one_field_for_cumulate_average(datamodel_fields[i]->field_data_mem, io_timer);
-            EXECUTION_REPORT(REPORT_LOG, true, "automatically average field \"%s\" in runtime data algorithm \"%s\"", field_names[i], algorithm_cfg_name);
+            EXECUTION_REPORT(REPORT_LOG,-1, true, "automatically average field \"%s\" in runtime data algorithm \"%s\"", field_names[i], algorithm_cfg_name);
         }
     }
 
@@ -273,7 +273,7 @@ void Runtime_datamodel_algorithm::datamodel_read()
 
     last_read_full_time = timer_mgr->get_current_full_time();
 
-    EXECUTION_REPORT(REPORT_LOG, true, "finish field read for runtime data model algorithm \"%s\"", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish field read for runtime data model algorithm \"%s\"", algorithm_cfg_name);
     for (int i = 0; i < datamodel_fields.size(); i++)
         datamodel_fields[i]->field_data_mem->check_field_sum();
 }
@@ -309,12 +309,12 @@ void Runtime_datamodel_algorithm::datamodel_check()
            is_arrays_different = differ_two_arrays_accurately((float *)temp_field_data->get_grid_data_field()->data_buf, (float *)datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->data_buf, field_size);
         else if (words_are_the_same(datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE))
            is_arrays_different = differ_two_arrays_accurately((double *)temp_field_data->get_grid_data_field()->data_buf, (double *)datamodel_fields[i]->field_data_mem->get_field_data()->get_grid_data_field()->data_buf, field_size);
-        else EXECUTION_REPORT(REPORT_ERROR, false, "Data type is not supported when checking in data model");
+        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "Data type is not supported when checking in data model");
         
         if (is_arrays_different)
-            EXECUTION_REPORT(REPORT_LOG, true, "check (%s, \"%s\") different", IO_file_name, datamodel_fields[i]->field_name_in_IO_file);
+            EXECUTION_REPORT(REPORT_LOG,-1, true, "check (%s, \"%s\") different", IO_file_name, datamodel_fields[i]->field_name_in_IO_file);
         else
-            EXECUTION_REPORT(REPORT_LOG, true, "check (%s, \"%s\") OK", IO_file_name, datamodel_fields[i]->field_name_in_IO_file);
+            EXECUTION_REPORT(REPORT_LOG,-1, true, "check (%s, \"%s\") OK", IO_file_name, datamodel_fields[i]->field_name_in_IO_file);
         datamodel_fields[i]->field_data_mem->use_field_values(fields_cfg_file_name);
         delete netcdf_file_object;
         delete temp_field_data;
@@ -412,9 +412,9 @@ Datamodel_field_read_handler::Datamodel_field_read_handler(const char *cfg_name)
     strcpy(handler_name, cfg_name);
     fp_cfg = open_config_file(cfg_name, RUNTIME_DATAMODEL_ALG_DIR);    
     
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg),  "The pattern of names of the files for data reading must be specified in field read handler \"%s\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg),  "The pattern of names of the files for data reading must be specified in field read handler \"%s\"", cfg_name);
     line_p = line;
-    EXECUTION_REPORT(REPORT_ERROR, get_next_attr(str, &line_p), "The pattern of names of the files for data reading must be specified in field read handler \"%s\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(str, &line_p), "The pattern of names of the files for data reading must be specified in field read handler \"%s\"", cfg_name);
     for (i = strlen(str)-1; i >= 0; i --)
         if (str[i] == '/')
             break;
@@ -426,47 +426,47 @@ Datamodel_field_read_handler::Datamodel_field_read_handler(const char *cfg_name)
     }
     strcpy(file_name_pattern, str+i+1);
     for (i = 0; i < strlen(file_dir); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, file_dir[i] != '*', "The directory intra the file name pattern for the field read handler \"%s\" has \"*\", which is not allowed. Please verify.", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, file_dir[i] != '*', "The directory intra the file name pattern for the field read handler \"%s\" has \"*\", which is not allowed. Please verify.", cfg_name);
     for (i = 0, num_stars = 0; i < strlen(file_name_pattern); i ++)
         if (file_name_pattern[i] == '*')
             num_stars ++;
-    EXECUTION_REPORT(REPORT_ERROR, num_stars < 2, "The file name intra the file name pattern for the field read handler \"%s\" can have at most one \"*\". Please verify.", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_stars < 2, "The file name intra the file name pattern for the field read handler \"%s\" can have at most one \"*\". Please verify.", cfg_name);
         
     if (!get_next_attr(time_format_type_in_file_name, &line_p)) {
         time_format_type_in_file_name[0] = '\0';
         id_time_format_in_file_name = -1;
-        EXECUTION_REPORT(REPORT_ERROR, num_stars == 0, "For the field read handler \"%s\", as the specified file name pattern contains \"*\", the time format for the file name must be specified. Please verify.", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_stars == 0, "For the field read handler \"%s\", as the specified file name pattern contains \"*\", the time format for the file name must be specified. Please verify.", cfg_name);
     }
     else {
         id_time_format_in_file_name = check_time_format(time_format_type_in_file_name, "in the name of input data files");
-        EXECUTION_REPORT(REPORT_ERROR, num_stars == 1, "For the field read handler \"%s\", as the specified file name pattern does not contain \"*\", the time format for the file name must not be specified. Please verify the file name pattern or the time format.", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_stars == 1, "For the field read handler \"%s\", as the specified file name pattern does not contain \"*\", the time format for the file name must not be specified. Please verify the file name pattern or the time format.", cfg_name);
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the period for the field read handler \"%s\". The period must be one of \"none\", \"year\", \"month\", and \"day\"", cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(line, "none") || words_are_the_same(line, "year") || words_are_the_same(line, "month") || words_are_the_same(line, "day"), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the period for the field read handler \"%s\". The period must be one of \"none\", \"year\", \"month\", and \"day\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(line, "none") || words_are_the_same(line, "year") || words_are_the_same(line, "month") || words_are_the_same(line, "day"), 
                      "The period of a field read handler must be one of \"none\", \"year\", \"month\", and \"day\". Please verify the configuration file \"%s\"", cfg_name);
     if (words_are_the_same(line, "none"))
         period = 0;
     else if (words_are_the_same(line, "year")) {
         period = 1;
-        EXECUTION_REPORT(REPORT_ERROR, !timer_mgr->get_is_leap_year_on(), "For the simulation using cyclic yearly input data, leap year must be disabled. Please check the configuration file \"%s\"", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, !timer_mgr->get_is_leap_year_on(), "For the simulation using cyclic yearly input data, leap year must be disabled. Please check the configuration file \"%s\"", cfg_name);
     }
     else if (words_are_the_same(line, "month"))
         period = 2;
     else period = 3;
 
     if (period == 0) {
-        EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the time offset of field read handler \"%s\". Please specify \"0\" if there is no time offset", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the time offset of field read handler \"%s\". Please specify \"0\" if there is no time offset", cfg_name);
         line_p = line;
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(time_offset_str, &line_p),    "C-Coupler error in Datamodel_field_read_handler::Datamodel_field_read_handler");
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(time_offset_str, &line_p),    "C-Coupler error in Datamodel_field_read_handler::Datamodel_field_read_handler");
         if (words_are_the_same(time_offset_str, "0")) {
             time_offset = 0;
             id_time_format_time_offset = -1;
         }
         else {
-            EXECUTION_REPORT(REPORT_ERROR, get_next_attr(time_offset_format, &line_p), "Please specify the format of time offset when the time offset is not \"0\" in field read handler \"%s\"", cfg_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(time_offset_format, &line_p), "Please specify the format of time offset when the time offset is not \"0\" in field read handler \"%s\"", cfg_name);
             id_time_format_time_offset = check_time_format(time_offset_format, "time offset");
-            EXECUTION_REPORT(REPORT_ERROR, id_time_format_time_offset != TIME_FORMAT_HHMMSS && id_time_format_time_offset != TIME_FORMAT_SSSSS && 
+            EXECUTION_REPORT(REPORT_ERROR,-1, id_time_format_time_offset != TIME_FORMAT_HHMMSS && id_time_format_time_offset != TIME_FORMAT_SSSSS && 
                              id_time_format_time_offset != TIME_FORMAT_YYYYMMDDSSSSS && id_time_format_time_offset != TIME_FORMAT_YYYYMMDDHHMMSS &&
                              id_time_format_time_offset != TIME_FORMAT_MMDDHH && id_time_format_time_offset != TIME_FORMAT_MMDDHHMM &&
                              id_time_format_time_offset != TIME_FORMAT_MMDDHHMMSS && id_time_format_time_offset != TIME_FORMAT_MMDDSSSSS &&
@@ -474,9 +474,9 @@ Datamodel_field_read_handler::Datamodel_field_read_handler(const char *cfg_name)
                              id_time_format_time_offset != TIME_FORMAT_DDHHMMSS && id_time_format_time_offset != TIME_FORMAT_DDSSSSS, 
                              "The time format \"%s\" is legal but not supported for time offset. Please check the field read handler \"%s\"", time_offset_format, handler_name);        
             if (time_offset_str[0] == '-')
-                EXECUTION_REPORT(REPORT_ERROR, get_time_from_string(time_offset_str+1, time_offset_format, id_time_format_time_offset, strlen(time_offset_str+1), false, date, second_in_day),
+                EXECUTION_REPORT(REPORT_ERROR,-1, get_time_from_string(time_offset_str+1, time_offset_format, id_time_format_time_offset, strlen(time_offset_str+1), false, date, second_in_day),
                                  "The time offset \"%s\" specified for field read handler \"%s\" is wrong (does not match the specified format). Please check.", time_offset_str, handler_name);
-            else EXECUTION_REPORT(REPORT_ERROR, get_time_from_string(time_offset_str, time_offset_format, id_time_format_time_offset, strlen(time_offset_str), false, date, second_in_day),
+            else EXECUTION_REPORT(REPORT_ERROR,-1, get_time_from_string(time_offset_str, time_offset_format, id_time_format_time_offset, strlen(time_offset_str), false, date, second_in_day),
                                  "The time offset  \"%s\" specified for field read handler \"%s\" is wrong (does not match the specified format). Please check.", time_offset_str, handler_name);
             time_offset = date;
             if (id_time_format_time_offset == TIME_FORMAT_YYYY)
@@ -486,9 +486,9 @@ Datamodel_field_read_handler::Datamodel_field_read_handler(const char *cfg_name)
             if (time_offset_str[0] == '-')
                 time_offset = -time_offset;
         }
-        EXECUTION_REPORT(REPORT_LOG, true, "The time offset specified in field read handler \"%s\" is %d", handler_name, time_offset);
+        EXECUTION_REPORT(REPORT_LOG,-1, true, "The time offset specified in field read handler \"%s\" is %d", handler_name, time_offset);
         if (time_offset != 0)
-            EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_is_time_legal(abs(time_offset)/10000, (abs(time_offset)%10000/100), abs(time_offset)%100, 0, NULL),
+            EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_is_time_legal(abs(time_offset)/10000, (abs(time_offset)%10000/100), abs(time_offset)%100, 0, NULL),
                              "The time offset specified for the field read handler \"%s\" is not legal. Please check.", handler_name);
         if (time_offset != 0)
             offset_num_elapsed_day = timer_mgr->calculate_elapsed_day((abs(time_offset))/10000, ((abs(time_offset))%10000)/100, ((abs(time_offset))%100));
@@ -498,27 +498,27 @@ Datamodel_field_read_handler::Datamodel_field_read_handler(const char *cfg_name)
     }
     else offset_num_elapsed_day = 0;
     
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the number of time fields (the fields with time information such as date and second) in the input data files of field read handler \"%s\"", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the number of time fields (the fields with time information such as date and second) in the input data files of field read handler \"%s\"", cfg_name);
     line_p = line;
-    EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p, num_time_field), "Please verify the number of time fields (the fields with time information such as date and second) in the input data files of field read handler \"%s\". \"%s\" is a not a number (integer).", cfg_name, line);
-    EXECUTION_REPORT(REPORT_LOG, true, "The number of time fields specified in field read handler \"%s\" is %d", handler_name, num_time_field);
-    EXECUTION_REPORT(REPORT_ERROR, num_time_field >= 0 && num_time_field <= 16, "The number of time fields (the fields with time information such as date and second) in the input data files of field read handler \"%s\" must be between 0 and 16. Please check.", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_integer_attr(&line_p, num_time_field), "Please verify the number of time fields (the fields with time information such as date and second) in the input data files of field read handler \"%s\". \"%s\" is a not a number (integer).", cfg_name, line);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "The number of time fields specified in field read handler \"%s\" is %d", handler_name, num_time_field);
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_time_field >= 0 && num_time_field <= 16, "The number of time fields (the fields with time information such as date and second) in the input data files of field read handler \"%s\" must be between 0 and 16. Please check.", cfg_name);
     if (num_time_field > 0) {
         for (i = 0; i < num_time_field; i ++) {
-            EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "The time fields specified in the configuration file of field read handler \"%s\" is not enough (does not match the specified number of time fields)", cfg_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "The time fields specified in the configuration file of field read handler \"%s\" is not enough (does not match the specified number of time fields)", cfg_name);
             line_p = line;
-            EXECUTION_REPORT(REPORT_ERROR, get_next_attr(time_field_name[i], &line_p),  "C-Coupler error in Datamodel_field_read_handler::Datamodel_field_read_handler");
-            EXECUTION_REPORT(REPORT_ERROR, get_next_attr(time_field_format[i], &line_p),  "The format for time field \"%s\" is not specified in the configuration file of field read handler \"%s\". Please check", time_field_name[i], cfg_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(time_field_name[i], &line_p),  "C-Coupler error in Datamodel_field_read_handler::Datamodel_field_read_handler");
+            EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(time_field_format[i], &line_p),  "The format for time field \"%s\" is not specified in the configuration file of field read handler \"%s\". Please check", time_field_name[i], cfg_name);
             sprintf(report_hint, "time field \"%s\"", time_field_name[i]);
             time_field_format_id[i] = check_time_format(time_field_format[i], report_hint);
         }
         for (i = 0; i < num_time_field; i ++)
             for (j = i+1; j < num_time_field; j ++)
-                EXECUTION_REPORT(REPORT_ERROR, (time_field_format_id[i]&time_field_format_id[j]) == 0, "The format of two time fields (\"%s\" and \"%s\") in input data files specified for runtime datamodel algorithm \"%s\" have overlaps. Please verify.", time_field_name[i], time_field_name[j], handler_name);
+                EXECUTION_REPORT(REPORT_ERROR,-1, (time_field_format_id[i]&time_field_format_id[j]) == 0, "The format of two time fields (\"%s\" and \"%s\") in input data files specified for runtime datamodel algorithm \"%s\" have overlaps. Please verify.", time_field_name[i], time_field_name[j], handler_name);
         full_time_format = 0;
         for (i = 0; i < num_time_field; i ++)
             full_time_format = (full_time_format | time_field_format_id[i]);
-        EXECUTION_REPORT(REPORT_ERROR, full_time_format==TIME_FORMAT_HHMMSS || full_time_format==TIME_FORMAT_SSSSS || full_time_format==TIME_FORMAT_YYYY || full_time_format==TIME_FORMAT_YYYYMM || 
+        EXECUTION_REPORT(REPORT_ERROR,-1, full_time_format==TIME_FORMAT_HHMMSS || full_time_format==TIME_FORMAT_SSSSS || full_time_format==TIME_FORMAT_YYYY || full_time_format==TIME_FORMAT_YYYYMM || 
                          full_time_format==TIME_FORMAT_YYYYMMDD || full_time_format==TIME_FORMAT_YYYYMMDDHHMMSS || full_time_format==TIME_FORMAT_YYYYMMDDSSSSS || full_time_format==TIME_FORMAT_MMDDHH ||
                          full_time_format==TIME_FORMAT_MMDDHHMM || full_time_format==TIME_FORMAT_MMDDHHMMSS || full_time_format==TIME_FORMAT_MMDDSSSSS || full_time_format==TIME_FORMAT_HH || 
                          full_time_format==TIME_FORMAT_HHMM || full_time_format==TIME_FORMAT_DDHH || full_time_format==TIME_FORMAT_DDHHMM || full_time_format==TIME_FORMAT_DDHHMMSS || 
@@ -527,12 +527,12 @@ Datamodel_field_read_handler::Datamodel_field_read_handler(const char *cfg_name)
     }
 	else full_time_format = id_time_format_in_file_name;
 	if (period == 0)
-		EXECUTION_REPORT(REPORT_ERROR, full_time_format == TIME_FORMAT_YYYY || full_time_format == TIME_FORMAT_YYYYMM || full_time_format == TIME_FORMAT_YYYYMMDD ||
+		EXECUTION_REPORT(REPORT_ERROR,-1, full_time_format == TIME_FORMAT_YYYY || full_time_format == TIME_FORMAT_YYYYMM || full_time_format == TIME_FORMAT_YYYYMMDD ||
 		                 full_time_format == TIME_FORMAT_YYYYMMDDHH || full_time_format == TIME_FORMAT_YYYYMMDDHHMM || full_time_format == TIME_FORMAT_YYYYMMDDHHMMSS ||
 		                 full_time_format == TIME_FORMAT_YYYYMMDDSSSSS, "The time information for the field read handler \"%s\" does not contain the number of years. Therefore the handler cannot be cyclic. Please verify", handler_name);
 
     if (get_next_line(line, fp_cfg)) {
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(line, "start") || words_are_the_same(line, "middle") || words_are_the_same(line, "end"), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(line, "start") || words_are_the_same(line, "middle") || words_are_the_same(line, "end"), 
                          "The position of default time must be one of \"start\", \"middle\" and \"end\". Please check the configuration of field read handler \"%s\"", handler_name);
         if (words_are_the_same(line, "start"))
             default_time_pos = 1;
@@ -552,9 +552,9 @@ int Datamodel_field_read_handler::register_read_info_for_a_field(Field_mem_info 
 
     
     if (remap_weights != NULL)
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(field_instance->get_grid_name(),remap_weights->get_data_grid_dst()->get_grid_name()), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(field_instance->get_grid_name(),remap_weights->get_data_grid_dst()->get_grid_name()), 
                          "C-Coupler error in Datamodel_field_read_handler::register_read_info_for_a_field");
-    EXECUTION_REPORT(REPORT_ERROR, remap_weights == NULL, "Data interpolation in field read function of runtime data model algorithm is not supported currently. Please contact liuli-cess@tsinghua.edu.cn");
+    EXECUTION_REPORT(REPORT_ERROR,-1, remap_weights == NULL, "Data interpolation in field read function of runtime data model algorithm is not supported currently. Please contact liuli-cess@tsinghua.edu.cn");
 
     for (int i = 0; i < fields_read_info.size(); i ++)
         if (fields_read_info[i].output_field_instance == field_instance) {
@@ -575,7 +575,7 @@ int Datamodel_field_read_handler::register_read_info_for_a_field(Field_mem_info 
     if (remap_weights == NULL)
         read_info.temp_field_readin = alloc_mem(field_instance->get_comp_name(), field_instance->get_decomp_name(), field_instance->get_grid_name(), field_instance->get_field_name(), data_type, buf_mark_readin, false, "  C-Coupler error  ");
     else {
-        EXECUTION_REPORT(REPORT_ERROR, false, "data remapping in field read handler is not supported currently.");
+        EXECUTION_REPORT(REPORT_ERROR,-1, false, "data remapping in field read handler is not supported currently.");
         /* Note that remapping is not supported because the default parallel decomposition is not good */
     }
     strcpy(read_info.temp_field_before_time_remap_left->get_field_data()->get_grid_data_field()->field_name_in_IO_file, field_instance->get_field_data()->get_grid_data_field()->field_name_in_IO_file);
@@ -644,7 +644,7 @@ int Datamodel_field_read_handler::check_time_format(const char *time_format, con
         id_time_format = TIME_FORMAT_MMDDHH;
     else if (words_are_the_same(time_format, "DD.HH") || words_are_the_same(time_format, "DD-HH") || words_are_the_same(time_format, "DDHH"))
         id_time_format = TIME_FORMAT_DDHH;
-    else EXECUTION_REPORT(REPORT_ERROR, false, "The time format \"%s\" for \"%s\" of field read handler \"%s\" is incorrect", time_format, report_hint, handler_name);
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "The time format \"%s\" for \"%s\" of field read handler \"%s\" is incorrect", time_format, report_hint, handler_name);
 
     return id_time_format;
 }
@@ -878,7 +878,7 @@ bool Datamodel_field_read_handler::get_time_from_string(const char *str_in_fname
         minute = 0;
         second = 0;
 	}
-    else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error1 in get_time_from_string");
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error1 in get_time_from_string");
 
     date = year*10000 + month*100 + day;
     second_in_day = hour*3600+minute*60+second;    
@@ -901,7 +901,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
 
     for (i = 0; i < strlen(file_name_pattern); i ++)
         if (file_name_pattern[i] == '*') {
-            EXECUTION_REPORT(REPORT_ERROR, star_pos_in_fname_pattern == -1, "C-Coupler error1 in initialize_time_filename_map");
+            EXECUTION_REPORT(REPORT_ERROR,-1, star_pos_in_fname_pattern == -1, "C-Coupler error1 in initialize_time_filename_map");
             star_pos_in_fname_pattern = i;
         }
 
@@ -913,7 +913,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
             if(strcmp(ent->d_name + (size - (strlen(file_name_pattern)-star_pos_in_fname_pattern-1)), file_name_pattern+star_pos_in_fname_pattern+1) != 0 ||
                 strncmp(ent->d_name, file_name_pattern, star_pos_in_fname_pattern) != 0 || !get_time_from_string(ent->d_name+star_pos_in_fname_pattern, time_format_type_in_file_name, id_time_format_in_file_name, size-strlen(file_name_pattern)+1, true, date, second_in_day))
                 continue;
-            EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_is_time_legal(date/10000, (date%10000/100), date%100, second_in_day, NULL),
+            EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_is_time_legal(date/10000, (date%10000/100), date%100, second_in_day, NULL),
                              "The time implicitly included in the name of input data file \"%s\" is not legal. Please check.", ent->d_name);            
             time_location.date = date;
             time_location.second_in_day = second_in_day;
@@ -924,7 +924,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
         }
     }
     else {
-        EXECUTION_REPORT(REPORT_WARNING, false, "only one input data file \"%s\" is specified for field read handler \"%s\"", file_name_pattern, handler_name);
+        EXECUTION_REPORT(REPORT_WARNING, -1, false, "only one input data file \"%s\" is specified for field read handler \"%s\"", file_name_pattern, handler_name);
         time_location.date = -1;
         time_location.second_in_day = -1;
         time_location.time_dim_num = -1;
@@ -948,7 +948,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
     }
     else if (time_filename_map_unsorted.size() == 1)
         time_filename_map_sorted.push_back(time_filename_map_unsorted[0]);
-    else EXECUTION_REPORT(REPORT_ERROR, false, "None input data file corresponding to field read handler \"%s\" can be found. Please check the file name pattern or the time format.", handler_name);
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "None input data file corresponding to field read handler \"%s\" can be found. Please check the file name pattern or the time format.", handler_name);
 
     if (num_time_field > 0) {
         for (i = 0; i < time_filename_map_sorted.size(); i ++) {
@@ -961,9 +961,9 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
                 ncfile_handler->read_file_field(time_field_name[j], &data_array, &num_dims, &dim_size, data_type);
                 printf("read for \"%s\" \"%s\" \"%s\"\n", time_field_name[j], time_filename_map_sorted[i].file_name, data_type);
                 fflush(NULL);
-                EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(data_type,DATA_TYPE_INT)||words_are_the_same(data_type,DATA_TYPE_CHAR), "The type of field \"%s\" in file \"%s\" must be integer or char", time_field_name[j], time_filename_map_sorted[i].file_name);
+                EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(data_type,DATA_TYPE_INT)||words_are_the_same(data_type,DATA_TYPE_CHAR), "The type of field \"%s\" in file \"%s\" must be integer or char", time_field_name[j], time_filename_map_sorted[i].file_name);
                 if (words_are_the_same(data_type,DATA_TYPE_INT)) {
-                    EXECUTION_REPORT(REPORT_ERROR, num_dims == 1, "The number of dimensions of field \"%s\" in file \"%s\" must 1", time_field_name[j], time_filename_map_sorted[i].file_name);
+                    EXECUTION_REPORT(REPORT_ERROR,-1, num_dims == 1, "The number of dimensions of field \"%s\" in file \"%s\" must 1", time_field_name[j], time_filename_map_sorted[i].file_name);
                     current_dim_size = dim_size[0];
                     if (j == 0) {
                         last_dim_size = dim_size[0];
@@ -972,7 +972,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
                             full_time[k] = 0;
                         }
                     }
-                    EXECUTION_REPORT(REPORT_ERROR, last_dim_size == current_dim_size, "The size of dimension for the time fields in input data file \"%s\" for field read handler \"%s\" do not match each other", time_filename_map_sorted[i].file_name, handler_name);
+                    EXECUTION_REPORT(REPORT_ERROR,-1, last_dim_size == current_dim_size, "The size of dimension for the time fields in input data file \"%s\" for field read handler \"%s\" do not match each other", time_filename_map_sorted[i].file_name, handler_name);
                     last_dim_size = current_dim_size;
                     for (k = 0; k < dim_size[0]; k ++) {
                         sprintf(time_string2, "%d\0", ((int*)data_array)[k]);
@@ -986,23 +986,23 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
                             sprintf(time_string1, "%05d\0", ((int*)data_array)[k]);
                         else if (time_field_format_id[j] == TIME_FORMAT_HHMMSS)
                             sprintf(time_string1, "%06d\0", ((int*)data_array)[k]);
-                        else EXECUTION_REPORT(REPORT_ERROR, false, "For the time field in integer data type, the time format \"%s\" is not supported. Please verify the configuration file \"%s\".",
+                        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "For the time field in integer data type, the time format \"%s\" is not supported. Please verify the configuration file \"%s\".",
                                               time_field_format[j], handler_name);
                         printf("okok hao: %d : \"%s\"\n", ((int*)data_array)[k], time_string1);
-                        EXECUTION_REPORT(REPORT_ERROR, strlen(time_string2) <= strlen(time_string1), "The time in time field \"%s\" in the input data files \"%s\" does not match the time format \"%s\". Please check the field read handler \"%s\" and the time field values in the corresponding date files.",
+                        EXECUTION_REPORT(REPORT_ERROR,-1, strlen(time_string2) <= strlen(time_string1), "The time in time field \"%s\" in the input data files \"%s\" does not match the time format \"%s\". Please check the field read handler \"%s\" and the time field values in the corresponding date files.",
                                          time_field_name[j], file_name_pattern, time_field_format[j], handler_name);
-                        EXECUTION_REPORT(REPORT_ERROR, get_time_from_string(time_string1, time_field_format[j], time_field_format_id[j], strlen(time_field_format[j]), false, date, second_in_day),
+                        EXECUTION_REPORT(REPORT_ERROR,-1, get_time_from_string(time_string1, time_field_format[j], time_field_format_id[j], strlen(time_field_format[j]), false, date, second_in_day),
                                          "The time in time field \"%s\" in the input data files \"%s\" does not match the time format \"%s\". Please check the field read handler \"%s\" and the time field values in the corresponding date files.",
                                          time_field_name[j], file_name_pattern, time_field_format[j], handler_name);
                         full_time[k] = full_time[k]+((long)date)*100000+second_in_day;
                         printf("okok date and second: %d %d: %d : %ld\n", date, second_in_day, ((int*)data_array)[k], full_time[k]);
                     }
                     for (k = 1; k < dim_size[0]; k ++)
-                        EXECUTION_REPORT(REPORT_ERROR, full_time[k-1] <= full_time[k], "The time in field \"%s\" in input data file \"%s\" for field read handler \"%s\" is not sorted in assending order", time_field_name[j], time_filename_map_sorted[i].file_name, handler_name);
+                        EXECUTION_REPORT(REPORT_ERROR,-1, full_time[k-1] <= full_time[k], "The time in field \"%s\" in input data file \"%s\" for field read handler \"%s\" is not sorted in assending order", time_field_name[j], time_filename_map_sorted[i].file_name, handler_name);
                 }
                 else {
-                    EXECUTION_REPORT(REPORT_ERROR, num_dims == 2, "The number of dimensions of field \"%s\" in file \"%s\" must 2", time_field_name[j], time_filename_map_sorted[i].file_name);
-                    EXECUTION_REPORT(REPORT_ERROR, false, "The string time field is not supported yet for field read handler. Please contact liuli-cess@tsinghua.edu.cn");
+                    EXECUTION_REPORT(REPORT_ERROR,-1, num_dims == 2, "The number of dimensions of field \"%s\" in file \"%s\" must 2", time_field_name[j], time_filename_map_sorted[i].file_name);
+                    EXECUTION_REPORT(REPORT_ERROR,-1, false, "The string time field is not supported yet for field read handler. Please contact liuli-cess@tsinghua.edu.cn");
                 }    
                 delete [] data_array;
                 delete [] dim_size;
@@ -1023,28 +1023,28 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
             time_filename_map.push_back(time_filename_map_sorted[i]);
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, time_filename_map.size() > 0, "C-Coupler error3 in initialize_time_filename_map");
+    EXECUTION_REPORT(REPORT_ERROR,-1, time_filename_map.size() > 0, "C-Coupler error3 in initialize_time_filename_map");
     if (time_filename_map[0].date == -1)
-        EXECUTION_REPORT(REPORT_ERROR, time_filename_map.size() == 1, "C-Coupler error4 in initialize_time_filename_map");
+        EXECUTION_REPORT(REPORT_ERROR,-1, time_filename_map.size() == 1, "C-Coupler error4 in initialize_time_filename_map");
     else for (i = 0; i < time_filename_map.size(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, time_filename_map[i].date != -1, "C-Coupler error5 in initialize_time_filename_map");
+        EXECUTION_REPORT(REPORT_ERROR,-1, time_filename_map[i].date != -1, "C-Coupler error5 in initialize_time_filename_map");
 
     if (period > 0) {
-        EXECUTION_REPORT(REPORT_ERROR, time_filename_map.size() > 1, "There is only one time slice of data in the data files specified for the field read handler \"%s\", and therefore the handler should not be cyclic. Please verify the configuration file", handler_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, time_filename_map.size() > 1, "There is only one time slice of data in the data files specified for the field read handler \"%s\", and therefore the handler should not be cyclic. Please verify the configuration file", handler_name);
         long total_time_interval = (((long)time_filename_map[time_filename_map.size()-1].date)*100000+time_filename_map[time_filename_map.size()-1].second_in_day) -
                                    (((long)time_filename_map[0].date)*100000+time_filename_map[0].second_in_day);
         if (period == 1) {
-            EXECUTION_REPORT(REPORT_ERROR, total_time_interval < ((long) 1000000000), "the total time interval is larger than the period of one \"year\" (specified period), which is not allowed. Please check the configuration file \"%s\" and the corresponding data files", handler_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, total_time_interval < ((long) 1000000000), "the total time interval is larger than the period of one \"year\" (specified period), which is not allowed. Please check the configuration file \"%s\" and the corresponding data files", handler_name);
             for (i = 0; i < time_filename_map.size(); i ++)
                 time_filename_map[i].date = (time_filename_map[i].date%10000);
         }    
         else if (period == 2) {
-            EXECUTION_REPORT(REPORT_ERROR, total_time_interval < ((long) 10000000), "the total time interval is larger than the period of one \"month\" (specified period), which is not allowed. Please check the configuration file \"%s\" and the corresponding data files", handler_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, total_time_interval < ((long) 10000000), "the total time interval is larger than the period of one \"month\" (specified period), which is not allowed. Please check the configuration file \"%s\" and the corresponding data files", handler_name);
             for (i = 0; i < time_filename_map.size(); i ++)
                 time_filename_map[i].date = 100 + (time_filename_map[i].date%100);            
         }    
         else {
-            EXECUTION_REPORT(REPORT_ERROR, total_time_interval < ((long) 100000), "the total time interval is larger than the period of one \"day\" (specified period), which is not allowed. Please check the configuration file \"%s\" and the corresponding data files", handler_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, total_time_interval < ((long) 100000), "the total time interval is larger than the period of one \"day\" (specified period), which is not allowed. Please check the configuration file \"%s\" and the corresponding data files", handler_name);
             for (i = 0; i < time_filename_map.size(); i ++)
                 time_filename_map[i].date = 101;
         }    
@@ -1071,7 +1071,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
             date = time_filename_map[i].date;
             second_in_day = time_filename_map[i].second_in_day;
             printf("okok %d\n", time_filename_map[i].date);
-            EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_is_time_legal(date/10000, (date%10000/100), date%100, second_in_day, NULL),
+            EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_is_time_legal(date/10000, (date%10000/100), date%100, second_in_day, NULL),
                              "The time in the time fields in the name of input data file \"%s\" is not legal. Please check.", time_filename_map[i].file_name);
             time_filename_map[i].num_elapsed_day = timer_mgr->calculate_elapsed_day(time_filename_map[i].date/10000, (time_filename_map[i].date%10000)/100, time_filename_map[i].date%100);
             printf("num_elapsed_day of %d is %d\n", i, time_filename_map[i].num_elapsed_day);
@@ -1114,9 +1114,9 @@ long Datamodel_field_read_handler::search_current_time_interval(int field_read_i
     if (fields_read_info[field_read_info_index].last_pos_time_interval_left == -1)
         search_start_pos = 0;
     else if (fields_read_info[field_read_info_index].last_pos_time_interval_right == -1) {
-        EXECUTION_REPORT(REPORT_ERROR, period == 0, "C-Coupler error1 in Datamodel_field_read_handler::search_current_time_interval");
+        EXECUTION_REPORT(REPORT_ERROR,-1, period == 0, "C-Coupler error1 in Datamodel_field_read_handler::search_current_time_interval");
         map_left_elapsed_time_after_offset = ((long)(time_filename_map[time_filename_map.size()-1].num_elapsed_day+offset_num_elapsed_day))*100000 + time_filename_map[time_filename_map.size()-1].second_in_day;
-        EXECUTION_REPORT(REPORT_ERROR, map_left_elapsed_time_after_offset <= current_elapsed_time && fields_read_info[field_read_info_index].last_pos_time_interval_right == time_filename_map.size()-1, "C-Coupler error2 in Datamodel_field_read_handler::search_current_time_interval");
+        EXECUTION_REPORT(REPORT_ERROR,-1, map_left_elapsed_time_after_offset <= current_elapsed_time && fields_read_info[field_read_info_index].last_pos_time_interval_right == time_filename_map.size()-1, "C-Coupler error2 in Datamodel_field_read_handler::search_current_time_interval");
         pos_time_interval_left = fields_read_info[field_read_info_index].last_pos_time_interval_left;
         return current_full_time;
     }
@@ -1131,7 +1131,7 @@ long Datamodel_field_read_handler::search_current_time_interval(int field_read_i
         if (i > 0) {
             map_left_elapsed_time_after_offset = ((long)(time_filename_map[i-1].num_elapsed_day+offset_num_elapsed_day))*100000 + time_filename_map[i-1].second_in_day;
             printf("okok search %d %d: %ld %ld %ld\n", i, search_start_pos, map_left_elapsed_time_after_offset, map_right_elapsed_time_after_offset, current_elapsed_time);
-            EXECUTION_REPORT(REPORT_ERROR, map_left_elapsed_time_after_offset <= current_elapsed_time, "C-Coupler error3 in Datamodel_field_read_handler::search_current_time_interval");
+            EXECUTION_REPORT(REPORT_ERROR,-1, map_left_elapsed_time_after_offset <= current_elapsed_time, "C-Coupler error3 in Datamodel_field_read_handler::search_current_time_interval");
         }
         if (map_right_elapsed_time_after_offset >= current_elapsed_time)
             break;
@@ -1145,17 +1145,17 @@ long Datamodel_field_read_handler::search_current_time_interval(int field_read_i
         pos_time_interval_right = i;
         map_left_elapsed_time_after_offset = ((long)(time_filename_map[i-1].num_elapsed_day+offset_num_elapsed_day))*100000 + time_filename_map[i-1].second_in_day;
         map_right_elapsed_time_after_offset = ((long)(time_filename_map[i].num_elapsed_day+offset_num_elapsed_day))*100000 + time_filename_map[i].second_in_day;
-        EXECUTION_REPORT(REPORT_ERROR, map_right_elapsed_time_after_offset >= current_elapsed_time && map_left_elapsed_time_after_offset <= current_elapsed_time, "C-Coupler error4 in Datamodel_field_read_handler::search_current_time_interval");        
+        EXECUTION_REPORT(REPORT_ERROR,-1, map_right_elapsed_time_after_offset >= current_elapsed_time && map_left_elapsed_time_after_offset <= current_elapsed_time, "C-Coupler error4 in Datamodel_field_read_handler::search_current_time_interval");        
     }    
     if (period > 0) {
-        EXECUTION_REPORT(REPORT_ERROR, pos_time_interval_left != -1 || pos_time_interval_right != -1, "C-Coupler error5 in Datamodel_field_read_handler::search_current_time_interval");
+        EXECUTION_REPORT(REPORT_ERROR,-1, pos_time_interval_left != -1 || pos_time_interval_right != -1, "C-Coupler error5 in Datamodel_field_read_handler::search_current_time_interval");
         if (pos_time_interval_left == -1)
             pos_time_interval_left = time_filename_map.size()-1;
         if (pos_time_interval_right == -1)
             pos_time_interval_right = 0;
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, ! (pos_time_interval_left == -1 && pos_time_interval_right == -1), "C-Coupler error6 in Datamodel_field_read_handler::search_current_time_interval");
+    EXECUTION_REPORT(REPORT_ERROR,-1, ! (pos_time_interval_left == -1 && pos_time_interval_right == -1), "C-Coupler error6 in Datamodel_field_read_handler::search_current_time_interval");
 
     return current_full_time;
 }
@@ -1170,17 +1170,17 @@ void Datamodel_field_read_handler::update_one_field(int field_read_info_index)
     current_full_time = search_current_time_interval(field_read_info_index);
 
     if (fields_read_info[field_read_info_index].last_pos_time_interval_left == pos_time_interval_left && fields_read_info[field_read_info_index].last_pos_time_interval_right == pos_time_interval_right) {
-        EXECUTION_REPORT(REPORT_LOG, true, "It is unnecessary to read new data from files again. Remapping at linear direction is enough");
+        EXECUTION_REPORT(REPORT_LOG,-1, true, "It is unnecessary to read new data from files again. Remapping at linear direction is enough");
     }
     else {
         if (pos_time_interval_left != -1) {
             if (fields_read_info[field_read_info_index].last_pos_time_interval_right == pos_time_interval_left) {
-                EXECUTION_REPORT(REPORT_LOG, true, "Datamodel_field_read_handler::update_one_field:  copy from right to left");
-                EXECUTION_REPORT(REPORT_ERROR, fields_read_info[field_read_info_index].last_pos_time_interval_right == pos_time_interval_left, "C-Coupler error in Datamodel_field_read_handler::update_one_field");
+                EXECUTION_REPORT(REPORT_LOG,-1, true, "Datamodel_field_read_handler::update_one_field:  copy from right to left");
+                EXECUTION_REPORT(REPORT_ERROR,-1, fields_read_info[field_read_info_index].last_pos_time_interval_right == pos_time_interval_left, "C-Coupler error in Datamodel_field_read_handler::update_one_field");
                 memcpy(fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_size_of_field()*get_data_type_size(fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_field_data()->get_grid_data_field()->data_type_in_application));
             }
             else {
-                EXECUTION_REPORT(REPORT_LOG, true, "Datamodel_field_read_handler::update_one_field:  read data for left");
+                EXECUTION_REPORT(REPORT_LOG,-1, true, "Datamodel_field_read_handler::update_one_field:  read data for left");
                 printf("file name is \"%s\": %d %d\n", time_filename_map[pos_time_interval_left].file_name, pos_time_interval_left, time_filename_map.size());
                 IO_netcdf *restart_read_nc_file = new IO_netcdf("restart_read_file", time_filename_map[pos_time_interval_left].file_name, "r", false);
                 printf("okok1\n");
@@ -1188,18 +1188,18 @@ void Datamodel_field_read_handler::update_one_field(int field_read_info_index)
                 printf("okok2\n");                         
                 if (fields_read_info[field_read_info_index].remap_algorithm_for_readin_left == NULL)
                     memcpy(fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_data_buf(), fields_read_info[field_read_info_index].temp_field_readin->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_size_of_field()*get_data_type_size(fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_field_data()->get_grid_data_field()->data_type_in_application));
-                else EXECUTION_REPORT(REPORT_ERROR, false, "not supported in Datamodel_field_read_handler::update_one_field");
+                else EXECUTION_REPORT(REPORT_ERROR,-1, false, "not supported in Datamodel_field_read_handler::update_one_field");
                 delete restart_read_nc_file;
             }
         }
         if (pos_time_interval_right != -1) {
-            EXECUTION_REPORT(REPORT_LOG, true, "Datamodel_field_read_handler::update_one_field:  read data for right");
+            EXECUTION_REPORT(REPORT_LOG,-1, true, "Datamodel_field_read_handler::update_one_field:  read data for right");
             IO_netcdf *restart_read_nc_file = new IO_netcdf("restart_read_file", time_filename_map[pos_time_interval_right].file_name, "r", false);
             fields_gather_scatter_mgr->read_scatter_field(restart_read_nc_file, fields_read_info[field_read_info_index].temp_field_readin, time_filename_map[pos_time_interval_right].time_dim_num);
-            EXECUTION_REPORT(REPORT_ERROR, fields_read_info[field_read_info_index].remap_algorithm_for_readin_right == NULL, "not supported in Datamodel_field_read_handler::update_one_field");            
+            EXECUTION_REPORT(REPORT_ERROR,-1, fields_read_info[field_read_info_index].remap_algorithm_for_readin_right == NULL, "not supported in Datamodel_field_read_handler::update_one_field");            
             if (fields_read_info[field_read_info_index].remap_algorithm_for_readin_right == NULL)
                 memcpy(fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_data_buf(), fields_read_info[field_read_info_index].temp_field_readin->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_size_of_field()*get_data_type_size(fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_field_data()->get_grid_data_field()->data_type_in_application));
-            else EXECUTION_REPORT(REPORT_ERROR, false, "not supported in Datamodel_field_read_handler::update_one_field");
+            else EXECUTION_REPORT(REPORT_ERROR,-1, false, "not supported in Datamodel_field_read_handler::update_one_field");
             delete restart_read_nc_file;
         }
     }
@@ -1214,7 +1214,7 @@ void Datamodel_field_read_handler::update_one_field(int field_read_info_index)
     if (pos_time_interval_right != -1)        
         map_right_elapsed_time_after_offset = ((long)(time_filename_map[pos_time_interval_right].num_elapsed_day+offset_num_elapsed_day))*86400 + time_filename_map[pos_time_interval_right].second_in_day;
     if (period > 0) {
-        EXECUTION_REPORT(REPORT_ERROR, pos_time_interval_left != -1 && pos_time_interval_right != -1, "C-Coupler error3 in Datamodel_field_read_handler::update_one_field");
+        EXECUTION_REPORT(REPORT_ERROR,-1, pos_time_interval_left != -1 && pos_time_interval_right != -1, "C-Coupler error3 in Datamodel_field_read_handler::update_one_field");
         if (current_elapsed_time > map_right_elapsed_time_after_offset) {
             if (period == 1)
                 map_right_elapsed_time_after_offset += 365*86400;
@@ -1236,19 +1236,19 @@ void Datamodel_field_read_handler::update_one_field(int field_read_info_index)
 
     printf("okokqiguai %ld %ld %ld %d : %d %d : %d\n", map_left_elapsed_time_after_offset, map_right_elapsed_time_after_offset, current_elapsed_time, offset_num_elapsed_day, pos_time_interval_left, pos_time_interval_right, offset_num_elapsed_day);
     if (map_left_elapsed_time_after_offset == -1 || map_right_elapsed_time_after_offset == current_elapsed_time) {
-        EXECUTION_REPORT(REPORT_LOG, true, "Copy field from right to dst");
+        EXECUTION_REPORT(REPORT_LOG,-1, true, "Copy field from right to dst");
         memcpy(fields_read_info[field_read_info_index].output_field_instance->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_size_of_field()*get_data_type_size(fields_read_info[field_read_info_index].temp_field_before_time_remap_right->get_field_data()->get_grid_data_field()->data_type_in_application));
     }
     else if (map_right_elapsed_time_after_offset == -1 || map_left_elapsed_time_after_offset == current_elapsed_time) {
-        EXECUTION_REPORT(REPORT_LOG, true, "Copy field from left to dst");
+        EXECUTION_REPORT(REPORT_LOG,-1, true, "Copy field from left to dst");
         memcpy(fields_read_info[field_read_info_index].output_field_instance->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_data_buf(), fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_size_of_field()*get_data_type_size(fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_field_data()->get_grid_data_field()->data_type_in_application));
     }
     else {
         fact_left = ((double)(map_right_elapsed_time_after_offset-current_elapsed_time)) / ((double)(map_right_elapsed_time_after_offset-map_left_elapsed_time_after_offset));
         fact_right = ((double)(current_elapsed_time-map_left_elapsed_time_after_offset)) / ((double)(map_right_elapsed_time_after_offset-map_left_elapsed_time_after_offset));
-        EXECUTION_REPORT(REPORT_LOG, true, "Remap field with left and right with factors: %lf : %lf", fact_left, fact_right);
+        EXECUTION_REPORT(REPORT_LOG,-1, true, "Remap field with left and right with factors: %lf : %lf", fact_left, fact_right);
         printf("qiguai qiguai: %ld, %ld, %ld  %lf %lf\n", map_right_elapsed_time_after_offset-current_elapsed_time, current_elapsed_time-map_left_elapsed_time_after_offset, map_right_elapsed_time_after_offset-map_left_elapsed_time_after_offset, fact_left, fact_right);
-        EXECUTION_REPORT(REPORT_ERROR, fact_left >=0 && fact_left <= 1.0 && fact_right >= 0 && fact_right <= 1.0, "C-Coupler error1 in Datamodel_field_read_handler::update_one_field");
+        EXECUTION_REPORT(REPORT_ERROR,-1, fact_left >=0 && fact_left <= 1.0 && fact_right >= 0 && fact_right <= 1.0, "C-Coupler error1 in Datamodel_field_read_handler::update_one_field");
         if (words_are_the_same(fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE)) {
             double *buf_dst = (double*) fields_read_info[field_read_info_index].output_field_instance->get_data_buf();
             double *buf_src_left = (double*) fields_read_info[field_read_info_index].temp_field_before_time_remap_left->get_data_buf();
@@ -1265,7 +1265,7 @@ void Datamodel_field_read_handler::update_one_field(int field_read_info_index)
             for (long i = 0; i < field_size; i ++)
                 buf_dst[i] = buf_src_left[i]*fact_left + buf_src_right[i]*fact_right;
         }
-        else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error2 in Datamodel_field_read_handler::update_one_field");
+        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error2 in Datamodel_field_read_handler::update_one_field");
     }
 
     fields_read_info[field_read_info_index].last_pos_time_interval_left = pos_time_interval_left;
@@ -1283,7 +1283,7 @@ Datamodel_field_read_handler_mgt::~Datamodel_field_read_handler_mgt()
 
 Datamodel_field_read_handler *Datamodel_field_read_handler_mgt::get_a_handler(const char *handler_name)
 {
-    EXECUTION_REPORT(REPORT_LOG, true, "require a field read hanler \"%s\"", handler_name);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "require a field read hanler \"%s\"", handler_name);
     
     for (int i = 0; i < datamodel_field_read_handlers.size(); i ++)
         if (words_are_the_same(handler_name, datamodel_field_read_handlers[i]->get_handler_name()))

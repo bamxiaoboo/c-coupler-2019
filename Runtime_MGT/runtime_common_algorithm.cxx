@@ -34,13 +34,13 @@ Runtime_common_algorithm::Runtime_common_algorithm(const char * cfg)
     num_elements_in_field_buffers = NULL;
 
     fp_cfg = open_config_file(cfg, RUNTIME_COMMON_ALG_DIR);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(alg_name, fp_cfg), "Please specify the name of the runtime common algorithm in the configuration file \"%s\".", cfg);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(alg_name, fp_cfg), "Please specify the name of the runtime common algorithm in the configuration file \"%s\".", cfg);
     c_coupler_algorithm = external_algorithm_mgr->search_c_coupler_algorithm_pointer(alg_name);
 	model_algorithm = external_algorithm_mgr->search_model_algorithm_pointer(alg_name);
-	EXECUTION_REPORT(REPORT_ERROR, c_coupler_algorithm != NULL || model_algorithm != NULL, 
+	EXECUTION_REPORT(REPORT_ERROR,-1, c_coupler_algorithm != NULL || model_algorithm != NULL, 
 					 "external algorithm %s has not been registerred before using it", alg_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the timer of the runtime common algorithm in the configuration file \"%s\".", cfg);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the timer of the runtime common algorithm in the configuration file \"%s\".", cfg);
 	line_p = line;
 	timer = new Coupling_timer(&line_p, cfg);
     fclose(fp_cfg);
@@ -75,8 +75,8 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 	fields_allocated = true;
 
     fp_cfg = open_config_file(algorithm_cfg_name, RUNTIME_COMMON_ALG_DIR);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(alg_name, fp_cfg), "Please specify the name of the runtime common algorithm in the configuration file \"%s\".", algorithm_cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, fp_cfg), "Please specify the timer of the runtime common algorithm in the configuration file \"%s\".", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(alg_name, fp_cfg), "Please specify the name of the runtime common algorithm in the configuration file \"%s\".", algorithm_cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, fp_cfg), "Please specify the timer of the runtime common algorithm in the configuration file \"%s\".", algorithm_cfg_name);
 	if (!get_next_line(input_field_file_name, fp_cfg))
 		strcpy(input_field_file_name, "NULL");
 	if (!get_next_line(output_field_file_name, fp_cfg))
@@ -99,15 +99,15 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 	    for(i = 0; i < num_src_fields; i ++) {
 	        get_next_line(line, fp_cfg);
 	        line_p = line;
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_name, &line_p), "Please specify the component name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_name, &line_p), "Please specify the field name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name); 
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(decomp_name, &line_p), "Please specify the parallel decomposition name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);  
-			EXECUTION_REPORT(REPORT_ERROR, get_next_attr(grid_name, &line_p), "Please specify the grid name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);  
-			EXECUTION_REPORT(REPORT_ERROR, get_next_attr(data_type, &line_p), "Please specify the data type for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);  
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(comp_name, &line_p), "Please specify the component name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(field_name, &line_p), "Please specify the field name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name); 
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(decomp_name, &line_p), "Please specify the parallel decomposition name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);  
+			EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(grid_name, &line_p), "Please specify the grid name for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);  
+			EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(data_type, &line_p), "Please specify the data type for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);  
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p)) {
 				line_p = buf_type_str;
-				EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p, buf_type), "Please specify the buffer mark for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);
+				EXECUTION_REPORT(REPORT_ERROR,-1, get_next_integer_attr(&line_p, buf_type), "Please specify the buffer mark for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);
 	        }
 			field_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, true, input_field_file_name);
 	        src_fields_data_buffers[i] = field_mem->get_data_buf();
@@ -130,15 +130,15 @@ void Runtime_common_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kern
 	    for(i = 0; i < num_dst_fields; i ++) {
 	        get_next_line(line, fp_cfg);
 	        line_p = line;
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_name, &line_p), "Please specify the component name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(field_name, &line_p), "Please specify the field name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name); 
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(decomp_name, &line_p), "Please specify the parallel decomposition name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);  
-			EXECUTION_REPORT(REPORT_ERROR, get_next_attr(grid_name, &line_p), "Please specify the grid name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);  
-			EXECUTION_REPORT(REPORT_ERROR, get_next_attr(data_type, &line_p), "Please specify the data type for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);  
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(comp_name, &line_p), "Please specify the component name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(field_name, &line_p), "Please specify the field name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name); 
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(decomp_name, &line_p), "Please specify the parallel decomposition name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);  
+			EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(grid_name, &line_p), "Please specify the grid name for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);  
+			EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(data_type, &line_p), "Please specify the data type for the %dth field instance in the configuration file \"%s\"", i, output_field_file_name);  
 	        buf_type = 0;
 	        if (get_next_attr(buf_type_str, &line_p)) {
 				line_p = buf_type_str;
-				EXECUTION_REPORT(REPORT_ERROR, get_next_integer_attr(&line_p, buf_type), "Please specify the buffer mark for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);
+				EXECUTION_REPORT(REPORT_ERROR,-1, get_next_integer_attr(&line_p, buf_type), "Please specify the buffer mark for the %dth field instance in the configuration file \"%s\"", i, input_field_file_name);
 	        }
 			field_mem = alloc_mem(comp_name, decomp_name, grid_name, field_name, data_type, buf_type, false, output_field_file_name);
 	        dst_fields_data_buffers[i] = field_mem->get_data_buf();

@@ -71,23 +71,23 @@ Remap_grid_class::Remap_grid_class(const char *grid_name,
                                    const char *cyclic_or_acyclic,
                                    long grid_size)
 {
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(coord_label, COORD_LABEL_LON) || words_are_the_same(coord_label, COORD_LABEL_LAT) ||
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(coord_label, COORD_LABEL_LON) || words_are_the_same(coord_label, COORD_LABEL_LAT) ||
                  words_are_the_same(coord_label, COORD_LABEL_LEV) || words_are_the_same(coord_label, COORD_LABEL_TIME) ||
                  words_are_the_same(coord_label, COORD_LABEL_TRACER),
                  "the coordinate name of 1D grid must be one of lon, lat, lev, time and tracer\n");
     if (words_are_the_same(coord_unit, COORD_UNIT_DEGREES) || words_are_the_same(coord_unit, COORD_UNIT_RADIANS))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(coord_label, COORD_LABEL_LAT) || words_are_the_same(coord_label, COORD_LABEL_LON), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(coord_label, COORD_LABEL_LAT) || words_are_the_same(coord_label, COORD_LABEL_LON), 
                      "the coordinate label of grid \"%s\" does not match the unit. The coordinate label must be \"lon\" or \"lat\" when coordinate unit is \"degrees\" or \"radians\"\n",
                      grid_name);
     if (words_are_the_same(coord_label, COORD_LABEL_LON) || words_are_the_same(coord_label, COORD_LABEL_LAT))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(coord_unit, COORD_UNIT_DEGREES) || words_are_the_same(coord_unit, COORD_UNIT_RADIANS), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(coord_unit, COORD_UNIT_DEGREES) || words_are_the_same(coord_unit, COORD_UNIT_RADIANS), 
                      "the coordinate label of grid \"%s\" does not match the unit. The coordinate unit must be \"degrees\" or \"radians\" when coordinate label is \"lon\" or \"lat\"\n",
                      grid_name);
     if (words_are_the_same(coord_label, COORD_LABEL_LON))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(cyclic_or_acyclic, COORD_BOUND_CYCLIC) || words_are_the_same(cyclic_or_acyclic, COORD_BOUND_ACYCLIC),
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(cyclic_or_acyclic, COORD_BOUND_CYCLIC) || words_are_the_same(cyclic_or_acyclic, COORD_BOUND_ACYCLIC),
                      "the cyclic label must be \"cyclic\" or \"acyclic\"\n");
     if (words_are_the_same(coord_label, COORD_LABEL_LEV) || words_are_the_same(coord_label, COORD_LABEL_TIME) || words_are_the_same(coord_label, COORD_LABEL_TRACER))
-        EXECUTION_REPORT(REPORT_ERROR, grid_size > 0, "to define the 1D grid of %s, the grid size must be known\n", coord_label);
+        EXECUTION_REPORT(REPORT_ERROR,-1, grid_size > 0, "to define the 1D grid of %s, the grid size must be known\n", coord_label);
 
     initialize_grid_class_data();
     strcpy(this->grid_name, grid_name);
@@ -103,7 +103,7 @@ Remap_grid_class::Remap_grid_class(const char *grid_name,
             this->cyclic = true;
         else if (words_are_the_same(cyclic_or_acyclic, COORD_BOUND_ACYCLIC))
             this->cyclic = false;
-        else EXECUTION_REPORT(REPORT_ERROR, false, "the cyclic label for coordinate lon must be \"cyclic\" or \"acyclic\"\n");
+        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "the cyclic label for coordinate lon must be \"cyclic\" or \"acyclic\"\n");
 }
 
 
@@ -124,18 +124,18 @@ Remap_grid_class::Remap_grid_class(const char *grid_name,
 
     for (i = 0; i < num_sub_grids; i ++) {
         if (i > 0)
-            EXECUTION_REPORT(REPORT_ERROR, sub_grids[i-1]->get_grid_size() == 0 && sub_grids[i]->get_grid_size() == 0 ||
+            EXECUTION_REPORT(REPORT_ERROR,-1, sub_grids[i-1]->get_grid_size() == 0 && sub_grids[i]->get_grid_size() == 0 ||
                          sub_grids[i-1]->get_grid_size() > 0 && sub_grids[i]->get_grid_size() > 0, 
                          "the size of sub grids must be known or known at the same time\n");
         grid_size_determined_by_sub_grid *= sub_grids[i]->get_grid_size();
         this->sub_grids.push_back(sub_grids[i]);
         this->num_dimensions += sub_grids[i]->get_num_dimensions();
     }
-    EXECUTION_REPORT(REPORT_ERROR, grid_size_determined_by_sub_grid > 0 || grid_size_by_user > 0,
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_size_determined_by_sub_grid > 0 || grid_size_by_user > 0,
                  "the size of multi dimensional grid \"%s\" must be known: specified by user or computed from sub grids\n",
                  grid_name);
     if (grid_size_determined_by_sub_grid > 0 && grid_size_by_user > 0)
-        EXECUTION_REPORT(REPORT_ERROR, grid_size_by_user == grid_size_determined_by_sub_grid,
+        EXECUTION_REPORT(REPORT_ERROR,-1, grid_size_by_user == grid_size_determined_by_sub_grid,
                      "the size of combined grid \"%s\" is specified by input parameter, but it is different from the multiple of sub grid sizes, please check\n",
                      grid_name);
     this->grid_size = grid_size_by_user > 0? grid_size_by_user : grid_size_determined_by_sub_grid;
@@ -143,7 +143,7 @@ Remap_grid_class::Remap_grid_class(const char *grid_name,
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++)
         for (j = i+1; j < num_leaf_grids; j ++)
-            EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(leaf_grids[i]->get_coord_label(), leaf_grids[j]->get_coord_label()), 
+            EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(leaf_grids[i]->get_coord_label(), leaf_grids[j]->get_coord_label()), 
                          "coordinate label conflict: sub grids \"%s\" and \"%s\" have the same coordinate label \"%s\"\n",
                          leaf_grids[i]->get_grid_name(), leaf_grids[j]->get_grid_name(), leaf_grids[i]->get_coord_label()); 
 
@@ -203,7 +203,7 @@ Remap_grid_class::Remap_grid_class(const char *grid_name, const char *whole_grid
 
 
     whole_grid = remap_grid_manager->search_remap_grid_with_grid_name(whole_grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, !whole_grid->is_partial_grid(), "\"%s\" is a partial grid or has partial sub grids. It can not be used to generate another partial grid\n", whole_grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, !whole_grid->is_partial_grid(), "\"%s\" is a partial grid or has partial sub grids. It can not be used to generate another partial grid\n", whole_grid_name);
     
     initialize_grid_class_data();
     strcpy(this->grid_name, grid_name);
@@ -221,9 +221,9 @@ Remap_grid_class::Remap_grid_class(const char *grid_name, const char *level_grid
 
 
     edge_grid = remap_grid_manager->search_remap_grid_with_grid_name(level_grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, edge_grid->get_num_dimensions() == 1 && words_are_the_same(edge_grid->coord_label, COORD_LABEL_LEV), "\"%s\" is not a level grid. It cannot be used to generate a level middle grid. Please Check.", level_grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, !edge_grid->is_partial_grid(), "\"%s\" is a partial grid or has partial sub grids. It can not be used to generate a level middle grid\n", level_grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, edge_grid->edge_grid == NULL, "\"%s\" is not a level edge grid. It cannot be used to generate a level middle grid. Please Check.", level_grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, edge_grid->get_num_dimensions() == 1 && words_are_the_same(edge_grid->coord_label, COORD_LABEL_LEV), "\"%s\" is not a level grid. It cannot be used to generate a level middle grid. Please Check.", level_grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, !edge_grid->is_partial_grid(), "\"%s\" is a partial grid or has partial sub grids. It can not be used to generate a level middle grid\n", level_grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, edge_grid->edge_grid == NULL, "\"%s\" is not a level edge grid. It cannot be used to generate a level middle grid. Please Check.", level_grid_name);
 
 	edge_grid->end_grid_definition_stage(NULL);
 	
@@ -273,12 +273,12 @@ Remap_grid_class::~Remap_grid_class()
 
 void Remap_grid_class::check_and_set_first_super_grid_of_enable_setting_coord_value(Remap_grid_class *super_grid)
 {
-    EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1 && super_grid->get_grid_size() > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 1 && super_grid->get_grid_size() > 0, 
         "remap software error: only one-dimension grid can check and set super grid of setting coordinate value size\n");
 
     if (first_super_grid_of_enable_setting_coord_value == NULL)
         first_super_grid_of_enable_setting_coord_value = super_grid;
-    else EXECUTION_REPORT(REPORT_ERROR, first_super_grid_of_enable_setting_coord_value->is_subset_of_grid(super_grid), 
+    else EXECUTION_REPORT(REPORT_ERROR,-1, first_super_grid_of_enable_setting_coord_value->is_subset_of_grid(super_grid), 
                       "%s is the first super grid with known grid size of grid %s. However, it is not a sub grid of %s\n",
                       first_super_grid_of_enable_setting_coord_value->get_grid_name(), grid_name, super_grid->get_grid_name());
 }
@@ -301,7 +301,7 @@ void Remap_grid_class::generate_interchange_grids(Remap_grid_class *remap_grid,
     this->get_sized_sub_grids(&num_size_grids_this, size_grids_this);
     for (i = 0; i < num_size_grids_this; i ++)
         if (size_grids_this[i]->have_overlap_with_grid(remap_grid))
-            EXECUTION_REPORT(REPORT_ERROR, size_grids_this[i]->is_subset_of_grid(remap_grid), "remap software error1 when generating interchange grids\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, size_grids_this[i]->is_subset_of_grid(remap_grid), "remap software error1 when generating interchange grids\n");
 
     remap_grid->get_sized_sub_grids(&num_size_grids_remap, size_grids_remap);
     remap_grid->get_leaf_grids(&num_leaf_grids_remap, leaf_grids_remap, remap_grid);
@@ -343,7 +343,7 @@ void Remap_grid_class::generate_interchange_grids(Remap_grid_class *remap_grid,
 		*interchange_grid = existing_grid;
 	}
 	
-    EXECUTION_REPORT(REPORT_ERROR, this->is_similar_grid_with(*interchange_grid), "remap software error2 when generating interchange grids\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->is_similar_grid_with(*interchange_grid), "remap software error2 when generating interchange grids\n");
 }
 
 
@@ -383,7 +383,7 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
     Remap_grid_class *similar_grid;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, this->duplicated_grid == NULL && !this->is_partial_grid(), "remap software error1 in duplicate_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->duplicated_grid == NULL && !this->is_partial_grid(), "remap software error1 in duplicate_grid\n");
 
     duplicated_grid = new Remap_grid_class;
     duplicated_grid->initialize_grid_class_data();
@@ -425,14 +425,14 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
                 similar_grid = remap_grid_manager->remap_grids[i];
                 break;
             }
-        EXECUTION_REPORT(REPORT_ERROR, similar_grid != NULL, "remap software error2 in duplicate_grid\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, similar_grid != NULL, "remap software error2 in duplicate_grid\n");
         duplicated_grid->super_grid_of_setting_coord_values = similar_grid->duplicated_grid;
     }
 
     /* duplicate grid center and vertex data fields */
     if (this->num_dimensions == 1 && this->super_grid_of_setting_coord_values != NULL &&
         this->super_grid_of_setting_coord_values->is_subset_of_grid(top_grid)) {
-        EXECUTION_REPORT(REPORT_ERROR, this->get_grid_center_field() != NULL, "remap software error3 in duplicate_grid\n");            
+        EXECUTION_REPORT(REPORT_ERROR,-1, this->get_grid_center_field() != NULL, "remap software error3 in duplicate_grid\n");            
         duplicated_grid->grid_center_fields.push_back(this->get_grid_center_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, 1, true, false));
         if (this->get_grid_vertex_field() != NULL)
             duplicated_grid->grid_vertex_fields.push_back(this->get_grid_vertex_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, this->super_grid_of_setting_coord_values->num_vertexes, true, false));
@@ -456,7 +456,7 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
     Remap_data_field *mask_data_field;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, remap_grid->is_subset_of_grid(this), "remap software error1 in generate_remap_operator_runtime_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, remap_grid->is_subset_of_grid(this), "remap software error1 in generate_remap_operator_runtime_grid\n");
 
     runtime_remap_grid = remap_grid->duplicate_grid(remap_grid);
     
@@ -472,10 +472,10 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
 		}
 		else {
 	        super_grid = leaf_grids[i]->super_grid_of_setting_coord_values;
-	        EXECUTION_REPORT(REPORT_ERROR, super_grid != NULL, "remap software error2 in generate_remap_operator_runtime_grid\n");
+	        EXECUTION_REPORT(REPORT_ERROR,-1, super_grid != NULL, "remap software error2 in generate_remap_operator_runtime_grid\n");
 	        if (super_grid->is_subset_of_grid(runtime_remap_grid))
 	            continue;
-	        EXECUTION_REPORT(REPORT_ERROR, super_grid->is_superset_of_grid(remap_grid), "remap software error3 in generate_remap_operator_runtime_grid\n");
+	        EXECUTION_REPORT(REPORT_ERROR,-1, super_grid->is_superset_of_grid(remap_grid), "remap software error3 in generate_remap_operator_runtime_grid\n");
 	        center_value_field = leaf_grids[i]->get_grid_center_field();
 			vertex_value_field = leaf_grids[i]->get_grid_vertex_field();
 			if (vertex_value_field != NULL)
@@ -524,7 +524,7 @@ void Remap_grid_class::read_grid_data_through_span(char extension_names[16][256]
     Remap_field_attribute grid_field_attribute;    
 
 
-    EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1 && grid_size > 0, "only the coordinate center values of 1D grid whose size is known can be generated through spanning\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 1 && grid_size > 0, "only the coordinate center values of 1D grid whose size is known can be generated through spanning\n");
     check_center_coord_value_can_be_set(this->coord_label);
 
     if (words_are_the_same(span_function, FUNCTION_WORD_ISPAN))
@@ -543,7 +543,7 @@ void Remap_grid_class::read_grid_data_through_span(char extension_names[16][256]
                                                                num_elements,
                                                                DATA_TYPE_DOUBLE,
                                                                DATA_TYPE_DOUBLE));
-    else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error in read_grid_data_through_span\n");
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error in read_grid_data_through_span\n");
     if (words_are_the_same(this->coord_label, COORD_LABEL_LON)) {
         grid_center_fields[0]->get_grid_data_field()->set_field_long_name("longitude");
         grid_center_fields[0]->get_grid_data_field()->set_field_unit("degrees_east");
@@ -586,13 +586,13 @@ void Remap_grid_class::extract_mask(const char *field_data_name, const char *fil
 
     check_mask_value_can_be_set();
     field_data = remap_field_data_manager->search_remap_field_data(field_data_name);
-    EXECUTION_REPORT(REPORT_ERROR, field_data->have_data_content(), "the data values of field %s have not been set\n", field_data->get_grid_data_field()->field_name_in_application);
-    EXECUTION_REPORT(REPORT_ERROR, this->is_subset_of_grid(field_data->get_coord_value_grid()), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, field_data->have_data_content(), "the data values of field %s have not been set\n", field_data->get_grid_data_field()->field_name_in_application);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->is_subset_of_grid(field_data->get_coord_value_grid()), 
                  "grid %s should be a subset of grid %s which is the associative grid of field data \"%s\"\n",
                  this->grid_name, field_data->get_coord_value_grid()->get_grid_name(), field_data->get_grid_data_field()->field_name_in_application);
     sscanf(fill_value_lower_bound_str, "%lf", &fill_value_lower_bound);
     sscanf(fill_value_higher_bound_str, "%lf", &fill_value_higher_bound);
-    EXECUTION_REPORT(REPORT_ERROR, fill_value_lower_bound <= fill_value_higher_bound, "the last input parameter must be no smaller than the second input parameter\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, fill_value_lower_bound <= fill_value_higher_bound, "the last input parameter must be no smaller than the second input parameter\n");
 
     generate_default_grid_mask();
     
@@ -622,43 +622,43 @@ void Remap_grid_class::compute_ocn_mask(const char *topo_field_name, double unit
 
 
     /* Check for this grid */
-    EXECUTION_REPORT(REPORT_ERROR, this->num_dimensions == 2 || this->num_dimensions == 3,
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->num_dimensions == 2 || this->num_dimensions == 3,
                  "grid %s which is used to set ocn mask should be a 2D or 3D grid\n", this->grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LON),
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LON),
                  "grid %s must have longitude and latitude coordinates", this->grid_name);
     if (this->num_dimensions == 3)
-        EXECUTION_REPORT(REPORT_ERROR, this->has_grid_coord_label(COORD_LABEL_LEV), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, this->has_grid_coord_label(COORD_LABEL_LEV), 
                      "grid %s is a 3D grid which must have coordinate level\n", this->grid_name);
     this->check_mask_value_can_be_set();
     this->end_grid_definition_stage(NULL);
     this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++) {
-        EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->get_grid_center_field() != NULL,
+        EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->get_grid_center_field() != NULL,
                      "the center value of coordinate %s of %s has not been set\n",
                      leaf_grids[i]->grid_name, this->grid_name);
         if (words_are_the_same(leaf_grids[i]->coord_label, COORD_LABEL_LEV))
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->super_grid_of_setting_coord_values == leaf_grids[i], 
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->super_grid_of_setting_coord_values == leaf_grids[i], 
                          "Can not generate ocean mask of grid %s because it is a SIGMA grid.\n",
                          this->grid_name);
     }
     for (i = 0; i < num_leaf_grids; i ++)
-        EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->get_grid_vertex_field() != NULL,
+        EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->get_grid_vertex_field() != NULL,
                      "the vertex value of coordinate %s of %s has not been set by user or in default\n",
                      leaf_grids[i]->grid_name, this->grid_name);
 
     /* Check for the topo field as well its grid */
     topo_field = remap_field_data_manager->search_remap_field_data(topo_field_name);
     topo_grid = topo_field->get_coord_value_grid();
-    EXECUTION_REPORT(REPORT_ERROR, topo_grid != NULL, "the topo field is not a gridded data\n");
-    EXECUTION_REPORT(REPORT_ERROR, topo_grid->get_is_sphere_grid(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, topo_grid != NULL, "the topo field is not a gridded data\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, topo_grid->get_is_sphere_grid(),
                  "the associative grid of field %s is %s, it must be a 2D sphere grid with longitude and latitude coordinates\n",
                  topo_field_name, topo_grid->grid_name);
     topo_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++)
-        EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->get_grid_center_field() != NULL,
+        EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->get_grid_center_field() != NULL,
                      "the center value of coordinate %s of %s has not been set\n",
                      leaf_grids[i]->grid_name, topo_grid->grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, topo_field->have_data_content(), "the data values of %s have not been set\n", topo_field_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, topo_field->have_data_content(), "the data values of %s have not been set\n", topo_field_name);
 
     this->generate_default_grid_mask();
     
@@ -681,13 +681,13 @@ void Remap_grid_class::compute_ocn_mask(const char *topo_field_name, double unit
     lev_vertex_values = NULL;
     if (this->num_dimensions == 3) {
         lev_vertex_values = (double*) lev_sub_grid->get_grid_vertex_field()->get_grid_data_field()->data_buf;
-        EXECUTION_REPORT(REPORT_ERROR, lev_sub_grid->num_vertexes == 2, "remap software error3 in compute_ocn_mask\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, lev_sub_grid->num_vertexes == 2, "remap software error3 in compute_ocn_mask\n");
         for (i = 1; i < lev_sub_grid->grid_size*2; i ++)
             if (fabs(lev_vertex_values[0]) < fabs(lev_vertex_values[lev_sub_grid->grid_size*2-1]))
-                EXECUTION_REPORT(REPORT_ERROR, fabs(lev_vertex_values[i]) >= fabs(lev_vertex_values[i-1]),
+                EXECUTION_REPORT(REPORT_ERROR,-1, fabs(lev_vertex_values[i]) >= fabs(lev_vertex_values[i-1]),
                              "the coordinate values of ocn level grid %s are not sorted\n",
                              lev_sub_grid->grid_name);
-            else EXECUTION_REPORT(REPORT_ERROR, fabs(lev_vertex_values[i]) <= fabs(lev_vertex_values[i-1]),
+            else EXECUTION_REPORT(REPORT_ERROR,-1, fabs(lev_vertex_values[i]) <= fabs(lev_vertex_values[i-1]),
                               "the coordinate values of ocn level grid %s are not sorted\n",
                               lev_sub_grid->grid_name);
     }
@@ -695,7 +695,7 @@ void Remap_grid_class::compute_ocn_mask(const char *topo_field_name, double unit
     if (execution_phase_number == 0)
         return;
 
-    EXECUTION_REPORT(REPORT_PROGRESS, true, "generate ocn mask of grid %s from terrain data", this->grid_name);
+    EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "generate ocn mask of grid %s from terrain data", this->grid_name);
 
     /* Prepare remap operator grid and lon/lat values of topo grid, etc */
     remap_grids[0] = lonlat_sub_grid_this;
@@ -749,7 +749,7 @@ void Remap_grid_class::compute_ocn_mask(const char *topo_field_name, double unit
         this->grid_mask_field->interchange_grid_data(lonlat_sub_grid_this);
     else this->grid_mask_field->interchange_grid_data(lev_sub_grid);
     for (j = 0; j < this->grid_size; j ++) {
-        EXECUTION_REPORT(REPORT_ERROR, total_counts[j] > 0, "the terrain grid is too coarse\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, total_counts[j] > 0, "the terrain grid is too coarse\n");
         if (ocn_counts[j]/total_counts[j] >= 0.5)
             mask_values[j] = true;
         else mask_values[j] = false;
@@ -788,10 +788,10 @@ void Remap_grid_class::gen_lev_coord_from_sigma_or_hybrid(char extension_names[1
     bool *horizontal_grid_mask_values, ascending_order;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, this->num_dimensions == 3 && this->has_grid_coord_label(COORD_LABEL_LON) &&
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->num_dimensions == 3 && this->has_grid_coord_label(COORD_LABEL_LON) &&
                  this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LEV), 
                  "grid %s must be a 3D spacial grid with lon, lat and lev coordinate\n", this->get_grid_name());
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(extension_names[1], COORD_LABEL_LEV), "this function can only generate the center value of level coordinate values\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(extension_names[1], COORD_LABEL_LEV), "this function can only generate the center value of level coordinate values\n");
     check_center_coord_value_can_be_set(COORD_LABEL_LEV);
     this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++)
@@ -799,17 +799,17 @@ void Remap_grid_class::gen_lev_coord_from_sigma_or_hybrid(char extension_names[1
             lev_leaf_grid = leaf_grids[i];
             break;
         }
-    EXECUTION_REPORT(REPORT_ERROR, lev_leaf_grid->grid_size > 0, "remap software error0 in en_lev_coord_from_sigma\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, lev_leaf_grid->grid_size > 0, "remap software error0 in en_lev_coord_from_sigma\n");
     field_lev_coord_bot = remap_field_data_manager->search_remap_field_data(lev_coord_bot_str);
     lev_sigma_coord = remap_field_data_manager->search_remap_field_data(lev_sigma_coord_str);
-    EXECUTION_REPORT(REPORT_ERROR, field_lev_coord_bot->get_coord_value_grid() != NULL, "%s must be a field data with associative grid\n", lev_coord_bot_str);
-    EXECUTION_REPORT(REPORT_ERROR, field_lev_coord_bot->get_coord_value_grid()->is_subset_of_grid(this) && field_lev_coord_bot->get_coord_value_grid()->get_is_sphere_grid(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, field_lev_coord_bot->get_coord_value_grid() != NULL, "%s must be a field data with associative grid\n", lev_coord_bot_str);
+    EXECUTION_REPORT(REPORT_ERROR,-1, field_lev_coord_bot->get_coord_value_grid()->is_subset_of_grid(this) && field_lev_coord_bot->get_coord_value_grid()->get_is_sphere_grid(),
                  "the grid of field \"%s\" must be a subgrid of \"%s\" only without coordinate level\n",
                  lev_coord_bot_str, this->grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, lev_sigma_coord->get_grid_data_field()->required_data_size == lev_leaf_grid->grid_size,
+    EXECUTION_REPORT(REPORT_ERROR,-1, lev_sigma_coord->get_grid_data_field()->required_data_size == lev_leaf_grid->grid_size,
                  "the size of field %s must be the same with 1D level subgrid of grid %s\n", lev_sigma_coord_str, this->grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, lev_leaf_grid->grid_size >= 3, "the level subgrid %s of grid %s must have at least 3 levels. Please check.", lev_leaf_grid->get_grid_name(), this->get_grid_name());
-    EXECUTION_REPORT(REPORT_ERROR, field_lev_coord_bot->have_data_content(), "the data value of field %s has not been set\n", lev_coord_bot_str);
+	EXECUTION_REPORT(REPORT_ERROR,-1, lev_leaf_grid->grid_size >= 3, "the level subgrid %s of grid %s must have at least 3 levels. Please check.", lev_leaf_grid->get_grid_name(), this->get_grid_name());
+    EXECUTION_REPORT(REPORT_ERROR,-1, field_lev_coord_bot->have_data_content(), "the data value of field %s has not been set\n", lev_coord_bot_str);
 
 	lev_sigma_coord_values = (double*)lev_sigma_coord->get_grid_data_field()->data_buf;
 	for (i = 1; i < lev_leaf_grid->grid_size; i ++) {
@@ -822,15 +822,15 @@ void Remap_grid_class::gen_lev_coord_from_sigma_or_hybrid(char extension_names[1
 			break;
 		}
 	}
-	EXECUTION_REPORT(REPORT_ERROR, i < lev_leaf_grid->grid_size, "All sigma values in field %s for grid %s are the same. Please check.", lev_sigma_coord_str, grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, i < lev_leaf_grid->grid_size, "All sigma values in field %s for grid %s are the same. Please check.", lev_sigma_coord_str, grid_name);
 	for (i = 1; i < lev_leaf_grid->grid_size; i ++)
 		if (ascending_order)
-			EXECUTION_REPORT(REPORT_ERROR, (ascending_order && (lev_sigma_coord_values[i-1] <= lev_sigma_coord_values[i])) || (!ascending_order && (lev_sigma_coord_values[i-1] >= lev_sigma_coord_values[i])), 
+			EXECUTION_REPORT(REPORT_ERROR,-1, (ascending_order && (lev_sigma_coord_values[i-1] <= lev_sigma_coord_values[i])) || (!ascending_order && (lev_sigma_coord_values[i-1] >= lev_sigma_coord_values[i])), 
 			"sigma values in field %s for grid %s must be in ascending order or descending order. Please check.", lev_sigma_coord_str, grid_name);
 
 	if (hybrid_grid_coefficient_str != NULL) {
 		hybrid_grid_coefficient = remap_field_data_manager->search_remap_field_data(hybrid_grid_coefficient_str);
-		EXECUTION_REPORT(REPORT_ERROR, hybrid_grid_coefficient->get_grid_data_field()->required_data_size == lev_leaf_grid->get_grid_size(), 
+		EXECUTION_REPORT(REPORT_ERROR,-1, hybrid_grid_coefficient->get_grid_data_field()->required_data_size == lev_leaf_grid->get_grid_size(), 
 						 "the size of field %s must be the same with 1D level subgrid of grid %s\n", hybrid_grid_coefficient_str, this->grid_name);
 	}
     sscanf(lev_coord_top_str, "%lf", &data_top);
@@ -846,16 +846,16 @@ void Remap_grid_class::set_lev_grid_sigma_info(const char *sigma_value_field_nam
 	Remap_grid_data_class *sigma_value_field, *hybrid_grid_coefficient_field;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1 && words_are_the_same(coord_label, COORD_LABEL_LEV), 
+	EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 1 && words_are_the_same(coord_label, COORD_LABEL_LEV), 
 					 "Grid %s must be a 1D grid at vertical direction (the label of grid is \"lev\": only lev grid can be set sigma information", grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, enable_to_set_coord_values, "Grid %s has been used (for example, interpolation) before. It cannot be set with sigma information", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_coord_values, "Grid %s has been used (for example, interpolation) before. It cannot be set with sigma information", grid_name);
 	sigma_value_field = remap_field_data_manager->search_remap_field_data(sigma_value_field_name);
 	if (hybrid_grid_coefficient_field_name != NULL) {
 		hybrid_grid_coefficient_field = remap_field_data_manager->search_remap_field_data(hybrid_grid_coefficient_field_name);
-		EXECUTION_REPORT(REPORT_ERROR, hybrid_grid_coefficient_field != NULL, "C-Coupler error1 in set_lev_grid_sigma_info");
+		EXECUTION_REPORT(REPORT_ERROR,-1, hybrid_grid_coefficient_field != NULL, "C-Coupler error1 in set_lev_grid_sigma_info");
 	}
 	else hybrid_grid_coefficient_field = NULL;
-	EXECUTION_REPORT(REPORT_ERROR, sigma_value_field != NULL, "C-Coupler error2 in set_lev_grid_sigma_info");
+	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_value_field != NULL, "C-Coupler error2 in set_lev_grid_sigma_info");
 	allocate_sigma_grid_specific_fields(hybrid_grid_coefficient_field, sigma_value_field, NULL, top_value, scale_factor);
 }
 
@@ -901,7 +901,7 @@ bool Remap_grid_class::is_sigma_grid_surface_value_field_updated(Remap_grid_data
 	if (sigma_grid_dynamic_surface_value_field == NULL)
 		return false;
 
-	EXECUTION_REPORT(REPORT_ERROR, sigma_grid_dynamic_surface_value_field->get_grid_data_field()->required_data_size == previous_surface_value_field->get_grid_data_field()->required_data_size,
+	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid_dynamic_surface_value_field->get_grid_data_field()->required_data_size == previous_surface_value_field->get_grid_data_field()->required_data_size,
 		             "C-Coupler error1 in Remap_grid_class::is_sigma_grid_surface_value_field_updated");
 	if (words_are_the_same(sigma_grid_dynamic_surface_value_field->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT)) {
 		for (int i = 0; i < sigma_grid_dynamic_surface_value_field->get_grid_data_field()->required_data_size; i ++) {
@@ -919,7 +919,7 @@ bool Remap_grid_class::is_sigma_grid_surface_value_field_updated(Remap_grid_data
 	}
 
 	if (result)
-		EXECUTION_REPORT(REPORT_LOG, true, "surface field for sigma grid %s has been updated", grid_name);
+		EXECUTION_REPORT(REPORT_LOG,-1, true, "surface field for sigma grid %s has been updated", grid_name);
 	
 	return result;
 }
@@ -927,9 +927,9 @@ bool Remap_grid_class::is_sigma_grid_surface_value_field_updated(Remap_grid_data
 
 void Remap_grid_class::set_sigma_grid_dynamic_surface_value_field(Remap_grid_data_class *value_field)
 {
-	EXECUTION_REPORT(REPORT_ERROR, this->is_sigma_grid(), "C-Coupler error1 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
-	EXECUTION_REPORT(REPORT_ERROR, value_field->get_coord_value_grid()->is_subset_of_grid(this), "C-Coupler error2 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
-	EXECUTION_REPORT(REPORT_ERROR, sigma_grid_dynamic_surface_value_field == NULL, "The surface field of grid %s has been specified by the models before. Please check.", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, this->is_sigma_grid(), "C-Coupler error1 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
+	EXECUTION_REPORT(REPORT_ERROR,-1, value_field->get_coord_value_grid()->is_subset_of_grid(this), "C-Coupler error2 in Remap_grid_class::set_sigma_grid_dynamic_surface_value_field");
+	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid_dynamic_surface_value_field == NULL, "The surface field of grid %s has been specified by the models before. Please check.", grid_name);
 
 	this->specified_sigma_grid_surface_value_field = true;
 	if (sigma_grid_surface_value_field == NULL)
@@ -949,17 +949,17 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 		return;
 
 	if (sigma_grid_sigma_value_field != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, enable_to_set_coord_values && this->get_a_leaf_grid(COORD_LABEL_LEV)->enable_to_set_coord_values, "Grid %s cannot be set to a sigma grid. It may be because the grid has been used (for example, interpolation) before or its level subgrid is a level middle grid.", grid_name);
-		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->hybrid_grid_coefficient_field == NULL, "Hybrid coefficient of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
-		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field == NULL, "Sigma information of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
-		EXECUTION_REPORT(REPORT_ERROR, this->get_a_leaf_grid(COORD_LABEL_LEV)->grid_center_fields.size() == 0, "1D grid %s has been set to non-sigma grid before. Therefore it cannot be set sigma information", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
-		EXECUTION_REPORT(REPORT_ERROR, this->grid_center_fields.size() == 0, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
-		EXECUTION_REPORT(REPORT_ERROR, sigma_grid_sigma_value_field->get_grid_data_field()->required_data_size == this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_size(), 
+		EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_coord_values && this->get_a_leaf_grid(COORD_LABEL_LEV)->enable_to_set_coord_values, "Grid %s cannot be set to a sigma grid. It may be because the grid has been used (for example, interpolation) before or its level subgrid is a level middle grid.", grid_name);
+		EXECUTION_REPORT(REPORT_ERROR,-1, this->get_a_leaf_grid(COORD_LABEL_LEV)->hybrid_grid_coefficient_field == NULL, "Hybrid coefficient of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
+		EXECUTION_REPORT(REPORT_ERROR,-1, this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field == NULL, "Sigma information of 1D grid %s has been set before", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
+		EXECUTION_REPORT(REPORT_ERROR,-1, this->get_a_leaf_grid(COORD_LABEL_LEV)->grid_center_fields.size() == 0, "1D grid %s has been set to non-sigma grid before. Therefore it cannot be set sigma information", this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name());
+		EXECUTION_REPORT(REPORT_ERROR,-1, this->grid_center_fields.size() == 0, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
+		EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid_sigma_value_field->get_grid_data_field()->required_data_size == this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_size(), 
 						 "The size of field %s is different from the size of grid %s. Field %s cannot be used for sigma or hybrid grid %s",
 						 sigma_grid_sigma_value_field->get_grid_data_field()->field_name_in_application, this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name(), sigma_grid_sigma_value_field->get_grid_data_field()->field_name_in_application);
 		this->get_a_leaf_grid(COORD_LABEL_LEV)->sigma_grid_sigma_value_field = sigma_grid_sigma_value_field->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, true, true);
 		if (hybrid_grid_coefficient_field != NULL) {
-			EXECUTION_REPORT(REPORT_ERROR, hybrid_grid_coefficient_field->get_grid_data_field()->required_data_size == this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_size(), 
+			EXECUTION_REPORT(REPORT_ERROR,-1, hybrid_grid_coefficient_field->get_grid_data_field()->required_data_size == this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_size(), 
 							 "The size of field %s is different from the size of grid %s. Field %s cannot be used for sigma or hybrid grid %s",
 							 hybrid_grid_coefficient_field->get_grid_data_field()->field_name_in_application, this->get_a_leaf_grid(COORD_LABEL_LEV)->get_grid_name(), hybrid_grid_coefficient_field->get_grid_data_field()->field_name_in_application);
 			this->get_a_leaf_grid(COORD_LABEL_LEV)->hybrid_grid_coefficient_field = hybrid_grid_coefficient_field->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, true, true);
@@ -976,8 +976,8 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 		return;
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, true, "Allocate sigma grid specific fields for grid %s", grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, is_sigma_grid(), "C-Coupler error0 in allocate_sigma_grid_specific_fields");
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "Allocate sigma grid specific fields for grid %s", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, is_sigma_grid(), "C-Coupler error0 in allocate_sigma_grid_specific_fields");
 		
 	get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
 	for (i = 0, j = 0; i < num_sized_sub_grids; i ++)
@@ -995,7 +995,7 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 	strcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->field_name_in_IO_file, COORD_LABEL_LEV);
 
 	if (this->grid_center_fields.size() != 0)
-		EXECUTION_REPORT(REPORT_ERROR, this->grid_center_fields.size() == 1, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
+		EXECUTION_REPORT(REPORT_ERROR,-1, this->grid_center_fields.size() == 1, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
 	else {
 		grid_center_fields.push_back(this->get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(this, 1, false, false));
 	    strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
@@ -1015,8 +1015,8 @@ Remap_grid_data_class *Remap_grid_class::get_sigma_grid_sigma_value_field()
 
 void Remap_grid_class::copy_sigma_grid_surface_value_field(Remap_grid_data_class *field_copy_in)
 {
-	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_surface_value_field != NULL, "C-Coupler error1 in copy_sigma_grid_surface_value_field");
-	EXECUTION_REPORT(REPORT_ERROR, this->sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size() == field_copy_in->get_coord_value_grid()->get_grid_size(), 
+	EXECUTION_REPORT(REPORT_ERROR,-1, this->sigma_grid_surface_value_field != NULL, "C-Coupler error1 in copy_sigma_grid_surface_value_field");
+	EXECUTION_REPORT(REPORT_ERROR,-1, this->sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size() == field_copy_in->get_coord_value_grid()->get_grid_size(), 
 					 "C-Coupler error2 in copy_sigma_grid_surface_value_field");
 
 	memcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->data_buf, field_copy_in->get_grid_data_field()->data_buf, sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size()*sizeof(double));
@@ -1032,7 +1032,7 @@ void Remap_grid_class::calculate_lev_sigma_values()
 	double local_sigma_grid_top_value, local_sigma_grid_scale_factor;
 	
 
-	EXECUTION_REPORT(REPORT_ERROR, this->is_sigma_grid() && this->sigma_grid_surface_value_field != NULL, "C-Coupler error2 in calculate_lev_sigma_values %s", grid_name);	
+	EXECUTION_REPORT(REPORT_ERROR,-1, this->is_sigma_grid() && this->sigma_grid_surface_value_field != NULL, "C-Coupler error2 in calculate_lev_sigma_values %s", grid_name);	
 
 	lev_leaf_grid_of_sigma_or_hybrid = get_a_leaf_grid_of_sigma_or_hybrid();
 	lev_leaf_grid = get_a_leaf_grid(COORD_LABEL_LEV);
@@ -1040,7 +1040,7 @@ void Remap_grid_class::calculate_lev_sigma_values()
 	hybrid_grid_coefficient_values = NULL;
 	if (lev_leaf_grid_of_sigma_or_hybrid->hybrid_grid_coefficient_field != NULL) {
 		hybrid_grid_coefficient_values = (double*) lev_leaf_grid_of_sigma_or_hybrid->hybrid_grid_coefficient_field->get_grid_data_field()->data_buf;
-		EXECUTION_REPORT(REPORT_LOG, true, "Sigma grid \"%s\" is a hybrid grid", grid_name);
+		EXECUTION_REPORT(REPORT_LOG,-1, true, "Sigma grid \"%s\" is a hybrid grid", grid_name);
 	}
 
     full_ratio = 0;
@@ -1049,21 +1049,21 @@ void Remap_grid_class::calculate_lev_sigma_values()
 	local_sigma_grid_top_value = lev_leaf_grid_of_sigma_or_hybrid->sigma_grid_top_value;
 	local_sigma_grid_scale_factor = lev_leaf_grid_of_sigma_or_hybrid->sigma_grid_scale_factor;
     for (i = 0; i < lev_grid_size; i ++) {
-        EXECUTION_REPORT(REPORT_WARNING, fabs(data_sigma[i]) <= 1.0, "the sigma value in grid %s should be between 0.0 and 1.0\n", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
+        EXECUTION_REPORT(REPORT_WARNING, -1, fabs(data_sigma[i]) <= 1.0, "the sigma value in grid %s should be between 0.0 and 1.0\n", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
         if (fabs(data_sigma[i]) > 1.0)
             if (data_sigma[i] > 0)
                 data_sigma[i] = 1.0;
             else data_sigma[i] = -1.0;
         if (full_ratio == 1.0)
-            EXECUTION_REPORT(REPORT_ERROR, data_sigma[i] >= 0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
+            EXECUTION_REPORT(REPORT_ERROR,-1, data_sigma[i] >= 0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
         if (full_ratio == -1.0)
-            EXECUTION_REPORT(REPORT_ERROR, data_sigma[i] <= 0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
+            EXECUTION_REPORT(REPORT_ERROR,-1, data_sigma[i] <= 0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
         if (data_sigma[i] > 0)
             full_ratio = 1.0;
         if (data_sigma[i] < 0)
             full_ratio = -1.0;
     }
-    EXECUTION_REPORT(REPORT_ERROR, full_ratio == 1.0 || full_ratio == -1.0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
+    EXECUTION_REPORT(REPORT_ERROR,-1, full_ratio == 1.0 || full_ratio == -1.0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
 
     leaf_grids[0] = lev_leaf_grid;
     leaf_grids[1] = sigma_grid_surface_value_field->get_coord_value_grid();
@@ -1105,20 +1105,20 @@ void Remap_grid_class::calculate_lev_sigma_values()
     }
 	delete [] tmp_vertical_coord_values;
 	
-	EXECUTION_REPORT(REPORT_LOG, true, "calculate vertical grid coordinate values in a sigma 3D grid %s\n", grid_name);
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "calculate vertical grid coordinate values in a sigma 3D grid %s\n", grid_name);
 }
 
 
 Remap_grid_data_class *Remap_grid_class::get_unique_center_field()
 {
-	EXECUTION_REPORT(REPORT_ERROR, grid_center_fields.size() == 1 && is_sigma_grid(), "C-Coupler error in Remap_grid_class::get_unique_center_field");
+	EXECUTION_REPORT(REPORT_ERROR,-1, grid_center_fields.size() == 1 && is_sigma_grid(), "C-Coupler error in Remap_grid_class::get_unique_center_field");
 	return grid_center_fields[0];
 }
 
 
 Remap_grid_data_class *Remap_grid_class::get_unique_vertex_field()
 {
-	EXECUTION_REPORT(REPORT_ERROR, grid_vertex_fields.size() == 1 && is_sigma_grid() && num_vertexes == 2, "C-Coupler error in Remap_grid_class::get_unique_vertex_field");
+	EXECUTION_REPORT(REPORT_ERROR,-1, grid_vertex_fields.size() == 1 && is_sigma_grid() && num_vertexes == 2, "C-Coupler error in Remap_grid_class::get_unique_vertex_field");
 	return grid_vertex_fields[0];
 }
 
@@ -1134,26 +1134,26 @@ void Remap_grid_class::read_grid_data_from_IO(char extension_names[16][256],
 
 
     if (words_are_the_same(extension_names[1], COORD_LABEL_TRACER))
-        EXECUTION_REPORT(REPORT_ERROR, false, "can not set the coordinate values of grid %s\n", extension_names[1]);
+        EXECUTION_REPORT(REPORT_ERROR,-1, false, "can not set the coordinate values of grid %s\n", extension_names[1]);
     if ((words_are_the_same(extension_names[0], GRID_CENTER_LABEL) || words_are_the_same(extension_names[0], GRID_VERTEX_LABEL))) {
         if (words_are_the_same(extension_names[1], COORD_LABEL_LON) || words_are_the_same(extension_names[1], COORD_LABEL_LAT)) {
-            EXECUTION_REPORT(REPORT_ERROR, num_dimensions <= 2, "the coordinate values of %s can only be set in 1D or 2D grid\n", extension_names[1]);
+            EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions <= 2, "the coordinate values of %s can only be set in 1D or 2D grid\n", extension_names[1]);
             if (num_dimensions == 2)
-                EXECUTION_REPORT(REPORT_ERROR, this->get_is_sphere_grid(), "the 2D grid %s to be set lon or lat values must be a sphere grid with coordinates lon, and lat\n",
+                EXECUTION_REPORT(REPORT_ERROR,-1, this->get_is_sphere_grid(), "the 2D grid %s to be set lon or lat values must be a sphere grid with coordinates lon, and lat\n",
                              this->grid_name);
         }
         if (words_are_the_same(extension_names[1], COORD_LABEL_TIME))
-            EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1, "the coordinate values of %s can only be set in 1D grid\n", extension_names[1]);
+            EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 1, "the coordinate values of %s can only be set in 1D grid\n", extension_names[1]);
         if (words_are_the_same(extension_names[1], COORD_LABEL_LEV)) {
-            EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1 || num_dimensions == 3, "the coordinate values of %s can only be set in 1D or 3D grid\n", extension_names[1]);
+            EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 1 || num_dimensions == 3, "the coordinate values of %s can only be set in 1D or 3D grid\n", extension_names[1]);
             if (num_dimensions == 3)
-                EXECUTION_REPORT(REPORT_ERROR, this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT),
+                EXECUTION_REPORT(REPORT_ERROR,-1, this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT),
                              "the 3D grid %s to be set lev values must be a spacial grid with coordinates lon, lat and lev\n",
                              this->grid_name);
         }
     }
     if (words_are_the_same(extension_names[0], GRID_VERTEX_LABEL) && this->num_vertexes != 0) {
-        EXECUTION_REPORT(REPORT_ERROR, this->num_vertexes == num_vertexes, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, this->num_vertexes == num_vertexes, 
                      "the number of vertexes of grid \"%s\" specified by input parameter is different from the numbe of vertexes specified by the previous statements\n",
                      grid_name);
     }
@@ -1161,7 +1161,7 @@ void Remap_grid_class::read_grid_data_from_IO(char extension_names[16][256],
     if (num_vertexes != 0)
         this->num_vertexes = num_vertexes;
 
-    EXECUTION_REPORT(REPORT_ERROR, grid_size > 0, "the grid size of grid object \"%s\" is unknown, and so can not read grid field data from IO file\n", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_size > 0, "the grid size of grid object \"%s\" is unknown, and so can not read grid field data from IO file\n", grid_name);
 
     remap_data_field = new Remap_data_field;    
     if (words_are_the_same(extension_names[0], GRID_MASK_LABEL)) {
@@ -1315,7 +1315,7 @@ Remap_grid_class *Remap_grid_class::get_a_leaf_grid(const char *coord_label)
 		if (words_are_the_same(leaf_grids[i]->coord_label, coord_label))
 			return leaf_grids[i];
 
-	EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler error in get_a_leaf_grid");
+	EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error in get_a_leaf_grid");
 
 	return NULL;
 }
@@ -1353,14 +1353,14 @@ void Remap_grid_class::get_sized_sub_grids(int *num_sized_sub_grids, Remap_grid_
         if (leaf_grids[i] == NULL)
             continue;
         sized_super_grid = leaf_grids[i]->get_first_super_grid_of_enable_setting_coord_value();
-        EXECUTION_REPORT(REPORT_ERROR, sized_super_grid != NULL, "remap software error1 in function get_sized_sub_grids\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, sized_super_grid != NULL, "remap software error1 in function get_sized_sub_grids\n");
         sized_sub_grids[(*num_sized_sub_grids)++] = sized_super_grid;
         if (sized_super_grid != leaf_grids[i])
             for (j = i+1; j < num_leaf_grids; j ++) {
                 if (leaf_grids[j] == NULL)
                     continue;
                 if (leaf_grids[j]->is_subset_of_grid(sized_super_grid)) {
-                    EXECUTION_REPORT(REPORT_ERROR, leaf_grids[j]->get_grid_size() == 0, "remap software error2 in function get_sized_sub_grids\n");
+                    EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[j]->get_grid_size() == 0, "remap software error2 in function get_sized_sub_grids\n");
                     leaf_grids[j] = NULL;
                 }
             }
@@ -1372,12 +1372,12 @@ void Remap_grid_class::get_sized_sub_grids(int *num_sized_sub_grids, Remap_grid_
         tmp_grid_size *= sized_sub_grids[i]->get_grid_size();
         tmp_num_dimensions += sized_sub_grids[i]->get_num_dimensions();
         if (original_grid == NULL)
-            EXECUTION_REPORT(REPORT_ERROR, is_superset_of_grid(sized_sub_grids[i]), 
+            EXECUTION_REPORT(REPORT_ERROR,-1, is_superset_of_grid(sized_sub_grids[i]), 
                          "remap software error3 in function get_sized_sub_grids\n");
-        EXECUTION_REPORT(REPORT_ERROR, !sized_sub_grids[i]->is_partial_grid(), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, !sized_sub_grids[i]->is_partial_grid(), 
                      "remap software error4 in function get_sized_sub_grids\n");
     }
-    EXECUTION_REPORT(REPORT_ERROR, tmp_grid_size == grid_size && tmp_num_dimensions == num_dimensions, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, tmp_grid_size == grid_size && tmp_num_dimensions == num_dimensions, 
                  "remap software error5 in function get_sized_sub_grids\n");
 }
 
@@ -1416,9 +1416,9 @@ void Remap_grid_class::get_masked_sub_grids(int *num_masked_sub_grids, Remap_gri
     }
 
     for (i = 0; i < *num_masked_sub_grids; i ++) {
-        EXECUTION_REPORT(REPORT_ERROR, masked_sub_grids[i]->grid_mask_field != NULL, "remap software error1 in get_masked_sub_grids\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, masked_sub_grids[i]->grid_mask_field != NULL, "remap software error1 in get_masked_sub_grids\n");
         for (j = i+1; j < *num_masked_sub_grids; j ++)
-            EXECUTION_REPORT(REPORT_ERROR, !masked_sub_grids[i]->have_overlap_with_grid(masked_sub_grids[j]), "remap software error2 in get_masked_sub_grids\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, !masked_sub_grids[i]->have_overlap_with_grid(masked_sub_grids[j]), "remap software error2 in get_masked_sub_grids\n");
     }
 }
 
@@ -1434,7 +1434,7 @@ void Remap_grid_class::get_partial_grid_mask_fields(int *num_mask_fields_partial
         sub_grids[i]->get_partial_grid_mask_fields(num_mask_fields_partial, mask_fields_partial, top_grid);
 
     if (whole_grid != NULL) {
-        EXECUTION_REPORT(REPORT_ERROR, grid_mask_field != NULL, "remap software error in get_partial_grid_mask_fields\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, grid_mask_field != NULL, "remap software error in get_partial_grid_mask_fields\n");
         mask_fields_partial[(*num_mask_fields_partial)++] = grid_mask_field;
     }
 }
@@ -1447,7 +1447,7 @@ Remap_grid_data_class *Remap_grid_class::get_grid_center_field() const
     Remap_grid_data_class *existing_data_field = NULL;
     
 
-    EXECUTION_REPORT(REPORT_ERROR, this->num_dimensions == 1, "remap software error1 in get_grid_center_field\n");    
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->num_dimensions == 1, "remap software error1 in get_grid_center_field\n");    
     
     super_grid = this->get_super_grid_of_setting_coord_values();
     if (super_grid == NULL)
@@ -1459,7 +1459,7 @@ Remap_grid_data_class *Remap_grid_class::get_grid_center_field() const
             break;
         }
 
-    EXECUTION_REPORT(REPORT_ERROR, existing_data_field != NULL,
+    EXECUTION_REPORT(REPORT_ERROR,-1, existing_data_field != NULL,
                  "remap software error2 in get_grid_center_field\n");
 
     return existing_data_field;
@@ -1473,7 +1473,7 @@ Remap_grid_data_class *Remap_grid_class::get_grid_vertex_field() const
     Remap_grid_data_class *existing_data_field = NULL;
     
 
-    EXECUTION_REPORT(REPORT_ERROR, this->num_dimensions == 1,
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->num_dimensions == 1,
                  "remap software error1 in get_grid_vertex_field\n");    
     
     super_grid = this->get_super_grid_of_setting_coord_values();
@@ -1495,11 +1495,11 @@ void Remap_grid_class::check_grid_field_can_be_set()
     Remap_grid_class *similar_grid;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, this->whole_grid == NULL, "\"%s\" is a partial grid, whose coordinate values can not be set\n", this->grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, this->enable_to_set_coord_values, "can not set the coordinate values of grid \"%s\", because it or its super grids have been used for remapping\n", this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->whole_grid == NULL, "\"%s\" is a partial grid, whose coordinate values can not be set\n", this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->enable_to_set_coord_values, "can not set the coordinate values of grid \"%s\", because it or its super grids have been used for remapping\n", this->grid_name);
     similar_grid = get_similar_grids_setting_coord_values();
     if (similar_grid != NULL)
-        EXECUTION_REPORT(REPORT_ERROR, false,
+        EXECUTION_REPORT(REPORT_ERROR,-1, false,
                      "can not set coordinate values in grid \"%s\" because its similar grid \"%s\" have been used to set coordinate values: all coordinated values can only be set in one of similar grids\n",
                      grid_name, similar_grid->grid_name);
 }
@@ -1516,12 +1516,12 @@ void Remap_grid_class::check_vertex_coord_value_can_be_set(const char *coord_lab
         if (words_are_the_same(grid_center_fields[i]->grid_data_field->field_name_in_application, coord_label))
             break;
 
-    EXECUTION_REPORT(REPORT_ERROR, i < grid_center_fields.size(), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, i < grid_center_fields.size(), 
                  "the vertex values of coordinate \"%s\" can not be set in grid object \"%s\" because the corresonding center values of coordinate \"%s\" have not been set\n",
                  coord_label, grid_name, coord_label);
 
     for (i = 0; i < grid_vertex_fields.size(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(grid_vertex_fields[i]->grid_data_field->field_name_in_application, coord_label), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(grid_vertex_fields[i]->grid_data_field->field_name_in_application, coord_label), 
                      "the vertex values of coordinate \"%s\" can not be set in grid object \"%s\" because these values have been set before\n",
                      coord_label, grid_name);
 }
@@ -1539,20 +1539,20 @@ void Remap_grid_class::check_center_coord_value_can_be_set(const char *coord_lab
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (i = 0; i < num_leaf_grids; i ++)
         if (words_are_the_same(coord_label, leaf_grids[i]->coord_label)) {
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->get_grid_center_field() == NULL,
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->get_grid_center_field() == NULL,
                          "grid %s and %s have the same leaf grid object %s, they can not both set the coordinate values corresponding to this leaf grid\n", 
                          this->get_grid_name(), leaf_grids[i]->super_grid_of_setting_coord_values->get_grid_name(), grid_name);            
             leaf_grids[i]->super_grid_of_setting_coord_values = this;
             for (j = 0; j < remap_grid_manager->remap_grids.size(); j ++)
                 if (leaf_grids[i]->is_subset_of_grid(remap_grid_manager->remap_grids[j]))
-                    EXECUTION_REPORT(REPORT_ERROR, this->is_subset_of_grid(remap_grid_manager->remap_grids[j]) ||
+                    EXECUTION_REPORT(REPORT_ERROR,-1, this->is_subset_of_grid(remap_grid_manager->remap_grids[j]) ||
                                  remap_grid_manager->remap_grids[j]->is_subset_of_grid(this),
                                  "grid %s have coordinate %s. However, current grid %s which sets the coordinate values is not a subgrid or super grid of this grid\n",
                                  remap_grid_manager->remap_grids[j]->get_grid_name(), leaf_grids[i]->get_coord_label(), this->get_grid_name());
             break;
         }
         
-    EXECUTION_REPORT(REPORT_ERROR, i < num_leaf_grids, "remap software error in check_center_coord_value_can_be_set\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, i < num_leaf_grids, "remap software error in check_center_coord_value_can_be_set\n");
 }
 
 
@@ -1565,11 +1565,11 @@ void Remap_grid_class::check_mask_value_can_be_set()
 
     check_grid_field_can_be_set();
 
-    EXECUTION_REPORT(REPORT_ERROR, grid_mask_field == NULL, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_mask_field == NULL, 
                  "the mask values of grid object \"%s\" can not be set again because these mask values have been set before\n",
                  grid_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, !masks_are_known, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, !masks_are_known, 
                  "the mask values of grid \"%s\" can not be set because these mask values can be computed according to the sub grids\n",
                  grid_name);
 
@@ -1578,7 +1578,7 @@ void Remap_grid_class::check_mask_value_can_be_set()
     for (i = 0; i < remap_grid_manager->remap_grids.size(); i ++)
         if (this != remap_grid_manager->remap_grids[i] && 
             this->is_similar_grid_with(remap_grid_manager->remap_grids[i]))
-            EXECUTION_REPORT(REPORT_ERROR, !remap_grid_manager->remap_grids[i]->masks_are_known, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, !remap_grid_manager->remap_grids[i]->masks_are_known, 
                          "the mask values of grid object \"%s\" can not be set because the mask values of its similar grid \"%s\" mask values are known\n",
                          grid_name, remap_grid_manager->remap_grids[i]->grid_name);
 
@@ -1652,8 +1652,8 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
     bool cross_360_degree_dim1;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, get_is_sphere_grid(), "grid \"%s\" does not match the constraint that the grid which can be set 2D vertex values must be 2D sphere grid", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, !cyclic_dim2, "remap software error1 in set_2D_coord_vertex_values_in_default\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_is_sphere_grid(), "grid \"%s\" does not match the constraint that the grid which can be set 2D vertex values must be 2D sphere grid", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, !cyclic_dim2, "remap software error1 in set_2D_coord_vertex_values_in_default\n");
 
     temp_vertex_values_dim1 = new double* [grid_size_dim2+1];
     temp_vertex_values_dim2 = new double* [grid_size_dim2+1];
@@ -1685,7 +1685,7 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
                     box_vertex_start_dim1 = box_vertex_end_dim1;
                 if (box_vertex_end_dim1 >= grid_size_dim1) 
                     box_vertex_end_dim1 = box_vertex_start_dim1;
-                EXECUTION_REPORT(REPORT_ERROR, box_vertex_start_dim1 >= 0 && box_vertex_end_dim1 < grid_size_dim1, "remap software error2 in set_2D_coord_vertex_values_in_default\n");
+                EXECUTION_REPORT(REPORT_ERROR,-1, box_vertex_start_dim1 >= 0 && box_vertex_end_dim1 < grid_size_dim1, "remap software error2 in set_2D_coord_vertex_values_in_default\n");
             }
             else {
                 box_vertex_start_dim1 = (box_vertex_start_dim1+grid_size_dim1) % grid_size_dim1;
@@ -1790,20 +1790,20 @@ void Remap_grid_class::set_grid_boundary(double min_lon, double max_lon, double 
     Remap_grid_class *leaf_grids[256], *lon_sub_grid;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, this->get_is_sphere_grid(), "%s is not a sphere grid, while only sphere grid can be set boundary");
-    EXECUTION_REPORT(REPORT_ERROR, boundary_min_lon == NULL_COORD_VALUE, "the boundary of grid %s has been set before", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, min_lon >= 0 && min_lon <= 360, "the minimum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, max_lon >= 0 && max_lon <= 360, "the maximum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, min_lat >= -90 && min_lat <= 90, "the minimum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, max_lat >= -90 && max_lat <= 90, "the maximum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, min_lat < max_lat, "the minimum latitude of the boundary must be smaller than the maximum latitude of the boundary", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->get_is_sphere_grid(), "%s is not a sphere grid, while only sphere grid can be set boundary");
+    EXECUTION_REPORT(REPORT_ERROR,-1, boundary_min_lon == NULL_COORD_VALUE, "the boundary of grid %s has been set before", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, min_lon >= 0 && min_lon <= 360, "the minimum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, max_lon >= 0 && max_lon <= 360, "the maximum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, min_lat >= -90 && min_lat <= 90, "the minimum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, max_lat >= -90 && max_lat <= 90, "the maximum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, min_lat < max_lat, "the minimum latitude of the boundary must be smaller than the maximum latitude of the boundary", grid_name);
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     if (words_are_the_same(leaf_grids[0]->get_coord_label(), COORD_LABEL_LON))
         lon_sub_grid = leaf_grids[0];
     else lon_sub_grid = leaf_grids[1];
     if (lon_sub_grid->get_grid_cyclic())
-        EXECUTION_REPORT(REPORT_ERROR, min_lon == 0 && max_lon == 360, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, min_lon == 0 && max_lon == 360, 
                          "As grid %s has cyclic longitude, its minimum and maximum longitude of the boundary must be 0 and 360 respectively", this->grid_name);
 
     boundary_min_lon = min_lon;
@@ -1822,8 +1822,8 @@ void Remap_grid_class::generate_voronoi_grid()
     Delaunay_Voronoi *delaunay_triangularization;
 
   
-    EXECUTION_REPORT(REPORT_ERROR, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
-    EXECUTION_REPORT(REPORT_WARNING, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Failed to generate the voronoi grid\n", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
+    EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Failed to generate the voronoi grid\n", grid_name);
 
 	if (boundary_min_lon == NULL_COORD_VALUE)
 		return;
@@ -1836,12 +1836,12 @@ void Remap_grid_class::generate_voronoi_grid()
 
     if (!is_global_grid)
         for (i = 0; i < grid_size; i ++) {
-            EXECUTION_REPORT(REPORT_ERROR, center_lat_values[i] >= boundary_min_lat && center_lat_values[i] <= boundary_max_lat, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, center_lat_values[i] >= boundary_min_lat && center_lat_values[i] <= boundary_max_lat, 
                              "points in sphere grid %s are out of the latitude boundary. Please enlarge the region of latitude", this->grid_name);
             if (boundary_min_lon < boundary_max_lon)
-                EXECUTION_REPORT(REPORT_ERROR, center_lon_values[i] >= boundary_min_lon && center_lon_values[i] <= boundary_max_lon, 
+                EXECUTION_REPORT(REPORT_ERROR,-1, center_lon_values[i] >= boundary_min_lon && center_lon_values[i] <= boundary_max_lon, 
                                  "points in sphere grid %s are out of the longitude boundary. Please enlarge the region of longitude", this->grid_name);
-            else EXECUTION_REPORT(REPORT_ERROR, center_lon_values[i] <= boundary_min_lon || center_lon_values[i] >= boundary_max_lon, 
+            else EXECUTION_REPORT(REPORT_ERROR,-1, center_lon_values[i] <= boundary_min_lon || center_lon_values[i] >= boundary_max_lon, 
                                   "points in sphere grid %s are out of the longitude boundary. Please enlarge the region of longitude", this->grid_name);
         }
 
@@ -1850,7 +1850,7 @@ void Remap_grid_class::generate_voronoi_grid()
                                                redundant_cell_mark, &vertex_lon_values, &vertex_lat_values, &num_vertexes);
     delete delaunay_triangularization;
 
-    EXECUTION_REPORT(REPORT_ERROR, grid_vertex_fields.size() == 0, "remap software error2 in generate_voronoi_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_vertex_fields.size() == 0, "remap software error2 in generate_voronoi_grid\n");
     grid_vertex_fields.push_back(grid_center_fields[0]->duplicate_grid_data_field(this, num_vertexes, false, false));
     grid_vertex_fields.push_back(grid_center_fields[1]->duplicate_grid_data_field(this, num_vertexes, false, false));
     delete [] grid_vertex_fields[0]->grid_data_field->data_buf;
@@ -1894,7 +1894,7 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
         for (j = 0; j < num_leaf_grids; j ++)
 			if (is_sigma_grid()) {
 				if (leaf_grids[j]->has_grid_coord_label(COORD_LABEL_LEV)){
-					EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV), "remap software error0 in set_coord_vertex_values_in_default\n");
+					EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV), "remap software error0 in set_coord_vertex_values_in_default\n");
 					break;
 				}
 			}
@@ -1902,9 +1902,9 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
 	            if (leaf_grids[j]->get_grid_center_field() == grid_center_fields[0])
 	                break;
 			}
-        EXECUTION_REPORT(REPORT_ERROR, j < num_leaf_grids, "remap software error1 in set_coord_vertex_values_in_default\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, j < num_leaf_grids, "remap software error1 in set_coord_vertex_values_in_default\n");
         current_leaf_grid = leaf_grids[j];
-        EXECUTION_REPORT(REPORT_ERROR, current_leaf_grid->grid_size > 0, "remap software error2 in set_coord_vertex_values_in_default\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, current_leaf_grid->grid_size > 0, "remap software error2 in set_coord_vertex_values_in_default\n");
         grid_center_fields[0]->interchange_grid_data(current_leaf_grid);
         grid_vertex_fields[0]->interchange_grid_data(current_leaf_grid);
         is_unit_degree_dim1 = words_are_the_same(current_leaf_grid->coord_unit, COORD_UNIT_DEGREES);
@@ -1921,7 +1921,7 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
         grid_center_fields[0]->interchange_grid_data(this);
     }
     else if (grid_center_fields.size() == 2) {
-        EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 2, "detect unsupported grid in set_coord_vertex_values_in_default, please contact the authors of CoR\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 2, "detect unsupported grid in set_coord_vertex_values_in_default, please contact the authors of CoR\n");
         if (leaf_grids[1]->cyclic) {
             leaf_grid_dim1 = leaf_grids[1]; 
             leaf_grid_dim2 = leaf_grids[0];
@@ -1944,7 +1944,7 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
                                               is_unit_degree_dim2);
         return;
     }
-    else EXECUTION_REPORT(REPORT_ERROR, false, "detect unsupported grid2 in set_coord_vertex_values_in_default, please contact the authors of CoR\n");
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "detect unsupported grid2 in set_coord_vertex_values_in_default, please contact the authors of CoR\n");
 }
 
 
@@ -1957,11 +1957,11 @@ bool Remap_grid_class::check_vertex_fields_completeness(Remap_operator_basis *re
 
 
     if (this->grid_vertex_fields.size() == 1)
-        EXECUTION_REPORT(REPORT_ERROR, this->num_vertexes == 2, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, this->num_vertexes == 2, 
                      "as grid \"%s\" sets the vertex values of only one coordinate \"%s\", the number of vertexes of each cell must be 2\n", 
                      this->grid_name, this->grid_vertex_fields[0]->grid_data_field->field_name_in_application);    
     if (this->grid_vertex_fields.size() > 0)
-        EXECUTION_REPORT(REPORT_ERROR, this->grid_center_fields.size() == this->grid_vertex_fields.size(), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, this->grid_center_fields.size() == this->grid_vertex_fields.size(), 
                      "when vertex values of some coordinates are set in grid \"%s\", the vertex values of all coordinates whose center values are set must be given by users\n",
                      this->grid_name, this->grid_vertex_fields[0]->grid_data_field->field_name_in_application);    
 
@@ -1993,14 +1993,14 @@ long Remap_grid_class::get_lower_dimension_size_of_leaf_grid(Remap_grid_data_cla
 
     for (i = 0; i < remap_grid_data_field->sized_grids.size(); i ++) {
         if (leaf_grid->is_subset_of_grid(remap_grid_data_field->sized_grids[i])) {
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grid == remap_grid_data_field->sized_grids[i], 
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grid == remap_grid_data_field->sized_grids[i], 
                          "remap software error1 in get_lower_dimension_size_of_leaf_grid\n");            
             return lower_dimension_size;
         }
         lower_dimension_size *= remap_grid_data_field->sized_grids[i]->get_grid_size();
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, false, "remap software error2 in get_lower_dimension_size_of_leaf_grid\n");    
+    EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in get_lower_dimension_size_of_leaf_grid\n");    
 
     return 0;
 }
@@ -2014,14 +2014,14 @@ long Remap_grid_class::get_higher_dimension_size_of_leaf_grid(Remap_grid_data_cl
 
     for (i = remap_grid_data_field->sized_grids.size()-1; i >= 0; i --) {
         if (leaf_grid->is_subset_of_grid(remap_grid_data_field->sized_grids[i])) {
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grid == remap_grid_data_field->sized_grids[i], 
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grid == remap_grid_data_field->sized_grids[i], 
                          "remap software error1 in get_higher_dimension_size_of_leaf_grid\n");            
             return higher_dimension_size;
         }
         higher_dimension_size *= remap_grid_data_field->sized_grids[i]->get_grid_size();
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, false, "remap software error2 in get_higher_dimension_size_of_leaf_grid\n");    
+    EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in get_higher_dimension_size_of_leaf_grid\n");    
 
     return 0;  
 }
@@ -2034,7 +2034,7 @@ void Remap_grid_class::get_grid_index_interchange_table(Remap_grid_class *interc
     Remap_grid_class *sized_sub_grids_this[256], *sized_sub_grids_interchange[256];
 
 
-    EXECUTION_REPORT(REPORT_ERROR, this->is_similar_grid_with(interchange_grid),
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->is_similar_grid_with(interchange_grid),
                  "remap software error in get_grid_index_interchange_table\n");        
 
     this->get_sized_sub_grids(&num_sized_sub_grids_this, sized_sub_grids_this);
@@ -2055,10 +2055,10 @@ void Remap_grid_class::add_partial_grid_area(const char *area_name)
     Partial_area *partial_area;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, this->whole_grid != NULL, "%s is not a partial grid. Can not add partial grid area to it\n", this->grid_name);    
-    EXECUTION_REPORT(REPORT_ERROR, this->enable_to_set_coord_values, "can not set the partial area of grid \"%s\", because it has been used for remapping\n", this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->whole_grid != NULL, "%s is not a partial grid. Can not add partial grid area to it\n", this->grid_name);    
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->enable_to_set_coord_values, "can not set the partial area of grid \"%s\", because it has been used for remapping\n", this->grid_name);
     for (i = 0; i < partial_areas.size(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(partial_areas[i]->area_name, area_name),
+        EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(partial_areas[i]->area_name, area_name),
                      "partial area \"%s\" has been added in grid \"%s\". Can not add the same partial area more than once\n", 
                      area_name, this->grid_name);    
 
@@ -2091,41 +2091,41 @@ void Remap_grid_class::add_partial_grid_area_bounds(const char *area_name,
             break;
         }
         
-    EXECUTION_REPORT(REPORT_ERROR, partial_area != NULL, "\"%s\" has not been declared as a partial area of grid \"%s\"\n", area_name, this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, partial_area != NULL, "\"%s\" has not been declared as a partial area of grid \"%s\"\n", area_name, this->grid_name);
 
     area_bound_grid = remap_grid_manager->search_remap_grid_with_grid_name(area_bound_grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, area_bound_grid->is_subset_of_grid(this), "grid %s can not locate the area bounds becase it is not a sub grid of %s\n", area_bound_grid_name, this->grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, !area_bound_grid->is_partial_grid(), "grid %s can not locate the area bounds of %s becase it is not a whole grid\n", area_bound_grid_name, this->grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(bound_type, PARTIAL_AREA_BOUND_TYPE_INDEX) || words_are_the_same(bound_type, PARTIAL_AREA_BOUND_TYPE_VALUE),
+    EXECUTION_REPORT(REPORT_ERROR,-1, area_bound_grid->is_subset_of_grid(this), "grid %s can not locate the area bounds becase it is not a sub grid of %s\n", area_bound_grid_name, this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, !area_bound_grid->is_partial_grid(), "grid %s can not locate the area bounds of %s becase it is not a whole grid\n", area_bound_grid_name, this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(bound_type, PARTIAL_AREA_BOUND_TYPE_INDEX) || words_are_the_same(bound_type, PARTIAL_AREA_BOUND_TYPE_VALUE),
                  "the type of partial grid area bound must be \"index\" or \"value\"\n");
 
     if (words_are_the_same(bound_type, PARTIAL_AREA_BOUND_TYPE_INDEX)) {
-        EXECUTION_REPORT(REPORT_ERROR, area_bound_grid->grid_size > 0, "the area bound type can not be \"index\" because the size of located grid \"%s\" is unknown\n", area_bound_grid->grid_name);
-        EXECUTION_REPORT(REPORT_ERROR, bound_start <= bound_end, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, area_bound_grid->grid_size > 0, "the area bound type can not be \"index\" because the size of located grid \"%s\" is unknown\n", area_bound_grid->grid_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, bound_start <= bound_end, 
                      "the two area bounds \"%s\" and \"%s\" must be in ascending order when area bound type is \"index\"\n",
                      bound_start_string, bound_end_string, area_bound_grid->grid_name);
-        EXECUTION_REPORT(REPORT_ERROR, bound_start >= 0 && bound_end < area_bound_grid->grid_size, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, bound_start >= 0 && bound_end < area_bound_grid->grid_size, 
                      "the two area bounds \"%s\" and \"%s\" are out of grid size of \"%s\"\n",
                      bound_start_string, bound_end_string, area_bound_grid->grid_name);
     }
     else {
-        EXECUTION_REPORT(REPORT_ERROR, area_bound_grid->num_dimensions == 1, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, area_bound_grid->num_dimensions == 1, 
                      "\"%s\" can not be the grid of locating the partial area when area bound type is \"value\", because it is not a 1D grid\n",
                      area_bound_grid->grid_name);
-        EXECUTION_REPORT(REPORT_ERROR, area_bound_grid->super_grid_of_setting_coord_values != NULL,
+        EXECUTION_REPORT(REPORT_ERROR,-1, area_bound_grid->super_grid_of_setting_coord_values != NULL,
                      "\"%s\" can not be the grid of locating the partial area when area bound type is \"value\", because the corresponding center coordinate values are not set\n",
                      area_bound_grid->grid_name);
-        EXECUTION_REPORT(REPORT_ERROR, area_bound_grid->super_grid_of_setting_coord_values->is_subset_of_grid(this), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, area_bound_grid->super_grid_of_setting_coord_values->is_subset_of_grid(this), 
                      "\"%s\" can not be the grid of locating the partial area when area bound type is \"value\", because grid \"%s\" which sets the corresponding center coordinate values is not a subset of grid \"%s\"\n",
                      area_bound_grid->grid_name, area_bound_grid->super_grid_of_setting_coord_values->grid_name, this->grid_name);
         if (!area_bound_grid->cyclic)
-            EXECUTION_REPORT(REPORT_ERROR, bound_start <= bound_end, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, bound_start <= bound_end, 
                          "the two area bounds \"%s\" and \"%s\" must be in ascending order because area bound type is \"value\" and the located grid \"%s\" is acyclic\n",
                          bound_start_string, bound_end_string, area_bound_grid->grid_name);
     }
 
     for (i = 0; i < partial_area->area_bounds.size(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, !area_bound_grid->have_overlap_with_grid(partial_area->area_bounds[i].area_bound_grid), 
+        EXECUTION_REPORT(REPORT_ERROR,-1, !area_bound_grid->have_overlap_with_grid(partial_area->area_bounds[i].area_bound_grid), 
                      "\"%s\" can not be the grid of locating the partial area because it has overlap with another grid \"%s\" of locating the bounds of the same partial area\n",
                      area_bound_grid->grid_name, partial_area->area_bounds[i].area_bound_grid->grid_name);
 
@@ -2154,9 +2154,9 @@ void Remap_grid_class::compute_partial_grid_mask()
     if (whole_grid == NULL || grid_mask_field != NULL)
         return;
     
-    EXECUTION_REPORT(REPORT_ERROR, partial_areas.size() > 0, "%s is a partial grid. However, its partial grid areas are not set before using it\n", this->grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, partial_areas.size() > 0, "%s is a partial grid. However, its partial grid areas are not set before using it\n", this->grid_name);
     for (i = 0; i < partial_areas.size(); i ++) 
-        EXECUTION_REPORT(REPORT_ERROR, partial_areas[i]->area_bounds.size() > 0, "no area bound has been set in the area %s of partial grid %s\n",
+        EXECUTION_REPORT(REPORT_ERROR,-1, partial_areas[i]->area_bounds.size() > 0, "no area bound has been set in the area %s of partial grid %s\n",
                      partial_areas[i]->area_name, this->grid_name);
 
     remap_data_field = new Remap_data_field;
@@ -2210,7 +2210,7 @@ void Remap_grid_class::compute_partial_grid_mask()
                         expanded_center_value_field = whole_grid->expand_to_generate_full_coord_value(leaf_grids[k]->get_grid_center_field());
                         break;
                     }
-                EXECUTION_REPORT(REPORT_ERROR, k < num_leaf_grids, "remap software error2 in compute_partial_grid_mask\n");
+                EXECUTION_REPORT(REPORT_ERROR,-1, k < num_leaf_grids, "remap software error2 in compute_partial_grid_mask\n");
                 expanded_center_values = (double*) expanded_center_value_field->grid_data_field->data_buf;
                 if (bound_start <= bound_end) {
                     for (k = 0; k < grid_size; k ++)
@@ -2255,7 +2255,7 @@ Remap_grid_data_class *Remap_grid_class::expand_to_generate_full_coord_value(Rem
     long existing_data_size, expanded_data_size;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, existing_data_field->get_coord_value_grid()->is_subset_of_grid(this),
+    EXECUTION_REPORT(REPORT_ERROR,-1, existing_data_field->get_coord_value_grid()->is_subset_of_grid(this),
                  "remap software error1 in expand_to_generate_full_coord_value %s %s\n", 
                  existing_data_field->get_coord_value_grid()->get_grid_name(), grid_name);
 
@@ -2283,7 +2283,7 @@ Remap_grid_data_class *Remap_grid_class::expand_to_generate_full_coord_value(Rem
                 sized_grids[j] = NULL;
                 break;
             }
-        EXECUTION_REPORT(REPORT_ERROR, j < num_sized_grids, "remap software error2 in expand_to_generate_full_coord_value\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, j < num_sized_grids, "remap software error2 in expand_to_generate_full_coord_value\n");
     }
     for (i = 0; i < num_sized_grids; i ++)
         if (sized_grids[i] != NULL)
@@ -2326,7 +2326,7 @@ void Remap_grid_class::check_coord_values_range() const
         range_start = -90;
         range_end = 90;
     }
-    else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error in check_coord_values_range\n");
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error in check_coord_values_range\n");
     
     center_field = get_grid_center_field();
     vertex_field = get_grid_vertex_field();
@@ -2335,7 +2335,7 @@ void Remap_grid_class::check_coord_values_range() const
     for (i = 0; i < center_field->grid_data_field->required_data_size; i ++) {
         if (((double*) center_field->grid_data_field->data_buf)[i] == NULL_COORD_VALUE)
             continue;
-        EXECUTION_REPORT(REPORT_WARNING, ((double*) center_field->grid_data_field->data_buf)[i] >= range_start &&
+        EXECUTION_REPORT(REPORT_WARNING, -1, ((double*) center_field->grid_data_field->data_buf)[i] >= range_start &&
                        ((double*) center_field->grid_data_field->data_buf)[i] <= range_end,
                        "the center values of coordinate \"%s\" of grid \"%s\" must be between %s\n",
                        coord_label, super_grid_of_setting_coord_values->grid_name, tmp_string);
@@ -2347,7 +2347,7 @@ void Remap_grid_class::check_coord_values_range() const
     if (vertex_field != NULL)
         for (i = 0; i < vertex_field->grid_data_field->required_data_size; i ++) 
             if (((double*) vertex_field->grid_data_field->data_buf)[i] != NULL_COORD_VALUE) {
-                EXECUTION_REPORT(REPORT_WARNING, ((double*) vertex_field->grid_data_field->data_buf)[i] >= range_start &&
+                EXECUTION_REPORT(REPORT_WARNING, -1, ((double*) vertex_field->grid_data_field->data_buf)[i] >= range_start &&
                                ((double*) vertex_field->grid_data_field->data_buf)[i] <= range_end,
                                "the vertex values of coordinate \"%s\" of grid \"%s\" must be between %s\n",
                                coord_label, super_grid_of_setting_coord_values->grid_name, tmp_string);
@@ -2377,7 +2377,7 @@ void Remap_grid_class::check_center_fields_sorting_order()
         get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
         for (j = 0, k = 0; j < num_sized_sub_grids; j ++)
             if (sized_sub_grids[j]->has_grid_coord_label(grid_center_fields[i]->get_grid_data_field()->field_name_in_application)) {
-                EXECUTION_REPORT(REPORT_ERROR, sized_sub_grids[j]->num_dimensions == 1 && sized_sub_grids[j]->grid_size > 0, "remap software error1 in check_center_fields_sorting_order");
+                EXECUTION_REPORT(REPORT_ERROR,-1, sized_sub_grids[j]->num_dimensions == 1 && sized_sub_grids[j]->grid_size > 0, "remap software error1 in check_center_fields_sorting_order");
                 sub_grids[k++] = sized_sub_grids[j];
             }
         if (sub_grids[0]->grid_size == 1)
@@ -2398,7 +2398,7 @@ void Remap_grid_class::check_center_fields_sorting_order()
 				if (!(current_coord_values[k-1] == current_coord_values[k] || ascending_order == current_coord_values[k-1] < current_coord_values[k]))
 					for (int k = 0; k < sub_grids[0]->grid_size; k ++)
 						printf("wuwu %d: %lf\n", k, current_coord_values[k]);
-                EXECUTION_REPORT(REPORT_ERROR, current_coord_values[k-1] == current_coord_values[k] || ascending_order == current_coord_values[k-1] < current_coord_values[k], "the center coordinate values of subgrid %s of grid %s are not sorted in ascending or descending order\n", sub_grids[0]->get_grid_name(), this->grid_name);
+                EXECUTION_REPORT(REPORT_ERROR,-1, current_coord_values[k-1] == current_coord_values[k] || ascending_order == current_coord_values[k-1] < current_coord_values[k], "the center coordinate values of subgrid %s of grid %s are not sorted in ascending or descending order\n", sub_grids[0]->get_grid_name(), this->grid_name);
             }
         }
         delete interchange_grid;
@@ -2417,10 +2417,10 @@ void Remap_grid_class::check_center_vertex_values_consistency_2D()
     if (are_vertex_values_set_in_default || grid_center_fields.size() != 2 || grid_vertex_fields.size() == 0)
         return;
     
-    EXECUTION_REPORT(REPORT_ERROR, grid_center_fields.size() == grid_vertex_fields.size(), "remap software error1 in check_center_vertex_values_relation_2D\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_center_fields.size() == grid_vertex_fields.size(), "remap software error1 in check_center_vertex_values_relation_2D\n");
     for (i = 0; i < grid_center_fields.size(); i ++) {
-        EXECUTION_REPORT(REPORT_ERROR, grid_center_fields[i]->grid_data_field->required_data_size == grid_size, "remap software error2 in check_center_vertex_values_relation_2D\n");
-        EXECUTION_REPORT(REPORT_ERROR, grid_vertex_fields[i]->grid_data_field->required_data_size == grid_size*num_vertexes, "remap software error3 in check_center_vertex_values_relation_2D\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, grid_center_fields[i]->grid_data_field->required_data_size == grid_size, "remap software error2 in check_center_vertex_values_relation_2D\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, grid_vertex_fields[i]->grid_data_field->required_data_size == grid_size*num_vertexes, "remap software error3 in check_center_vertex_values_relation_2D\n");
     }
 
     center_field1 = grid_center_fields[0];
@@ -2429,7 +2429,7 @@ void Remap_grid_class::check_center_vertex_values_consistency_2D()
     vertex_field2 = grid_vertex_fields[1];
 
     if (get_is_sphere_grid())
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(center_field1->get_grid_data_field()->field_name_in_application, COORD_LABEL_LON) &&
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(center_field1->get_grid_data_field()->field_name_in_application, COORD_LABEL_LON) &&
                      words_are_the_same(center_field2->get_grid_data_field()->field_name_in_application, COORD_LABEL_LAT) &&
                      words_are_the_same(vertex_field1->get_grid_data_field()->field_name_in_application, COORD_LABEL_LON) &&
                      words_are_the_same(vertex_field2->get_grid_data_field()->field_name_in_application, COORD_LABEL_LAT), 
@@ -2456,7 +2456,7 @@ void Remap_grid_class::check_center_vertex_values_consistency_2D()
                                  center_field1->is_unit_degree(),
                                  center_field2->is_unit_degree(),
                                  get_is_sphere_grid())) {
-            EXECUTION_REPORT(REPORT_ERROR, false, "center coordinate values are not consistent with vertex coordinate values in grid \"%s\": each center point must be surrounded by the polygon determined by the corresponding vertex points\n", grid_name);
+            EXECUTION_REPORT(REPORT_ERROR,-1, false, "center coordinate values are not consistent with vertex coordinate values in grid \"%s\": each center point must be surrounded by the polygon determined by the corresponding vertex points\n", grid_name);
         }
     }
 }
@@ -2497,7 +2497,7 @@ void Remap_grid_class::end_grid_definition_stage(Remap_operator_basis *remap_ope
     Remap_grid_class *similar_grid;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, grid_size > 0, "the grid size of \"%s\" is unknown. This grid can not be used to generator field data or remap operator\n", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_size > 0, "the grid size of \"%s\" is unknown. This grid can not be used to generator field data or remap operator\n", grid_name);
 
     for (int i = 0; i < remap_grid_manager->remap_grids.size(); i ++)
         if (remap_grid_manager->remap_grids[i]->is_subset_of_grid(this)) {
@@ -2519,17 +2519,17 @@ void Remap_grid_class::end_grid_definition_stage(Remap_operator_basis *remap_ope
         if (remap_grid_manager->remap_grids[i]->is_subset_of_grid(this) && 
             !remap_grid_manager->remap_grids[i]->check_vertex_fields_completeness(remap_operator)) {
             if (remap_grid_manager->remap_grids[i]->get_num_dimensions() == 1 && remap_grid_manager->remap_grids[i]->get_super_grid_of_setting_coord_values() == NULL)
-                EXECUTION_REPORT(REPORT_ERROR, false, 
+                EXECUTION_REPORT(REPORT_ERROR,-1, false, 
                          "the center values corresponding to grid \"%s\" must be given by users when using remap operator \"%s\"\n",
                          remap_grid_manager->remap_grids[i]->get_grid_name(), remap_operator->get_object_name());    
             if (remap_grid_manager->remap_grids[i]->get_num_dimensions() == 1 && remap_grid_manager->remap_grids[i]->get_super_grid_of_setting_coord_values()->get_is_sphere_grid())
                 continue;
             else if (!remap_grid_manager->remap_grids[i]->get_is_sphere_grid())
-                EXECUTION_REPORT(REPORT_ERROR, false, 
+                EXECUTION_REPORT(REPORT_ERROR,-1, false, 
                          "the vertex values corresponding to grid \"%s\" must be given by users when using remap operator \"%s\"\n",
                          remap_grid_manager->remap_grids[i]->get_grid_name(), remap_operator->get_object_name());    
             else {
-                EXECUTION_REPORT(REPORT_WARNING, false, 
+                EXECUTION_REPORT(REPORT_WARNING, -1, false, 
                          "the vertex values corresponding to sphere grid \"%s\" will be generated automatically", 
                          remap_grid_manager->remap_grids[i]->get_grid_name());
                 remap_grid_manager->remap_grids[i]->generate_voronoi_grid();
@@ -2755,7 +2755,7 @@ void Remap_grid_class::formalize_cyclic_coord_values(Remap_grid_data_class *rema
     if (!leaf_grids[i]->cyclic)
         return;
 
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(leaf_grids[i]->coord_unit, COORD_UNIT_DEGREES), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(leaf_grids[i]->coord_unit, COORD_UNIT_DEGREES), 
                  "remap software error1 in formalize_cyclic_coord_values\n");
 
     coord_value_limit = 360;
@@ -2769,7 +2769,7 @@ void Remap_grid_class::formalize_cyclic_coord_values(Remap_grid_data_class *rema
             coord_value_array[i] += coord_value_limit;
         while(coord_value_array[i] >= coord_value_limit)
             coord_value_array[i] -= coord_value_limit;
-        EXECUTION_REPORT(REPORT_ERROR, coord_value_array[i] >= 0 && coord_value_array[i] < coord_value_limit,
+        EXECUTION_REPORT(REPORT_ERROR,-1, coord_value_array[i] >= 0 && coord_value_array[i] < coord_value_limit,
                      "remap software error2 in formalize_cyclic_coord_values\n");
     }
 }
@@ -2803,7 +2803,7 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
     bool should_rotate;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, this->num_dimensions == 2 && this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT), "remap software error1 in calculate_area_of_sphere_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->num_dimensions == 2 && this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT), "remap software error1 in calculate_area_of_sphere_grid\n");
     
     if (!this->are_all_vertex_fields_specified_by_user())
         return;
@@ -2817,7 +2817,7 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
     lat_vertex_values = (double*) lat_vertex_field->get_grid_data_field()->data_buf;
     
     tmp_num_vertex = lon_vertex_field->get_grid_data_field()->read_data_size / this->grid_size;
-    EXECUTION_REPORT(REPORT_ERROR, tmp_num_vertex == lat_vertex_field->get_grid_data_field()->read_data_size / this->grid_size && tmp_num_vertex >= 2,
+    EXECUTION_REPORT(REPORT_ERROR,-1, tmp_num_vertex == lat_vertex_field->get_grid_data_field()->read_data_size / this->grid_size && tmp_num_vertex >= 2,
                  "remap_software error2 in calculate_area_of_sphere_grid\n");
 
     area_or_volumn = new double [this->grid_size];
@@ -2839,9 +2839,9 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
             }
         }
         else {    
-            EXECUTION_REPORT(REPORT_ERROR, lon_vertex_values[i*2] != NULL_COORD_VALUE && lon_vertex_values[i*2+1] != NULL_COORD_VALUE,
+            EXECUTION_REPORT(REPORT_ERROR,-1, lon_vertex_values[i*2] != NULL_COORD_VALUE && lon_vertex_values[i*2+1] != NULL_COORD_VALUE,
                          "remap software error3 in calculate_area_of_sphere_grid\n");
-            EXECUTION_REPORT(REPORT_ERROR, lat_vertex_values[i*2] != NULL_COORD_VALUE && lat_vertex_values[i*2+1] != NULL_COORD_VALUE,
+            EXECUTION_REPORT(REPORT_ERROR,-1, lat_vertex_values[i*2] != NULL_COORD_VALUE && lat_vertex_values[i*2+1] != NULL_COORD_VALUE,
                          "remap software error3 in calculate_area_of_sphere_grid\n");
             current_num_vertex = 4;
             current_lon_vertex_values[0] = lon_vertex_values[i*2];
@@ -2923,7 +2923,7 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
 
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
-    EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 2 && leaf_grids[0]->has_grid_coord_label(COORD_LABEL_LON) && leaf_grids[1]->has_grid_coord_label(COORD_LABEL_LAT),
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 2 && leaf_grids[0]->has_grid_coord_label(COORD_LABEL_LON) && leaf_grids[1]->has_grid_coord_label(COORD_LABEL_LAT),
                  "the grid %s to decomp grid must be a lat-lon grid\n", grid_name);
     end_grid_definition_stage(NULL);
 
@@ -2937,7 +2937,7 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
     decomp_leaf_grids[0]->super_grids_of_setting_mask_value.push_back(decomp_grid);
     decomp_leaf_grids[1]->super_grids_of_setting_mask_value.push_back(decomp_grid);
 
-    EXECUTION_REPORT(REPORT_ERROR, leaf_grids[0]->get_grid_center_field() != NULL && leaf_grids[1]->get_grid_center_field() != NULL,
+    EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[0]->get_grid_center_field() != NULL && leaf_grids[1]->get_grid_center_field() != NULL,
                  "user must specify the center coordinate of the horizontal 2D grid %s\n", this->grid_name);
 
     decomp_grid->grid_center_fields.push_back(leaf_grids[0]->get_grid_center_field()->duplicate_grid_data_field(decomp_grid, 1, false, false));
@@ -2957,7 +2957,7 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
         original_center_field_lon = expand_to_generate_full_coord_value(leaf_grids[0]->get_grid_center_field());
         original_center_field_lat = expand_to_generate_full_coord_value(leaf_grids[1]->get_grid_center_field());
     }
-    EXECUTION_REPORT(REPORT_ERROR, original_center_field_lon->get_coord_value_grid()->get_num_dimensions() == 2, "C-Coupler error in generate_decomp_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, original_center_field_lon->get_coord_value_grid()->get_num_dimensions() == 2, "C-Coupler error in generate_decomp_grid\n");
     decomp_lon_center_values = (double*) decomp_grid->grid_center_fields[0]->get_grid_data_field()->data_buf;
     decomp_lat_center_values = (double*) decomp_grid->grid_center_fields[1]->get_grid_data_field()->data_buf;
     decomp_mask_values = (bool*) decomp_grid->grid_mask_field->get_grid_data_field()->data_buf;
@@ -3000,7 +3000,7 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 	double *local_sigma_grid_surface_values;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LEV),
+	EXECUTION_REPORT(REPORT_ERROR,-1, this->has_grid_coord_label(COORD_LABEL_LON) && this->has_grid_coord_label(COORD_LABEL_LAT) && this->has_grid_coord_label(COORD_LABEL_LEV),
 					 "C-Coupler error1 in generate_3D_grid_decomp_sigma_values\n");
 
 	if (!original_3D_grid->is_sigma_grid())
@@ -3009,7 +3009,7 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 	if (original_3D_grid->grid_center_fields.size() == 0)
 		return;
 
-	EXECUTION_REPORT(REPORT_ERROR, original_3D_grid->grid_center_fields.size() == 1 && this->grid_center_fields.size() == 0, "C-Coupler error2 in generate_3D_grid_decomp_sigma_values\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, original_3D_grid->grid_center_fields.size() == 1 && this->grid_center_fields.size() == 0, "C-Coupler error2 in generate_3D_grid_decomp_sigma_values\n");
 	
 	grid_center_fields.push_back(original_3D_grid->grid_center_fields[0]->duplicate_grid_data_field(this, 1, false, false));
 	sigma_grid_surface_value_field = original_3D_grid->get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(decomp_grid, 1, false, false);
@@ -3019,13 +3019,13 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 
 	specified_sigma_grid_surface_value_field = original_3D_grid->specified_sigma_grid_surface_value_field;
 	
-	EXECUTION_REPORT(REPORT_LOG, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_size(),
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_size(),
 	                 sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size(), this->get_grid_size());
 
 	this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
 	for (int i = 0; i < num_leaf_grids; i ++)
 		if (leaf_grids[i]->has_grid_coord_label(COORD_LABEL_LEV)) {
-			EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->grid_size > 0 && leaf_grids[i]->grid_center_fields.size() == 0, "C-Coupler error3 in generate_3D_grid_decomp_sigma_values\n");			
+			EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->grid_size > 0 && leaf_grids[i]->grid_center_fields.size() == 0, "C-Coupler error3 in generate_3D_grid_decomp_sigma_values\n");			
 			leaf_grids[i]->super_grid_of_setting_coord_values = this;
 		}
 		
@@ -3036,9 +3036,9 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 
 void Remap_grid_class::renew_lev_grid_coord_values(double *new_center_coord_values, double *new_vertex_coord_values)
 {
-	EXECUTION_REPORT(REPORT_ERROR, num_dimensions == 1, "C-Coupler error1 in renew_lev_grid_coord_values");
-	EXECUTION_REPORT(REPORT_ERROR, grid_center_fields.size() == 1, "C-Coupler error2 in renew_lev_grid_coord_values");
-	EXECUTION_REPORT(REPORT_ERROR, grid_vertex_fields.size() == 1 && num_vertexes == 2, "C-Coupler error3 in renew_lev_grid_coord_values");
+	EXECUTION_REPORT(REPORT_ERROR,-1, num_dimensions == 1, "C-Coupler error1 in renew_lev_grid_coord_values");
+	EXECUTION_REPORT(REPORT_ERROR,-1, grid_center_fields.size() == 1, "C-Coupler error2 in renew_lev_grid_coord_values");
+	EXECUTION_REPORT(REPORT_ERROR,-1, grid_vertex_fields.size() == 1 && num_vertexes == 2, "C-Coupler error3 in renew_lev_grid_coord_values");
 	for (int i = 0; i < grid_size; i ++)
 		((double*)grid_center_fields[0]->get_grid_data_field()->data_buf)[i] = new_center_coord_values[i];
 	for (int i = 0; i < grid_size*2; i ++)
@@ -3053,14 +3053,14 @@ bool Remap_grid_class::check_coord_values_consistency(const char *coord_label, c
     double *coord_values_this;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(coord_label, COORD_LABEL_LON) || words_are_the_same(coord_label, COORD_LABEL_LAT) || words_are_the_same(coord_label, COORD_LABEL_LEV),
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(coord_label, COORD_LABEL_LON) || words_are_the_same(coord_label, COORD_LABEL_LAT) || words_are_the_same(coord_label, COORD_LABEL_LEV),
                  "C-Coupler error1 in check_coord_values_consistency\n");
-    EXECUTION_REPORT(REPORT_ERROR, this->has_grid_coord_label(coord_label), "grid %s does not have coordinate %s\n", grid_name, coord_label);
+    EXECUTION_REPORT(REPORT_ERROR,-1, this->has_grid_coord_label(coord_label), "grid %s does not have coordinate %s\n", grid_name, coord_label);
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     for (int i = 0; i < num_leaf_grids; i ++)
         if (words_are_the_same(leaf_grids[i]->coord_label, coord_label)) {
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids[i]->super_grid_of_setting_coord_values == this,
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->super_grid_of_setting_coord_values == this,
                          "grid %s does not set coordinate %s, please use another grid to check\n", grid_name, coord_label);
             coord_values_this = (double*) leaf_grids[i]->get_grid_center_field()->get_grid_data_field()->data_buf;
         }
@@ -3086,7 +3086,7 @@ bool Remap_grid_class::check_coord_values_consistency(const char *coord_label, c
 
 bool Remap_grid_class::check_mask_values_consitency(const char *data_type, const void*mask_values_model)
 {
-    EXECUTION_REPORT(REPORT_ERROR, grid_mask_field != NULL, "the masks of grid %s has not been set, so as that we can not check the consistency of masks\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_mask_field != NULL, "the masks of grid %s has not been set, so as that we can not check the consistency of masks\n");
 
     if (words_are_the_same(data_type, DATA_TYPE_INT)) {
         for (long i = 0; i < grid_size; i ++)

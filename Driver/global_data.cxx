@@ -35,14 +35,14 @@ const char *current_annotation = NULL;
 
 void push_annotation(const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, current_annotation == NULL, "software error in push_annotation");
+	EXECUTION_REPORT(REPORT_ERROR,-1, current_annotation == NULL, "software error in push_annotation");
 	current_annotation = annotation;
 }
 
 
 void pop_annotation(const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, current_annotation == annotation, "software error in pop_annotation");
+	EXECUTION_REPORT(REPORT_ERROR,-1, current_annotation == annotation, "software error in pop_annotation");
 	current_annotation = NULL;
 }
 

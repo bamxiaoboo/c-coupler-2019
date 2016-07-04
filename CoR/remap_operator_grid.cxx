@@ -86,8 +86,8 @@ void Vertex_values_group::generate_vertex_values_of_one_cell_according_to_vertex
         for (k = 0; k < num_grid_dimensions; k ++) 
             output_vertex_values[k][whole_grid_cell_index*num_vertexes+j] = stack_values[k][j];
 
-    EXECUTION_REPORT(REPORT_ERROR, stack_top == num_vertexes, "remap software error1 in generate_overall_vertex_coord_values\n");
-    EXECUTION_REPORT(REPORT_ERROR, num_processed_coords == num_grid_dimensions, "remap software error2 in generate_overall_vertex_coord_values\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, stack_top == num_vertexes, "remap software error1 in generate_overall_vertex_coord_values\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_processed_coords == num_grid_dimensions, "remap software error2 in generate_overall_vertex_coord_values\n");
 }
 
 
@@ -205,7 +205,7 @@ void Cell_lookup_table::recursively_partition_cell_lookup_table()
         sum_bounds_diff += fabs(current_bounds_diff);
     }
     
-    EXECUTION_REPORT(REPORT_ERROR, min_bound_value <= max_bound_value, "remap software error1 in recursively_partition_cell_lookup_table\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, min_bound_value <= max_bound_value, "remap software error1 in recursively_partition_cell_lookup_table\n");
 
     lookup_table_bounds_diff = (sum_bounds_diff/num_cell_bounding_boxes) / 2;
     num_child_cell_lookup_table = (max_bound_value - min_bound_value)/lookup_table_bounds_diff;
@@ -219,7 +219,7 @@ void Cell_lookup_table::recursively_partition_cell_lookup_table()
         child_cell_lookup_tables[i] = new Cell_lookup_table(this);
     }
     child_bound_value_lookup_table[i] = max_bound_value;
-    EXECUTION_REPORT(REPORT_ERROR, child_bound_value_lookup_table[0] <= child_bound_value_lookup_table[i], "remap software error2 in recursively_partition_cell_lookup_table\n");    
+    EXECUTION_REPORT(REPORT_ERROR,-1, child_bound_value_lookup_table[0] <= child_bound_value_lookup_table[i], "remap software error2 in recursively_partition_cell_lookup_table\n");    
 
     lower_table_element_ids = new long [num_cell_bounding_boxes];
     higher_table_element_ids = new long [num_cell_bounding_boxes];
@@ -228,7 +228,7 @@ void Cell_lookup_table::recursively_partition_cell_lookup_table()
             continue;
         lower_table_element_ids[i] = lookup_in_child_bound_value_lookup_table(cell_bounding_boxes[i]->cell_bounds[current_level*2]);
         higher_table_element_ids[i] = lookup_in_child_bound_value_lookup_table(cell_bounding_boxes[i]->cell_bounds[current_level*2+1]);
-        EXECUTION_REPORT(REPORT_ERROR, lower_table_element_ids[i] < num_child_cell_lookup_table && lower_table_element_ids[i] >= 0 &&
+        EXECUTION_REPORT(REPORT_ERROR,-1, lower_table_element_ids[i] < num_child_cell_lookup_table && lower_table_element_ids[i] >= 0 &&
                      higher_table_element_ids[i] < num_child_cell_lookup_table && higher_table_element_ids[i] >= 0, 
                      "remap software error3 in recursively_partition_cell_lookup_table\n");
         if (lower_table_element_ids[i] <= higher_table_element_ids[i])
@@ -373,7 +373,7 @@ long Cell_lookup_table::search_cell_of_locating_point(double *point_coord_values
                                         remap_operator_grid->is_grid_sphere))
                     return cell_id;
             }
-            else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error1 in search_cell_of_locating_point\n");
+            else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error1 in search_cell_of_locating_point\n");
         }
     }
 
@@ -433,7 +433,7 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
             if (leaf_grids[i]->grid_center_fields.size() == 0)
                 current_grid_center_field = leaf_grids[i]->get_grid_center_field();
             else current_grid_center_field = leaf_grids[i]->grid_center_fields[0];
-            EXECUTION_REPORT(REPORT_ERROR, current_grid_center_field != NULL, "remap software error1 in Remap_operator_grid\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, current_grid_center_field != NULL, "remap software error1 in Remap_operator_grid\n");
             if (num_leaf_grids == 1)
                 grid_center_fields.push_back(current_grid_center_field);
             else grid_center_fields.push_back(remap_grid->expand_to_generate_full_coord_value(current_grid_center_field));
@@ -585,7 +585,7 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
         if (leaf_grids[i]->grid_vertex_fields.size() == 0)
             current_vertex_field = leaf_grids[i]->get_grid_vertex_field();
         else current_vertex_field = leaf_grids[i]->grid_vertex_fields[0];
-		EXECUTION_REPORT(REPORT_ERROR, current_vertex_field != NULL, 
+		EXECUTION_REPORT(REPORT_ERROR,-1, current_vertex_field != NULL, 
 						 "The vertex coordinate values of the grid %s are missing, which are not specified by users or generated automatically",
 						 remap_grid->get_grid_name());
         grid_vertex_fields.push_back(current_vertex_field);
@@ -597,7 +597,7 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
             continue;
         super_grid = leaf_grids[i]->get_super_grid_of_setting_coord_values();
         if (super_grid->num_dimensions == 1)
-            EXECUTION_REPORT(REPORT_ERROR, super_grid->num_vertexes == 2, "remap software error2 in initialize_for_vertex_coord_values_generation\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, super_grid->num_vertexes == 2, "remap software error2 in initialize_for_vertex_coord_values_generation\n");
         this->num_vertexes *= super_grid->num_vertexes;
         vertex_values_groups[num_vertex_values_groups] = new Vertex_values_group();
         vertex_values_groups[num_vertex_values_groups]->num_vertex = super_grid->num_vertexes;
@@ -609,7 +609,7 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
             if (leaf_grids[j] == NULL)
                 continue;
             if (leaf_grids[j]->get_super_grid_of_setting_coord_values() == super_grid) {
-                EXECUTION_REPORT(REPORT_ERROR, last_index+1 == j, "remap software error3 in initialize_for_vertex_coord_values_generation\n");
+                EXECUTION_REPORT(REPORT_ERROR,-1, last_index+1 == j, "remap software error3 in initialize_for_vertex_coord_values_generation\n");
                 vertex_values_groups[num_vertex_values_groups]->vertex_coord_values[vertex_values_groups[num_vertex_values_groups]->num_coords++] = (double*) grid_vertex_fields[j]->grid_data_field->data_buf;
                 last_index = j;
                 leaf_grids[j] = NULL;
@@ -698,7 +698,7 @@ void Remap_operator_grid::generate_neighborhood_according_to_vertexes()
             for (k = l+1; k < j; k ++) {
                 if (center_coord_values[0][radix_sort->content[k]] == NULL_COORD_VALUE)
                     continue;
-                EXECUTION_REPORT(REPORT_ERROR, radix_sort->content[l] != radix_sort->content[k], "remap software error1 in generate_neighborhood_according_to_vertexes\n");
+                EXECUTION_REPORT(REPORT_ERROR,-1, radix_sort->content[l] != radix_sort->content[k], "remap software error1 in generate_neighborhood_according_to_vertexes\n");
                 if (two_cells_have_common_bound(radix_sort->content[l], radix_sort->content[k], TOLERABLE_ERROR)) 
                     add_partial_neighborhood_to_vertex_group(radix_sort->content[l], radix_sort->content[k]);
             }
@@ -736,7 +736,7 @@ bool Remap_operator_grid::two_cells_have_common_bound(long cell_id1,
         }
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, cell_id1 != cell_id2,
+    EXECUTION_REPORT(REPORT_ERROR,-1, cell_id1 != cell_id2,
                  "remap software error1 in two_cells_have_common_bound\n");
 
     return num_common_vertex >= num_grid_dimensions;
@@ -757,12 +757,12 @@ void Remap_operator_grid::add_partial_neighborhood_to_vertex_group(long cell_id1
             cell_nerghbors_indexes[cell_id2*num_neighbors+j] == cell_id1)
             break;
 
-    EXECUTION_REPORT(REPORT_ERROR, i < num_neighbors && j < num_neighbors,
+    EXECUTION_REPORT(REPORT_ERROR,-1, i < num_neighbors && j < num_neighbors,
                  "remap software error1 in add_partial_neighborhood_to_vertex_group\n");
     if (cell_nerghbors_indexes[cell_id1*num_neighbors+i] == (long) -1)
-        EXECUTION_REPORT(REPORT_ERROR, cell_nerghbors_indexes[cell_id2*num_neighbors+j] == (long) -1,
+        EXECUTION_REPORT(REPORT_ERROR,-1, cell_nerghbors_indexes[cell_id2*num_neighbors+j] == (long) -1,
                      "remap software error2 in add_partial_neighborhood_to_vertex_group\n");
-    else EXECUTION_REPORT(REPORT_ERROR, cell_nerghbors_indexes[cell_id2*num_neighbors+j] == cell_id1 &&
+    else EXECUTION_REPORT(REPORT_ERROR,-1, cell_nerghbors_indexes[cell_id2*num_neighbors+j] == cell_id1 &&
                       cell_nerghbors_indexes[cell_id1*num_neighbors+i] == cell_id2,
                       "remap software error3 in add_partial_neighborhood_to_vertex_group\n");
 
@@ -799,7 +799,7 @@ long Remap_operator_grid::search_cell_of_locating_point(double *point_coord_valu
 
 void Remap_operator_grid::visit_cell(long cell_index)
 {
-    EXECUTION_REPORT(REPORT_ERROR, !cell_visiting_mark[cell_index],
+    EXECUTION_REPORT(REPORT_ERROR,-1, !cell_visiting_mark[cell_index],
                  "remap software error in visit_cell");
 
     cell_visiting_mark[cell_index] = true;

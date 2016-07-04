@@ -49,7 +49,7 @@ int get_data_type_size(const char *data_type)
         return sizeof(short);
 	else if (words_are_the_same(data_type, DATA_TYPE_STRING))
 		return 1024;
-    else EXECUTION_REPORT(REPORT_ERROR, false, 
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
                       "implicit data type %s is disabled in this software\n", 
                       data_type);
 
@@ -60,23 +60,23 @@ int get_data_type_size(const char *data_type)
 void check_application_io_datatype_consistency(const char *field_name, const char *datatype_application, const char *datatype_io)
 {
     if (words_are_the_same(datatype_application, DATA_TYPE_DOUBLE) || words_are_the_same(datatype_application, DATA_TYPE_FLOAT)) 
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datatype_io, DATA_TYPE_DOUBLE) || words_are_the_same(datatype_io, DATA_TYPE_FLOAT) || words_are_the_same(datatype_io, DATA_TYPE_SHORT) ,
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datatype_io, DATA_TYPE_DOUBLE) || words_are_the_same(datatype_io, DATA_TYPE_FLOAT) || words_are_the_same(datatype_io, DATA_TYPE_SHORT) ,
                      "the data type of field %s in IO file must be one of short, real4 and real8, as its data type in application is %s\n", field_name, datatype_application);
     else if (words_are_the_same(datatype_application, DATA_TYPE_LONG) || words_are_the_same(datatype_application, DATA_TYPE_INT) || words_are_the_same(datatype_application, DATA_TYPE_BOOL)) 
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datatype_io, DATA_TYPE_INT),
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datatype_io, DATA_TYPE_INT),
                      "the data type of field %s in IO file must be integer, as its data type in application is %s\n", field_name, datatype_application);
     else if (words_are_the_same(datatype_application, DATA_TYPE_SHORT))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datatype_io, DATA_TYPE_SHORT),
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datatype_io, DATA_TYPE_SHORT),
                      "the data type of field %s in IO file must be short, as its data type in application is %s\n", field_name, datatype_application);
     
     if (words_are_the_same(datatype_io, DATA_TYPE_INT))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datatype_application, DATA_TYPE_INT) || words_are_the_same(datatype_application, DATA_TYPE_BOOL) || words_are_the_same(datatype_application, DATA_TYPE_LONG),
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datatype_application, DATA_TYPE_INT) || words_are_the_same(datatype_application, DATA_TYPE_BOOL) || words_are_the_same(datatype_application, DATA_TYPE_LONG),
                      "the data type of field %s in application must be integer, long or logical, as its data type in IO file is %s\n", field_name, datatype_io);        
     else if (words_are_the_same(datatype_io, DATA_TYPE_SHORT))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datatype_application, DATA_TYPE_SHORT) || words_are_the_same(datatype_application, DATA_TYPE_FLOAT) || words_are_the_same(datatype_application, DATA_TYPE_DOUBLE),
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datatype_application, DATA_TYPE_SHORT) || words_are_the_same(datatype_application, DATA_TYPE_FLOAT) || words_are_the_same(datatype_application, DATA_TYPE_DOUBLE),
                      "the data type of field %s in application must be short, real4 or real8, as its data type in IO file is %s\n", field_name, datatype_io);   
     else if (words_are_the_same(datatype_io, DATA_TYPE_FLOAT) || words_are_the_same(datatype_io, DATA_TYPE_DOUBLE))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(datatype_application, DATA_TYPE_FLOAT) || words_are_the_same(datatype_application, DATA_TYPE_DOUBLE),
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(datatype_application, DATA_TYPE_FLOAT) || words_are_the_same(datatype_application, DATA_TYPE_DOUBLE),
                      "the data type of field %s in application must be real4 or real8, as its data type in IO file is %s\n", field_name, datatype_io);   
 }
 

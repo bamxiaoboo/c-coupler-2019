@@ -88,7 +88,7 @@ void Runtime_cumulate_average_algorithm::allocate_src_dst_fields(bool is_algorit
         cumulate_average_field->field_data_type = cumulate_average_field->mem_info_src->get_field_data()->get_grid_data_field()->data_type_in_application;
         cumulate_average_field->current_computing_count = 0;
         for (i = 0; i < cumulate_average_fields.size(); i ++)
-            EXECUTION_REPORT(REPORT_ERROR, cumulate_average_fields[i]->mem_info_dst != cumulate_average_field->mem_info_dst,
+            EXECUTION_REPORT(REPORT_ERROR,-1, cumulate_average_fields[i]->mem_info_dst != cumulate_average_field->mem_info_dst,
                          "Find repeated field in cumulate average algorithm: (%s)\n", line);
         cumulate_average_fields.push_back(cumulate_average_field);
     }
@@ -104,7 +104,7 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_algorithm_i
     bool do_average; 
 
 
-	EXECUTION_REPORT(REPORT_LOG, true, "before cumulate or average");
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "before cumulate or average");
 	for (int i = 0; i < cumulate_average_fields.size(); i ++) {
 		cumulate_average_fields[i]->mem_info_src->check_field_sum();
 		cumulate_average_fields[i]->mem_info_dst->check_field_sum();
@@ -125,16 +125,16 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool is_algorithm_i
                                          cumulate_average_fields[i]->num_elements_in_field,
                                          cumulate_average_fields[i]->current_computing_count,
                                          do_average);
-        else EXECUTION_REPORT(REPORT_ERROR, false, "error data type in cumulate_average algorithm\n"); 
+        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "error data type in cumulate_average algorithm\n"); 
         if (do_average) {
-			EXECUTION_REPORT(REPORT_LOG, true, "do average at computing count is %d", cumulate_average_fields[i]->current_computing_count);
+			EXECUTION_REPORT(REPORT_LOG,-1, true, "do average at computing count is %d", cumulate_average_fields[i]->current_computing_count);
             cumulate_average_fields[i]->current_computing_count = 0;			
         }
 		cumulate_average_fields[i]->mem_info_src->use_field_values(algorithm_cfg_name);
 		cumulate_average_fields[i]->mem_info_dst->define_field_values(false);
     }
 
-	EXECUTION_REPORT(REPORT_LOG, true, "after cumulate or average");
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "after cumulate or average");
 	for (int i = 0; i < cumulate_average_fields.size(); i ++) {
 		cumulate_average_fields[i]->mem_info_src->check_field_sum();
 		cumulate_average_fields[i]->mem_info_dst->check_field_sum();
@@ -185,7 +185,7 @@ void Runtime_cumulate_average_algorithm::write_restart_fields()
     for (i = 0; i < cumulate_average_fields.size(); i ++)
         if (!cumulate_average_fields[i]->timer->is_timer_on()) {
             cumulate_average_fields[i]->mem_info_dst->get_field_mem_full_name(field_mem_full_name);
-            EXECUTION_REPORT(REPORT_LOG, true, "averaging algorithm should do restart write for averaging field %s", field_mem_full_name);
+            EXECUTION_REPORT(REPORT_LOG,-1, true, "averaging algorithm should do restart write for averaging field %s", field_mem_full_name);
 			restart_mgr->write_one_restart_field(cumulate_average_fields[i]->mem_info_dst, cumulate_average_fields[i]->current_computing_count);
         }
 }
@@ -207,7 +207,7 @@ void Runtime_cumulate_average_algorithm::read_restart_computing_count()
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_buf_type());
 		if (computing_count >= 0) {
 			cumulate_average_fields[i]->current_computing_count = computing_count;
-			EXECUTION_REPORT(REPORT_LOG, true, "comulative_averaging algorithm read restart field (%s %s %s %s %d), count is %d ", cumulate_average_fields[i]->mem_info_dst->get_comp_name(), 
+			EXECUTION_REPORT(REPORT_LOG,-1, true, "comulative_averaging algorithm read restart field (%s %s %s %s %d), count is %d ", cumulate_average_fields[i]->mem_info_dst->get_comp_name(), 
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_decomp_name(),
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_grid_name(),
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_field_name(),

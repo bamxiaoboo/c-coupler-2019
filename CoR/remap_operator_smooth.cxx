@@ -14,13 +14,13 @@
 
 void Remap_operator_smooth::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
     
     if (words_are_the_same(parameter_name, "period"))
         sscanf(parameter_value, "%d", &num_period);
-    else EXECUTION_REPORT(REPORT_ERROR, false, 
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
                       "\"%s\" is a illegal parameter of remap operator \"%s\"\n",
                       parameter_name,
                       operator_name);

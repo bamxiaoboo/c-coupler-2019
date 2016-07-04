@@ -36,7 +36,7 @@ Runtime_algorithm_basis::Runtime_algorithm_basis()
 Runtime_algorithm_basis::~Runtime_algorithm_basis()
 {
 //	if (num_src_fields + num_dst_fields > 0)
-//		EXECUTION_REPORT(REPORT_ERROR, comp_names == NULL && field_names == NULL && field_local_decomp_names == NULL && field_grid_names == NULL && buf_marks == NULL && average_mark == NULL, "C-Coupler software error when deleting Runtime_algorithm_basis");
+//		EXECUTION_REPORT(REPORT_ERROR,-1, comp_names == NULL && field_names == NULL && field_local_decomp_names == NULL && field_grid_names == NULL && buf_marks == NULL && average_mark == NULL, "C-Coupler software error when deleting Runtime_algorithm_basis");
 
 	if (comp_names == NULL)
 		return;
@@ -92,9 +92,9 @@ Field_mem_info *Runtime_algorithm_basis::add_one_field_for_cumulate_average(Fiel
 void Runtime_algorithm_basis::cumulate_average_before_run(bool is_algorithm_in_kernel_stage)
 {
 	if (cumulate_average_algorithm_before_run != NULL) {
-		EXECUTION_REPORT(REPORT_LOG, true, "before implicit cumulating and averaging");
+		EXECUTION_REPORT(REPORT_LOG,-1, true, "before implicit cumulating and averaging");
 		cumulate_average_algorithm_before_run->run(is_algorithm_in_kernel_stage);
-		EXECUTION_REPORT(REPORT_LOG, true, "after implicit cumulating and averaging");
+		EXECUTION_REPORT(REPORT_LOG,-1, true, "after implicit cumulating and averaging");
 	}
 }
 
@@ -116,7 +116,7 @@ void Runtime_algorithm_basis::allocate_basic_data_structure(int num_src_fields, 
 	this->num_src_fields = num_src_fields;
 	this->num_dst_fields = num_dst_fields;
 
-	EXECUTION_REPORT(REPORT_ERROR, num_src_fields >= 0 && num_dst_fields >= 0,
+	EXECUTION_REPORT(REPORT_ERROR,-1, num_src_fields >= 0 && num_dst_fields >= 0,
 					 "C-Coupler software error in allocate_basic_data_structure for Runtime_algorithm_basis");
 
 	if (num_src_fields + num_dst_fields == 0)

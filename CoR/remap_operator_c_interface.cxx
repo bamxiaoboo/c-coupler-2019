@@ -23,7 +23,7 @@ long last_dst_cell_index;
 
 void get_cell_mask_of_grid(Remap_operator_grid *grid, long cell_index, bool *mask_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < grid->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, cell_index >= 0 && cell_index < grid->get_grid_size(),
                  "remap software error in get_cell_mask_of_src_grid\n");
 
     if (grid->get_mask_values() == NULL)
@@ -58,7 +58,7 @@ void get_cell_mask_of_dst_grid(long cell_index, bool *mask_value)
 
 void get_cell_center_coord_values_of_grid(Remap_operator_grid *grid, long cell_index, double *center_values)
 {
-    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < grid->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, cell_index >= 0 && cell_index < grid->get_grid_size(),
                  "remap software error in get_cell_center_coord_values_of_grid\n");
 
     for (int i = 0; i < grid->get_num_grid_dimensions(); i ++)
@@ -68,7 +68,7 @@ void get_cell_center_coord_values_of_grid(Remap_operator_grid *grid, long cell_i
 
 void get_cell_center_coord_values_of_src_grid(long cell_index, double *center_values)
 {
-    EXECUTION_REPORT(REPORT_ERROR, have_fetched_dst_grid_cell_coord_values, "remap software error in get_cell_center_coord_values_of_src_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, have_fetched_dst_grid_cell_coord_values, "remap software error in get_cell_center_coord_values_of_src_grid\n");
     if (using_rotated_grid_data)
         get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_src->get_rotated_remap_operator_grid(), cell_index, center_values);
     else get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_src, cell_index, center_values);
@@ -80,7 +80,7 @@ void get_cell_center_coord_values_of_dst_grid(long cell_index, double *center_va
     have_fetched_dst_grid_cell_coord_values = true;
     get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_dst, cell_index, center_values);
     if (current_runtime_remap_operator_grid_dst->get_rotated_remap_operator_grid() != NULL && fabs(center_values[1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
-        EXECUTION_REPORT(REPORT_ERROR, last_dst_cell_index == -1 || last_dst_cell_index == cell_index, "remap software error in get_cell_center_coord_values_of_dst_grid\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, last_dst_cell_index == -1 || last_dst_cell_index == cell_index, "remap software error in get_cell_center_coord_values_of_dst_grid\n");
         last_dst_cell_index = cell_index;
         using_rotated_grid_data = true;
         get_cell_center_coord_values_of_grid(current_runtime_remap_operator_grid_dst->get_rotated_remap_operator_grid(), cell_index, center_values);        
@@ -93,10 +93,10 @@ void get_cell_vertex_coord_values_of_grid(Remap_operator_grid *grid, long cell_i
     int i, j, tmp_num_dimensions;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < grid->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, cell_index >= 0 && cell_index < grid->get_grid_size(),
                  "remap software error1 in get_cell_vertex_coord_values_of_grid\n");
     if (check_consistency)
-        EXECUTION_REPORT(REPORT_ERROR, have_fetched_dst_grid_cell_coord_values, "remap software error2 in get_cell_vertex_coord_values_of_grid\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, have_fetched_dst_grid_cell_coord_values, "remap software error2 in get_cell_vertex_coord_values_of_grid\n");
     
     tmp_num_dimensions = grid->get_num_grid_dimensions();
     *num_vertex = 0;
@@ -166,7 +166,7 @@ void get_cell_vertex_coord_values_of_dst_grid(long cell_index, int *num_vertex, 
 
 void search_cell_in_src_grid(double *point_coord_values, long *cell_index, bool accurately_match) 
 {   
-    EXECUTION_REPORT(REPORT_ERROR, have_fetched_dst_grid_cell_coord_values, "remap software error search_cell_in_src_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, have_fetched_dst_grid_cell_coord_values, "remap software error search_cell_in_src_grid\n");
     if (using_rotated_grid_data)
         *cell_index = current_runtime_remap_operator_grid_src->get_rotated_remap_operator_grid()->search_cell_of_locating_point(point_coord_values, accurately_match);
     else *cell_index = current_runtime_remap_operator_grid_src->search_cell_of_locating_point(point_coord_values, accurately_match);
@@ -179,7 +179,7 @@ void get_cell_neighbors_in_src_grid(long cell_index, int *num_neighbors, long *n
 
 
     grid = current_runtime_remap_operator_grid_src;
-    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < grid->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, cell_index >= 0 && cell_index < grid->get_grid_size(),
                  "remap software error in get_cell_neighbors_in_src_grid\n");    
 
     *num_neighbors = 0;
@@ -191,7 +191,7 @@ void get_cell_neighbors_in_src_grid(long cell_index, int *num_neighbors, long *n
 
 bool visit_cell_in_src_grid(long cell_index)
 {
-    EXECUTION_REPORT(REPORT_ERROR, cell_index >= 0 && cell_index < current_runtime_remap_operator_grid_src->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR,-1, cell_index >= 0 && cell_index < current_runtime_remap_operator_grid_src->get_grid_size(),
                  "remap software error in visit_cell_in_src_grid\n");    
 
     if (current_runtime_remap_operator_grid_src->is_cell_visited(cell_index))
@@ -204,7 +204,7 @@ bool visit_cell_in_src_grid(long cell_index)
 
 void initialize_computing_remap_weights_of_one_cell()
 {
-    EXECUTION_REPORT(REPORT_ERROR, current_runtime_remap_operator_grid_src->get_num_visited_cells() == 0,
+    EXECUTION_REPORT(REPORT_ERROR,-1, current_runtime_remap_operator_grid_src->get_num_visited_cells() == 0,
                  "remap software error in initialize_computing_remap_weights_of_one_cell\n");
     have_fetched_dst_grid_cell_coord_values = false;
     using_rotated_grid_data = false;
@@ -262,7 +262,7 @@ void sort_polygon_vertexes(double point_coord_value_dim1,
     int i, j, num_vertexes_group1, num_vertexes_group2;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, num_polygon_vertexes < 4096, "remap software error1 in sort_polygon_vertexes\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_polygon_vertexes < 4096, "remap software error1 in sort_polygon_vertexes\n");
 
     /* Sort the vertexes of polygon in the order of clockwise */
     for (i = 0, num_vertexes_group1 = 0, num_vertexes_group2 = 0; i < num_polygon_vertexes; i ++) {
@@ -280,7 +280,7 @@ void sort_polygon_vertexes(double point_coord_value_dim1,
             distance = sqrt(diff1*diff1 + diff2*diff2);
             diff1 = diff1 / distance;
             diff2 = diff2 / distance;
-            EXECUTION_REPORT(REPORT_ERROR, distance > 0 && diff1 != 0 && diff2 != 0, "remap software error2 in sort_polygon_vertexes\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, distance > 0 && diff1 != 0 && diff2 != 0, "remap software error2 in sort_polygon_vertexes\n");
         }
         if (diff2 > 0 || (diff2 == 0 && diff1 > 0)) {
             normalized_polygon_vertexes_coord_values_group1[num_vertexes_group1] = diff1;
@@ -544,9 +544,9 @@ void compute_intersect_points_of_two_great_arcs_of_sphere_grid(double lon_arc1_p
     int i, j;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, !(lon_arc1_point1 == lon_arc1_point2 && lat_arc1_point1 == lat_arc1_point2),
+    EXECUTION_REPORT(REPORT_ERROR,-1, !(lon_arc1_point1 == lon_arc1_point2 && lat_arc1_point1 == lat_arc1_point2),
                  "remap software error1 in compute_intersect_points_of_two_great_arcs_of_sphere_grid\n");
-    EXECUTION_REPORT(REPORT_ERROR, !(lon_arc2_point1 == lon_arc2_point2 && lat_arc2_point1 == lat_arc2_point2),
+    EXECUTION_REPORT(REPORT_ERROR,-1, !(lon_arc2_point1 == lon_arc2_point2 && lat_arc2_point1 == lat_arc2_point2),
                  "remap software error2 in compute_intersect_points_of_two_great_arcs_of_sphere_grid\n");
 
     num_intersect_points = 0;
@@ -614,7 +614,7 @@ void compute_intersect_points_of_two_great_arcs_of_sphere_grid(double lon_arc1_p
                 }
             }
         }
-        EXECUTION_REPORT(REPORT_ERROR, num_intersect_points <= 2, "remap software error3 in compute_intersect_points_of_two_great_arcs_of_sphere_grid\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_intersect_points <= 2, "remap software error3 in compute_intersect_points_of_two_great_arcs_of_sphere_grid\n");
         return;
     }
 
@@ -644,7 +644,7 @@ void compute_intersect_points_of_two_great_arcs_of_sphere_grid(double lon_arc1_p
         }
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, num_intersect_points <= 1, "remap software error5 in compute_intersect_points_of_two_great_arcs_of_sphere_grid\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_intersect_points <= 1, "remap software error5 in compute_intersect_points_of_two_great_arcs_of_sphere_grid\n");
 }
 
 
@@ -755,7 +755,7 @@ void compute_arc_points_within_sphere_cell(double lon_arc_start,
             lons_arc_points_within_cell[num_arc_points_within_cell] = lon_intersect_points[j];
             lats_arc_points_within_cell[num_arc_points_within_cell] = lat_intersect_points[j];
             num_arc_points_within_cell ++;
-            EXECUTION_REPORT(REPORT_ERROR, num_arc_points_within_cell <= 2, "remap software error1 in compute_arc_points_within_sphere_cell\n");            
+            EXECUTION_REPORT(REPORT_ERROR,-1, num_arc_points_within_cell <= 2, "remap software error1 in compute_arc_points_within_sphere_cell\n");            
         }
     }
 
@@ -776,7 +776,7 @@ void compute_arc_points_within_sphere_cell(double lon_arc_start,
             lons_arc_points_within_cell[num_arc_points_within_cell] = lon_arc_end;
             lats_arc_points_within_cell[num_arc_points_within_cell] = lat_arc_end;
             num_arc_points_within_cell ++;        
-            EXECUTION_REPORT(REPORT_ERROR, num_arc_points_within_cell <= 2, "remap software error2 in compute_arc_points_within_sphere_cell\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, num_arc_points_within_cell <= 2, "remap software error2 in compute_arc_points_within_sphere_cell\n");
         }
     }
 }
@@ -817,7 +817,7 @@ double compute_angle_of_great_arcs(double lon_point1, double lat_point1,
         angle = -angle;    
     
     if (check_angle)
-        EXECUTION_REPORT(REPORT_ERROR, angle >= 0, "remap software error in compute_angle_of_great_arcs\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, angle >= 0, "remap software error in compute_angle_of_great_arcs\n");
 
     return angle;
 }
@@ -834,7 +834,7 @@ void sort_vertexes_of_sphere_cell(int num_vertexes,
 
 
     for (i = 0; i < num_vertexes; i ++) 
-        EXECUTION_REPORT(REPORT_ERROR, vertexes_lons[i] != NULL_COORD_VALUE, "remap software error in sort_vertexes_of_sphere_cell\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, vertexes_lons[i] != NULL_COORD_VALUE, "remap software error in sort_vertexes_of_sphere_cell\n");
 
     cross_lon_360 = false;
     for (i = 1; i < num_vertexes; i ++)
@@ -908,7 +908,7 @@ double compute_area_of_sphere_cell(int num_vertexes,
 
     if (area < 0 && (fabs(area) < eps || num_vertexes == 3))
         area = -area;
-    EXECUTION_REPORT(REPORT_ERROR, area >= 0, "remap software error in compute_area_of_sphere_cell\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, area >= 0, "remap software error in compute_area_of_sphere_cell\n");
     return area;
 }
 
@@ -934,7 +934,7 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
     get_cell_vertex_coord_values_of_src_grid(cell_index_src, &num_vertexes_src, vertex_coord_values_src, true);
     num_grid_dimensions = current_runtime_remap_operator->get_num_dimensions();
 
-    EXECUTION_REPORT(REPORT_ERROR, num_grid_dimensions == 2, "remap software error1 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_grid_dimensions == 2, "remap software error1 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
 
     get_all_vertexes_of_one_cell_in_other_cell(num_vertexes_src,
                                                num_vertexes_dst, 
@@ -1030,7 +1030,7 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
         
     sort_vertexes_of_sphere_cell(num_sub_cell_vertexes, sub_cell_vertexes_lons, sub_cell_vertexes_lats);
 
-    EXECUTION_REPORT(REPORT_ERROR, num_sub_cell_vertexes > 0, "remap software error2 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_sub_cell_vertexes > 0, "remap software error2 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
 
     if (num_sub_cell_vertexes <= 2) {
         num_sub_cell_vertexes = 0;
@@ -1053,9 +1053,9 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
         area3 = compute_area_of_sphere_cell(num_vertexes_dst, temp_vertex_lons, temp_vertex_lats);
         area1 = compute_area_of_sphere_cell(num_sub_cell_vertexes, sub_cell_vertexes_lons, sub_cell_vertexes_lats);
         if (fabs(area1-area2) > 1.0e-7)
-            EXECUTION_REPORT(REPORT_ERROR, area1 <= area2, "remap software error5 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, area1 <= area2, "remap software error5 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
         if (fabs(area1-area3) > 1.0e-7)
-            EXECUTION_REPORT(REPORT_ERROR, area1 <= area3, "remap software error6 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");        
+            EXECUTION_REPORT(REPORT_ERROR,-1, area1 <= area3, "remap software error6 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");        
     }
 
     /*
@@ -1071,7 +1071,7 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
                                  temp_vertex_lats,
                                  num_vertexes_src,
                                  true, true, true)) 
-            EXECUTION_REPORT(REPORT_ERROR, false, "remap software error3 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error3 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
     for (i = 0; i < num_vertexes_dst; i ++) {
         temp_vertex_lons[i] = vertex_coord_values_dst[2*i];
         temp_vertex_lats[i] = vertex_coord_values_dst[2*i+1];
@@ -1084,7 +1084,7 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
                                  temp_vertex_lats,
                                  num_vertexes_dst,
                                  true, true, true)) 
-            EXECUTION_REPORT(REPORT_ERROR, false, "remap software error4 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error4 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
     */
 }
 

@@ -132,7 +132,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
     int matched_defined_statement_object_id;
 
 
-	EXECUTION_REPORT(REPORT_PROGRESS, true, "");
+	EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "");
 
     /* Allocate and initialize remap_statement */
     remap_statement = new Remap_statement;
@@ -143,13 +143,13 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
     for (i = 0; i < num_words_in_statement; i ++) {
         matched_reserved_word_id = match_reserved_words(words_in_statement[i]);
         if (matched_reserved_word_id != -1) {
-            EXECUTION_REPORT(REPORT_ERROR, i > 0, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, i > 0, 
                          "reserve word \"%s\" can not be the first word in the statement\n", 
                          words_in_statement[i]);
             
             /* Check the case of reserved word after reserved word */
             if (match_reserved_words(words_in_statement[i-1]) != -1) 
-                EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(words_in_statement[i-1], RESERVED_WORD_LEFT_BRACKET) && words_are_the_same(words_in_statement[i], RESERVED_WORD_QUOTE_MARK) ||
+                EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(words_in_statement[i-1], RESERVED_WORD_LEFT_BRACKET) && words_are_the_same(words_in_statement[i], RESERVED_WORD_QUOTE_MARK) ||
                              words_are_the_same(words_in_statement[i-1], RESERVED_WORD_QUOTE_MARK) && words_are_the_same(words_in_statement[i], RESERVED_WORD_RIGHT_BRACKET)||
                              words_are_the_same(words_in_statement[i-1], RESERVED_WORD_QUOTE_MARK) && words_are_the_same(words_in_statement[i], RESERVED_WORD_COMMA) || 
                              words_are_the_same(words_in_statement[i-1], RESERVED_WORD_COMMA) && words_are_the_same(words_in_statement[i], RESERVED_WORD_QUOTE_MARK) ||
@@ -161,11 +161,11 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
 
         /* Enumerate the case of different kinds of words */
         if (words_are_the_same(words_in_statement[i], RESERVED_WORD_QUOTE_MARK)) {
-            EXECUTION_REPORT(REPORT_ERROR, i+2 < num_words_in_statement && words_are_the_same(words_in_statement[i+2], RESERVED_WORD_QUOTE_MARK),
+            EXECUTION_REPORT(REPORT_ERROR,-1, i+2 < num_words_in_statement && words_are_the_same(words_in_statement[i+2], RESERVED_WORD_QUOTE_MARK),
                          "reserve word \"%s\" must emerge in pair\n",
                          words_in_statement[i]);
             if (!words_are_the_same(words_in_statement[i-1], RESERVED_WORD_EQUAL))
-                EXECUTION_REPORT(REPORT_ERROR, in_parameter_stage && enable_next_parameter,
+                EXECUTION_REPORT(REPORT_ERROR,-1, in_parameter_stage && enable_next_parameter,
                              "the parameter \"%s\" specfied by reserve word \"%s\" must be a input parameter of function\n",
                              words_in_statement[i+1],
                              words_in_statement[i]);
@@ -181,7 +181,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
         }
 
         else if (words_are_the_same(words_in_statement[i], RESERVED_WORD_EQUAL)) { 
-            EXECUTION_REPORT(REPORT_ERROR, !in_function_stage,
+            EXECUTION_REPORT(REPORT_ERROR,-1, !in_function_stage,
                          "function word can not be used before reserve word equal \"%s\"\n",
                          words_in_statement[i]);
             has_equal = true;
@@ -189,7 +189,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
         }
         
         else if (words_are_the_same(words_in_statement[i], RESERVED_WORD_LEFT_BRACKET)) {
-            EXECUTION_REPORT(REPORT_ERROR, match_function_words(words_in_statement[i-1]) != -1,
+            EXECUTION_REPORT(REPORT_ERROR,-1, match_function_words(words_in_statement[i-1]) != -1,
                          "reserve word \"%s\" must follow function word while \"%s\" is not a function word\n",
                          words_in_statement[i],
                          words_in_statement[i-1]);            
@@ -198,7 +198,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
         }
 
         else if (words_are_the_same(words_in_statement[i], RESERVED_WORD_RIGHT_BRACKET)) {
-            EXECUTION_REPORT(REPORT_ERROR, !require_next_parameter && in_parameter_stage && !enable_next_parameter, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, !require_next_parameter && in_parameter_stage && !enable_next_parameter, 
                          "reserve word\"%s\" must be used to specify the parameters of function, the word before it must be reserve word \"%s\" or a parameter of function\n", 
                          RESERVED_WORD_RIGHT_BRACKET, 
                          RESERVED_WORD_LEFT_BRACKET);
@@ -206,7 +206,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
         }
 
         else if (words_are_the_same(words_in_statement[i], RESERVED_WORD_COMMA)) {
-            EXECUTION_REPORT(REPORT_ERROR, in_parameter_stage && 
+            EXECUTION_REPORT(REPORT_ERROR,-1, in_parameter_stage && 
                          !require_next_parameter &&
                          !require_object_attribute &&
                          !enable_next_parameter, 
@@ -217,7 +217,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
         }
 
         else if (words_are_the_same(words_in_statement[i], RESERVED_WORD_ATTRIBUTE)) {
-            EXECUTION_REPORT(REPORT_ERROR, last_statement_object != NULL, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, last_statement_object != NULL, 
                          "reserve word\"%s\" is used to specify an extension variable of a defined object, the word before it must be an object name or an extension variable\n", 
                          words_in_statement[i]);
             require_object_attribute = true;
@@ -237,7 +237,7 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
             }
             else {
                 if (matched_defined_statement_object_id == -1) {
-                    EXECUTION_REPORT(REPORT_ERROR, !has_equal, 
+                    EXECUTION_REPORT(REPORT_ERROR,-1, !has_equal, 
                                  "\"%s\" is an undefined object, it can not be on the right side of word \"=\"\n", 
                                  words_in_statement[i]);
                     statement_object = new Remap_statement_object; 
@@ -249,12 +249,12 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
                 }
                 else {
                     if (!has_equal && !in_function_stage)
-                        EXECUTION_REPORT(REPORT_ERROR, num_words_in_statement > i+1 && words_are_the_same(words_in_statement[i+1],RESERVED_WORD_ATTRIBUTE), 
+                        EXECUTION_REPORT(REPORT_ERROR,-1, num_words_in_statement > i+1 && words_are_the_same(words_in_statement[i+1],RESERVED_WORD_ATTRIBUTE), 
                                      "\"%s\" is a defined object on the left side of word \"=\", it must have reserve word \"%s\" as well as extension variable following it\n", 
                                      words_in_statement[i], 
                                      RESERVED_WORD_ATTRIBUTE);
                     if (in_function_stage)
-                        EXECUTION_REPORT(REPORT_ERROR, enable_next_parameter, 
+                        EXECUTION_REPORT(REPORT_ERROR,-1, enable_next_parameter, 
                                      "it may require \"%s\" before word \"%s\"\n", 
                                      RESERVED_WORD_COMMA, 
                                      words_in_statement[i]);
@@ -284,14 +284,14 @@ void Remap_mgt::process_statement()
 
 
     if (strlen(remap_statement->function) == 0) {
-        EXECUTION_REPORT(REPORT_ERROR, remap_statement->result_operand == NULL && remap_statement->src_operands.size() == 0, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, remap_statement->result_operand == NULL && remap_statement->src_operands.size() == 0, 
                      "this line does not have function word, it must be empty line\n");    
         return;
     }
 
     /* Determine the class type of defined object according to function */
     if (remap_statement->result_operand != NULL) {
-        EXECUTION_REPORT(REPORT_ERROR, strlen(remap_statement->result_operand->object->object_type) == 0 && remap_statement->result_operand->num_extension_names == 0 ||
+        EXECUTION_REPORT(REPORT_ERROR,-1, strlen(remap_statement->result_operand->object->object_type) == 0 && remap_statement->result_operand->num_extension_names == 0 ||
                      strlen(remap_statement->result_operand->object->object_type) > 0 && remap_statement->result_operand->num_extension_names > 0, 
                      "remap software error: the object type of \"%s\" should not be set in this program step\n", 
                      remap_statement->result_operand->object->object_name);    
@@ -304,11 +304,11 @@ void Remap_mgt::process_statement()
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_EXTRACT_MASK) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_FSPAN) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_ISPAN))
-                EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(remap_statement->result_operand->object->object_type, OBJECT_TYPE_GRID), 
+                EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(remap_statement->result_operand->object->object_type, OBJECT_TYPE_GRID), 
                              "the object type of result parameter %s is %s (should be grid), which does not match function %s\n",
                              remap_statement->result_operand->object->object_name, remap_statement->result_operand->object->object_type, 
                              remap_statement->function);
-            else EXECUTION_REPORT(REPORT_ERROR, false, "function %s does not have result parameter with extension names\n", remap_statement->function);
+            else EXECUTION_REPORT(REPORT_ERROR,-1, false, "function %s does not have result parameter with extension names\n", remap_statement->function);
         }
         else {
             if (words_are_the_same(remap_statement->function, FUNCTION_WORD_ADD_NC_FILE) ||
@@ -339,7 +339,7 @@ void Remap_mgt::process_statement()
                      words_are_the_same(remap_statement->function, FUNCTION_WORD_EVALUATE_ERROR)) {
                 strcpy(remap_statement->result_operand->object->object_type, OBJECT_TYPE_FIELD_DATA);
             }
-            else EXECUTION_REPORT(REPORT_ERROR, false, "function %s does not have result parameter\n", remap_statement->function);
+            else EXECUTION_REPORT(REPORT_ERROR,-1, false, "function %s does not have result parameter\n", remap_statement->function);
             remap_statement->result_operand->object->object_pointer = new char [256];
             sprintf((char*) remap_statement->result_operand->object->object_pointer, "%s(%s)", remap_statement->result_operand->object->object_name, remap_statement->result_operand->object->object_type);
         }
@@ -349,7 +349,7 @@ void Remap_mgt::process_statement()
         if (words_are_the_same(remap_statement->function, FUNCTION_WORD_SET_OPERATOR_PARA))
             check_is_parameter_object_type_remap_operator(remap_statement->function, 1, remap_statement->src_operands[0], "the remap operator to be set parameter");
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_REMAP)) {
-            EXECUTION_REPORT(REPORT_ERROR, remap_statement->src_operands[0]->object != NULL &&
+            EXECUTION_REPORT(REPORT_ERROR,-1, remap_statement->src_operands[0]->object != NULL &&
                          (words_are_the_same(remap_statement->src_operands[0]->object->object_type, OBJECT_TYPE_REMAP_STRATEGY) ||
                           words_are_the_same(remap_statement->src_operands[0]->object->object_type, OBJECT_TYPE_REMAP_WEIGHTS)),
                           "the first parameter \"%s\" of function \"%s\" must be a defined remap scheme object or a defined remap weight object\n",
@@ -368,7 +368,7 @@ void Remap_mgt::process_statement()
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_GEN_TEST_DATA) ||
                  words_are_the_same(remap_statement->function, FUNCTION_WORD_EVALUATE_ERROR))
             check_is_parameter_object_type_field_data(remap_statement->function, 1, remap_statement->src_operands[0], "which records the result of evaluation");
-        else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error2 in process_statement");
+        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in process_statement");
     }
 
     /* Pack the operands of statement */
@@ -390,7 +390,7 @@ void Remap_mgt::process_statement()
         remap_weights_of_strategy_manager->execute(remap_statement->function, statement_operands, num_operands);
     else if (words_are_the_same(statement_operands[0]->object->object_type, OBJECT_TYPE_FIELD_DATA)) 
         remap_field_data_manager->execute(remap_statement->function, statement_operands, num_operands);
-    else EXECUTION_REPORT(REPORT_ERROR, false, "remap software error: \"%s\" is an unknown object type\n", remap_statement->src_operands[0]->object->object_type);
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error: \"%s\" is an unknown object type\n", remap_statement->src_operands[0]->object->object_type);
 }
 
 

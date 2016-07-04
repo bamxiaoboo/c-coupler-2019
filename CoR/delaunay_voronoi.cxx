@@ -57,7 +57,7 @@ vector<Point>::iterator get_nearest_point(const Point &pt, vector<Point> *points
 			pos = i;
 		}
 
-	EXECUTION_REPORT(REPORT_ERROR, pos != -1, "the input global grid is too sparse\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, pos != -1, "the input global grid is too sparse\n");
 		
 	return points->begin()+pos;
 }
@@ -84,9 +84,9 @@ void Triangle::initialize_triangle_with_edges(Edge *edge1, Edge *edge2, Edge *ed
 	pt2 = edge2->head;
 	pt3 = edge3->head;
 	
-	EXECUTION_REPORT(REPORT_ERROR, fabs(det(pt1, pt2, pt3)) > e && fabs(det(pt2, pt3, pt1)) > e && fabs(det(pt3, pt1, pt2)) > e,
+	EXECUTION_REPORT(REPORT_ERROR,-1, fabs(det(pt1, pt2, pt3)) > e && fabs(det(pt2, pt3, pt1)) > e && fabs(det(pt3, pt1, pt2)) > e,
 		             "remap software error1 in new Triangle");
-	EXECUTION_REPORT(REPORT_ERROR, edge1->tail==edge2->head && edge2->tail==edge3->head && edge3->tail==edge1->head, "remap software error2 in new Triangle");
+	EXECUTION_REPORT(REPORT_ERROR,-1, edge1->tail==edge2->head && edge2->tail==edge3->head && edge3->tail==edge1->head, "remap software error2 in new Triangle");
    	
 	v[0] = pt1;
 	if (pt1.position_to_edge(pt2, pt3) == 1) {
@@ -361,7 +361,7 @@ void Delaunay_Voronoi::generate_initial_triangles(Triangle *root, vector<Point> 
 	int i, max_i, i1, i2, j1, j2;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, boundary_points1->size()==boundary_points2->size() || boundary_points1->size()==1 || boundary_points2->size()==1,
+	EXECUTION_REPORT(REPORT_ERROR,-1, boundary_points1->size()==boundary_points2->size() || boundary_points1->size()==1 || boundary_points2->size()==1,
 		             "remap software error in generate_initial_triangles");
 	max_i = boundary_points1->size() > boundary_points2->size()? boundary_points1->size() : boundary_points2->size();
 	if (!cyclic)
@@ -411,7 +411,7 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 		}
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
 
 	if (cyclic) {
 		for (i = 0; i < 4; i ++)
@@ -509,7 +509,7 @@ void Delaunay_Voronoi::extract_vertex_coordinate_values(int num_points, bool is_
 		sort_vertexes_of_sphere_cell(current_num_vertices, tmp_vertexes_lons, tmp_vertexes_lats);
 		if (!is_point_in_2D_cell(cells[i].center.lon, cells[i].center.lat, tmp_vertexes_lons, tmp_vertexes_lats, 
 			                     current_num_vertices, true, true, true)) {
-//			EXECUTION_REPORT(REPORT_ERROR, !is_global_grid, "remap software erorr in extract_vertex_coordinate_values\n");
+//			EXECUTION_REPORT(REPORT_ERROR,-1, !is_global_grid, "remap software erorr in extract_vertex_coordinate_values\n");
 			tmp_vertexes_lons[current_num_vertices] = cells[i].center.lon;
 			tmp_vertexes_lats[current_num_vertices] = cells[i].center.lat;
 			current_num_vertices ++;
@@ -585,8 +585,8 @@ void Delaunay_Voronoi::distribute_points_into_triangles(vector<Point> *pnts, vec
 		}
 		if (!find_triangle) 
 			if (is_global_grid)
-				EXECUTION_REPORT(REPORT_ERROR, "CoR may have bugs, please contact liuli-cess@tsinghua.edu.cn");
-			else EXECUTION_REPORT(REPORT_ERROR, "please enlarge the boundary of the regional grid"); 
+				EXECUTION_REPORT(REPORT_ERROR,-1, "CoR may have bugs, please contact liuli-cess@tsinghua.edu.cn");
+			else EXECUTION_REPORT(REPORT_ERROR,-1, "please enlarge the boundary of the regional grid"); 
 	}
 }
 
@@ -663,11 +663,11 @@ void Delaunay_Voronoi::triangularization_process(Triangle *triangle, bool is_glo
 				eij = triangle->edge[2];
 				break;
 			default:
-				EXECUTION_REPORT(REPORT_ERROR, false, "remap software error2 in triangularization_process");
+				EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in triangularization_process");
 				break;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, best_candidate_point.position_to_edge(vi, vj) == 0, "remap software error3 in triangularization_process");
-		EXECUTION_REPORT(REPORT_ERROR, eij->twin_edge->triangle->is_leaf, "remap software error3 in triangularization_process");
+		EXECUTION_REPORT(REPORT_ERROR,-1, best_candidate_point.position_to_edge(vi, vj) == 0, "remap software error3 in triangularization_process");
+		EXECUTION_REPORT(REPORT_ERROR,-1, eij->twin_edge->triangle->is_leaf, "remap software error3 in triangularization_process");
 		eij->twin_edge->triangle->is_leaf = false;
         ejk = eij->next_edge_in_triangle;
         eki = ejk->next_edge_in_triangle;
@@ -708,7 +708,7 @@ void Delaunay_Voronoi::triangularization_process(Triangle *triangle, bool is_glo
 
 	for (int i = 0; i < leaf_triangles.size(); i ++) {
 		if (leaf_triangles[i]->is_leaf)
-			EXECUTION_REPORT(REPORT_ERROR, leaf_triangles[i]->remained_points_in_triangle.size() == 0, "remap software error1 in triangularization_process");
+			EXECUTION_REPORT(REPORT_ERROR,-1, leaf_triangles[i]->remained_points_in_triangle.size() == 0, "remap software error1 in triangularization_process");
 	}
 	for (int i = 0; i < leaf_triangles.size(); i ++) {
 		if (leaf_triangles[i]->is_leaf)
@@ -751,8 +751,8 @@ void Delaunay_Voronoi::legalize_triangles(const Point &vr, Edge *edge, vector<Tr
 	if (is_triangle_legal(vr, edge))
 		return;
 
-	EXECUTION_REPORT(REPORT_ERROR, edge->triangle->is_leaf, "remap software error1 in legalize_triangles\n");
-	EXECUTION_REPORT(REPORT_ERROR, edge->twin_edge->triangle->is_leaf, "remap software error2 in legalize_triangles %lx\n", (long)(edge->twin_edge->triangle));
+	EXECUTION_REPORT(REPORT_ERROR,-1, edge->triangle->is_leaf, "remap software error1 in legalize_triangles\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, edge->twin_edge->triangle->is_leaf, "remap software error2 in legalize_triangles %lx\n", (long)(edge->twin_edge->triangle));
 	leaf_triangles->push_back(edge->twin_edge->triangle);
 	edge->twin_edge->triangle->reference_count ++;
 	edge->triangle->is_leaf = false;
@@ -796,7 +796,7 @@ void Delaunay_Voronoi::generate_Voronoi_diagram()
 			result_leaf_triangles[i]->center = result_leaf_triangles[i]->get_center_coordinates();
 			printf("leaf triangle <%lf %lf>  <%lf %lf>  <%lf %lf>\n", result_leaf_triangles[i]->v[0].lon, result_leaf_triangles[i]->v[0].lat,
 				result_leaf_triangles[i]->v[1].lon, result_leaf_triangles[i]->v[1].lat, result_leaf_triangles[i]->v[2].lon, result_leaf_triangles[i]->v[2].lat);
-			EXECUTION_REPORT(REPORT_ERROR, is_triangle_legal(result_leaf_triangles[i]->v[0],result_leaf_triangles[i]->edge[1])&&
+			EXECUTION_REPORT(REPORT_ERROR,-1, is_triangle_legal(result_leaf_triangles[i]->v[0],result_leaf_triangles[i]->edge[1])&&
 				             is_triangle_legal(result_leaf_triangles[i]->v[1],result_leaf_triangles[i]->edge[2])&&
 				             is_triangle_legal(result_leaf_triangles[i]->v[2],result_leaf_triangles[i]->edge[0]),
 				             "remap_software error in generate_Voronoi_diagram");

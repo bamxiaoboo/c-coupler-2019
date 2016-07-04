@@ -30,7 +30,7 @@ Remap_weight_of_operator_class *Remap_weight_of_operator_mgt::search_remap_weigh
 void Remap_weight_of_operator_mgt::add_remap_weights_of_operator(Remap_weight_of_operator_class *remap_weight_of_operator)
 {
 /*
-	EXECUTION_REPORT(REPORT_ERROR, search_remap_weights_of_operator(remap_weight_of_operator->get_field_data_grid_src(), remap_weight_of_operator->get_field_data_grid_dst(), remap_weight_of_operator->get_original_remap_operator()) == NULL,
+	EXECUTION_REPORT(REPORT_ERROR,-1, search_remap_weights_of_operator(remap_weight_of_operator->get_field_data_grid_src(), remap_weight_of_operator->get_field_data_grid_dst(), remap_weight_of_operator->get_original_remap_operator()) == NULL,
 					 "C-Coupler error1 in add_remap_weights_of_operator of Remap_weight_of_operator_mgt");
 */
 	remap_weights_of_operators.push_back(remap_weight_of_operator);
@@ -52,7 +52,7 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
     
 
     if (words_are_the_same(function, FUNCTION_WORD_COMPUTE_REMAP_WEIGHTS)) {
-        EXECUTION_REPORT(REPORT_ERROR, num_operands == 4, "function \"%s\" must have one result parameter and three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4, "function \"%s\" must have one result parameter and three input parameters\n", function);
         check_is_parameter_object_type_remap_weights(function, 0, statement_operands[0], "the remap weights computed");
         check_is_parameter_object_type_remap_scheme(function, 1, statement_operands[1], "the remap scheme corresponding to the remap weights");
         check_is_parameter_object_type_grid(function, 2, statement_operands[2], "the src grid of remap weights (the grid of src field)\n");
@@ -63,7 +63,7 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
 		remap_weights_of_strategies[remap_weights_of_strategies.size()-1]->add_remap_weight_of_operators_to_manager(false);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_REMAP)){
-        EXECUTION_REPORT(REPORT_ERROR, num_operands == 3, "function \"%s\" must have no result parameter and three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3, "function \"%s\" must have no result parameter and three input parameters\n", function);
         check_is_parameter_object_type_remap_weights(function, 1, statement_operands[0], "the remap weights used for remapping");
         check_is_parameter_object_type_field_data(function, 2, statement_operands[1], "the src field of remapping");
         check_is_parameter_object_type_field_data(function, 3, statement_operands[2], "the dst field of remapping");     
@@ -73,14 +73,14 @@ void Remap_weight_of_strategy_mgt::execute(const char*function, Remap_statement_
         remap_weights->do_remap(field_data_src, field_data_dst);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_READ_REMAP_WEIGHTS)) {
-        EXECUTION_REPORT(REPORT_ERROR, num_operands == 6, "function \"%s\" must have one result parameter and five input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 6, "function \"%s\" must have one result parameter and five input parameters\n", function);
         check_is_parameter_object_type_remap_weights(function, 0, statement_operands[0], "the remap weights to be read from IO file");
         check_is_parameter_object_type_remap_scheme(function, 1, statement_operands[1], "the remap scheme corresponding to the remap weights");
            check_is_parameter_object_type_grid(function, 2, statement_operands[2], "the src grid of remap weights (the grid of src field)\n");
         check_is_parameter_object_type_grid(function, 3, statement_operands[3], "the dst grid of remap weights (the grid of dst field)\n");
         check_is_parameter_object_type_IO(function, 4, statement_operands[4], "the IO file to read remap weights");
         check_is_parameter_string_type(function, 5, statement_operands[5], "the format of remap weights in IO file (SCRIP or C-Coupler)");
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(statement_operands[5]->extension_names[0], "SCRIP") || words_are_the_same(statement_operands[5]->extension_names[0], "C-Coupler") ,
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(statement_operands[5]->extension_names[0], "SCRIP") || words_are_the_same(statement_operands[5]->extension_names[0], "C-Coupler") ,
                      "the fifth input parameter of function \"%s\" must be a string of \"SCRIP\" or \"C-Coupler\"\n", function);
         remap_weights = generate_new_remap_weights(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name,
                                                    statement_operands[2]->object->object_name, statement_operands[3]->object->object_name,
@@ -124,7 +124,7 @@ Remap_weight_of_strategy_class *Remap_weight_of_strategy_mgt::generate_new_remap
     data_grid_src = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_src);
     data_grid_dst = remap_grid_manager->search_remap_grid_with_grid_name(data_grid_name_dst);
 
-	EXECUTION_REPORT(REPORT_ERROR, remap_strategy != NULL && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
+	EXECUTION_REPORT(REPORT_ERROR,-1, remap_strategy != NULL && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
 
 	return search_or_add_remap_weight_of_strategy(data_grid_src, data_grid_dst, remap_strategy, object_name, input_IO_file_name, weight_IO_format, read_from_io);
 }

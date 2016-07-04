@@ -55,17 +55,17 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
     remap_operator_runtime_grid_dst->get_leaf_grids(&this->num_leaf_grids_of_remap_operator_grid_dst, 
                                                     this->leaf_grids_of_remap_operator_grid_dst,
                                                     remap_operator_runtime_grid_dst);
-    EXECUTION_REPORT(REPORT_ERROR, interchanged_grid_src->get_grid_size()%remap_operator_runtime_grid_src->get_grid_size() == 0 &&
+    EXECUTION_REPORT(REPORT_ERROR,-1, interchanged_grid_src->get_grid_size()%remap_operator_runtime_grid_src->get_grid_size() == 0 &&
                  interchanged_grid_dst->get_grid_size()%remap_operator_runtime_grid_dst->get_grid_size() == 0, 
                  "remap software error1 in new Runtime_remap_function\n");
     for (i = 0; i < num_sized_grids_of_remapping_src; i ++)
-        EXECUTION_REPORT(REPORT_ERROR, sized_grids_of_remapping_src[i] == sized_grids_of_interchanged_grid_src[i], "remap software error2 in new Runtime_remap_function\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, sized_grids_of_remapping_src[i] == sized_grids_of_interchanged_grid_src[i], "remap software error2 in new Runtime_remap_function\n");
     for (i = 0; i < num_sized_grids_of_remapping_dst; i ++)
-        EXECUTION_REPORT(REPORT_ERROR, sized_grids_of_remapping_dst[i] == sized_grids_of_interchanged_grid_dst[i], "remap software error2 in new Runtime_remap_function\n");
-    EXECUTION_REPORT(REPORT_ERROR, num_sized_grids_of_interchanged_grid_src-num_sized_grids_of_remapping_src == num_sized_grids_of_interchanged_grid_dst-num_sized_grids_of_remapping_dst,
+        EXECUTION_REPORT(REPORT_ERROR,-1, sized_grids_of_remapping_dst[i] == sized_grids_of_interchanged_grid_dst[i], "remap software error2 in new Runtime_remap_function\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_sized_grids_of_interchanged_grid_src-num_sized_grids_of_remapping_src == num_sized_grids_of_interchanged_grid_dst-num_sized_grids_of_remapping_dst,
                  "remap software error3 in new Runtime_remap_function\n");
     for (i = num_sized_grids_of_remapping_src, j = num_sized_grids_of_remapping_dst; i < num_sized_grids_of_interchanged_grid_src; i ++)
-        EXECUTION_REPORT(REPORT_ERROR, sized_grids_of_interchanged_grid_src[i] == sized_grids_of_interchanged_grid_dst[j++], "remap software error5 in new Runtime_remap_function\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, sized_grids_of_interchanged_grid_src[i] == sized_grids_of_interchanged_grid_dst[j++], "remap software error5 in new Runtime_remap_function\n");
     this->num_sized_grids_of_interchanged_grid = num_sized_grids_of_interchanged_grid_src - num_sized_grids_of_remapping_src;
     for (i = 0; i < this->num_sized_grids_of_interchanged_grid; i ++) {
         this->sized_grids_of_interchanged_grid[i] = sized_grids_of_interchanged_grid_src[num_sized_grids_of_remapping_src+i];
@@ -74,22 +74,22 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
 
     if (runtime_remap_operator->does_require_grid_vertex_values()) {
         for (i = 0; i < num_leaf_grids_of_remap_operator_grid_src; i ++) {
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values != NULL, "remap software error6 in new Runtime_remap_function\n");
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_src[i]->grid_vertex_fields.size() == 1, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values != NULL, "remap software error6 in new Runtime_remap_function\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid_src[i]->grid_vertex_fields.size() == 1, 
 							 "remap operator %s (%s) requires users to specify vertex coordinate values in source grid %s", 
 							 runtime_remap_operator->get_object_name(), runtime_remap_operator->get_operator_name(), remap_operator_runtime_grid_src->get_grid_name());
             if (leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->num_dimensions > 1)
-                EXECUTION_REPORT(REPORT_ERROR, !leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->are_vertex_values_set_in_default, 
+                EXECUTION_REPORT(REPORT_ERROR,-1, !leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->are_vertex_values_set_in_default, 
                              "remap operator \"%s\" requires vertex values. The vertex values of \"%s\" in source grid \"%s\" are not given by users\n",
                              runtime_remap_operator->get_object_name(),
                              leaf_grids_of_remap_operator_grid_src[i]->coord_label,
                              leaf_grids_of_remap_operator_grid_src[i]->super_grid_of_setting_coord_values->grid_name);
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values != NULL, "remap software error8 in new Runtime_remap_function\n");
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid_dst[i]->grid_vertex_fields.size() == 1, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values != NULL, "remap software error8 in new Runtime_remap_function\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid_dst[i]->grid_vertex_fields.size() == 1, 
 							 "remap operator %s (%s) requires users to specify vertex coordinate values in target grid %s", 
 							 runtime_remap_operator->get_object_name(), runtime_remap_operator->get_operator_name(), remap_operator_runtime_grid_dst->get_grid_name());
             if (leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values->num_dimensions > 1)
-                EXECUTION_REPORT(REPORT_ERROR, !leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values->are_vertex_values_set_in_default, 
+                EXECUTION_REPORT(REPORT_ERROR,-1, !leaf_grids_of_remap_operator_grid_dst[i]->super_grid_of_setting_coord_values->are_vertex_values_set_in_default, 
                              "remap operator \"%s\" requires vertex values. The vertex values of \"%s\" in destination grid \"%s\" are not given by users\n",
                              runtime_remap_operator->get_object_name(),
                              leaf_grids_of_remap_operator_grid_dst[i]->coord_label,
@@ -154,7 +154,7 @@ Runtime_remap_function::~Runtime_remap_function()
 {
     if (execution_phase_number == 1)
         for (int i = 0; i < num_sized_grids_of_interchanged_grid; i ++)
-            EXECUTION_REPORT(REPORT_ERROR, current_runtime_index_array[i] == index_size_array[i] - 1, "remap software error in ~Runtime_remap_function\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, current_runtime_index_array[i] == index_size_array[i] - 1, "remap software error in ~Runtime_remap_function\n");
 
     delete runtime_remap_operator_grid_src;
     delete runtime_remap_operator_grid_dst;
@@ -178,7 +178,7 @@ void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
     double *current_data_values_src, *current_data_values_dst;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, current_remapping_time_iter < num_remapping_times, "remap software error1 in do_runtime_remap\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, current_remapping_time_iter < num_remapping_times, "remap software error1 in do_runtime_remap\n");
 
 	current_runtime_remap_operator_grid_src = runtime_remap_operator_grid_src;
 	current_runtime_remap_operator_grid_dst = runtime_remap_operator_grid_dst;
@@ -260,19 +260,19 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_clas
            fields and extract grid vertex fields when necessary */
     for (i = 0; i < num_leaf_grids_of_remap_operator_grid; i ++) {
         if (runtime_remap_operator->does_require_grid_vertex_values() || leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() > 0)
-            EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() == 1, "remap software error6 in new extract_and_set_runtime_grid_fields\n");
+            EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() == 1, "remap software error6 in new extract_and_set_runtime_grid_fields\n");
 		if (leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid())
 			super_grid = field_data_grid;
         else super_grid = leaf_grids_of_remap_operator_grid[i]->get_super_grid_of_setting_coord_values();
         if (super_grid == NULL) {
-            EXECUTION_REPORT(REPORT_ERROR, !runtime_remap_operator->get_is_operator_regridding() && leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 0, 
+            EXECUTION_REPORT(REPORT_ERROR,-1, !runtime_remap_operator->get_is_operator_regridding() && leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 0, 
                          "remap software error1 in new extract_and_set_runtime_grid_fields\n");
             continue;
         }
         if (super_grid->is_subset_of_grid(remap_operator_runtime_grid))
             continue;
 		if (super_grid == field_data_grid) {
-			EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid(), "C-Coupler error in extract_and_set_runtime_grid_fields");
+			EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid(), "C-Coupler error in extract_and_set_runtime_grid_fields");
 			center_value_field = super_grid->get_unique_center_field();
 			if (super_grid->grid_vertex_fields.size() > 0)
 				vertex_value_field = super_grid->grid_vertex_fields[0];
@@ -281,7 +281,7 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_clas
 			center_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_center_field();
 	        vertex_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_vertex_field();
         }
-        EXECUTION_REPORT(REPORT_ERROR, leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 1 && center_value_field != NULL, 
+        EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 1 && center_value_field != NULL, 
                      "remap software error4 in new extract_and_set_runtime_grid_fields\n");    
         check_dimension_order_of_grid_field(center_value_field, remap_operator_runtime_grid);
         check_dimension_order_of_grid_field(leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0], remap_operator_runtime_grid);
@@ -297,7 +297,7 @@ bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_clas
            When original_grid_mask_field is not NULL, the runtime grid mask field will be extracted from the 
            corresponding super grid when necessary. */
     if (remap_operator_runtime_grid->original_grid_mask_field != NULL) {
-        EXECUTION_REPORT(REPORT_ERROR, remap_operator_runtime_grid->grid_mask_field != NULL, "remap software error8 in new extract_and_set_runtime_grid_fields\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, remap_operator_runtime_grid->grid_mask_field != NULL, "remap software error8 in new extract_and_set_runtime_grid_fields\n");
         check_dimension_order_of_grid_field(remap_operator_runtime_grid->original_grid_mask_field, remap_operator_runtime_grid);
         extract_runtime_grid_field(remap_operator_runtime_grid->original_grid_mask_field, remap_operator_runtime_grid->grid_mask_field);
     }
@@ -314,7 +314,7 @@ bool Runtime_remap_function::extract_runtime_grid_field(Remap_grid_data_class *g
     char *data_buf_global, *data_buf_runtime;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, grid_data_runtime->get_coord_value_grid()->is_subset_of_grid(grid_data_global->get_coord_value_grid()), "remap software error1 in extract_runtime_grid_field\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, grid_data_runtime->get_coord_value_grid()->is_subset_of_grid(grid_data_global->get_coord_value_grid()), "remap software error1 in extract_runtime_grid_field\n");
 
     have_index_iter_changed = false;
     grid_data_offset_header = 0;
@@ -399,8 +399,8 @@ void Runtime_remap_function::check_dimension_order_of_grid_field(Remap_grid_data
             if (grid_data->sized_grids[i] == sized_grids_of_remapping[j]) 
                 break;
         }
-        EXECUTION_REPORT(REPORT_ERROR, j < num_sized_grids_of_remapping, "remap software error1 in check_dimension_order_of_grid_field\n");
-        EXECUTION_REPORT(REPORT_ERROR, j > last_order_indx, "remap software error2 in check_dimension_order_of_grid_field\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, j < num_sized_grids_of_remapping, "remap software error1 in check_dimension_order_of_grid_field\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, j > last_order_indx, "remap software error2 in check_dimension_order_of_grid_field\n");
         last_order_indx = j;
     }
 }

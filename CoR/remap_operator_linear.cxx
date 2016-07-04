@@ -15,7 +15,7 @@
 
 void Remap_operator_linear::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
 
@@ -47,7 +47,7 @@ void Remap_operator_linear::calculate_remap_weights()
 	if (array_size_src == 0)
 		return;
 
-	EXECUTION_REPORT(REPORT_ERROR, array_size_src > 1, "Less than three source cells for linear interpolation are not enough");
+	EXECUTION_REPORT(REPORT_ERROR,-1, array_size_src > 1, "Less than three source cells for linear interpolation are not enough");
 
     for (i = 0; i < dst_grid->get_grid_size(); i ++) {
 		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
@@ -78,7 +78,7 @@ void Remap_operator_linear::calculate_remap_weights()
     }
 	
 	if (remap_weights_groups[1]->get_num_weights() == 0) {
-		EXECUTION_REPORT(REPORT_LOG, true, "Encounter an empty linear remapping operator instance"); 
+		EXECUTION_REPORT(REPORT_LOG,-1, true, "Encounter an empty linear remapping operator instance"); 
 		return;
 	}
 

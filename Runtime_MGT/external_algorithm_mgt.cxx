@@ -63,9 +63,9 @@ void External_algorithm_mgt::register_external_algorithm(const char *algorithm_n
 	External_algorithm_info *external_algorithm;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, (c_coupler_algorithm!=NULL && model_algorithm==NULL) || (c_coupler_algorithm==NULL && model_algorithm!=NULL),
+	EXECUTION_REPORT(REPORT_ERROR,-1, (c_coupler_algorithm!=NULL && model_algorithm==NULL) || (c_coupler_algorithm==NULL && model_algorithm!=NULL),
 					 "C-Coupler error in input parameters of register_external_algorithm");
-	EXECUTION_REPORT(REPORT_ERROR, search_c_coupler_algorithm_pointer(algorithm_name) == NULL && search_model_algorithm_pointer(algorithm_name) == NULL,
+	EXECUTION_REPORT(REPORT_ERROR,-1, search_c_coupler_algorithm_pointer(algorithm_name) == NULL && search_model_algorithm_pointer(algorithm_name) == NULL,
 					 "Algorithm %s has been registerred before", algorithm_name);
 
 	external_algorithm = new External_algorithm_info;

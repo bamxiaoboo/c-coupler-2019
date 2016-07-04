@@ -12,7 +12,7 @@
 
 int c_coupler_get_field_size(void *model_buf, const char *annotation)
 {
-    EXECUTION_REPORT(REPORT_ERROR, memory_manager != NULL, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, memory_manager != NULL, 
 				     "C-Coupler interface coupling_interface_initialize has not been called before running the code corresponding to annotation \"%s\"\n", annotation); 
     return memory_manager->get_field_size(model_buf, annotation);
 }

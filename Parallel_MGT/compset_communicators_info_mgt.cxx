@@ -74,11 +74,11 @@ void Compset_communicators_info_mgt::load_in_compset(const char *current_comp_na
     while (get_next_line(line, cfg_fp)) {
         local_line = line;
         comp_comm_info = new Component_communicator_info;
-        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_comm_info->comp_name, &local_line), "C-Coupler error1 in Compset_communicators_info_mgt::load_in_compset");
-		EXECUTION_REPORT(REPORT_ERROR, get_next_attr(comp_comm_info->comp_type, &local_line), "C-Coupler error2 in Compset_communicators_info_mgt::load_in_compset");
+        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(comp_comm_info->comp_name, &local_line), "C-Coupler error1 in Compset_communicators_info_mgt::load_in_compset");
+		EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(comp_comm_info->comp_type, &local_line), "C-Coupler error2 in Compset_communicators_info_mgt::load_in_compset");
         comp_comm_info->comp_id = comps_comms_info.size();
         comps_comms_info.push_back(comp_comm_info);
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_OCN) ||
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_OCN) ||
                      words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_LND) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_SEA_ICE) ||
                      words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_CPL) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_WAVE) ||
                      words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_CESM) || words_are_the_same(comp_comm_info->comp_type, COMP_TYPE_ATM_CHEM),
@@ -106,11 +106,11 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 	int num_distinct_computing_nodes;
 	
 
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_dup(MPI_COMM_WORLD, &global_comm_group) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(global_comm_group, &current_proc_global_id) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(global_comm_group, &num_global_procs) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(global_comm_group, current_comp_id, 0, &current_comp_comm_group) == MPI_SUCCESS);
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(current_comp_comm_group, &current_proc_local_id) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_dup(MPI_COMM_WORLD, &global_comm_group) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(global_comm_group, &current_proc_global_id) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(global_comm_group, &num_global_procs) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_split(global_comm_group, current_comp_id, 0, &current_comp_comm_group) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(current_comp_comm_group, &current_proc_local_id) == MPI_SUCCESS);
 	comps_comms_info[current_comp_id]->comm_group = current_comp_comm_group;
 	comps_comms_info[current_comp_id]->current_proc_local_id = current_proc_local_id;
 
@@ -126,9 +126,9 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 		all_procs_local_ids[0] = current_proc_local_id;
 	}
 	else {
-	    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, all_procs_global_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
-	    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_comp_id, 1, MPI_INT, all_procs_comp_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
-	    EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_local_id, 1, MPI_INT, all_procs_local_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, all_procs_global_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_comp_id, 1, MPI_INT, all_procs_comp_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
+	    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_local_id, 1, MPI_INT, all_procs_local_ids, 1, MPI_INT, global_comm_group) == MPI_SUCCESS);
 	}
     for (i = 0; i < comps_comms_info.size(); i ++)
         num_all_comps_procs[i] = 0;
@@ -152,7 +152,7 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 	host_name_ids = new int [num_all_comps_procs[current_comp_id]];
 	if (num_global_procs == 1)
 		strcpy(host_name_distinct_computing_nodes, host_name_current_computing_node);
-	else EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(host_name_current_computing_node, NAME_STR_SIZE, MPI_CHAR, host_name_all_computing_nodes, NAME_STR_SIZE, MPI_CHAR, current_comp_comm_group) == MPI_SUCCESS);
+	else EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(host_name_current_computing_node, NAME_STR_SIZE, MPI_CHAR, host_name_all_computing_nodes, NAME_STR_SIZE, MPI_CHAR, current_comp_comm_group) == MPI_SUCCESS);
 	for (i = 0; i < num_all_comps_procs[current_comp_id]; i ++)
 		host_name_ids[i] = -1;
 	num_distinct_computing_nodes = 0;
@@ -169,12 +169,12 @@ void Compset_communicators_info_mgt::build_compset_communicators_info()
 		num_distinct_computing_nodes ++;
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, true, "%d computing nodes are used in this experiment", num_distinct_computing_nodes);
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "%d computing nodes are used in this experiment", num_distinct_computing_nodes);
 	
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(current_comp_comm_group, host_name_ids[current_proc_local_id], 0, &computing_node_comp_group) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(computing_node_comp_group, &current_proc_computing_node_id) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_split(current_comp_comm_group, host_name_ids[current_proc_local_id], 0, &computing_node_comp_group) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(computing_node_comp_group, &current_proc_computing_node_id) == MPI_SUCCESS);
 	is_master_process_in_computing_node = (current_proc_computing_node_id == 0);
-	EXECUTION_REPORT(REPORT_ERROR, current_proc_computing_node_id < 64, "current version of C-Coupler only supports 64 processes in a computing node");
+	EXECUTION_REPORT(REPORT_ERROR,-1, current_proc_computing_node_id < 64, "current version of C-Coupler only supports 64 processes in a computing node");
 
     delete [] all_procs_global_ids;
     delete [] all_procs_local_ids;
@@ -193,14 +193,14 @@ int Compset_communicators_info_mgt::get_comp_id_by_comp_name(const char *name)
         if (strcmp(comps_comms_info[i]->comp_name, name) == 0)    
             return i;
 
-    EXECUTION_REPORT(REPORT_ERROR, false, "the component list does not include the name of current component %s\n", name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, false, "the component list does not include the name of current component %s\n", name);
     return -1;
 }
 
 
 int Compset_communicators_info_mgt::get_proc_id_in_global_comm_group(int cid, int local_proc_rank)
 {
-    EXECUTION_REPORT(REPORT_ERROR, local_proc_rank < comps_comms_info[cid]->num_comp_procs);
+    EXECUTION_REPORT(REPORT_ERROR,-1, local_proc_rank < comps_comms_info[cid]->num_comp_procs);
     return comps_comms_info[cid]->comp_procs_global_ids[local_proc_rank];
 }
 
@@ -214,19 +214,19 @@ void Compset_communicators_info_mgt::register_component(const char *comp_name, c
 	MPI_Barrier(comm);
 	
     for(i = 0; i < comps_comms_info.size(); i ++)
-        EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(comps_comms_info[i]->comp_name, comp_name), "Component name \"%s\" has alread been registered before");
+        EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(comps_comms_info[i]->comp_name, comp_name), "Component name \"%s\" has alread been registered before");
 
 	comp_comm_info = new Component_communicator_info;
 	strcpy(comp_comm_info->comp_name, comp_name);
 	strcpy(comp_comm_info->comp_type, comp_type);
 	comp_comm_info->comm_group = comm;
 	comp_comm_info->comp_id = comps_comms_info.size();
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(comm, &comp_comm_info->num_comp_procs) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(comm, &comp_comm_info->num_comp_procs) == MPI_SUCCESS);
 	comp_comm_info->comp_procs_global_ids = new int [comp_comm_info->num_comp_procs];
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(global_comm_group, &current_proc_global_id) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, comp_comm_info->comp_procs_global_ids, 1, MPI_INT, comm) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(comm, &comp_comm_info->current_proc_local_id) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(global_comm_group, &current_proc_global_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, comp_comm_info->comp_procs_global_ids, 1, MPI_INT, comm) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(comm, &comp_comm_info->current_proc_local_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	comps_comms_info.push_back(comp_comm_info);
 }
 
@@ -240,7 +240,7 @@ Component_communicator_info *Compset_communicators_info_mgt::get_communicator_in
 		if (words_are_the_same(comps_comms_info[i]->comp_name, comp_name))
 			break;
 
-	EXECUTION_REPORT(REPORT_ERROR, i < comps_comms_info.size(), "Component with name \"%s\" has not been registered. Please verify", comp_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, i < comps_comms_info.size(), "Component with name \"%s\" has not been registered. Please verify", comp_name);
 	
 	return comps_comms_info[i];
 }
@@ -266,7 +266,7 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(Comp_comm_group
 	buffer_node->read_data_from_array_buffer(comp_type, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm));
 	buffer_node->read_data_from_array_buffer(&num_procs, sizeof(int));
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	for (int i = 0; i < num_procs; i ++) {
 		buffer_node->read_data_from_array_buffer(&proc_id, sizeof(int));
 		local_processes_global_ids.push_back(proc_id);
@@ -284,7 +284,7 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(Comp_comm_group
 	if (current_proc_global_id == 0) {
 		for (int i = 0; i < num_children; i ++)
 			for (int j = i+1; j < num_children; j ++)
-				EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(children[i]->comp_name, children[j]->comp_name), 
+				EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(children[i]->comp_name, children[j]->comp_name), 
 								 "different children components of the same component cannot have the same name. Please check the registration of the component \"%s\" %s %s",
 								 children[i]->comp_name, children[i]->annotation_start, children[j]->annotation_start);
 	}
@@ -315,34 +315,42 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 		char temp_comp_name[NAME_STR_SIZE], temp_comp_type[NAME_STR_SIZE];
 		int proc_local_id;
 		comm_group = comm;
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(comm, &proc_local_id) == MPI_SUCCESS);
-		if (proc_local_id == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "Before the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(comm) == MPI_SUCCESS);
-		if (proc_local_id == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "After the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(comm, &proc_local_id) == MPI_SUCCESS);	 
+		if (parent != NULL && (parent->local_node_id&TYPE_ID_SUFFIX_MASK) != 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, parent->local_node_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
+		else if (proc_local_id == 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);				
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(comm) == MPI_SUCCESS);
+		if (parent != NULL && (parent->local_node_id&TYPE_ID_SUFFIX_MASK) != 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, parent->local_node_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
+		else if (proc_local_id == 0) 
+			EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After the MPI_barrier for synchronizing all processes of a communicator for registerring component \"%s\" %s", comp_name, annotation_start);	
 		strcpy(temp_comp_name, comp_name);
 		strcpy(temp_comp_type, comp_type);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(temp_comp_type, comp_type) && words_are_the_same(temp_comp_name, comp_name), "When registerring a component with an available communicator, the component name and type must be the same among all processes, while the name is different (<\"%s\", \"%s\"> VS <\"%s\", \"%s\">) %s",
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(temp_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(temp_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(temp_comp_type, comp_type) && words_are_the_same(temp_comp_name, comp_name), "When registerring a component with an available communicator, the component name and type must be the same among all processes, while the name is different (<\"%s\", \"%s\"> VS <\"%s\", \"%s\">) %s",
 			             temp_comp_name, temp_comp_type, comp_name, comp_type, annotation_start);
 	}
 	else {
-		EXECUTION_REPORT(REPORT_ERROR, parent != NULL, "Software error in Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node for checking parent");
+		EXECUTION_REPORT(REPORT_ERROR,-1, parent != NULL, "Software error in Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node for checking parent");
 		parent_comm = parent->get_comm_group();
-		if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);	
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(parent_comm) == MPI_SUCCESS);
-		if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, true, "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);	
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(parent_comm, &current_proc_local_id_in_parent) == MPI_SUCCESS);
+		if (parent != NULL && (parent->local_node_id&TYPE_ID_SUFFIX_MASK) != 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, parent->local_node_id, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);
+		else if (parent->get_current_proc_local_id() == 0) 
+			EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);	
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(parent_comm) == MPI_SUCCESS);
+		if (parent != NULL && (parent->local_node_id&TYPE_ID_SUFFIX_MASK) != 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, parent->local_node_id, true, "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);
+		else if (parent->get_current_proc_local_id() == 0) 
+			EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" %s for registerring its children components %s", parent->get_comp_name(), parent->annotation_start, annotation_start);	
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(parent_comm, &current_proc_local_id_in_parent) == MPI_SUCCESS);
 		all_comp_name = new char [NAME_STR_SIZE*num_procs];
 		all_comp_type = new char [NAME_STR_SIZE*num_procs];
 		process_comp_id = new int [num_procs];
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Gather((char*)comp_name, NAME_STR_SIZE, MPI_CHAR, all_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, parent_comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Gather((char*)comp_type, NAME_STR_SIZE, MPI_CHAR, all_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, parent_comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((char*)comp_name, NAME_STR_SIZE, MPI_CHAR, all_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, parent_comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((char*)comp_type, NAME_STR_SIZE, MPI_CHAR, all_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, parent_comm) == MPI_SUCCESS);
 		if (current_proc_local_id_in_parent == 0) {
 			unique_comp_name.push_back(all_comp_name);
 			unique_comp_type.push_back(all_comp_type);
@@ -350,7 +358,7 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 			for (i = 1; i < num_procs; i ++) {
 				for (j = 0; j < unique_comp_name.size(); j ++)
 					if (words_are_the_same(unique_comp_name[j], all_comp_name+i*NAME_STR_SIZE)) {
-						EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE), 
+						EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE), 
 							             "The type of the component is different (\"%s\" vs \"%s\") among the processes of component \"%s\" %s. Please verify.", 
 							             unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE, unique_comp_name[j], annotation_start);
 						break;
@@ -362,19 +370,19 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 				process_comp_id[i] = j;
 			}
 		}
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(process_comp_id, num_procs, MPI_INT, 0, parent_comm)  == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_split(parent_comm, process_comp_id[current_proc_local_id_in_parent], 0, &comm_group) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(process_comp_id, num_procs, MPI_INT, 0, parent_comm)  == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_split(parent_comm, process_comp_id[current_proc_local_id_in_parent], 0, &comm_group) == MPI_SUCCESS);
 		delete [] all_comp_name;
 		delete [] all_comp_type;
 		delete [] process_comp_id;
 		comm = comm_group;
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(comm_group, &current_proc_local_id) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(comm_group, &num_procs) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(comm_group, &current_proc_local_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(comm_group, &num_procs) == MPI_SUCCESS);
 	processes_global_id = new int [num_procs];
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, processes_global_id, 1, MPI_INT, comm_group) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, processes_global_id, 1, MPI_INT, comm_group) == MPI_SUCCESS);
 	for (i = 0; i < num_procs; i ++)
 		local_processes_global_ids.push_back(processes_global_id[i]);
 	delete [] processes_global_id;
@@ -385,7 +393,7 @@ Comp_comm_group_mgt_global_node::Comp_comm_group_mgt_global_node(const char *com
 				if (local_processes_global_ids[i] == parent->local_processes_global_ids[j])
 					break;
 			if (current_proc_local_id == 0)
-				EXECUTION_REPORT(REPORT_ERROR, j < parent->local_processes_global_ids.size(), 
+				EXECUTION_REPORT(REPORT_ERROR,-1, j < parent->local_processes_global_ids.size(), 
 				                 "The processes of component \"%s\" %s must be a subset of the processes of its parent \"%s\" %s", 
 				                 comp_name, annotation_start, parent->get_comp_name(), parent->annotation_start);
 		}
@@ -431,7 +439,7 @@ void Comp_comm_group_mgt_global_node::write_data_into_array_buffer(const void *d
 
 void Comp_comm_group_mgt_global_node::read_data_from_array_buffer(void *data, int data_size)
 {
-	EXECUTION_REPORT(REPORT_ERROR, data_size <= buffer_content_size, "Software error in Comp_comm_group_mgt_global_node::read_data_into_array_buffer");
+	EXECUTION_REPORT(REPORT_ERROR,-1, data_size <= buffer_content_size, "Software error in Comp_comm_group_mgt_global_node::read_data_into_array_buffer");
 	
 	for (int i = 0; i < data_size; i ++)
 		((char*) data)[i] = temp_array_buffer[buffer_content_size-data_size+i];
@@ -447,16 +455,16 @@ void Comp_comm_group_mgt_global_node::merge_comp_comm_info(bool is_root_node)
 	
 
 	if (strlen(current_annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "The registration related to component \"%s\" has been finalized before %s. It cannot be finalized again (corresponding to the annotation \"%s\"). Please verify.",
+		EXECUTION_REPORT(REPORT_ERROR,-1, !definition_finalized, "The registration related to component \"%s\" has been finalized before %s. It cannot be finalized again (corresponding to the annotation \"%s\"). Please verify.",
 			             comp_name, annotation_end, current_annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "The registration related to component \"%s\" has been finalized before %s. It cannot be finalized again. Please verify.",
+	else EXECUTION_REPORT(REPORT_ERROR,-1, !definition_finalized, "The registration related to component \"%s\" has been finalized before %s. It cannot be finalized again. Please verify.",
 			              comp_name, annotation_end); 
 	definition_finalized = true;
 
 	get_annotation(this->annotation_end);
 
 	for (int i = 0; i < children.size(); i ++)
-		EXECUTION_REPORT(REPORT_ERROR, children[i]->definition_finalized, 
+		EXECUTION_REPORT(REPORT_ERROR,-1, children[i]->definition_finalized, 
 		                 "The registration related to component \"%s\" %s has not been finalized yet. So the registration related to its parent component \"%s\" cannot be finalized. Please verify.",
 		                 children[i]->comp_name, children[i]->annotation_start, comp_name, annotation_end);
 
@@ -472,8 +480,8 @@ void Comp_comm_group_mgt_global_node::merge_comp_comm_info(bool is_root_node)
 		displs = new int [local_processes_global_ids.size()];
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Gather(&num_children_at_root, 1, MPI_INT, num_children_for_all, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Gather(&buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&num_children_at_root, 1, MPI_INT, num_children_for_all, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
 
 	if (current_proc_local_id == 0) {
 		displs[0] = 0;
@@ -484,7 +492,7 @@ void Comp_comm_group_mgt_global_node::merge_comp_comm_info(bool is_root_node)
 		temp_buffer = new char [displs[i-1]+counts[i-1]+100];
 	}
 
-    EXECUTION_REPORT(REPORT_ERROR, MPI_Gatherv(temp_array_buffer, buffer_content_size, MPI_CHAR, temp_buffer, counts, displs, MPI_CHAR, 0, comm_group) == MPI_SUCCESS);
+    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(temp_array_buffer, buffer_content_size, MPI_CHAR, temp_buffer, counts, displs, MPI_CHAR, 0, comm_group) == MPI_SUCCESS);
 	
 	if (current_proc_local_id == 0) {		
 		delete [] temp_array_buffer;
@@ -501,13 +509,13 @@ void Comp_comm_group_mgt_global_node::merge_comp_comm_info(bool is_root_node)
 	MPI_Barrier(comm_group);
 
 	if (is_root_node) {
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(&buffer_content_size, 1, MPI_INT, 0, comm_group)  == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(&buffer_content_size, 1, MPI_INT, 0, comm_group)  == MPI_SUCCESS);
 		if (current_proc_local_id != 0) {
 			delete [] temp_array_buffer;
 			temp_array_buffer = new char [buffer_content_size];
 			buffer_max_size = buffer_content_size;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Bcast(temp_array_buffer, buffer_content_size, MPI_CHAR, 0, MPI_COMM_WORLD)  == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(temp_array_buffer, buffer_content_size, MPI_CHAR, 0, MPI_COMM_WORLD)  == MPI_SUCCESS);
 	}
 }
 
@@ -548,6 +556,23 @@ Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_
 	if (parent != NULL) {
 		parent_local_node_id = parent->get_local_node_id();
 		global_node = new Comp_comm_group_mgt_global_node(comp_name, comp_type, local_id, parent->get_global_node(), comm);
+		if (parent->get_global_node()->get_parent() == NULL) {
+			EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
+			strcpy(working_dir+strlen(working_dir), "/../");
+			printf("okok path %s\n", working_dir);
+		}
+		else {
+			sprintf(working_dir, "%s/%s\0", parent->working_dir, comp_name);
+			create_directory(working_dir, global_node->get_current_proc_local_id() == 0);
+		}
+		char log_dir[NAME_STR_SIZE];
+		sprintf(log_dir, "%s/CCPL_logs", working_dir, comp_name);
+		create_directory(log_dir, global_node->get_current_proc_local_id() == 0);
+		MPI_Barrier(global_node->get_comm_group());
+		char file_name[NAME_STR_SIZE*2];
+		sprintf(file_name, "%s/CCPL_logs/%s.CCPL.log.%d", working_dir, global_node->get_comp_name(), global_node->get_current_proc_local_id());
+		FILE *fp = fopen(file_name, "w+");
+		fclose(fp);
 	}
 	else {
 		parent_local_node_id = -1; 
@@ -580,10 +605,10 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name, co
 		if (executable_name[i] == '/')
 			break;
 	i ++;
-	EXECUTION_REPORT(REPORT_ERROR, i < strlen(executable_name), "Software error1 in Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr");
+	EXECUTION_REPORT(REPORT_ERROR,-1, i < strlen(executable_name), "Software error1 in Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr");
 	strcpy(this->executable_name, executable_name+i);
 
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 
 	if (words_are_the_same(case_mode, "initial")) {
 		strcpy(this->original_case_name, "none");
@@ -612,15 +637,15 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_global_nod
 		for (j = 0; j < new_global_node->get_num_children(); j ++)
 			if (words_are_the_same(old_global_node->get_child(i)->get_comp_name(), new_global_node->get_child(j)->get_comp_name())) {
 				find_new_global_node = true;
-				EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(old_global_node->get_child(i)->get_comp_type(), new_global_node->get_child(j)->get_comp_type()),
+				EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(old_global_node->get_child(i)->get_comp_type(), new_global_node->get_child(j)->get_comp_type()),
 								 "Software error1 in Comp_comm_group_mgt_mgr::update_global_nodes");
-				EXECUTION_REPORT(REPORT_ERROR, new_global_node->get_child(j)->get_local_node_id() == -1, "Software error2 in Comp_comm_group_mgt_mgr::update_global_nodes");
+				EXECUTION_REPORT(REPORT_ERROR,-1, new_global_node->get_child(j)->get_local_node_id() == -1, "Software error2 in Comp_comm_group_mgt_mgr::update_global_nodes");
 				new_global_node->get_child(j)->reset_local_node_id(old_global_node->get_child(i)->get_local_node_id());
 				local_nodes[old_global_node->get_child(i)->get_local_node_id()&TYPE_ID_SUFFIX_MASK]->reset_global_node(new_global_node->get_child(j));
 				update_global_nodes(old_global_node->get_child(i), new_global_node->get_child(j));
 				break;
 			}
-		EXECUTION_REPORT(REPORT_ERROR, find_new_global_node, "Software error3 in Comp_comm_group_mgt_mgr::update_global_nodes");
+		EXECUTION_REPORT(REPORT_ERROR,-1, find_new_global_node, "Software error3 in Comp_comm_group_mgt_mgr::update_global_nodes");
 	}
 }
 
@@ -640,7 +665,7 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 
 bool Comp_comm_group_mgt_mgr::is_local_comp_definition_finalized(int local_comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(local_comp_id), "software error in Comp_comm_group_mgt_mgr::is_local_comp_definition_finalized");
+	EXECUTION_REPORT(REPORT_ERROR,-1, is_legal_local_comp_id(local_comp_id), "software error in Comp_comm_group_mgt_mgr::is_local_comp_definition_finalized");
 
 	return local_nodes[(local_comp_id&TYPE_ID_SUFFIX_MASK)]->get_global_node()->is_definition_finalized();
 }
@@ -658,14 +683,14 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 	get_annotation(annotation);
 	
 	if (definition_finalized)
-		EXECUTION_REPORT(REPORT_ERROR, !definition_finalized, "Cannot register component \"%s\" %s because the stage of registering coupling configurations of the whole coupled model has been ended %s", comp_name, annotation, local_nodes[0]->get_global_node()->get_annotation_end());
+		EXECUTION_REPORT(REPORT_ERROR,-1, !definition_finalized, "Cannot register component \"%s\" %s because the stage of registering coupling configurations of the whole coupled model has been ended %s", comp_name, annotation, local_nodes[0]->get_global_node()->get_annotation_end());
 	
 	for (i = 0; i < local_nodes.size(); i ++)
 		if (words_are_the_same(local_nodes[i]->get_global_node()->get_comp_name(), comp_name))
 			break;
 		
 	if (i < local_nodes.size())
-		EXECUTION_REPORT(REPORT_ERROR, i == local_nodes.size(),  
+		EXECUTION_REPORT(REPORT_ERROR,-1, i == local_nodes.size(),  
 						 "A component with the name \"%s\" has already been registered %s. The same name cannot be used for registerring another component %s", comp_name, local_nodes[i]->get_global_node()->get_annotation_start(), annotation);
 
 	if (parent_local_id == -1) {
@@ -676,11 +701,11 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		local_nodes.push_back(new_comp);
 	}
 	else {
-		EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(parent_local_id), 
+		EXECUTION_REPORT(REPORT_ERROR,-1, is_legal_local_comp_id(parent_local_id), 
 			             "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong %s",
 			             comp_name, comp_type, annotation);
 		true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
-		EXECUTION_REPORT(REPORT_ERROR, !local_nodes[true_parent_id]->get_global_node()->is_definition_finalized(), 
+		EXECUTION_REPORT(REPORT_ERROR,-1, !local_nodes[true_parent_id]->get_global_node()->is_definition_finalized(), 
 			             "Cannot register component %s %s because the registration corresponding to the parent \"%s\" %s has been ended", 
 			             comp_name, annotation, local_nodes[true_parent_id]->get_global_node()->get_comp_name(), local_nodes[true_parent_id]->get_global_node()->get_annotation_end()); // add debug information
 		new_comp = new Comp_comm_group_mgt_local_node(comp_name, comp_type, local_nodes[true_parent_id], comm, local_nodes.size()|TYPE_COMP_LOCAL_ID_PREFIX);
@@ -700,13 +725,17 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id)
 
 	get_annotation(annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(comp_local_id), "The comp_local_id \"%x\" for ending the coupling registration is wrong. Please check %s", comp_local_id, annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, is_legal_local_comp_id(comp_local_id), "The comp_local_id \"%x\" for ending the coupling registration is wrong. Please check %s", comp_local_id, annotation);
 	global_node = local_nodes[true_local_id]->get_global_node();
-	if (global_node->get_current_proc_local_id()== 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "Before MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);	
+	if (true_local_id != 0)
+		EXECUTION_REPORT(REPORT_PROGRESS, comp_local_id, true, "Before MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);
+	else if (global_node->get_current_proc_local_id()== 0)
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);	
 	MPI_Barrier(global_node->get_comm_group());
-	if (global_node->get_current_proc_local_id()== 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);
+	if (true_local_id != 0)
+		EXECUTION_REPORT(REPORT_PROGRESS, comp_local_id, true, "After MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);
+	else if (global_node->get_current_proc_local_id()== 0)
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier of ending the registration of component \"%s\" %s", global_node->get_comp_name(), annotation);
 	global_node->merge_comp_comm_info(true_local_id == 0);
 
 	if (true_local_id == 1)
@@ -715,7 +744,7 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id)
 	if (true_local_id == 0) {
 		global_node_id = 0;
 		Comp_comm_group_mgt_global_node *new_root = new Comp_comm_group_mgt_global_node(global_node, NULL, global_node_id);
-		EXECUTION_REPORT(REPORT_ERROR, global_node->get_buffer_content_size() == 0, "Software error1 in Comp_comm_group_mgt_mgr::merge_comp_comm_info");
+		EXECUTION_REPORT(REPORT_ERROR,-1, global_node->get_buffer_content_size() == 0, "Software error1 in Comp_comm_group_mgt_mgr::merge_comp_comm_info");
 		new_root->reset_local_node_id(global_node_root->get_local_node_id());
 		local_nodes[global_node_root->get_local_node_id()&TYPE_ID_SUFFIX_MASK]->reset_global_node(new_root);
 		update_global_nodes(global_node_root, new_root);
@@ -736,7 +765,7 @@ Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_loc
 
 	get_annotation(annotation);
 	
-	EXECUTION_REPORT(REPORT_ERROR, is_legal_local_comp_id(local_comp_id), "The id of component is wrong %s. Please verify.", annotation); 
+	EXECUTION_REPORT(REPORT_ERROR,-1, is_legal_local_comp_id(local_comp_id), "The id of component is wrong %s. Please verify.", annotation); 
 
 	return local_nodes[(local_comp_id&TYPE_ID_SUFFIX_MASK)]->get_global_node();
 }
@@ -744,11 +773,11 @@ Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_loc
 
 Comp_comm_group_mgt_global_node *Comp_comm_group_mgt_mgr::get_global_node_of_global_comp(int global_comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, definition_finalized, "Software error in Comp_comm_group_mgt_mgr::get_global_node_of_global_comp");
+	EXECUTION_REPORT(REPORT_ERROR,-1, definition_finalized, "Software error in Comp_comm_group_mgt_mgr::get_global_node_of_global_comp");
 		
 	Comp_comm_group_mgt_global_node *global_node = global_node_root->search_global_node(global_comp_id);
 	
-	EXECUTION_REPORT(REPORT_ERROR, global_node != NULL, "Software error in Comp_comm_group_mgt_mgr::get_global_node_of_global_comp");  // add debug information
+	EXECUTION_REPORT(REPORT_ERROR,-1, global_node != NULL, "Software error in Comp_comm_group_mgt_mgr::get_global_node_of_global_comp");  // add debug information
 	
 	return global_node;
 }
@@ -765,4 +794,17 @@ MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_global_comp(int global_comp_
 	get_global_node_of_global_comp(global_comp_id)->get_comm_group();
 }
 
+
+FILE *Comp_comm_group_mgt_mgr::open_log_file(int comp_id)
+{
+	int true_comp_id;
+	char file_name[NAME_STR_SIZE*2];
+	FILE *fp;
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::open_log_file");
+	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
+	sprintf(file_name, "%s/CCPL_logs/%s.CCPL.log.%d", local_nodes[true_comp_id]->get_working_dir(), local_nodes[true_comp_id]->get_global_node()->get_comp_name(), local_nodes[true_comp_id]->get_global_node()->get_current_proc_local_id());
+	fp = fopen(file_name, "a+");
+}
 

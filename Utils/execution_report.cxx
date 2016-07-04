@@ -17,6 +17,9 @@
 #include <sys/time.h>
 
 
+FILE *log_file;
+char output_string[NAME_STR_SIZE*4];
+
 void wtime(double *t)
 {
   static int sec = -1;
@@ -29,8 +32,14 @@ void wtime(double *t)
 }
 
 
-void report_header(int report_type, bool &condition)
+void report_header(int report_type, int comp_id, bool &condition)
 {
+	if (comp_id == -1)
+		log_file = NULL;
+	else log_file = comp_comm_group_mgt_mgr->open_log_file(comp_id);
+
+	output_string[0] = '\0';
+	
 	switch (report_type) {
 		case REPORT_ERROR:
 			condition = !condition;
@@ -63,45 +72,45 @@ void report_header(int report_type, bool &condition)
 	switch (report_type) {
 		case REPORT_ERROR:
 			if (line_number > 0 && execution_phase_number < 2)
-				printf("CoR REPORT ERROR at script line %d: ", line_number);
+				sprintf(output_string+strlen(output_string), "CoR REPORT ERROR at script line %d: ", line_number);
 #ifndef ONLY_CoR
 			else { 
 				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
-					printf("C-Coupler REPORT ERROR in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
-				else printf("C-Coupler REPORT ERROR: ");
+					sprintf(output_string+strlen(output_string), "C-Coupler REPORT ERROR in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else sprintf(output_string+strlen(output_string), "C-Coupler REPORT ERROR: ");
 			}
 #endif
 			break;
 		case REPORT_LOG:
 			if (line_number > 0 && execution_phase_number < 2)
-				printf("CoR REPORT LOG at script line %d: ", line_number);
+				sprintf(output_string+strlen(output_string), "CoR REPORT LOG at script line %d: ", line_number);
 #ifndef ONLY_CoR
 			else {
 				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
-					printf("C-Coupler REPORT LOG in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
-				else printf("C-Coupler REPORT LOG: ");
+					sprintf(output_string+strlen(output_string), "C-Coupler REPORT LOG in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else sprintf(output_string+strlen(output_string), "C-Coupler REPORT LOG: ");
 			}
 #endif			
 			break;
 		case REPORT_WARNING:
 			if (line_number > 0 && execution_phase_number < 2)
-				printf("CoR REPORT WARNING at script line %d: ", line_number);
+				sprintf(output_string+strlen(output_string), "CoR REPORT WARNING at script line %d: ", line_number);
 #ifndef ONLY_CoR
 			else {
 				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
-					printf("C-Coupler REPORT WARNING in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
-				else printf("C-Coupler REPORT WARNING: ");
+					sprintf(output_string+strlen(output_string), "C-Coupler REPORT WARNING in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else sprintf(output_string+strlen(output_string), "C-Coupler REPORT WARNING: ");
 			}
 #endif
 			break;
 		case REPORT_PROGRESS:
 			if (line_number > 0 && execution_phase_number < 2)
-				printf("CoR REPORT PROGRESS at script line %d: ", line_number);
+				sprintf(output_string+strlen(output_string), "CoR REPORT PROGRESS at script line %d: ", line_number);
 #ifndef ONLY_CoR
 			else {
 				if (timer_mgr != NULL && compset_communicators_info_mgr != NULL)
-					printf("C-Coupler REPORT PROGRESS in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
-				else printf("C-Coupler REPORT PROGRESS: ");
+					sprintf(output_string+strlen(output_string), "C-Coupler REPORT PROGRESS in component %s in local process %d at simulation time %ld: ", compset_communicators_info_mgr->get_current_comp_name(), compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), timer_mgr->get_current_full_time());
+				else sprintf(output_string+strlen(output_string), "C-Coupler REPORT PROGRESS: ");
 			}
 #endif
 			break;
@@ -109,10 +118,16 @@ void report_header(int report_type, bool &condition)
 }
 
 
-void report_ender(int report_type)
+void report_ender(int report_type, int comp_id)
 {
-    printf("\n");
-	fflush(NULL);	
+	if (log_file == NULL) {
+		printf("%s\n", output_string);
+		fflush(NULL);
+	}
+	else {
+		fprintf(log_file, "%s\n", output_string);
+		fclose(log_file);
+	}
 
 	if (report_type == REPORT_ERROR) {
                 while(1);
@@ -121,457 +136,457 @@ void report_ender(int report_type)
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1);
+	sprintf(output_string+strlen(output_string), str1);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const void *addr) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const void *addr) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, addr);
+	sprintf(output_string+strlen(output_string), str1, addr);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2);
+    sprintf(output_string+strlen(output_string), str1, str2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const void *str2, const char *str3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const void *str2, const char *str3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3);
+	sprintf(output_string+strlen(output_string), str1, str2, str3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3);
+	sprintf(output_string+strlen(output_string), str1, str2, str3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, int value1, int value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, int value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, str3, value1, value2);
+    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, int value2, const char *str2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2, const char *str2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, value1, value2, str2);
+    sprintf(output_string+strlen(output_string), str1, value1, value2, str2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, const char *str2, int value2, long value3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, const char *str2, int value2, long value3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, value1, str2, value2, value3);
+    sprintf(output_string+strlen(output_string), str1, value1, str2, value2, value3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, value1);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, long value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, long value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, value1, value2);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, const char *str5) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, const char *str5) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, value1, str5);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1, str5);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, str5);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, str5, value1);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, value1);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, str5, str6);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, str6);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6, const char *str7) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6, const char *str7) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, str5, str6, str7);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, str6, str7);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, const char *str6) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, const char *str6) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, str5, value1, str6);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, value1, str6);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, int value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, int value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, str5, value1, value2);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, void *addr) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, void *addr) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, str4, value1, addr);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1, addr);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, const char *str4) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, str3, str4);
+    sprintf(output_string+strlen(output_string), str1, str2, str3, str4);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, long value1) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, long value1) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, value1);
+	sprintf(output_string+strlen(output_string), str1, value1);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, const char *str2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, const char *str2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, value1, str2);
+	sprintf(output_string+strlen(output_string), str1, value1, str2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, const char *str2, const char *str3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, const char *str2, const char *str3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, value1, str2, str3);
+	sprintf(output_string+strlen(output_string), str1, value1, str2, str3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, int value1) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, int value1) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, value1);
+	sprintf(output_string+strlen(output_string), str1, str2, value1);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, int value1, const char *str3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, int value1, const char *str3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, value1, str3);
+	sprintf(output_string+strlen(output_string), str1, str2, value1, str3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, long value1, int value2, long value3, int value4) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1, int value2, long value3, int value4) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, value1, value2, value3, value4);
+	sprintf(output_string+strlen(output_string), str1, str2, value1, value2, value3, value4);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, int value1) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, str3, value1);
+    sprintf(output_string+strlen(output_string), str1, str2, str3, value1);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, int value1, const char *str4) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, const char *str4) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, value1, str4);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, value1, str4);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, double value1, double value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, double value1, double value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, str3, value1, value2);
+    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, str3, value1, value2);
+    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2, long value3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2, long value3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-	printf(str1, str2, str3, value1, value2, value3);
+	sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2, value3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, long value1, long value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1, long value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, value1, value2);
+    sprintf(output_string+strlen(output_string), str1, str2, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, const char *str2, long value1, long value2, long value3) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1, long value2, long value3) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, str2, value1, value2, value3);
+    sprintf(output_string+strlen(output_string), str1, str2, value1, value2, value3);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, int value2) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, value1, value2);
+    sprintf(output_string+strlen(output_string), str1, value1, value2);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 
-void EXECUTION_REPORT(int report_type, bool condition, const char *str1, int value1, int value2, int value3, int value4) 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2, int value3, int value4) 
 {
-	report_header(report_type, condition);
+	report_header(report_type, comp_id, condition);
 
 	if (!condition)
 		return;
 
-    printf(str1, value1, value2, value3, value4);
+    sprintf(output_string+strlen(output_string), str1, value1, value2, value3, value4);
 
-	report_ender(report_type);
+	report_ender(report_type, comp_id);
 }
 
 

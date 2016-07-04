@@ -59,13 +59,13 @@ bool Coupling_timer::is_timer_on()
 bool Timer_mgt::check_is_time_legal(int year, int month, int day, int second, const char *report_label)
 {
 	if (report_label != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, year >= 0, "the %s year of simulation run can not be negative", report_label);
-		EXECUTION_REPORT(REPORT_ERROR, second >=0 && second <= 86400, "the %s second of simulation run must between 0 and 86400", report_label);
-		EXECUTION_REPORT(REPORT_ERROR, second%sec_per_step == 0 && (86400-second)%sec_per_step == 0, "%s second of simulation run must integer multiple of the time step", report_label);
-    	EXECUTION_REPORT(REPORT_ERROR, month >= 1 && month <= 12, "the %s month must be between 1 and 12\n", report_label);
+		EXECUTION_REPORT(REPORT_ERROR,-1, year >= 0, "the %s year of simulation run can not be negative", report_label);
+		EXECUTION_REPORT(REPORT_ERROR,-1, second >=0 && second <= 86400, "the %s second of simulation run must between 0 and 86400", report_label);
+		EXECUTION_REPORT(REPORT_ERROR,-1, second%sec_per_step == 0 && (86400-second)%sec_per_step == 0, "%s second of simulation run must integer multiple of the time step", report_label);
+    	EXECUTION_REPORT(REPORT_ERROR,-1, month >= 1 && month <= 12, "the %s month must be between 1 and 12\n", report_label);
 		if (leap_year_on && (((year%4) == 0 && (year%100) != 0) || (year%400) == 0))
-        	EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_leap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_leap_year[month-1]);
-		else EXECUTION_REPORT(REPORT_ERROR, day >= 1 && day <= num_days_of_month_of_nonleap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_nonleap_year[month-1]);
+        	EXECUTION_REPORT(REPORT_ERROR,-1, day >= 1 && day <= num_days_of_month_of_leap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_leap_year[month-1]);
+		else EXECUTION_REPORT(REPORT_ERROR,-1, day >= 1 && day <= num_days_of_month_of_nonleap_year[month-1], "the %s day must be between 1 and %d\n", report_label, num_days_of_month_of_nonleap_year[month-1]);
 		return true;
 	}
 	else {
@@ -114,8 +114,8 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
     this->stop_latency_seconds = stop_latency_seconds;
     this->leap_year_on = leap_year_on;
 
-    EXECUTION_REPORT(REPORT_ERROR, sec_per_step>0 && (SECONDS_PER_DAY%sec_per_step)==0, "The number of seconds per day is not a multiple of the number of seconds per step\n");
-    EXECUTION_REPORT(REPORT_ERROR, stop_latency_seconds%sec_per_step == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, sec_per_step>0 && (SECONDS_PER_DAY%sec_per_step)==0, "The number of seconds per day is not a multiple of the number of seconds per step\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, stop_latency_seconds%sec_per_step == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
 	check_is_time_legal(start_year, start_month, start_day, start_second, "start");
 	check_is_time_legal(stop_year, stop_month, stop_day, stop_second, "stop");
 //	check_is_time_legal(reference_year, reference_month, reference_day, 0, "feference");  This check is disabled due to MASNUM2
@@ -123,7 +123,7 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
     steps_per_day = SECONDS_PER_DAY / sec_per_step;
     current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
     num_total_steps = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*steps_per_day + (stop_second-start_second)/sec_per_step;
-    EXECUTION_REPORT(REPORT_ERROR, num_total_steps > 0, "the end simulation time must be after the start simulation time\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_total_steps > 0, "the end simulation time must be after the start simulation time\n");
 
     timer_mgr = this;
     restart_timer = NULL;
@@ -135,9 +135,9 @@ Timer_mgt::Timer_mgt(int start_date, int start_second, int stop_date, int stop_s
     else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_DAYS))
         rest_freq_seconds = 86400*rest_freq_count;
     else rest_freq_seconds = rest_freq_count;
-    EXECUTION_REPORT(REPORT_ERROR, rest_freq_seconds > stop_latency_seconds,  "the time interval of restart writing must be larger than the delay of ending component\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, rest_freq_seconds > stop_latency_seconds,  "the time interval of restart writing must be larger than the delay of ending component\n");
 
-	EXECUTION_REPORT(REPORT_ERROR, check_time_consistency_between_components(get_start_full_time()), "the start date of all components are not consistent\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, check_time_consistency_between_components(get_start_full_time()), "the start date of all components are not consistent\n");
 }
 
 
@@ -149,7 +149,7 @@ Timer_mgt::~Timer_mgt()
 
 void Timer_mgt::reset_timer()
 {
-	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), 
+	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), 
 		             "the model timer cannot be reset when run type is not initial\n");
 
 	current_year = start_year;
@@ -221,8 +221,8 @@ void Timer_mgt::advance_coupling_step()
 		}
     }
 	
-    EXECUTION_REPORT(REPORT_LOG, true, "current time is %d-%d-%d-%d", current_year, current_month, current_day, current_second);
-	EXECUTION_REPORT(REPORT_LOG, true, "current step id is %d", current_step_id);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "current time is %d-%d-%d-%d", current_year, current_month, current_day, current_second);
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "current step id is %d", current_step_id);
 }
 
 
@@ -231,7 +231,7 @@ double Timer_mgt::get_double_current_calendar_time(int shift_second)
 	double calday;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, shift_second>=-86400 && shift_second<= 86400, "The shift seconds for calculating calendar time must be between -86400 and 86400");
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second>=-86400 && shift_second<= 86400, "The shift seconds for calculating calendar time must be between -86400 and 86400");
 
 	if (leap_year_on && (((current_year%4) == 0 && (current_year%100) != 0) || (current_year%400) == 0)) {
 		calday = elapsed_days_on_start_of_month_of_leap_year[current_month-1] + current_day + ((double)(current_second+shift_second))/SECONDS_PER_DAY;
@@ -259,10 +259,10 @@ bool Timer_mgt::is_timer_on(char *frequency_unit, int frequency_count, int delay
     long num_elapsed_time;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
 
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
-        EXECUTION_REPORT(REPORT_ERROR, (frequency_count%sec_per_step) == 0, "C-Coupler software error: the frequency count of seconds must be integer multiple of coupling step\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, (frequency_count%sec_per_step) == 0, "C-Coupler software error: the frequency count of seconds must be integer multiple of coupling step\n");
         num_elapsed_time = (current_num_elapsed_day-calculate_elapsed_day(start_year,start_month,start_day))*SECONDS_PER_DAY+current_second;
     }
     else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS)) {
@@ -280,7 +280,7 @@ bool Timer_mgt::is_timer_on(char *frequency_unit, int frequency_count, int delay
             return false;
         num_elapsed_time = current_year-start_year;
     }
-    else EXECUTION_REPORT(REPORT_ERROR, false, "C-Coupler software error: frequency unit %s is unsupported\n", frequency_unit);
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler software error: frequency unit %s is unsupported\n", frequency_unit);
 
     return num_elapsed_time >= delay_count && ((num_elapsed_time-delay_count)%frequency_count) == 0;
 }
@@ -293,22 +293,22 @@ void Timer_mgt::set_restart_time(long start_full_time, long restart_full_time)
 
 
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
-	    EXECUTION_REPORT(REPORT_ERROR, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
-	EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
-	EXECUTION_REPORT(REPORT_ERROR, timer_mgr->check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
+	    EXECUTION_REPORT(REPORT_ERROR,-1, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
     current_second = restart_full_time % 100000;
     current_day = (restart_full_time/100000)%100;
     current_month = (restart_full_time/10000000)%100;
     current_year = restart_full_time/1000000000;
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
 	current_step_id = (current_num_elapsed_day-calculate_elapsed_day(start_year,start_month,start_day)) * (SECONDS_PER_DAY/sec_per_step);
-	EXECUTION_REPORT(REPORT_LOG, true, "current step id from restart is %d", current_step_id);
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "current step id from restart is %d", current_step_id);
 }
 
 
 bool Timer_mgt::check_is_coupled_run_finished()
 {
-    EXECUTION_REPORT(REPORT_LOG, true, "check_is_coupled_run_finished %d %ld", current_step_id, num_total_steps);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "check_is_coupled_run_finished %d %ld", current_step_id, num_total_steps);
     return (current_step_id > num_total_steps + (stop_latency_seconds/sec_per_step));
 }
 
@@ -350,14 +350,14 @@ void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_cou
     bool fit_small_rest_freq;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
                  words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
                  "The frequency unit in timer must be one of \"seconds\", \"days\", \"months\" and \"years\". Please verify the timers in the configuration file %s", cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, frequency_count > 0, "The frquency count in timer must be larger than 0. Please verify the timers in the configuration file %s", cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, delay_count >= 0, "The delay count in timer must be positive. Please verify the timers in the configuration file %s", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "The frquency count in timer must be larger than 0. Please verify the timers in the configuration file %s", cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, delay_count >= 0, "The delay count in timer must be positive. Please verify the timers in the configuration file %s", cfg_name);
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
-        EXECUTION_REPORT(REPORT_ERROR, frequency_count%sec_per_step == 0, "The frequency count in timer must be the integer multiple coupling step when frequency unit is seconds. Please verify the timers in the configuration file %s", cfg_name);
-        EXECUTION_REPORT(REPORT_ERROR, delay_count%sec_per_step == 0, "The delay count in timer must be the integer multiple coupling step when frequency unit is seconds. Please verify the timers in the configuration file %s", cfg_name);        
+        EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count%sec_per_step == 0, "The frequency count in timer must be the integer multiple coupling step when frequency unit is seconds. Please verify the timers in the configuration file %s", cfg_name);
+        EXECUTION_REPORT(REPORT_ERROR,-1, delay_count%sec_per_step == 0, "The delay count in timer must be the integer multiple coupling step when frequency unit is seconds. Please verify the timers in the configuration file %s", cfg_name);        
     }
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS))
         too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count;
@@ -367,7 +367,7 @@ void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_cou
         too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*86400*31;
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS))
         too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*86400*NUM_DAYS_PER_LEAP_YEAR;
-    EXECUTION_REPORT(REPORT_ERROR, !too_small_end_time, "The integration time of the simulation should be larger than the coupling delay time <%s, %d>. Please verify the timers in the configuration file %s", frequency_unit, delay_count, cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, !too_small_end_time, "The integration time of the simulation should be larger than the coupling delay time <%s, %d>. Please verify the timers in the configuration file %s", frequency_unit, delay_count, cfg_name);
 
     if (restart_timer == NULL)
         return;
@@ -402,7 +402,7 @@ void Timer_mgt::check_timer_format(const char *frequency_unit, int frequency_cou
     }
 
 	/* This checker may not be right */
-    EXECUTION_REPORT(REPORT_WARNING, fit_small_rest_freq, "the writing of restart data files may be to frequent\n");
+    EXECUTION_REPORT(REPORT_WARNING, -1, fit_small_rest_freq, "the writing of restart data files may be to frequent\n");
 }
 
 
@@ -429,11 +429,11 @@ bool Timer_mgt::check_time_consistency_between_components(long full_time)
 	if (compset_communicators_info_mgr->get_num_components() == 1)
 		return true;
 	
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(compset_communicators_info_mgr->get_global_comm_group(), &num_global_procs) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(compset_communicators_info_mgr->get_global_comm_group(), &num_global_procs) == MPI_SUCCESS);
 	
 	consistent = true;
 	full_time_arrays = new long [num_global_procs];
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&full_time, 1, MPI_LONG, full_time_arrays, 1, MPI_LONG, compset_communicators_info_mgr->get_global_comm_group()) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&full_time, 1, MPI_LONG, full_time_arrays, 1, MPI_LONG, compset_communicators_info_mgr->get_global_comm_group()) == MPI_SUCCESS);
 	for (i = 1; i < num_global_procs; i ++)
 		if (full_time_arrays[i] != full_time_arrays[i-1])
 			consistent = false;
@@ -471,7 +471,7 @@ void Timer_mgt::get_current_time(int &year, int &month, int &day, int &second, i
 	int num_days_in_current_month;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, shift_second>=-86400 && shift_second<= 86400, "The shift seconds for calculating calendar time must be between -86400 and 86400");
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second>=-86400 && shift_second<= 86400, "The shift seconds for calculating calendar time must be between -86400 and 86400");
 	
 	year = current_year;
 	month = current_month;

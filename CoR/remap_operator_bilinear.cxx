@@ -18,15 +18,15 @@
 
 void Remap_operator_bilinear::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
 	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
 		if (words_are_the_same(parameter_value, "true"))
 	        enable_extrapolate = true;
-		else EXECUTION_REPORT(REPORT_ERROR, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
+		else EXECUTION_REPORT(REPORT_ERROR,-1, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
 	}
-    else EXECUTION_REPORT(REPORT_ERROR, false, "bilinear algorithm does not have the parameter to be set\n");
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "bilinear algorithm does not have the parameter to be set\n");
 }
 
 
@@ -128,7 +128,7 @@ int Remap_operator_bilinear::compute_quadrant_of_src_point(double* dst_cell_cent
     if (quadrant_id == 4)
         quadrant_id = 0;
 
-    EXECUTION_REPORT(REPORT_ERROR, quadrant_id >= 0 && quadrant_id < 5, "remap software error in compute_quadrant_of_src_point\n");    
+    EXECUTION_REPORT(REPORT_ERROR,-1, quadrant_id >= 0 && quadrant_id < 5, "remap software error in compute_quadrant_of_src_point\n");    
     return quadrant_id;
 }
 
@@ -250,7 +250,7 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box(double* dst_cell_cen
     int num_src_points_in_each_quadrant[4], iter_num_src_points_in_each_quadrant[4];
     
 
-    EXECUTION_REPORT(REPORT_ERROR, num_points_within_threshold_dist <= 256, "remap software error in get_nearest_point_in_each_of_three_quadrants\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, num_points_within_threshold_dist <= 256, "remap software error in get_nearest_point_in_each_of_three_quadrants\n");
 
     for (i = 0; i < 4; i ++) {
         num_src_points_in_each_quadrant[i] = 0;
@@ -389,7 +389,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
         }
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, near_optimal_threshold_distance > 0, "remap software error1 in blinear compute_remap_weights_of_one_dst_cell\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, near_optimal_threshold_distance > 0, "remap software error1 in blinear compute_remap_weights_of_one_dst_cell\n");
     iterative_threshold_distance = near_optimal_threshold_distance;
     
     if (!find_bilinear_box) {
@@ -457,7 +457,7 @@ void Remap_operator_bilinear::bilinear_ratios_solution1(double *dst_point_coord_
     y_diff_32 = compute_difference_of_two_coord_values(bilinear_box_vertexes_coord2_values[2], bilinear_box_vertexes_coord2_values[3], 1);
 
     ratio_u = (y_diff_03*x_diff_04-x_diff_03*y_diff_04)/(x_diff_01*y_diff_03-y_diff_01*x_diff_03);
-    EXECUTION_REPORT(REPORT_ERROR, ratio_u > 0 && ratio_u < 1, "remap software error1 in bilinear_ratios_solution1\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_u > 0 && ratio_u < 1, "remap software error1 in bilinear_ratios_solution1\n");
     
     coord_values_P5[0] = bilinear_box_vertexes_coord1_values[0] + ratio_u*x_diff_01;
     coord_values_P5[1] = bilinear_box_vertexes_coord2_values[0] + ratio_u*y_diff_01;
@@ -474,7 +474,7 @@ void Remap_operator_bilinear::bilinear_ratios_solution1(double *dst_point_coord_
                                                   coord_values_P5[1],
                                                   false);
     ratio_v = dist_54 / dist_56;
-    EXECUTION_REPORT(REPORT_ERROR, ratio_v > 0 && ratio_v < 1, "remap software error2 in bilinear_ratios_solution1\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_v > 0 && ratio_v < 1, "remap software error2 in bilinear_ratios_solution1\n");
 }
 
 
@@ -514,8 +514,8 @@ void Remap_operator_bilinear::bilinear_one_ratio_solution_of_quadratic_equation(
     coef_B = x_diff_04*y_diff_32 + x_diff_43*y_diff_01 - y_diff_04*x_diff_32 - y_diff_43*x_diff_01;
     coef_C = x_diff_04*y_diff_43 - y_diff_04*x_diff_43;
 
-    EXECUTION_REPORT(REPORT_ERROR, coef_A != 0, "remap software error1 in bilinear_one_ratio_solution_of_quadratic_equation");
-    EXECUTION_REPORT(REPORT_ERROR, coef_B*coef_B-4*coef_A*coef_C > 0, "remap software error2 in bilinear_one_ratio_solution_of_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR,-1, coef_A != 0, "remap software error1 in bilinear_one_ratio_solution_of_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR,-1, coef_B*coef_B-4*coef_A*coef_C > 0, "remap software error2 in bilinear_one_ratio_solution_of_quadratic_equation");
         
     ratio_u1 = (-coef_B + sqrt(coef_B*coef_B-4*coef_A*coef_C))/(2*coef_A);
     ratio_u2 = (-coef_B - sqrt(coef_B*coef_B-4*coef_A*coef_C))/(2*coef_A);
@@ -530,8 +530,8 @@ void Remap_operator_bilinear::bilinear_one_ratio_solution_of_quadratic_equation(
         ratio_u_false = ratio_u1;
     }
 
-    EXECUTION_REPORT(REPORT_ERROR, ratio_u > 0 && ratio_u < 1, "remap software error3 in bilinear_one_ratio_solution_of_quadratic_equation");
-    EXECUTION_REPORT(REPORT_ERROR, ratio_u_false < 0 || ratio_u_false > 1, "remap software error4 in bilinear_one_ratio_of_solution_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_u > 0 && ratio_u < 1, "remap software error3 in bilinear_one_ratio_solution_of_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_u_false < 0 || ratio_u_false > 1, "remap software error4 in bilinear_one_ratio_of_solution_quadratic_equation");
 }
 
 

@@ -70,6 +70,7 @@ class Comp_comm_group_mgt_global_node
 		void print_global_nodes();
 		const char *get_annotation_start() { return annotation_start; }
 		const char *get_annotation_end() { return annotation_end; }
+		const Comp_comm_group_mgt_global_node *get_parent() const { return parent; }
 };
 
 
@@ -79,6 +80,7 @@ class Comp_comm_group_mgt_local_node
 		int self_local_node_id;
 		int parent_local_node_id;
 		Comp_comm_group_mgt_global_node *global_node;
+		char working_dir[NAME_STR_SIZE];
 
 	public:
 		Comp_comm_group_mgt_local_node(const char*, const char*, Comp_comm_group_mgt_local_node*, MPI_Comm&, int);
@@ -86,6 +88,7 @@ class Comp_comm_group_mgt_local_node
 		int get_local_node_id() const { return self_local_node_id; }
 		Comp_comm_group_mgt_global_node *get_global_node() const { return global_node; }
 		void reset_global_node(Comp_comm_group_mgt_global_node *new_node) { global_node = new_node; }
+		const char *get_working_dir() const { return working_dir; }
 };
 
 
@@ -119,7 +122,8 @@ class Comp_comm_group_mgt_mgr
 		MPI_Comm get_comm_group_of_local_comp(int);
 		MPI_Comm get_comm_group_of_global_comp(int);
 		const char *get_executable_name() { return executable_name; }
-		const char *get_annotation() { return local_nodes[0]->get_global_node()->get_annotation_start(); }
+		const char *get_annotation_start() { return local_nodes[0]->get_global_node()->get_annotation_start(); }
+		FILE *open_log_file(int);
 };
 
 

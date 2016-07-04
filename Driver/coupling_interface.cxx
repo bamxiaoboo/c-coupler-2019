@@ -23,7 +23,7 @@ int coupling_process_control_counter = 0;
 
 extern "C" void register_model_data_(void *model_buf, int *data_size, const char *decomp_name, const char *field_name, const char *data_type, const char *grid_name, int *have_fill_value, void *fill_value, bool *is_restart_field)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, "C-Coupler interface coupling_interface_initialize has not been called\n"); 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, "C-Coupler interface coupling_interface_initialize has not been called\n"); 
     if ((*have_fill_value) == 1)
         memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, fill_value, *is_restart_field, *data_size);
     else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, NULL, *is_restart_field, *data_size);
@@ -32,7 +32,7 @@ extern "C" void register_model_data_(void *model_buf, int *data_size, const char
 
 extern "C" void coupling_get_field_size_(void *model_buf, const char *annotation, int *field_size)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
 		             "C-Coupler interface coupling_interface_initialize has not been called before running the code corresponding to annotation \"%s\"\n", annotation); 
 	*field_size = memory_manager->get_field_size(model_buf, annotation);
 }
@@ -40,7 +40,7 @@ extern "C" void coupling_get_field_size_(void *model_buf, const char *annotation
 
 extern "C" void export_field_data_(void *model_buf, int *data_size, const char *field_name, const char *decomp_name, const char *grid_name, const char *data_type)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n"); 
     memory_manager->export_field_data(model_buf, field_name, decomp_name, grid_name, data_type, *data_size);
 }
@@ -48,7 +48,7 @@ extern "C" void export_field_data_(void *model_buf, int *data_size, const char *
 
 extern "C" void withdraw_model_data_(const char *decomp_name, const char *field_name, const char *grid_name)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n"); 
     memory_manager->withdraw_model_data_buf(decomp_name, field_name, grid_name);
 }
@@ -61,23 +61,23 @@ extern "C" void register_sigma_grid_bottom_field_(void *model_buf, const char *g
 
 
 	sigma_grid = remap_grid_manager->search_remap_grid_with_grid_name(grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, sigma_grid != NULL, "\"%s\" has not been defined in the CoR script", grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, sigma_grid->is_sigma_grid(), "grid \"%s\" is not a sigma grid", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid != NULL, "\"%s\" has not been defined in the CoR script", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid->is_sigma_grid(), "grid \"%s\" is not a sigma grid", grid_name);
 
 	bottom_field = memory_manager->search_field_via_data_buf(model_buf, false);
-	EXECUTION_REPORT(REPORT_ERROR, bottom_field != NULL && bottom_field->get_is_registered_model_buf(), "the model bottom field for the sigma grid \"%s\" has not been registered to C-Coupler", grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, !words_are_the_same(bottom_field->get_grid_name(), "NULL"), "scalar model variable \"%s\" cannot be used as the model bottom field for a sigma grid", bottom_field->get_field_name());
+	EXECUTION_REPORT(REPORT_ERROR,-1, bottom_field != NULL && bottom_field->get_is_registered_model_buf(), "the model bottom field for the sigma grid \"%s\" has not been registered to C-Coupler", grid_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(bottom_field->get_grid_name(), "NULL"), "scalar model variable \"%s\" cannot be used as the model bottom field for a sigma grid", bottom_field->get_field_name());
 
 	field_grid = remap_grid_manager->search_remap_grid_with_grid_name(bottom_field->get_grid_name());
-	EXECUTION_REPORT(REPORT_ERROR, field_grid != NULL, "C-Coupler error in register_sigma_grid_bottom_field");
-	EXECUTION_REPORT(REPORT_ERROR, field_grid->get_is_sphere_grid(), "field \"%s\" that will be set as the model bottom field for the sigma grid \"%s\" is not on a sphere grid: \"%s\" is not a sphere grid",
+	EXECUTION_REPORT(REPORT_ERROR,-1, field_grid != NULL, "C-Coupler error in register_sigma_grid_bottom_field");
+	EXECUTION_REPORT(REPORT_ERROR,-1, field_grid->get_is_sphere_grid(), "field \"%s\" that will be set as the model bottom field for the sigma grid \"%s\" is not on a sphere grid: \"%s\" is not a sphere grid",
                      bottom_field->get_field_name(), grid_name, field_grid->get_grid_name());
-	EXECUTION_REPORT(REPORT_ERROR, field_grid->is_subset_of_grid(sigma_grid), "the grid \"%s\" for the grid bottom field is not a sub grid for the sigma grid \"%s\"", 
+	EXECUTION_REPORT(REPORT_ERROR,-1, field_grid->is_subset_of_grid(sigma_grid), "the grid \"%s\" for the grid bottom field is not a sub grid for the sigma grid \"%s\"", 
 					 bottom_field->get_grid_name(), grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
+	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
 					 "the data type of the bottom field for the sigma grid \"%s\" must be real4 or real8", grid_name); 
 	// check the whether the parallel decomposition covers all grid points
-	EXECUTION_REPORT(REPORT_LOG, true, "Register surface field of grid %s on decomposition %s", grid_name, bottom_field->get_decomp_name());
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "Register surface field of grid %s on decomposition %s", grid_name, bottom_field->get_decomp_name());
 	decomp_grids_mgr->search_decomp_grid_info(bottom_field->get_decomp_name(), sigma_grid, true)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(bottom_field->get_field_data());
 }                  
 
@@ -85,7 +85,7 @@ extern "C" void register_sigma_grid_bottom_field_(void *model_buf, const char *g
 extern "C" void coupling_add_decomposition_(const char *decomp_name, const char *grid_name,
                                             int *num_cells_in_decomp, int *decomp_cell_indexes)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n");
     decomps_info_mgr->add_decomp_from_model_interface(decomp_name, grid_name, NULL, *num_cells_in_decomp, decomp_cell_indexes);
 }
@@ -94,7 +94,7 @@ extern "C" void coupling_add_decomposition_(const char *decomp_name, const char 
 extern "C" void coupling_add_decomposition_with_component_(const char *decomp_name, const char *grid_name, const char *comp_name,
                                             int *num_cells_in_decomp, int *decomp_cell_indexes)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n");
     decomps_info_mgr->add_decomp_from_model_interface(decomp_name, grid_name, comp_name, *num_cells_in_decomp, decomp_cell_indexes);
 }
@@ -120,12 +120,12 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
 
     strcpy(root_cfg_name, compset_communicators_info_mgr->get_current_comp_name());
     strcat(root_cfg_name, "_coupling.cfg");
-    EXECUTION_REPORT(REPORT_LOG, true, "root runtime configuration file name is %s", root_cfg_name);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "root runtime configuration file name is %s", root_cfg_name);
 
     root_cfg_fp = open_config_file(root_cfg_name);
 
-    EXECUTION_REPORT(REPORT_LOG, true, "execute CoR to generate grid and remap operators");
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "execute CoR to generate grid and remap operators");
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
     sprintf(full_name, "%s/\0", C_COUPLER_CONFIG_DIR);
     strcat(full_name, line);
     execution_phase_number = 1;
@@ -135,36 +135,36 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
 	line_number = -1;
 	execution_phase_number = 2;
 	
-    EXECUTION_REPORT(REPORT_LOG, true, "build fields info");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "build fields info");
     /* Generate the data structure for managing field info */
-	EXECUTION_REPORT(REPORT_ERROR, get_next_line(shared_field_attribute, root_cfg_fp), "Please specify the configuration file for the field attributes shared by all components in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
-	EXECUTION_REPORT(REPORT_ERROR, get_next_line(private_field_attribute, root_cfg_fp), "Please specify the configuration file for the field attributes privately owned by the component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", 
+	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(shared_field_attribute, root_cfg_fp), "Please specify the configuration file for the field attributes shared by all components in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(private_field_attribute, root_cfg_fp), "Please specify the configuration file for the field attributes privately owned by the component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", 
 		             compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     fields_info = new Field_info_mgt(shared_field_attribute, private_field_attribute);
 
-    EXECUTION_REPORT(REPORT_LOG, true, "build memory_mgt info");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "build memory_mgt info");
     /* Generate memory management */
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the field instances that will be registered by the code of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the field instances that will be registered by the code of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
 		             compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);    
     memory_manager = new Memory_mgt(line);
 
     /* Initialize the objects for parallel decomposition */
     decomps_info_mgr = new Decomp_info_mgt();
     decomp_grids_mgr = new Decomp_grid_mgt();
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the default parallel decompositions of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the default parallel decompositions of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
 					 compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
-    EXECUTION_REPORT(REPORT_LOG, true, "build decomposition info %s", line);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "build decomposition info %s", line);
     decomps_info_mgr->add_decomps_from_cfg_file(line);
     
-    EXECUTION_REPORT(REPORT_LOG, true, "build routing info manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "build routing info manager");
     routing_info_mgr = new Routing_info_mgt();
 
-	EXECUTION_REPORT(REPORT_LOG, true, "build runtime process manager");    
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "build runtime process manager");    
     runtime_process_mgr = new Runtime_process_mgt();
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the runtime algorithms of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the runtime algorithms of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
 					 compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     runtime_process_mgr->add_runtime_algorithms(line);
-    EXECUTION_REPORT(REPORT_ERROR, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the runtime procedures of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
+    EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file for the runtime procedures of component \"%s\" in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.",
 					 compset_communicators_info_mgr->get_current_comp_name(), root_cfg_name);
     runtime_process_mgr->add_runtime_procedures(line);
 
@@ -177,7 +177,7 @@ extern "C" void initialize_coupling_managers_(int *restart_date, int *restart_se
 	datamodel_field_read_handler_mgr = new Datamodel_field_read_handler_mgt();
 
     fclose(root_cfg_fp);
-    EXECUTION_REPORT(REPORT_LOG, true, "coupling initialization finishes (%s)", root_cfg_name);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "coupling initialization finishes (%s)", root_cfg_name);
 }
 
 
@@ -185,28 +185,28 @@ extern "C" void finalize_coupling_managers_()
 {
 	performance_timing_mgr->performance_timing_output();
 	delete performance_timing_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting performance_timing_mgr");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting performance_timing_mgr");
 	if (grid_remap_mgr != NULL)
         delete grid_remap_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting grid managers");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting grid managers");
     delete fields_info;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting fields info");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting fields info");
     delete memory_manager;
-    EXECUTION_REPORT(REPORT_LOG, true, "delete memory manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "delete memory manager");
     delete decomps_info_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting decomposition info manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting decomposition info manager");
     delete routing_info_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting routers info manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting routers info manager");
     delete runtime_process_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting runtime process manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting runtime process manager");
     delete restart_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "finish deleting restart manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "finish deleting restart manager");
     delete fields_gather_scatter_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "before deleting time manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "before deleting time manager");
 	delete timer_mgr;
 	if (restart_read_timer_mgr != NULL)
 		delete restart_read_timer_mgr;
-    EXECUTION_REPORT(REPORT_LOG, true, "before deleting communicator manager");
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "before deleting communicator manager");
     delete compset_communicators_info_mgr;
 	delete ensemble_mgr;
 	delete datamodel_field_read_handler_mgr;
@@ -221,9 +221,9 @@ extern "C" int comm_initialize_(const char *exp_model, const char *current_comp_
 	execution_phase_number = 2;
     compset_communicators_info_mgr = new Compset_communicators_info_mgt(exp_model, current_comp_name, compset_filename, case_name, case_desc, case_mode, comp_namelist, current_config_time, original_case_name, original_config_time);
     *comm = compset_communicators_info_mgr->get_current_comp_comm_group();
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter == 0, "the first coupling interface to run is coupling_interface_init\n");
-	EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(case_mode, "initial") || words_are_the_same(case_mode, "restart") || words_are_the_same(case_mode, "hybrid"), "run type must be initial, restart or hybrid\n");
-	EXECUTION_REPORT(REPORT_LOG, true, "The %d process of the current component is run on the host %s", compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), compset_communicators_info_mgr->get_host_computing_node_name());
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter == 0, "the first coupling interface to run is coupling_interface_init\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(case_mode, "initial") || words_are_the_same(case_mode, "restart") || words_are_the_same(case_mode, "hybrid"), "run type must be initial, restart or hybrid\n");
+	EXECUTION_REPORT(REPORT_LOG,-1, true, "The %d process of the current component is run on the host %s", compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group(), compset_communicators_info_mgr->get_host_computing_node_name());
     coupling_process_control_counter = 1;
     return 0;
 }
@@ -231,7 +231,7 @@ extern "C" int comm_initialize_(const char *exp_model, const char *current_comp_
 
 extern "C" void coupling_initialize_ensemble_manager_(int *ensemble_id, int *have_random_seed_for_perturbation, int *root_random_seed_for_perturbation, const char *perturbation_type)
 {
-	EXECUTION_REPORT(REPORT_ERROR, ensemble_mgr != NULL, "C-Coupler software error: ensemble_mgr is not created before the initialization");
+	EXECUTION_REPORT(REPORT_ERROR,-1, ensemble_mgr != NULL, "C-Coupler software error: ensemble_mgr is not created before the initialization");
 	ensemble_mgr->Initialize(*ensemble_id, *have_random_seed_for_perturbation, *root_random_seed_for_perturbation, perturbation_type);
 }
 
@@ -244,7 +244,7 @@ extern "C" void coupling_add_field_for_perturbing_roundoff_errors_(void *data_bu
 
 extern "C" void coupling_execute_procedure_(const char *procedure_name, const char *procedure_stage)
 {
-    EXECUTION_REPORT(REPORT_ERROR, coupling_process_control_counter > 0, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
                  "C-Coupler interface coupling_interface_initialize has not been called\n");
     runtime_process_mgr->execute_coupling_procedure(procedure_name, procedure_stage);
 }
@@ -327,13 +327,13 @@ extern "C" void coupling_check_grid_values_consistency_(const char *decomp_name,
     bool check_result;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "grid %s is not defined when checking the consistency of grid values\n", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(label, COORD_LABEL_LON) || words_are_the_same(label, COORD_LABEL_LAT) || words_are_the_same(label, COORD_LABEL_LEV) || words_are_the_same(label, GRID_MASK_LABEL), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, remap_grid_manager->search_remap_grid_with_grid_name(grid_name) != NULL, "grid %s is not defined when checking the consistency of grid values\n", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(label, COORD_LABEL_LON) || words_are_the_same(label, COORD_LABEL_LAT) || words_are_the_same(label, COORD_LABEL_LEV) || words_are_the_same(label, GRID_MASK_LABEL), 
                  "the label of grid values for checking consistency must be one of lon, lat, lev and mask\n");
-    EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(data_type, DATA_TYPE_INT) || words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), 
+    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(data_type, DATA_TYPE_INT) || words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), 
                  "C-Coupler error in check_grid_values_consistency_\n");
     if (words_are_the_same(data_type, DATA_TYPE_INT))
-        EXECUTION_REPORT(REPORT_ERROR, words_are_the_same(label, GRID_MASK_LABEL), "when the data type of grid values for checking consistency is integer, the label must be mask\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(label, GRID_MASK_LABEL), "when the data type of grid values for checking consistency is integer, the label must be mask\n");
 
     Decomp_grid_info *decomp_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(grid_name), false);
 	if (decomp_grid->get_decomp_grid() == NULL)
@@ -344,7 +344,7 @@ extern "C" void coupling_check_grid_values_consistency_(const char *decomp_name,
     else if (words_are_the_same(label, GRID_MASK_LABEL))
         check_result = decomp_grid->get_decomp_grid()->check_mask_values_consitency(data_type, grid_values);
 
-    EXECUTION_REPORT(REPORT_ERROR, check_result, "the consistency checking of <%s %s %s> failed\n", decomp_name, grid_name, label);
+    EXECUTION_REPORT(REPORT_ERROR,-1, check_result, "the consistency checking of <%s %s %s> failed\n", decomp_name, grid_name, label);
 }
 
 
@@ -466,7 +466,7 @@ extern "C" void coupling_get_elapsed_days_from_reference_date_(int *days, int *s
 
 extern "C" void coupling_abort_(const char *error_string)
 {
-	EXECUTION_REPORT(REPORT_ERROR, false, error_string);
+	EXECUTION_REPORT(REPORT_ERROR,-1, false, error_string);
 }
 
 
@@ -493,12 +493,12 @@ extern "C" void coupling_log_case_info_in_netcdf_file_(int *ncfile_id, int *not_
 
 	if (*not_at_def_mode == 0) {
 		rcode = nc_enddef(*ncfile_id);
-		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for model file when logging case information\n", nc_strerror(rcode));;
+		EXECUTION_REPORT(REPORT_ERROR,-1, rcode == NC_NOERR, "Netcdf error: %s for model file when logging case information\n", nc_strerror(rcode));;
 	}
 	compset_communicators_info_mgr->write_case_info(model_ncfile);
 	if (*not_at_def_mode == 0) {
 		rcode = nc_redef(*ncfile_id);
-		EXECUTION_REPORT(REPORT_ERROR, rcode == NC_NOERR, "Netcdf error: %s for model file when logging case information\n", nc_strerror(rcode));
+		EXECUTION_REPORT(REPORT_ERROR,-1, rcode == NC_NOERR, "Netcdf error: %s for model file when logging case information\n", nc_strerror(rcode));
 	}	
 }
 
@@ -519,7 +519,7 @@ extern "C" void coupling_check_sum_for_external_data_(void *external_data, int *
 	
     MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, compset_communicators_info_mgr->get_current_comp_comm_group());
     if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) 
-        EXECUTION_REPORT(REPORT_PROGRESS, true, "check sum of external data of \"%s\" is %lx", hint, total_sum);
+        EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "check sum of external data of \"%s\" is %lx", hint, total_sum);
 }
 
 
@@ -531,21 +531,21 @@ void C_Coupler_interface_register_model_algorithm(const char *algorithm_name, Mo
 
 extern "C" void coupling_check_sum_for_all_fields_()
 {
-	EXECUTION_REPORT(REPORT_ERROR, memory_manager != NULL, "C-Coupler is not initialized when the component call the interface for checking sum of all fields managed by the C-Coupler");
+	EXECUTION_REPORT(REPORT_ERROR,-1, memory_manager != NULL, "C-Coupler is not initialized when the component call the interface for checking sum of all fields managed by the C-Coupler");
 	memory_manager->check_sum_of_all_fields();
 }
 
 
 extern "C" void coupling_add_field_info_(const char *field_name, const char *field_unit, const char *field_long_name)
 {
-	EXECUTION_REPORT(REPORT_ERROR, fields_info != NULL, "the C-Coupler manager for the information of fields is not initialized");
+	EXECUTION_REPORT(REPORT_ERROR,-1, fields_info != NULL, "the C-Coupler manager for the information of fields is not initialized");
 	fields_info->add_field_info(field_name, field_long_name, field_unit, "none");
 }
 
 
 extern "C" void coupling_register_component_(const char *comp_name, const char *comp_type, int *comm)
 {
-	EXECUTION_REPORT(REPORT_ERROR, compset_communicators_info_mgr != NULL, "Please register the root component before registering another component");
+	EXECUTION_REPORT(REPORT_ERROR,-1, compset_communicators_info_mgr != NULL, "Please register the root component before registering another component");
 	compset_communicators_info_mgr->register_component(comp_name, comp_type, (MPI_Comm)(*comm));
 }
 
@@ -564,27 +564,27 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	push_annotation(annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
-		EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before %s", comp_comm_group_mgt_mgr->get_annotation());  // add debug information
+		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before %s", comp_comm_group_mgt_mgr->get_annotation_start());  // add debug information
 	MPI_Initialized(&flag);
 	if (flag == 0) {
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
 		MPI_Init(NULL, NULL);
 	}
 	
-	EXECUTION_REPORT(REPORT_PROGRESS, true, "Before MPI_barrier at root component \"%s\" for synchronizing all processes.", comp_name);
+	EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing all processes.", comp_name);
 	MPI_Barrier(MPI_COMM_WORLD);  // add debug information
-	EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	if (current_proc_global_id == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier at all root components");
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at all root components");
 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(excutable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
                                 		current_config_time, original_case_name, original_config_time);
 
 	get_annotation(local_annotation);
 	if (*comm != -1) {
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component %s.", comp_name, local_annotation);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Barrier(*comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_PROGRESS, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component %s.", comp_name, local_annotation);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component %s.", comp_name, local_annotation);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(*comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component %s.", comp_name, local_annotation);
 		
 	}
 
@@ -595,20 +595,20 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		int *input_comm_process_ids, *new_comm_process_ids, *temp_array;
 		int current_proc_global_id, current_proc_local_id;
 		MPI_Comm new_comm;
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(*comm, &input_comm_size) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(*comm, &input_comm_size) == MPI_SUCCESS);
 		new_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(root_comp_id);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_size(new_comm, &new_comm_size) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, input_comm_size == new_comm_size);  // add debug information
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(new_comm, &new_comm_size) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_size == new_comm_size);  // add debug information
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 		input_comm_process_ids = new int [input_comm_size];
 		new_comm_process_ids = new int [new_comm_size];
 		temp_array = new int [new_comm_size];
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, input_comm_process_ids, 1, MPI_INT, *comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, new_comm_process_ids, 1, MPI_INT, new_comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, input_comm_process_ids, 1, MPI_INT, *comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, new_comm_process_ids, 1, MPI_INT, new_comm) == MPI_SUCCESS);
 		do_quick_sort(input_comm_process_ids, temp_array, 0, input_comm_size-1);
 		do_quick_sort(new_comm_process_ids, temp_array, 0, new_comm_size-1);
 		for (int i = 0; i < input_comm_size; i ++)
-			EXECUTION_REPORT(REPORT_ERROR, input_comm_process_ids[i] == new_comm_process_ids[i], 
+			EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_process_ids[i] == new_comm_process_ids[i], 
 			                 "The communicator of root component \"%s\" %s does not match the communicator generated (processes of the two communicators are not the same). ",
 			                 comp_name, local_annotation);
 		delete [] input_comm_process_ids;
@@ -630,13 +630,13 @@ extern "C" void register_component_(int *parent_local_id, const char *comp_name,
 
 	
 	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component");
+		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component (corresponding to annotation \"%s\")", annotation);
+	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component");
 	
 	push_annotation(annotation);
 
 	get_annotation(local_annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *parent_local_id != -1, "The component \"%s\" %s to be registerred must have a parent component. However, the value of parent id is -1, which means it does not have a parent.", comp_name, local_annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, *parent_local_id != -1, "The component \"%s\" %s to be registerred must have a parent component. However, the value of parent id is -1, which means it does not have a parent.", comp_name, local_annotation);
 
 	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, *comm, *parent_local_id);
 
@@ -647,8 +647,8 @@ extern "C" void register_component_(int *parent_local_id, const char *comp_name,
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_registration (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_registration");
+		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_registration (corresponding to annotation \"%s\")", annotation);
+	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_registration");
 	
 	push_annotation(annotation);
 

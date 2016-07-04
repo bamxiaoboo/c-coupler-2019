@@ -81,19 +81,19 @@ void Remap_operator_spline_1D::solve_periodic_tridiagonal_system(double *a, doub
 
 void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
 
 	if (words_are_the_same(parameter_name, "keep_monotonicity")) {
-		EXECUTION_REPORT(REPORT_ERROR, !set_keep_monotonicity,
+		EXECUTION_REPORT(REPORT_ERROR,-1, !set_keep_monotonicity,
 						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		if (words_are_the_same(parameter_value, "true")) 
 			keep_monotonicity = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			keep_monotonicity = false;
-		else EXECUTION_REPORT(REPORT_ERROR, false, 
+		else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
                       "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
                       parameter_name, operator_name);
 		set_keep_monotonicity = true;
@@ -167,7 +167,7 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 	if (num_useful_src_cells == 0)
 		return;
 	
-	EXECUTION_REPORT(REPORT_ERROR, array_size_src > 2, "Less than three source cells for 1D spline interpolation are not enough");
+	EXECUTION_REPORT(REPORT_ERROR,-1, array_size_src > 2, "Less than three source cells for 1D spline interpolation are not enough");
 
 	for (i = 0; i < array_size_src-1; i ++)
 		array_h[i] = coord_values_src[i+1]-coord_values_src[i];
@@ -308,7 +308,7 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 			if (!next_in_same_monotonicity_range) {
 				original_index1 = dst_cell_indexes_in_monotonicity_ranges[start_index_monotonicity_range];
 				original_index2 = dst_cell_indexes_in_monotonicity_ranges[end_index_monotonicity_range];
-				EXECUTION_REPORT(REPORT_ERROR, src_cell_index_left[original_index1] == src_cell_index_left[original_index2] && src_cell_index_right[original_index1] == src_cell_index_right[original_index2], 
+				EXECUTION_REPORT(REPORT_ERROR,-1, src_cell_index_left[original_index1] == src_cell_index_left[original_index2] && src_cell_index_right[original_index1] == src_cell_index_right[original_index2], 
 								 "software error: in keep monotonicity"); 			
 				data_in_monotonicity_range[j++] = data_values_src[src_cell_index_right[original_index1]];
 				check_monotonicity = true;
@@ -379,7 +379,7 @@ Remap_operator_basis *Remap_operator_spline_1D::duplicate_remap_operator(bool fu
 
 Remap_operator_basis *Remap_operator_spline_1D::generate_parallel_remap_operator(Remap_grid_class **decomp_original_grids, int **global_cells_local_indexes_in_decomps)
 {
-	EXECUTION_REPORT(REPORT_ERROR, false, 
+	EXECUTION_REPORT(REPORT_ERROR,-1, false, 
 		             "software error: can not generate the parallel remapping operator of the 1D spline remapping algorithm which is only used for vertical grid or time frame in the C-Coupler");	
 	return NULL;
 }

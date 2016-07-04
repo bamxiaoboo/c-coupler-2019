@@ -24,5 +24,6 @@ extern FILE *open_config_file(const char *, const char *);
 extern FILE *open_config_file(const char *);
 extern int get_num_fields_in_config_file(const char *, const char *);
 extern void get_annotation(char*);
+extern void create_directory(const char*, bool);
 
 #endif

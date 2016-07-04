@@ -29,13 +29,13 @@ Performance_timing_unit::Performance_timing_unit(int unit_type, int unit_behavio
 
 void Performance_timing_unit::check_timing_unit(int unit_type, int unit_behavior, int unit_int_keyword, const char *unit_char_keyword)
 {
-	EXECUTION_REPORT(REPORT_ERROR, unit_type == TIMING_TYPE_COMMUNICATION || unit_type == TIMING_TYPE_IO || unit_type == TIMING_TYPE_COMPUTATION,
+	EXECUTION_REPORT(REPORT_ERROR,-1, unit_type == TIMING_TYPE_COMMUNICATION || unit_type == TIMING_TYPE_IO || unit_type == TIMING_TYPE_COMPUTATION,
 		             "C-Coupler error in checking unit_type in match_timing_unit");
 	if (unit_type == TIMING_TYPE_COMMUNICATION)
-		EXECUTION_REPORT(REPORT_ERROR, unit_behavior == TIMING_COMMUNICATION_RECV || unit_behavior == TIMING_COMMUNICATION_SEND || unit_behavior == TIMING_COMMUNICATION_SENDRECV,
+		EXECUTION_REPORT(REPORT_ERROR,-1, unit_behavior == TIMING_COMMUNICATION_RECV || unit_behavior == TIMING_COMMUNICATION_SEND || unit_behavior == TIMING_COMMUNICATION_SENDRECV,
 		                 "C-Coupler error in checking unit_behavior in match_timing_unit");
 	if (unit_type == TIMING_TYPE_IO)
-		EXECUTION_REPORT(REPORT_ERROR, unit_behavior == TIMING_IO_INPUT || unit_behavior == TIMING_IO_OUTPUT || unit_behavior == TIMING_IO_RESTART,
+		EXECUTION_REPORT(REPORT_ERROR,-1, unit_behavior == TIMING_IO_INPUT || unit_behavior == TIMING_IO_OUTPUT || unit_behavior == TIMING_IO_RESTART,
 		                 "C-Coupler error in checking unit_behavior in match_timing_unit");
 }
 
@@ -57,7 +57,7 @@ bool Performance_timing_unit::match_timing_unit(int unit_type, int unit_behavior
 
 void Performance_timing_unit::timing_start()
 {
-	EXECUTION_REPORT(REPORT_ERROR, previous_time == -1.0, "C-Coupler or model error in starting performance timing: timing unit has not been stoped");
+	EXECUTION_REPORT(REPORT_ERROR,-1, previous_time == -1.0, "C-Coupler or model error in starting performance timing: timing unit has not been stoped");
 	wtime(&previous_time);
 }
 
@@ -67,7 +67,7 @@ void Performance_timing_unit::timing_stop()
 	double current_time;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, previous_time != -1.0, "C-Coupler or model error in stopping performance timing: timing unit has not been started");
+	EXECUTION_REPORT(REPORT_ERROR,-1, previous_time != -1.0, "C-Coupler or model error in stopping performance timing: timing unit has not been started");
 	wtime(&current_time);
 	if (current_time >= previous_time)
 		total_time += current_time - previous_time;

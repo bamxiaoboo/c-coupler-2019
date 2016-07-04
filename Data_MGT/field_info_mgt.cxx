@@ -34,7 +34,7 @@ int Field_info_mgt::get_field_num_dims(const char *field_dim, const char *cfg_na
 	if (words_are_the_same(field_dim, FIELD_VECTOR))
 		return 10;
 
-	EXECUTION_REPORT(REPORT_ERROR, false, "\"%s\" is an undefined description of the number of dimensions of field. Please verify the configuration file %s", field_dim, cfg_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, false, "\"%s\" is an undefined description of the number of dimensions of field. Please verify the configuration file %s", field_dim, cfg_name);
 	return -1;
 }
 
@@ -59,7 +59,7 @@ void Field_info_mgt::add_field_info(const char *field_name, const char *field_lo
 	strcpy(local_attr.field_unit, field_unit);
 	strcpy(local_attr.field_dim, field_dim);
 	fields_attr.push_back(local_attr);
-	EXECUTION_REPORT(REPORT_WARNING, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined more than once\n", local_attr.field_name);
+	EXECUTION_REPORT(REPORT_WARNING, -1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined more than once\n", local_attr.field_name);
 }
 
 
@@ -96,12 +96,12 @@ Field_info_mgt::Field_info_mgt(const char *shared_fname, const char *private_fna
 	    while (get_next_line(line, fp_field)) {
 	        local_line = line;
 			i ++;
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_name, &local_line), "Please specify the name of the %dth field in the configuration file %s.", i, shared_fname);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_long_name, &local_line), "Please specify the long name (description) of the %dth field in the configuration file %s.", i, shared_fname);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_unit, &local_line), "Please specify the unit of the %dth field in the configuration file %s.", i, shared_fname);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_dim, &local_line), "Please specify the number of dimensions of the %dth field in the configuration file %s.", i, shared_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_name, &local_line), "Please specify the name of the %dth field in the configuration file %s.", i, shared_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_long_name, &local_line), "Please specify the long name (description) of the %dth field in the configuration file %s.", i, shared_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_unit, &local_line), "Please specify the unit of the %dth field in the configuration file %s.", i, shared_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_dim, &local_line), "Please specify the number of dimensions of the %dth field in the configuration file %s.", i, shared_fname);
 	        fields_attr.push_back(local_attr);
-			EXECUTION_REPORT(REPORT_WARNING, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined has been defined more than once\n", local_attr.field_name);
+			EXECUTION_REPORT(REPORT_WARNING, -1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined has been defined more than once\n", local_attr.field_name);
 			get_field_num_dims(local_attr.field_dim, shared_fname);
 	    }
 		fclose(fp_field);
@@ -113,12 +113,12 @@ Field_info_mgt::Field_info_mgt(const char *shared_fname, const char *private_fna
 	    while (get_next_line(line, fp_field)) {
 	        local_line = line;
 			i ++;
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_name, &local_line), "Please specify the name of the %dth field in the configuration file %s.", i, private_fname);		
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_long_name, &local_line), "Please specify the long name (description) of the %dth field in the configuration file %s.", i, private_fname);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_unit, &local_line), "Please specify the unit of the %dth field in the configuration file %s.", i, private_fname);
-	        EXECUTION_REPORT(REPORT_ERROR, get_next_attr(local_attr.field_dim, &local_line), "Please specify the number of dimensions of the %dth field in the configuration file %s.", i, private_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_name, &local_line), "Please specify the name of the %dth field in the configuration file %s.", i, private_fname);		
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_long_name, &local_line), "Please specify the long name (description) of the %dth field in the configuration file %s.", i, private_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_unit, &local_line), "Please specify the unit of the %dth field in the configuration file %s.", i, private_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_dim, &local_line), "Please specify the number of dimensions of the %dth field in the configuration file %s.", i, private_fname);
 	        fields_attr.push_back(local_attr);
-			EXECUTION_REPORT(REPORT_ERROR, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined twice in field table\n", local_attr.field_name);
+			EXECUTION_REPORT(REPORT_ERROR,-1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined twice in field table\n", local_attr.field_name);
 			get_field_num_dims(local_attr.field_dim, private_fname);
 	    }
 		fclose(fp_field);
