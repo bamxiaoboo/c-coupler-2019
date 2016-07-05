@@ -30,7 +30,7 @@ void Remap_operator_mgt::execute(const char*function, Remap_statement_operand **
     Remap_grid_class *leaf_grids_src[256], *leaf_grids_dst[256];
 
     if (words_are_the_same(function, FUNCTION_WORD_NEW_OPERATOR)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3 || num_operands == 4, "function \"%s\" must have one result parameter and two or three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3 || num_operands == 4, "function \"%s\" must have one result parameter and two or three input parameters\n", function);
         check_is_parameter_object_type_remap_operator(function, 0, statement_operands[0], "the new remap operator generated");
         check_is_parameter_string_type(function, 1, statement_operands[1], "the name of remap operator");
         for (i = 2, num_remap_grids = 0; i < num_operands; i ++) {
@@ -40,10 +40,10 @@ void Remap_operator_mgt::execute(const char*function, Remap_statement_operand **
         if (num_remap_grids == 2) {
             remap_grids[0]->get_leaf_grids(&num_leaf_grids_src, leaf_grids_src, remap_grids[0]);
             remap_grids[1]->get_leaf_grids(&num_leaf_grids_dst, leaf_grids_dst, remap_grids[1]);
-            EXECUTION_REPORT(REPORT_ERROR,-1, num_leaf_grids_src == num_leaf_grids_dst,
+            EXECUTION_REPORT(REPORT_ERROR, -1, num_leaf_grids_src == num_leaf_grids_dst,
                          "the src and dst grids of the remap operator must have the same number of dimensions\n");
             for (i = 0; i < num_leaf_grids_src; i ++)
-                EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(leaf_grids_src[i]->get_coord_label(), leaf_grids_dst[i]->get_coord_label()),
+                EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(leaf_grids_src[i]->get_coord_label(), leaf_grids_dst[i]->get_coord_label()),
                              "the coordinate labels of source grid \"%s\" and destination grid \"%s\" must be the same\n",
                              remap_grids[0]->get_grid_name(),
                              remap_grids[1]->get_grid_name());
@@ -66,7 +66,7 @@ void Remap_operator_mgt::execute(const char*function, Remap_statement_operand **
         else if (words_are_the_same(statement_operands[1]->extension_names[0], REMAP_OPERATOR_NAME_SMOOTH)) {
             remap_operators.push_back(new Remap_operator_smooth(statement_operands[0]->object->object_name, num_remap_grids, remap_grids));
         }
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false,
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false,
                           "the first input parameter \"%s\" of function \"%s\" is not a correct name of existing remap algorithms\n",
                           statement_operands[1]->extension_names[0],
                           function);        
@@ -74,14 +74,14 @@ void Remap_operator_mgt::execute(const char*function, Remap_statement_operand **
             remap_grids[i]->end_grid_definition_stage(remap_operators[remap_operators.size()-1]);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_SET_OPERATOR_PARA)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3, "function \"%s\" must have three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3, "function \"%s\" must have three input parameters\n", function);
         check_is_parameter_object_type_remap_operator(function, 1, statement_operands[0], "the remap operator to be set parameter");
         check_is_parameter_string_type(function, 2, statement_operands[1], "the name of parameter");
         check_is_parameter_string_type(function, 3, statement_operands[2], "the value of parameter");   
         search_remap_operator(statement_operands[0]->object->object_name)->set_parameter(statement_operands[1]->extension_names[0], 
                                                                                          statement_operands[2]->extension_names[0]);
     }
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "function \"%s\" is not support in the management of remap operators\n", function);
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "function \"%s\" is not support in the management of remap operators\n", function);
 }
 
 

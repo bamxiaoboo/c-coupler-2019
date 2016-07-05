@@ -37,93 +37,93 @@ Remap_operator_1D_basis::~Remap_operator_1D_basis()
 
 void Remap_operator_1D_basis::set_common_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
     if (words_are_the_same(parameter_name, "periodic")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, !set_periodic, 
+		EXECUTION_REPORT(REPORT_ERROR, -1, !set_periodic, 
 					     "The parameter \"%s\" of the 1D remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		if (words_are_the_same(parameter_value, "true"))
 	        periodic = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			periodic = false;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "The value of parameter \"%s\" of the 1D remapping operator \"%s\" must be \"true\" or \"false\"",
                       parameter_name, operator_name);
 		set_periodic = true;
 		if (periodic)
-			EXECUTION_REPORT(REPORT_ERROR,-1, !set_enable_extrapolation, 
+			EXECUTION_REPORT(REPORT_ERROR, -1, !set_enable_extrapolation, 
 						     "The parameter \"extrapolation\" of the 1D remapping operator \"%s\" has been set before. This remapping operator can not be set to periodic",
 							 parameter_name, operator_name);
     }
 	else if (words_are_the_same(parameter_name, "period")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, set_periodic && periodic, 
+		EXECUTION_REPORT(REPORT_ERROR, -1, set_periodic && periodic, 
 					     "The 1D remapping operator \"%s\" has not been set to periodic before. Its \"period\" can not be set",
 						 operator_name);
-		EXECUTION_REPORT(REPORT_ERROR,-1, !set_period,
+		EXECUTION_REPORT(REPORT_ERROR, -1, !set_period,
 						 "The parameter \"%s\" of the 1D remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		sscanf(parameter_value, "%lf", &period);
 		set_period = true;
-		EXECUTION_REPORT(REPORT_ERROR,-1, period > 0,
+		EXECUTION_REPORT(REPORT_ERROR, -1, period > 0,
 						 "The parameter \"%s\" of the 1D remapping operator \"%s\" must be bigger than 0",
 						 parameter_name, operator_name);
 	}
 	else if (words_are_the_same(parameter_name, "use_logarithmic_field_value")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, !set_use_logarithmic_field_value,
+		EXECUTION_REPORT(REPORT_ERROR, -1, !set_use_logarithmic_field_value,
 						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		if (words_are_the_same(parameter_value, "true")) 
 			use_logarithmic_field_value = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			use_logarithmic_field_value = false;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
                       parameter_name, operator_name);
 		set_use_logarithmic_field_value = true;
 	}
 	else if (words_are_the_same(parameter_name, "use_logarithmic_coordinate")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, !set_use_logarithmic_coordinate,
+		EXECUTION_REPORT(REPORT_ERROR, -1, !set_use_logarithmic_coordinate,
 						 "The parameter \"%s\" of the 1D spline remapping operator \"%s\" has been set before. It can not been set more than once",
 						 parameter_name, operator_name);
 		if (words_are_the_same(parameter_value, "true")) 
 			use_logarithmic_coordinate = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			use_logarithmic_coordinate = false;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "The value of parameter \"%s\" of the 1D spline remapping operator \"%s\" must be \"none\", \"overall\" or \"fragment\"",
                       parameter_name, operator_name);
 		set_use_logarithmic_coordinate = true;
 	}
 	else if (words_are_the_same(parameter_name, "enable_extrapolate")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, !periodic,
+		EXECUTION_REPORT(REPORT_ERROR, -1, !periodic,
 						 "The parameter \"%s\" of the 1D remapping operator \"%s\" can not be set when the 1D remapping operator is periodic",
 						 parameter_name, operator_name);
-		EXECUTION_REPORT(REPORT_ERROR,-1, !set_enable_extrapolation,
+		EXECUTION_REPORT(REPORT_ERROR, -1, !set_enable_extrapolation,
 						 "Extrapolation of remapping operator %s has been enabled before. Extrapolation cannot be enabled again", operator_name);
 		if (words_are_the_same(parameter_value, "true"))
 	        enable_extrapolate = true;
 		else if (words_are_the_same(parameter_value, "false"))
 			enable_extrapolate = false;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "The value of parameter \"%s\" of the 1D remapping operator \"%s\" must be \"true\" or \"false\"",
                       parameter_name, operator_name);		
 		set_enable_extrapolation = true;
 	}
 	else if (words_are_the_same(parameter_name, "extrapolation_approach")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, set_enable_extrapolation,
+		EXECUTION_REPORT(REPORT_ERROR, -1, set_enable_extrapolation,
 						 "Extrapolation of remapping operator %s is not set to enabled. Therefore, the approach of extrapolation cannot be set", operator_name);
-		EXECUTION_REPORT(REPORT_ERROR,-1, extrapolation_approach == 0,
+		EXECUTION_REPORT(REPORT_ERROR, -1, extrapolation_approach == 0,
 						 "Extrapolation approach of remapping operator %s has been set before. It cannot be set again", operator_name);
 		if (words_are_the_same(parameter_value, "with_boundary"))
 	        extrapolation_approach = 1;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "The value of parameter \"%s\" of the 1D remapping operator \"%s\" must be \"with_boundary\" currently",
                       parameter_name, operator_name);		
 		set_enable_extrapolation = true;
 	}
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
 	                      "\"%s\" is a illegal parameter of remapping operator \"%s\"\n",
     	                  parameter_name, operator_name);
 }
@@ -189,14 +189,14 @@ void Remap_operator_1D_basis::search_src_cells_around_dst_cell(double coord_valu
 
 
 	if (coord_values_src[src_index_start] > coord_value_dst) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, !periodic, "software error1: can not find the location of dst cell in original grid");
+		EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error1: can not find the location of dst cell in original grid");
 		src_cell_index_left = -1;
 		src_cell_index_right = src_index_start;
 		return;
 	}
 
 	if (coord_values_src[src_index_end] < coord_value_dst) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, !periodic, "software error2: can not find the location of dst cell in original grid");
+		EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error2: can not find the location of dst cell in original grid");
 		src_cell_index_left = src_index_end;
 		src_cell_index_right = -1;
 		return;
@@ -226,7 +226,7 @@ void Remap_operator_1D_basis::search_src_cells_around_dst_cell_recursively(doubl
 	if (src_index_start == src_index_end-1) {
 		src_cell_index_left = src_index_start;
 		src_cell_index_right = src_index_end;
-		EXECUTION_REPORT(REPORT_ERROR,-1, coord_values_src[src_cell_index_left] <= coord_value_dst && coord_values_src[src_cell_index_right] >= coord_value_dst, 
+		EXECUTION_REPORT(REPORT_ERROR, -1, coord_values_src[src_cell_index_left] <= coord_value_dst && coord_values_src[src_cell_index_right] >= coord_value_dst, 
 			             "software error: can not find the location of dst cell in original grid recursively");
 		return;
 	}
@@ -253,20 +253,20 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 
 	ascending_order = coord_values_src[0] < coord_values_src[1];
 	for (i = 1; i < src_grid->get_grid_size() - 1; i ++) 
-		EXECUTION_REPORT(REPORT_ERROR,-1,ascending_order == coord_values_src[i] < coord_values_src[i+1] || coord_values_src[i] == coord_values_src[i+1], 
+		EXECUTION_REPORT(REPORT_ERROR, -1,ascending_order == coord_values_src[i] < coord_values_src[i+1] || coord_values_src[i] == coord_values_src[i+1], 
 						 "the center coordinate values corresponding to the 1D grid %s are not sorted into ascending or descending order",
 						 src_grid->get_grid_name());
 	ascending_order = coord_values_dst[0] < coord_values_dst[1];
 	for (i = 1; i < dst_grid->get_grid_size() - 1; i ++) 
-		EXECUTION_REPORT(REPORT_ERROR,-1, ascending_order == coord_values_dst[i] < coord_values_dst[i+1] || coord_values_dst[i] == coord_values_dst[i+1], 
+		EXECUTION_REPORT(REPORT_ERROR, -1, ascending_order == coord_values_dst[i] < coord_values_dst[i+1] || coord_values_dst[i] == coord_values_dst[i+1], 
 						 "the center coordinate values corresponding to the 1D grid %s are not sorted into ascending or descending order",
 						 dst_grid->get_grid_name());
 
 	if (periodic) {
-		EXECUTION_REPORT(REPORT_ERROR,-1,fabs(coord_values_src[0]-coord_values_dst[src_grid->get_grid_size()-1]) < period, 
+		EXECUTION_REPORT(REPORT_ERROR, -1,fabs(coord_values_src[0]-coord_values_dst[src_grid->get_grid_size()-1]) < period, 
 						 "The variation of center coordinate values corresponding to the 1D grid %s is larger than one period",
 						 src_grid->get_grid_name());
-		EXECUTION_REPORT(REPORT_ERROR,-1,fabs(coord_values_dst[0]-coord_values_dst[dst_grid->get_grid_size()-1]) < period, 
+		EXECUTION_REPORT(REPORT_ERROR, -1,fabs(coord_values_dst[0]-coord_values_dst[dst_grid->get_grid_size()-1]) < period, 
 						 "The variation of center coordinate values corresponding to the 1D grid %s is larger than one period",
 						 dst_grid->get_grid_name());
 	}
@@ -304,12 +304,12 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 
 	if (use_logarithmic_coordinate) {
 		for (i = 0; i < array_size_src; i ++) {
-			EXECUTION_REPORT(REPORT_ERROR,-1, coord_values_src[i] > 0, "1D remapping operator %s cannot use logarithmic values of coodinate because its source grid %s has non-positive coordinate values",
+			EXECUTION_REPORT(REPORT_ERROR, -1, coord_values_src[i] > 0, "1D remapping operator %s cannot use logarithmic values of coodinate because its source grid %s has non-positive coordinate values",
 							 object_name, src_grid->get_grid_name());
 			coord_values_src[i] = log(coord_values_src[i]);
 		}
 		for (i = 0; i < dst_grid->get_grid_size(); i ++) {
-			EXECUTION_REPORT(REPORT_ERROR,-1, coord_values_dst[i] > 0, "1D remapping operator %s cannot use logarithmic values of coodinate because its source grid %s has non-positive coordinate values",
+			EXECUTION_REPORT(REPORT_ERROR, -1, coord_values_dst[i] > 0, "1D remapping operator %s cannot use logarithmic values of coodinate because its source grid %s has non-positive coordinate values",
 							 object_name, dst_grid->get_grid_name());
 			coord_values_dst[i] = log(coord_values_dst[i]);
 		}			
@@ -324,7 +324,7 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 		search_src_cells_around_dst_cell(coord_values_dst[i], 0, array_size_src-1, src_cell_index_left[i], src_cell_index_right[i]);
 		for (j = 0; j < array_size_src && coord_values_src[j] <= coord_values_dst[i]; j ++);
 		if (j > 0 && j < array_size_src)
-			EXECUTION_REPORT(REPORT_ERROR,-1, src_cell_index_left[i] == j-1 && src_cell_index_right[i] == j, "error error3\n"); 
+			EXECUTION_REPORT(REPORT_ERROR, -1, src_cell_index_left[i] == j-1 && src_cell_index_right[i] == j, "error error3\n"); 
 		if ((src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1) && !enable_extrapolate)
 			continue;
 		if (src_cell_index_right[i] == -1) {

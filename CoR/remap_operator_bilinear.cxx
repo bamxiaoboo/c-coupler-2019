@@ -18,15 +18,15 @@
 
 void Remap_operator_bilinear::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
 	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
 		if (words_are_the_same(parameter_value, "true"))
 	        enable_extrapolate = true;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
 	}
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "bilinear algorithm does not have the parameter to be set\n");
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "bilinear algorithm does not have the parameter to be set\n");
 }
 
 
@@ -95,14 +95,8 @@ int Remap_operator_bilinear::search_at_least_16_nearnest_src_points_for_bilinear
 
     while (num_points_within_threshold_distance < 16) {
         num_points_within_threshold_distance = 0;
-        recursively_add_nearest_point(dst_cell_center_values,
-                                      src_cell_index,
-                                      current_threshold_distance,
-                                      &num_points_within_threshold_distance,
-                                      found_nearest_points_distance,
-                                      found_nearest_points_src_indexes,
-                                      get_is_sphere_grid());
-        clear_src_grid_cell_visiting_info();
+		get_current_grid2D_search_engine(true)->search_nearest_points_var_distance(current_threshold_distance, dst_cell_center_values[0], dst_cell_center_values[1], 
+																								              num_points_within_threshold_distance, found_nearest_points_src_indexes, found_nearest_points_distance, true);
         if (num_points_within_threshold_distance >= 4 && near_optimal_threshold_distance == 0.0)
             near_optimal_threshold_distance = current_threshold_distance * sqrt(((double)4)/((double)num_points_within_threshold_distance));
         if (num_points_within_threshold_distance == 0)
@@ -128,7 +122,7 @@ int Remap_operator_bilinear::compute_quadrant_of_src_point(double* dst_cell_cent
     if (quadrant_id == 4)
         quadrant_id = 0;
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, quadrant_id >= 0 && quadrant_id < 5, "remap software error in compute_quadrant_of_src_point\n");    
+    EXECUTION_REPORT(REPORT_ERROR, -1, quadrant_id >= 0 && quadrant_id < 5, "remap software error in compute_quadrant_of_src_point\n");    
     return quadrant_id;
 }
 
@@ -250,7 +244,7 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box(double* dst_cell_cen
     int num_src_points_in_each_quadrant[4], iter_num_src_points_in_each_quadrant[4];
     
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, num_points_within_threshold_dist <= 256, "remap software error in get_nearest_point_in_each_of_three_quadrants\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_points_within_threshold_dist <= 256, "remap software error in get_nearest_point_in_each_of_three_quadrants\n");
 
     for (i = 0; i < 4; i ++) {
         num_src_points_in_each_quadrant[i] = 0;
@@ -299,7 +293,6 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     long bilinear_box_vertexes_src_cell_indexes[4];
     double wgt_ratio_u, wgt_ratio_v;
     double bilinear_wgt_values[4];
-    bool have_searched_num_points_within_threshold;
     double eps = 2.0e-7;
     int num_vertexes_dst;
     double vertex_coord_values_dst[256*4];
@@ -307,6 +300,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
 
     initialize_computing_remap_weights_of_one_cell();
 
+	printf("before checking\n");
     /*  When the mask of dst cell is false, it is unnecessary to compute the corresponding weight values
       */
     get_cell_mask_of_dst_grid(dst_cell_index, &dst_cell_mask);
@@ -321,6 +315,8 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;
 
+	printf("vertexes number is %d\n", num_vertexes_dst);
+
     search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
@@ -329,6 +325,8 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
 		return;
 	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;
+
+	printf("okok remapping\n");
 
     if (src_cell_index == -1 || !src_cell_mask) {
         compute_dist_remap_weights_of_one_dst_cell(dst_cell_index, 
@@ -359,22 +357,18 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     find_bilinear_box = false;
     current_threshold_distance = iterative_threshold_distance;
     near_optimal_threshold_distance = 0.0;
-    have_searched_num_points_within_threshold = false;
     while (1) {
         num_points_within_threshold_distance = search_at_least_16_nearnest_src_points_for_bilinear(dst_cell_center_values, 
                                                                                                    src_cell_index, 
                                                                                                    current_threshold_distance, 
-                                                                                                   near_optimal_threshold_distance);    
-		for (i = 0; i < num_points_within_threshold_distance; i ++) {
-			if (found_nearest_points_distance[i] <= eps) {
-				weigt_values_of_one_dst_cell[0] = 1.0;
-				add_remap_weights_to_sparse_matrix(&found_nearest_points_src_indexes[i], dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
-				return;
-			}
+                                                                                                   near_optimal_threshold_distance);
+		if (found_nearest_points_distance[0] <= eps) {
+			weigt_values_of_one_dst_cell[0] = 1.0;
+			add_remap_weights_to_sparse_matrix(&found_nearest_points_src_indexes[0], dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
+			return;
 		}
         if (num_points_within_threshold_distance > max_num_found_nearest_points)
             break;        
-        have_searched_num_points_within_threshold = true;
         if (get_near_optimal_bilinear_box(dst_cell_center_values, 
                                           num_points_within_threshold_distance,
                                           best_index_of_selected_src_point_in_each_quadrant)) {
@@ -389,7 +383,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
         }
     }
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, near_optimal_threshold_distance > 0, "remap software error1 in blinear compute_remap_weights_of_one_dst_cell\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, near_optimal_threshold_distance > 0, "remap software error1 in blinear compute_remap_weights_of_one_dst_cell\n");
     iterative_threshold_distance = near_optimal_threshold_distance;
     
     if (!find_bilinear_box) {
@@ -410,6 +404,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
         bilinear_wgt_values[2] = wgt_ratio_u * wgt_ratio_v;
         bilinear_wgt_values[3] = (1-wgt_ratio_u) * wgt_ratio_v;
         add_remap_weights_to_sparse_matrix(bilinear_box_vertexes_src_cell_indexes, dst_cell_index, bilinear_wgt_values, 4, 0, true);
+		printf("bilinear weights: %f %f %f %f\n", bilinear_wgt_values[0], bilinear_wgt_values[1], bilinear_wgt_values[2], bilinear_wgt_values[3]);
     }
 }
 
@@ -457,7 +452,7 @@ void Remap_operator_bilinear::bilinear_ratios_solution1(double *dst_point_coord_
     y_diff_32 = compute_difference_of_two_coord_values(bilinear_box_vertexes_coord2_values[2], bilinear_box_vertexes_coord2_values[3], 1);
 
     ratio_u = (y_diff_03*x_diff_04-x_diff_03*y_diff_04)/(x_diff_01*y_diff_03-y_diff_01*x_diff_03);
-    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_u > 0 && ratio_u < 1, "remap software error1 in bilinear_ratios_solution1\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, ratio_u > 0 && ratio_u < 1, "remap software error1 in bilinear_ratios_solution1\n");
     
     coord_values_P5[0] = bilinear_box_vertexes_coord1_values[0] + ratio_u*x_diff_01;
     coord_values_P5[1] = bilinear_box_vertexes_coord2_values[0] + ratio_u*y_diff_01;
@@ -474,7 +469,7 @@ void Remap_operator_bilinear::bilinear_ratios_solution1(double *dst_point_coord_
                                                   coord_values_P5[1],
                                                   false);
     ratio_v = dist_54 / dist_56;
-    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_v > 0 && ratio_v < 1, "remap software error2 in bilinear_ratios_solution1\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, ratio_v > 0 && ratio_v < 1, "remap software error2 in bilinear_ratios_solution1\n");
 }
 
 
@@ -514,8 +509,8 @@ void Remap_operator_bilinear::bilinear_one_ratio_solution_of_quadratic_equation(
     coef_B = x_diff_04*y_diff_32 + x_diff_43*y_diff_01 - y_diff_04*x_diff_32 - y_diff_43*x_diff_01;
     coef_C = x_diff_04*y_diff_43 - y_diff_04*x_diff_43;
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, coef_A != 0, "remap software error1 in bilinear_one_ratio_solution_of_quadratic_equation");
-    EXECUTION_REPORT(REPORT_ERROR,-1, coef_B*coef_B-4*coef_A*coef_C > 0, "remap software error2 in bilinear_one_ratio_solution_of_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR, -1, coef_A != 0, "remap software error1 in bilinear_one_ratio_solution_of_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR, -1, coef_B*coef_B-4*coef_A*coef_C > 0, "remap software error2 in bilinear_one_ratio_solution_of_quadratic_equation");
         
     ratio_u1 = (-coef_B + sqrt(coef_B*coef_B-4*coef_A*coef_C))/(2*coef_A);
     ratio_u2 = (-coef_B - sqrt(coef_B*coef_B-4*coef_A*coef_C))/(2*coef_A);
@@ -530,8 +525,8 @@ void Remap_operator_bilinear::bilinear_one_ratio_solution_of_quadratic_equation(
         ratio_u_false = ratio_u1;
     }
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_u > 0 && ratio_u < 1, "remap software error3 in bilinear_one_ratio_solution_of_quadratic_equation");
-    EXECUTION_REPORT(REPORT_ERROR,-1, ratio_u_false < 0 || ratio_u_false > 1, "remap software error4 in bilinear_one_ratio_of_solution_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR, -1, ratio_u > 0 && ratio_u < 1, "remap software error3 in bilinear_one_ratio_solution_of_quadratic_equation");
+    EXECUTION_REPORT(REPORT_ERROR, -1, ratio_u_false < 0 || ratio_u_false > 1, "remap software error4 in bilinear_one_ratio_of_solution_quadratic_equation");
 }
 
 

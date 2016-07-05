@@ -86,304 +86,11 @@ void Vertex_values_group::generate_vertex_values_of_one_cell_according_to_vertex
         for (k = 0; k < num_grid_dimensions; k ++) 
             output_vertex_values[k][whole_grid_cell_index*num_vertexes+j] = stack_values[k][j];
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, stack_top == num_vertexes, "remap software error1 in generate_overall_vertex_coord_values\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, num_processed_coords == num_grid_dimensions, "remap software error2 in generate_overall_vertex_coord_values\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, stack_top == num_vertexes, "remap software error1 in generate_overall_vertex_coord_values\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_processed_coords == num_grid_dimensions, "remap software error2 in generate_overall_vertex_coord_values\n");
 }
 
 
-Cell_lookup_table::Cell_lookup_table(Remap_operator_grid *remap_operator_grid)
-{
-    this->remap_operator_grid = (Remap_operator_grid*) remap_operator_grid;
-    current_level = 0;
-    num_grid_dimensions = remap_operator_grid->num_grid_dimensions;
-    num_child_cell_lookup_table = 0;
-    child_bound_value_lookup_table = NULL;
-    child_cell_lookup_tables = NULL;
-    num_cell_bounding_boxes = remap_operator_grid->grid_size;
-    num_max_level_of_recursive_search_in_neighbor_cells = 1;
-    if (is_coord_unit_degree[current_level]) 
-        half_cycle_value = 180;
-    else half_cycle_value = 0;
-    cell_bounding_boxes = new Cell_bounding_box *[num_cell_bounding_boxes];
-    initialize_cell_bounding_boxes();
-    recursively_partition_cell_lookup_table();
-}
-
-
-Cell_lookup_table::Cell_lookup_table(Cell_lookup_table *parent)
-{
-    remap_operator_grid = parent->remap_operator_grid;
-    current_level = parent->current_level + 1;
-    num_grid_dimensions = parent->num_grid_dimensions;
-    num_child_cell_lookup_table = 0;
-    child_bound_value_lookup_table = NULL;
-    child_cell_lookup_tables = NULL;
-    num_cell_bounding_boxes = 0;
-    cell_bounding_boxes = NULL;
-    half_cycle_value = 0;
-    if (current_level < num_grid_dimensions && is_coord_unit_degree[current_level]) 
-        half_cycle_value = 180;
-}
-
-
-Cell_lookup_table::~Cell_lookup_table()
-{
-    if (child_cell_lookup_tables != NULL) {
-        for (long i = 0; i < num_child_cell_lookup_table; i ++)
-            delete child_cell_lookup_tables[i];
-        delete [] child_cell_lookup_tables;
-        delete [] child_bound_value_lookup_table;
-    }
-
-    if (current_level == 0)
-        for (long i = 0; i < num_cell_bounding_boxes; i ++) {
-            delete [] cell_bounding_boxes[i]->cell_bounds;
-            delete cell_bounding_boxes[i];
-        }
-
-    if (cell_bounding_boxes != NULL)
-        delete [] cell_bounding_boxes;
-}
-
-
-void Cell_lookup_table::initialize_cell_bounding_boxes()
-{
-    long i, j, k;
-    double cell_vertex_values[2*256];
-    
-    
-    for (j = 0; j < remap_operator_grid->grid_size; j ++) {
-        cell_bounding_boxes[j] = new Cell_bounding_box;
-        cell_bounding_boxes[j]->cell_bounds = new double [num_grid_dimensions*2];
-        cell_bounding_boxes[j]->cell_id = j;
-        for (i = 0; i < num_grid_dimensions; i ++)
-            for (k = 0; k < remap_operator_grid->num_vertexes; k ++)
-                cell_vertex_values[num_grid_dimensions*k+i] = remap_operator_grid->vertex_coord_values[i][j*remap_operator_grid->num_vertexes+k];
-        compute_cell_bounding_box(remap_operator_grid->num_vertexes, num_grid_dimensions, cell_vertex_values, cell_bounding_boxes[j]->cell_bounds);
-    }
-}
-
-
-void Cell_lookup_table::recursively_partition_cell_lookup_table()
-{
-    long i, j;
-    double sum_bounds_diff, lookup_table_bounds_diff, min_bounds_diff, max_bounds_diff, current_bounds_diff;
-    double max_bound_value, min_bound_value;
-    long *lower_table_element_ids, *higher_table_element_ids;
-
-
-    if (current_level >= num_grid_dimensions)
-        return;
-
-    if (num_cell_bounding_boxes == 0)
-        return;
-        
-    min_bounds_diff = DEFAULT_FILL_VALUE;
-    max_bounds_diff = -min_bounds_diff;
-    min_bound_value = min_bounds_diff;
-    max_bound_value = max_bounds_diff;
-    sum_bounds_diff = 0;
-    for (i = 0; i < num_cell_bounding_boxes; i ++) {
-        if (cell_bounding_boxes[i]->cell_bounds[current_level*2] == DEFAULT_FILL_VALUE)
-            continue;
-        if (cell_bounding_boxes[i]->cell_bounds[current_level*2] > cell_bounding_boxes[i]->cell_bounds[current_level*2+1]) {
-            current_bounds_diff = 2*half_cycle_value - cell_bounding_boxes[i]->cell_bounds[current_level*2] + cell_bounding_boxes[i]->cell_bounds[current_level*2+1];
-            min_bound_value = 0;
-            max_bound_value = 2*half_cycle_value;
-        }
-        else {
-            current_bounds_diff = cell_bounding_boxes[i]->cell_bounds[current_level*2+1] - cell_bounding_boxes[i]->cell_bounds[current_level*2];
-            if (min_bound_value > cell_bounding_boxes[i]->cell_bounds[current_level*2])
-                min_bound_value = cell_bounding_boxes[i]->cell_bounds[current_level*2];
-            if (max_bound_value < cell_bounding_boxes[i]->cell_bounds[current_level*2+1])
-                max_bound_value = cell_bounding_boxes[i]->cell_bounds[current_level*2+1];
-        }
-        if (min_bounds_diff > current_bounds_diff)
-            min_bounds_diff = current_bounds_diff;
-        if (max_bounds_diff < current_bounds_diff)
-            max_bounds_diff = current_bounds_diff;
-        sum_bounds_diff += fabs(current_bounds_diff);
-    }
-    
-    EXECUTION_REPORT(REPORT_ERROR,-1, min_bound_value <= max_bound_value, "remap software error1 in recursively_partition_cell_lookup_table\n");
-
-    lookup_table_bounds_diff = (sum_bounds_diff/num_cell_bounding_boxes) / 2;
-    num_child_cell_lookup_table = (max_bound_value - min_bound_value)/lookup_table_bounds_diff;
-    if ((max_bound_value - min_bound_value)/lookup_table_bounds_diff > num_child_cell_lookup_table)
-        num_child_cell_lookup_table ++;
-
-    child_cell_lookup_tables = new Cell_lookup_table *[num_child_cell_lookup_table];
-    child_bound_value_lookup_table = new double [num_child_cell_lookup_table+1];
-    for (i = 0; i < num_child_cell_lookup_table; i ++) {
-        child_bound_value_lookup_table[i] = lookup_table_bounds_diff*i + min_bound_value;
-        child_cell_lookup_tables[i] = new Cell_lookup_table(this);
-    }
-    child_bound_value_lookup_table[i] = max_bound_value;
-    EXECUTION_REPORT(REPORT_ERROR,-1, child_bound_value_lookup_table[0] <= child_bound_value_lookup_table[i], "remap software error2 in recursively_partition_cell_lookup_table\n");    
-
-    lower_table_element_ids = new long [num_cell_bounding_boxes];
-    higher_table_element_ids = new long [num_cell_bounding_boxes];
-    for (i = 0; i < num_cell_bounding_boxes; i ++) {
-        if (cell_bounding_boxes[i]->cell_bounds[current_level*2] == DEFAULT_FILL_VALUE)
-            continue;
-        lower_table_element_ids[i] = lookup_in_child_bound_value_lookup_table(cell_bounding_boxes[i]->cell_bounds[current_level*2]);
-        higher_table_element_ids[i] = lookup_in_child_bound_value_lookup_table(cell_bounding_boxes[i]->cell_bounds[current_level*2+1]);
-        EXECUTION_REPORT(REPORT_ERROR,-1, lower_table_element_ids[i] < num_child_cell_lookup_table && lower_table_element_ids[i] >= 0 &&
-                     higher_table_element_ids[i] < num_child_cell_lookup_table && higher_table_element_ids[i] >= 0, 
-                     "remap software error3 in recursively_partition_cell_lookup_table\n");
-        if (lower_table_element_ids[i] <= higher_table_element_ids[i])
-            for (j = lower_table_element_ids[i]; j <= higher_table_element_ids[i]; j ++)
-                child_cell_lookup_tables[j]->num_cell_bounding_boxes ++;
-        else {
-            for (j = lower_table_element_ids[i]; j < num_child_cell_lookup_table; j ++)
-                child_cell_lookup_tables[j]->num_cell_bounding_boxes ++;
-            for (j = 0; j <= higher_table_element_ids[i]; j ++)
-                child_cell_lookup_tables[j]->num_cell_bounding_boxes ++;
-        }
-    }
-    
-    for (i = 0; i < num_child_cell_lookup_table; i ++) {
-        child_cell_lookup_tables[i]->cell_bounding_boxes = new Cell_bounding_box *[child_cell_lookup_tables[i]->num_cell_bounding_boxes];
-        child_cell_lookup_tables[i]->num_cell_bounding_boxes = 0;
-    }
-
-    for (i = 0; i < num_cell_bounding_boxes; i ++) {
-        if (cell_bounding_boxes[i]->cell_bounds[current_level*2] == DEFAULT_FILL_VALUE)
-            continue;
-        if (lower_table_element_ids[i] <= higher_table_element_ids[i])
-            for (j = lower_table_element_ids[i]; j <= higher_table_element_ids[i]; j ++)
-                child_cell_lookup_tables[j]->cell_bounding_boxes[child_cell_lookup_tables[j]->num_cell_bounding_boxes ++] = cell_bounding_boxes[i];
-        else {
-            for (j = lower_table_element_ids[i]; j < num_child_cell_lookup_table; j ++)
-                child_cell_lookup_tables[j]->cell_bounding_boxes[child_cell_lookup_tables[j]->num_cell_bounding_boxes ++] = cell_bounding_boxes[i];
-            for (j = 0; j <= higher_table_element_ids[i]; j ++)
-                child_cell_lookup_tables[j]->cell_bounding_boxes[child_cell_lookup_tables[j]->num_cell_bounding_boxes ++] = cell_bounding_boxes[i];
-        }        
-    }
-
-    delete [] lower_table_element_ids;
-    delete [] higher_table_element_ids;
-
-    for (i = 0; i < num_child_cell_lookup_table; i ++)
-        child_cell_lookup_tables[i]->recursively_partition_cell_lookup_table();
-}
-
-
-long Cell_lookup_table::lookup_in_child_bound_value_lookup_table(double bound_value)
-{
-    if (num_cell_bounding_boxes == 0)
-        return -1;
-    if (bound_value < child_bound_value_lookup_table[0] || bound_value > child_bound_value_lookup_table[num_child_cell_lookup_table]) 
-        return -1;
-
-    return recursively_lookup_in_child_bound_value_lookup_table(bound_value, 0, num_child_cell_lookup_table);
-}
-
-
-long Cell_lookup_table::recursively_lookup_in_child_bound_value_lookup_table(double bound_value, long begin, long end)
-{
-    long middle;
-
-
-    middle = (begin+end) / 2;
-    if (bound_value >= child_bound_value_lookup_table[middle] && bound_value <= child_bound_value_lookup_table[middle+1]) 
-        return middle;
-
-    if (bound_value < child_bound_value_lookup_table[middle])
-        return recursively_lookup_in_child_bound_value_lookup_table(bound_value, begin, middle);
-    else return recursively_lookup_in_child_bound_value_lookup_table(bound_value, middle, end);
-}
-
-
-long Cell_lookup_table::recursively_search_in_neighbor_cells_for_sphere_grid(double *point_coord_values, long current_cell_index, int num_level)
-{
-    int num_vertexes, i;
-    long temp_cell_index;
-    double cell_vertex_coord1_values[256], cell_vertex_coord2_values[256];
-
-
-    if (num_level > num_max_level_of_recursive_search_in_neighbor_cells)
-        return -1;
-
-    for (i = 0, num_vertexes = 0; i < remap_operator_grid->get_num_vertexes(); i ++) {
-        if (remap_operator_grid->get_vertex_coord_values()[0][remap_operator_grid->get_num_vertexes()*current_cell_index+i] == NULL_COORD_VALUE)
-            continue;
-        cell_vertex_coord1_values[num_vertexes] = remap_operator_grid->get_vertex_coord_values()[0][remap_operator_grid->get_num_vertexes()*current_cell_index+i];
-        cell_vertex_coord2_values[num_vertexes] = remap_operator_grid->get_vertex_coord_values()[1][remap_operator_grid->get_num_vertexes()*current_cell_index+i];
-        num_vertexes ++;
-    }
-
-    if (is_point_in_2D_cell(point_coord_values[0], 
-                            point_coord_values[1], 
-                            cell_vertex_coord1_values, 
-                            cell_vertex_coord2_values,
-                            num_vertexes,
-                            true, true, true))
-        return current_cell_index;
-    
-    for (i = 0; i < remap_operator_grid->get_num_neighbors(); i ++) {
-        temp_cell_index = remap_operator_grid->get_cell_nerghbors_indexes()[remap_operator_grid->get_num_neighbors()*current_cell_index+i];
-        if (temp_cell_index != -1 && (temp_cell_index=recursively_search_in_neighbor_cells_for_sphere_grid(point_coord_values, temp_cell_index, num_level+1)) != -1)
-            return temp_cell_index;
-    }
-
-    return -1;
-}
-
-
-long Cell_lookup_table::search_cell_of_locating_point(double *point_coord_values, bool accurately_match)
-{
-    long i, j, child_id;
-    Cell_lookup_table *current_cell_lookup_table;
-    long cell_id;
-
-
-    current_cell_lookup_table = this;
-    for (i = 0; i < num_grid_dimensions; i ++) {
-        child_id = current_cell_lookup_table->lookup_in_child_bound_value_lookup_table(point_coord_values[i]);
-        if (child_id == -1)
-            return -1;
-        current_cell_lookup_table = current_cell_lookup_table->child_cell_lookup_tables[child_id];
-    }
-
-    for (i = 0; i < current_cell_lookup_table->num_cell_bounding_boxes; i ++) {
-        for (j = 0; j < num_grid_dimensions; j ++) {
-            if (current_cell_lookup_table->cell_bounding_boxes[i]->cell_bounds[2*j] < current_cell_lookup_table->cell_bounding_boxes[i]->cell_bounds[2*j+1]) {
-                if (point_coord_values[j] < current_cell_lookup_table->cell_bounding_boxes[i]->cell_bounds[2*j] || point_coord_values[j] > current_cell_lookup_table->cell_bounding_boxes[i]->cell_bounds[2*j+1]) 
-                    break;
-            }
-            else {
-                if (point_coord_values[j] < current_cell_lookup_table->cell_bounding_boxes[i]->cell_bounds[2*j] && point_coord_values[j] > current_cell_lookup_table->cell_bounding_boxes[i]->cell_bounds[2*j+1])
-                    break;
-            }
-        }
-        if (j == num_grid_dimensions) {
-            cell_id = current_cell_lookup_table->cell_bounding_boxes[i]->cell_id;
-            if (!accurately_match)
-                return cell_id;
-            if (num_grid_dimensions == 1)
-                return cell_id;
-            else if (num_grid_dimensions == 2) {
-                if (is_point_in_2D_cell(point_coord_values[0],
-                                        point_coord_values[1], 
-                                        remap_operator_grid->vertex_coord_values[0]+cell_id*remap_operator_grid->num_vertexes,
-                                        remap_operator_grid->vertex_coord_values[1]+cell_id*remap_operator_grid->num_vertexes,
-                                        remap_operator_grid->num_vertexes,
-                                        true, true,
-                                        remap_operator_grid->is_grid_sphere))
-                    return cell_id;
-            }
-            else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error1 in search_cell_of_locating_point\n");
-        }
-    }
-
-    if (accurately_match && remap_operator_grid->is_grid_sphere)
-        for (i = 0; i < current_cell_lookup_table->num_cell_bounding_boxes; i ++)
-            if ((cell_id = recursively_search_in_neighbor_cells_for_sphere_grid(point_coord_values, current_cell_lookup_table->cell_bounding_boxes[i]->cell_id, 0)) != -1)
-                return cell_id;
-
-    return -1;
-}
 
 
 Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_operator_basis *remap_operator, bool is_src_grid, bool is_rotated_grid)
@@ -402,8 +109,7 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
     this->num_vertexes = 0;
     this->num_neighbors = 0;
     this->num_vertex_values_groups = 0;
-    this->cell_nerghbors_indexes = NULL;
-    this->grid_cells_lookup_table = NULL;
+	this->grid2D_search_engine = NULL;
     this->rotated_remap_operator_grid = NULL;
     this->is_src_grid = is_src_grid;
     this->is_rotated_grid = is_rotated_grid;
@@ -433,7 +139,7 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
             if (leaf_grids[i]->grid_center_fields.size() == 0)
                 current_grid_center_field = leaf_grids[i]->get_grid_center_field();
             else current_grid_center_field = leaf_grids[i]->grid_center_fields[0];
-            EXECUTION_REPORT(REPORT_ERROR,-1, current_grid_center_field != NULL, "remap software error1 in Remap_operator_grid\n");
+            EXECUTION_REPORT(REPORT_ERROR, -1, current_grid_center_field != NULL, "remap software error1 in Remap_operator_grid\n");
             if (num_leaf_grids == 1)
                 grid_center_fields.push_back(current_grid_center_field);
             else grid_center_fields.push_back(remap_grid->expand_to_generate_full_coord_value(current_grid_center_field));
@@ -443,7 +149,7 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
 
     if (remap_operator->get_num_dimensions() == 1)
         require_vertex_fields = remap_operator->does_require_grid_vertex_values();
-    else require_vertex_fields = remap_operator->does_require_grid_vertex_values() || (remap_operator->get_is_operator_regridding() && is_src_grid);
+    else require_vertex_fields = remap_operator->does_require_grid_vertex_values() || (remap_operator->get_is_operator_regridding());
     if (require_vertex_fields) 
         initialize_for_vertex_coord_values_generation();
 
@@ -466,14 +172,11 @@ Remap_operator_grid::~Remap_operator_grid()
         for (int i = 0; i < num_grid_dimensions; i ++)
             delete [] vertex_coord_values[i];
 
-    if (cell_nerghbors_indexes != NULL)
-        delete [] cell_nerghbors_indexes;
-
     for (int i = 0; i < num_vertex_values_groups; i ++)
         delete vertex_values_groups[i];
 
-    if (grid_cells_lookup_table != NULL)
-        delete grid_cells_lookup_table;
+	if (grid2D_search_engine != NULL)
+		delete grid2D_search_engine;
 
     if (rotated_remap_operator_grid != NULL)
         delete rotated_remap_operator_grid;
@@ -487,18 +190,15 @@ void Remap_operator_grid::update_operator_grid_data()
 
     if (is_src_grid)
         remove_redundant_cells();
-    if (remap_operator->get_num_dimensions() > 1 && remap_operator->does_require_grid_cell_neighborhood() && is_src_grid)
-        generate_neighborhood_according_to_vertexes();
 
     if (is_rotated_grid)
         rotate_sphere_grid();
     
-    if (grid_cells_lookup_table != NULL) {
-        delete grid_cells_lookup_table;
-        grid_cells_lookup_table = NULL;
-    }
-    if (remap_operator->get_num_dimensions() > 1 && remap_operator->get_is_operator_regridding() && is_src_grid) {
-        grid_cells_lookup_table = new Cell_lookup_table(this);
+    if (remap_operator->get_num_dimensions() > 1 && remap_operator->get_is_operator_regridding()) {
+		if (grid2D_search_engine == NULL)
+			grid2D_search_engine = new H2D_grid_cell_search_engine(remap_grid, center_coord_values[0], center_coord_values[1], mask_values, redundant_cell_mark,
+			                                                       num_vertexes, vertex_coord_values[0], vertex_coord_values[1], EDGE_TYPE_LATLON, is_src_grid);
+		else grid2D_search_engine->update(mask_values);
     }
 
     if (rotated_remap_operator_grid != NULL)
@@ -585,7 +285,7 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
         if (leaf_grids[i]->grid_vertex_fields.size() == 0)
             current_vertex_field = leaf_grids[i]->get_grid_vertex_field();
         else current_vertex_field = leaf_grids[i]->grid_vertex_fields[0];
-		EXECUTION_REPORT(REPORT_ERROR,-1, current_vertex_field != NULL, 
+		EXECUTION_REPORT(REPORT_ERROR, -1, current_vertex_field != NULL, 
 						 "The vertex coordinate values of the grid %s are missing, which are not specified by users or generated automatically",
 						 remap_grid->get_grid_name());
         grid_vertex_fields.push_back(current_vertex_field);
@@ -597,7 +297,7 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
             continue;
         super_grid = leaf_grids[i]->get_super_grid_of_setting_coord_values();
         if (super_grid->num_dimensions == 1)
-            EXECUTION_REPORT(REPORT_ERROR,-1, super_grid->num_vertexes == 2, "remap software error2 in initialize_for_vertex_coord_values_generation\n");
+            EXECUTION_REPORT(REPORT_ERROR, -1, super_grid->num_vertexes == 2, "remap software error2 in initialize_for_vertex_coord_values_generation\n");
         this->num_vertexes *= super_grid->num_vertexes;
         vertex_values_groups[num_vertex_values_groups] = new Vertex_values_group();
         vertex_values_groups[num_vertex_values_groups]->num_vertex = super_grid->num_vertexes;
@@ -609,7 +309,7 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
             if (leaf_grids[j] == NULL)
                 continue;
             if (leaf_grids[j]->get_super_grid_of_setting_coord_values() == super_grid) {
-                EXECUTION_REPORT(REPORT_ERROR,-1, last_index+1 == j, "remap software error3 in initialize_for_vertex_coord_values_generation\n");
+                EXECUTION_REPORT(REPORT_ERROR, -1, last_index+1 == j, "remap software error3 in initialize_for_vertex_coord_values_generation\n");
                 vertex_values_groups[num_vertex_values_groups]->vertex_coord_values[vertex_values_groups[num_vertex_values_groups]->num_coords++] = (double*) grid_vertex_fields[j]->grid_data_field->data_buf;
                 last_index = j;
                 leaf_grids[j] = NULL;
@@ -622,7 +322,6 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
         vertex_coord_values[i] = new double [grid_size*num_vertexes];
 
     num_neighbors = num_vertexes;
-    cell_nerghbors_indexes = new long [num_neighbors*grid_size];
 }
 
 
@@ -659,58 +358,6 @@ void Remap_operator_grid::generate_overall_vertex_coord_values()
 }
 
 
-void Remap_operator_grid::generate_neighborhood_according_to_vertexes()
-{
-    long i, j, k, l;
-    long *vertex_cell_index;
-    Radix_sort<double, long> *radix_sort;
-
-    
-    for (i = 0; i < grid_size*num_neighbors; i ++)
-        cell_nerghbors_indexes[i] = -1;
-    
-    vertex_cell_index = new long [grid_size*num_vertexes];
-    for (i = 0; i < grid_size; i ++)
-        for (j = 0; j < num_vertexes; j ++)
-            vertex_cell_index[i*num_vertexes+j] = i;
-    radix_sort = new Radix_sort<double, long>(vertex_coord_values, 
-                                              num_grid_dimensions, 
-                                              vertex_cell_index,
-                                              grid_size*num_vertexes,
-                                              TOLERABLE_ERROR);
-    radix_sort->do_radix_sort();
-
-    for (i = 0; i < grid_size*num_vertexes; i ++) {
-        if (radix_sort->radix_values[0][i] == NULL_COORD_VALUE)
-            continue;
-        for (j = i+1; j < grid_size*num_vertexes; j ++) {
-            for (k = 0; k < num_grid_dimensions; k ++)
-                if (fabs(radix_sort->radix_values[k][i] - radix_sort->radix_values[k][j]) > TOLERABLE_ERROR)
-                    break;
-            if (k < num_grid_dimensions)
-                break;
-        }
-        if (i+1 == j)
-            continue;
-        for (l = i; l < j; l ++) {
-            if (center_coord_values[0][radix_sort->content[l]] == NULL_COORD_VALUE)
-                continue;
-            for (k = l+1; k < j; k ++) {
-                if (center_coord_values[0][radix_sort->content[k]] == NULL_COORD_VALUE)
-                    continue;
-                EXECUTION_REPORT(REPORT_ERROR,-1, radix_sort->content[l] != radix_sort->content[k], "remap software error1 in generate_neighborhood_according_to_vertexes\n");
-                if (two_cells_have_common_bound(radix_sort->content[l], radix_sort->content[k], TOLERABLE_ERROR)) 
-                    add_partial_neighborhood_to_vertex_group(radix_sort->content[l], radix_sort->content[k]);
-            }
-        }
-        i = j - 1;
-    }
-
-    delete [] vertex_cell_index;
-    delete radix_sort;
-}
-
-
 bool Remap_operator_grid::two_cells_have_common_bound(long cell_id1, 
                                                       long cell_id2, 
                                                       double tolerable_error)
@@ -736,40 +383,10 @@ bool Remap_operator_grid::two_cells_have_common_bound(long cell_id1,
         }
     }
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, cell_id1 != cell_id2,
+    EXECUTION_REPORT(REPORT_ERROR, -1, cell_id1 != cell_id2,
                  "remap software error1 in two_cells_have_common_bound\n");
 
     return num_common_vertex >= num_grid_dimensions;
-}
-
-
-void Remap_operator_grid::add_partial_neighborhood_to_vertex_group(long cell_id1, long cell_id2)
-{
-    int i, j;
-
-
-    for (i = 0; i < num_neighbors; i ++)
-        if (cell_nerghbors_indexes[cell_id1*num_neighbors+i] == (long) -1 ||
-            cell_nerghbors_indexes[cell_id1*num_neighbors+i] == cell_id2)
-            break;
-    for (j = 0; j < num_neighbors; j ++) 
-        if (cell_nerghbors_indexes[cell_id2*num_neighbors+j] == (long) -1 ||
-            cell_nerghbors_indexes[cell_id2*num_neighbors+j] == cell_id1)
-            break;
-
-    EXECUTION_REPORT(REPORT_ERROR,-1, i < num_neighbors && j < num_neighbors,
-                 "remap software error1 in add_partial_neighborhood_to_vertex_group\n");
-    if (cell_nerghbors_indexes[cell_id1*num_neighbors+i] == (long) -1)
-        EXECUTION_REPORT(REPORT_ERROR,-1, cell_nerghbors_indexes[cell_id2*num_neighbors+j] == (long) -1,
-                     "remap software error2 in add_partial_neighborhood_to_vertex_group\n");
-    else EXECUTION_REPORT(REPORT_ERROR,-1, cell_nerghbors_indexes[cell_id2*num_neighbors+j] == cell_id1 &&
-                      cell_nerghbors_indexes[cell_id1*num_neighbors+i] == cell_id2,
-                      "remap software error3 in add_partial_neighborhood_to_vertex_group\n");
-
-    if (cell_nerghbors_indexes[cell_id1*num_neighbors+i] == (long) -1) {
-        cell_nerghbors_indexes[cell_id1*num_neighbors+i] = cell_id2;
-        cell_nerghbors_indexes[cell_id2*num_neighbors+j] = cell_id1;
-    }
 }
 
 
@@ -793,13 +410,13 @@ long Remap_operator_grid::search_cell_of_locating_point(double *point_coord_valu
             return 0;
         else return grid_size - 1;
     }
-    else return grid_cells_lookup_table->search_cell_of_locating_point(point_coord_values, accurately_match);
+    else return grid2D_search_engine->search_cell_of_locating_point(point_coord_values[0], point_coord_values[1], accurately_match);
 }
 
 
 void Remap_operator_grid::visit_cell(long cell_index)
 {
-    EXECUTION_REPORT(REPORT_ERROR,-1, !cell_visiting_mark[cell_index],
+    EXECUTION_REPORT(REPORT_ERROR, -1, !cell_visiting_mark[cell_index],
                  "remap software error in visit_cell");
 
     cell_visiting_mark[cell_index] = true;

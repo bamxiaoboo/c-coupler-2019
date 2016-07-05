@@ -21,7 +21,7 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
 
 
     if (words_are_the_same(function, FUNCTION_WORD_READ_FIELD)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4, "function \"%s\" for reading field data must have one result parameter and three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4, "function \"%s\" for reading field data must have one result parameter and three input parameters\n", function);
         check_is_parameter_object_type_field_data(function, 0, statement_operands[0], "the field read in");
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the grid corresponding to the field");
         check_is_parameter_object_type_IO(function, 2, statement_operands[2], "the IO file for reading field");
@@ -32,7 +32,7 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
                                                            statement_operands[3]->extension_names[0]));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_ALLOC_FIELD)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 2 || num_operands == 3, "function \"%s\" for reading field data must have one result parameter and one or two input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2 || num_operands == 3, "function \"%s\" for reading field data must have one result parameter and one or two input parameters\n", function);
         check_is_parameter_object_type_field_data(function, 0, statement_operands[0], "the field allocated");
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the grid corresponding to the field");
 		strcpy(field_name_in_IO, "\0");
@@ -45,7 +45,7 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
                                                            NULL, field_name_in_IO));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_READ_DATA)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3, "function \"%s\" for reading field data must have one result parameter and two input parameter\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3, "function \"%s\" for reading field data must have one result parameter and two input parameter\n", function);
         check_is_parameter_object_type_field_data(function, 0, statement_operands[0], "the data read in");
         check_is_parameter_object_type_IO(function, 1, statement_operands[1], "the IO file for writing field");
         check_is_parameter_string_type(function, 2, statement_operands[2], "the variable name of data in IO file");
@@ -56,7 +56,7 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
     }
     else if (words_are_the_same(function, FUNCTION_WORD_ISPAN) || 
              words_are_the_same(function, FUNCTION_WORD_FSPAN)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4, "function \"%s\" must have one result parameter and three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4, "function \"%s\" must have one result parameter and three input parameters\n", function);
         check_is_parameter_object_type_field_data(function, 0, statement_operands[0], "the data generated through span");
            if (words_are_the_same(function, FUNCTION_WORD_ISPAN))
             for (i = 1; i < 3; i ++)
@@ -82,13 +82,13 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
                                                                DATA_TYPE_DOUBLE));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_GEN_TEST_DATA)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 2, "function \"%s\" must have two input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2, "function \"%s\" must have two input parameters\n", function);
         check_is_parameter_object_type_field_data(function, 1, statement_operands[0], "the field with analytic data generation");
         check_is_parameter_string_type(function, 2, statement_operands[1], "the case name of analytic expression");
         remap_field_data_manager->search_remap_field_data(statement_operands[0]->object->object_name)->generate_analytic_values(statement_operands[1]->extension_names[0]);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_EVALUATE_ERROR)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3, "function \"%s\" must have one result parameter and two input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3, "function \"%s\" must have one result parameter and two input parameters\n", function);
         check_is_parameter_object_type_field_data(function, 0, statement_operands[0], "the field to record the difference of two fields");
         check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "one field to evaluate");
         check_is_parameter_object_type_field_data(function, 2, statement_operands[2], "one field to evaluate");      
@@ -100,7 +100,7 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
         all_field_data.push_back(result);
         result->evaluate_error(first_parameter, second_parameter);
     }
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "\"%s\" is an undefined function\n", function);
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "\"%s\" is an undefined function\n", function);
 }
 
 

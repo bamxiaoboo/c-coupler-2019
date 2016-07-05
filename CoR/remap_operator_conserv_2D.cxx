@@ -14,13 +14,13 @@
 
 void Remap_operator_conserv_2D::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
     
     if (words_are_the_same(parameter_name, "num_order")) 
         sscanf(parameter_value, "%d", &num_order);
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "\"%s\" is a illegal parameter of remap operator \"%s\"\n",
                       parameter_name,
                       operator_name);
@@ -69,7 +69,7 @@ void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_
     }
 
     if (num_weights > 0)
-        EXECUTION_REPORT(REPORT_ERROR,-1, sum_area > 0, "remap software error in conserv_2D compute_remap_weights_of_one_dst_cell\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, sum_area > 0, "remap software error in conserv_2D compute_remap_weights_of_one_dst_cell\n");
     for (i = 0; i < num_weights; i ++) {
         weight_values[i] = common_sub_cell_area[i]/sum_area;
     }

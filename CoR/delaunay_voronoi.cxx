@@ -1,8 +1,6 @@
 /***************************************************************
-  *  Copyright (c) 2013, Tsinghua University.
-  *  This is a source file of C-Coupler.
   *  This file is initially finished by Mr. Yufeng Zhou,
-  *  and then upgraded and merged into CoR by Dr. Li Liu. 
+  *  and then upgraded and merged by Dr. Li Liu. 
   *  If you have any problem, 
   *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
   ***************************************************************/
@@ -20,11 +18,12 @@
 #include "remap_common_utils.h"
 #include "remap_operator_c_interface.h"
 #include "remap_grid_class.h"
+#include "quick_sort.h"
 #include "remap_common_utils.h"
 #include "remap_utils_nearest_points.h"
 
 
-#define e 1.0e-10
+#define e 1.0e-12
 
 
 static inline double sind(double x)
@@ -41,7 +40,10 @@ static inline double cosd(double x)
 
 double det(const Point &pt1, const Point &pt2, const Point &pt3)
 {
-	return compute_three_3D_points_cross_product(pt3.x, pt3.y, pt3.z, pt1.x, pt1.y, pt1.z, pt2.x, pt2.y, pt2.z);
+
+	return (pt1.lon-pt3.lon)*(pt2.lat-pt3.lat) - (pt1.lat-pt3.lat)*(pt2.lon-pt3.lon);
+
+//	return compute_three_3D_points_cross_product(pt3.x, pt3.y, pt3.z, pt1.x, pt1.y, pt1.z, pt2.x, pt2.y, pt2.z);
 }
 
 
@@ -57,7 +59,7 @@ vector<Point>::iterator get_nearest_point(const Point &pt, vector<Point> *points
 			pos = i;
 		}
 
-	EXECUTION_REPORT(REPORT_ERROR,-1, pos != -1, "the input global grid is too sparse\n");
+	EXECUTION_REPORT(REPORT_ERROR, -1, pos != -1, "the input global grid is too sparse\n");
 		
 	return points->begin()+pos;
 }
@@ -83,12 +85,15 @@ void Triangle::initialize_triangle_with_edges(Edge *edge1, Edge *edge2, Edge *ed
 	pt1 = edge1->head;
 	pt2 = edge2->head;
 	pt3 = edge3->head;
+
+	printf("triangle: (%lf %lf)  (%lf %lf)  (%lf %lf)\n", pt1.lon, pt1.lat, pt2.lon, pt2.lat, pt3.lon, pt3.lat);
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, fabs(det(pt1, pt2, pt3)) > e && fabs(det(pt2, pt3, pt1)) > e && fabs(det(pt3, pt1, pt2)) > e,
+	EXECUTION_REPORT(REPORT_ERROR, -1, fabs(det(pt1, pt2, pt3)) > e && fabs(det(pt2, pt3, pt1)) > e && fabs(det(pt3, pt1, pt2)) > e,
 		             "remap software error1 in new Triangle");
-	EXECUTION_REPORT(REPORT_ERROR,-1, edge1->tail==edge2->head && edge2->tail==edge3->head && edge3->tail==edge1->head, "remap software error2 in new Triangle");
+	EXECUTION_REPORT(REPORT_ERROR, -1, edge1->tail==edge2->head && edge2->tail==edge3->head && edge3->tail==edge1->head, "remap software error2 in new Triangle");
    	
 	v[0] = pt1;
+	pt3.position_to_edge(pt1, pt2);
 	if (pt1.position_to_edge(pt2, pt3) == 1) {
 		v[1] = pt2;
 		v[2] = pt3;
@@ -114,12 +119,14 @@ void Triangle::initialize_triangle_with_edges(Edge *edge1, Edge *edge2, Edge *ed
 	this->edge[0]->triangle = this;
 	this->edge[1]->triangle = this;
 	this->edge[2]->triangle = this;
+
+    printf("generate triangle (%lf %lf)->(%lf %lf)->(%lf %lf)\n", v[0].lon, v[0].lat, v[1].lon, v[1].lat, v[2].lon, v[2].lat);
+	fflush(NULL);
 }
 
 
 Triangle::Triangle(Point point1, Point point2, Point point3)
 {
-	printf("generate triangle (%lf %lf)->(%lf %lf)->(%lf %lf)\n", point1.lon, point1.lat, point2.lon, point2.lat, point3.lon, point3.lat);
 	initialize_triangle_with_edges(new Edge(point1,point2), new Edge(point2,point3), new Edge(point3,point1));
 }
 
@@ -163,7 +170,10 @@ int Triangle::find_best_candidate_point()
 			max_min_dist = min_dist;
 			best_candidate_id = i;
 		}
+		printf("okok (%lf %lf)\n", remained_points_in_triangle[i].lon, remained_points_in_triangle[i].lat);
 	}
+
+	printf("okok %d: (%lf %lf): [(%lf %lf), (%lf %lf), (%lf %lf)]\n", remained_points_in_triangle.size(), remained_points_in_triangle[best_candidate_id].lon, remained_points_in_triangle[best_candidate_id].lat, v[0].lon, v[0].lat, v[1].lon, v[1].lat, v[2].lon, v[2].lat);
 
 	return best_candidate_id;
 }
@@ -226,11 +236,21 @@ Edge::~Edge()
 }
 
 
-Point::Point(double lat, double lon, int id): lat(lat), lon(lon), id(id)
+void Point::update_coord_values(double lon, double lat)
 {
+	this->lon = lon;
+	this->lat = lat;
 	x = cosd(lat) * cosd(lon);
 	y = cosd(lat) * sind(lon);
-	z = sind(lat);
+	z = sind(lat);	
+}
+
+
+Point::Point(double lat, double lon, int id)
+{
+	this->id = id;
+	update_coord_values(lon, lat);
+	this->current_triangle = NULL;
 }
 
 
@@ -283,11 +303,11 @@ double Point::calculate_distance(const Point &pt) const
 int Point::position_to_edge(const Point &pt1, const Point &pt2) const
 {
 	double res1 = det(pt1, pt2, *this);
-	double res2 = det(pt2, *this, pt1);
-	double res3 = det(*this, pt1, pt2);
 
-	
-	if (fabs(res1) <= e || fabs(res2) <=e || fabs(res3) <= e)
+
+	printf("wuwu %lf\n", res1);
+	fflush(NULL);
+	if (fabs(res1) <= e)
 		return 0;
 	else if (res1 > 0)
 		return 1;
@@ -361,7 +381,7 @@ void Delaunay_Voronoi::generate_initial_triangles(Triangle *root, vector<Point> 
 	int i, max_i, i1, i2, j1, j2;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, boundary_points1->size()==boundary_points2->size() || boundary_points1->size()==1 || boundary_points2->size()==1,
+	EXECUTION_REPORT(REPORT_ERROR, -1, boundary_points1->size()==boundary_points2->size() || boundary_points1->size()==1 || boundary_points2->size()==1,
 		             "remap software error in generate_initial_triangles");
 	max_i = boundary_points1->size() > boundary_points2->size()? boundary_points1->size() : boundary_points2->size();
 	if (!cyclic)
@@ -376,6 +396,128 @@ void Delaunay_Voronoi::generate_initial_triangles(Triangle *root, vector<Point> 
 		if (i1 != i2)
 			root->children.push_back(new Triangle((*boundary_points2)[j2], (*boundary_points1)[i2], (*boundary_points1)[i1]));
 	}
+}
+
+
+void Delaunay_Voronoi::get_convex_set(int num_points, double *lat_values, double *lon_values, double min_lon, double max_lon, int &num_convex_set_points, int **convex_set_points_indx_ptr)
+{
+	double *temp_lat_values, *temp_lon_values, *points_angle_to_start;
+	double start_point_lat, start_point_lon, dx, dy;
+	int *index, *convex_set_points_indx;
+	int i, j, start_point_indx, num_convex_point_candidates, pos;
+	Point edge_start, edge_end, candidate_point;
+
+
+	points_angle_to_start = new double [num_points];
+	temp_lat_values = new double [num_points];
+	temp_lon_values = new double [num_points];
+	index = new int [num_points];
+	convex_set_points_indx = new int [num_points];
+	start_point_indx = -1;
+	for (i = 0; i < num_points; i ++) {
+		temp_lat_values[i] = lat_values[i];
+		temp_lon_values[i] = lon_values[i];
+		if (min_lon > max_lon && lon_values[i] < 360)
+			temp_lon_values[i] = lon_values[i] + 360;
+		if (start_point_indx == -1) {
+			start_point_lon = lon_values[0];
+			start_point_lat = lat_values[0];
+			start_point_indx = 0;
+		}
+		if (start_point_lat > lat_values[i] || (start_point_lat == lat_values[i] && start_point_lon > lon_values[i])) {
+			start_point_lon = lon_values[i];
+			start_point_lat = lat_values[i];
+			start_point_indx = i;
+		}
+	}
+
+	for (i = 0; i < num_points; i ++) {
+		index[i] = i;
+		if (i == start_point_indx) {
+			points_angle_to_start[i] = 0;
+			continue;
+		}
+		dx = temp_lon_values[i] - start_point_lon;
+		dy = temp_lat_values[i] - start_point_lat;
+		EXECUTION_REPORT(REPORT_ERROR, -1, dy >= 0, "Software error in Delaunay_Voronoi::get_convex_set");
+		if (dx == 0) {
+			points_angle_to_start[i] = 90;
+			continue;
+		}
+		points_angle_to_start[i] = atan(dy/dx)*180/PI;
+		if (points_angle_to_start[i] < 0)
+			points_angle_to_start[i] += 180;
+	}
+
+	do_quick_sort(points_angle_to_start, index, 0, num_points-1);
+	
+	for (i = 0; i < num_points; i ++)
+		printf("angle of %d (%d) is %lf\n", index[i], i, points_angle_to_start[i]);
+	for (i = 1, num_convex_point_candidates = 1; i < num_points; i ++) {
+		if (points_angle_to_start[i] != points_angle_to_start[i-1]) {
+			index[num_convex_point_candidates++] = index[i];
+			continue;
+		}
+		double dist1, dist2, dx, dy;
+		dx = temp_lon_values[index[num_convex_point_candidates-1]] - start_point_lon;
+		dy = temp_lat_values[index[num_convex_point_candidates-1]] - start_point_lat;
+		dist1 = dx*dx+dy*dy;
+		dx = temp_lon_values[index[i]] - start_point_lon;
+		dy = temp_lat_values[index[i]] - start_point_lat;
+		dist2 = dx*dx+dy*dy;
+		if (dist2 > dist1)
+			index[num_convex_point_candidates-1] = index[i];
+	}
+
+	printf("the start point is %d: %d (%lf %lf): %d vs %d\n", start_point_indx, num_points, lon_values[start_point_indx], lat_values[start_point_indx], num_convex_point_candidates, num_points);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_convex_point_candidates >= 3, "Software error2 in Delaunay_Voronoi::get_convex_set");
+
+	num_convex_set_points = 0;
+	convex_set_points_indx[num_convex_set_points++] = index[0];
+	convex_set_points_indx[num_convex_set_points++] = index[1];
+	convex_set_points_indx[num_convex_set_points++] = index[2];
+
+	for (i = 3; i < num_convex_point_candidates; i ++) {
+		for (j = num_convex_set_points-1; j > 0; j --) {
+			edge_start.update_coord_values(temp_lon_values[convex_set_points_indx[j-1]], temp_lat_values[convex_set_points_indx[j-1]]);
+			edge_end.update_coord_values(temp_lon_values[convex_set_points_indx[j]], temp_lat_values[convex_set_points_indx[j]]);
+			candidate_point.update_coord_values(temp_lon_values[index[i]], temp_lat_values[index[i]]);
+			pos = candidate_point.position_to_edge(edge_start, edge_end);
+			printf("pos is %d: (%lf %lf)-->(%lf %lf): %lf %lf\n", pos, edge_start.lon, edge_start.lat, edge_end.lon, edge_end.lat, candidate_point.lon, candidate_point.lat);
+			if (pos == 1 || pos == 0)
+				break;
+		}
+		if (num_convex_set_points != j+1)
+			printf("pop points from %d to %d : %d\n", num_convex_set_points, j+1, num_points);
+		fflush(NULL);
+		num_convex_set_points = j+1;
+		convex_set_points_indx[num_convex_set_points++] = index[i];
+	}
+
+	for (i = 0; i < num_points; i ++) {
+		for (j = 0; j < num_convex_set_points; j ++)
+			if (i == convex_set_points_indx[j])
+				break;
+		if (i < num_convex_set_points)
+			continue;
+		for (j = 0; j < num_convex_set_points; j ++) {
+			int j1 = j-1;
+			if (j1 < 0)
+				j1 += num_convex_set_points;
+			edge_start.update_coord_values(temp_lon_values[convex_set_points_indx[j1]], temp_lat_values[convex_set_points_indx[j1]]);
+			edge_end.update_coord_values(temp_lon_values[convex_set_points_indx[j]], temp_lat_values[convex_set_points_indx[j]]);
+			candidate_point.update_coord_values(temp_lon_values[index[i]], temp_lat_values[index[i]]);
+			pos = candidate_point.position_to_edge(edge_start, edge_end);
+			EXECUTION_REPORT(REPORT_ERROR, -1, pos >= 0, "Software error4 in Delaunay_Voronoi::get_convex_set");
+		}
+	}
+	
+	*convex_set_points_indx_ptr = convex_set_points_indx;
+
+	delete [] temp_lon_values;
+	delete [] temp_lat_values;
+	delete [] index;
+	delete [] points_angle_to_start;
 }
 
 
@@ -394,8 +536,19 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 	double boundary_point_lons[256];
 	vector<Point> boundary_points[3];
 	int set_id = 0;
-	bool cyclic = min_lon==0 && max_lon==360;
-	
+	bool cyclic = min_lon==0 && max_lon==360, *mark;
+	int num_convex_set_points, *convex_set_points_indx;
+
+
+	mark = new bool [num_points];
+	for (i = 0; i < num_points; i ++)
+		mark[i] = true;
+
+	if (max_lat != 90 && min_lat != -90 && !cyclic) {
+		get_convex_set(num_points, lat_values, lon_values, min_lon, max_lon, num_convex_set_points, &convex_set_points_indx);
+		for (i = 0; i < num_convex_set_points; i ++)
+			mark[convex_set_points_indx[i]] = false;
+	}
 
 	this->is_global_grid = is_global_grid;
 
@@ -405,13 +558,17 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 	for (i = 0; i < num_points; i ++) {
 		Point point(lat_values[i], lon_values[i], i);
 		cells[i].center = point;
+		if (!mark[i])
+			continue;
 		if (!redundant_cell_mark[i]) {
 			point.current_triangle = root;
 			root->remained_points_in_triangle.push_back(point);
 		}
 	}
+	
+	delete [] mark;
 
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
 
 	if (cyclic) {
 		for (i = 0; i < 4; i ++)
@@ -444,7 +601,7 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], max_lat, root, true));
 		set_id ++;
 	}
-	if (is_global_grid) {
+	if (is_global_grid || min_lat == -90 && max_lat == 90) {
 		for (i = 0; i < 4; i ++)
 			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], 0, root, false));
 		set_id ++;		
@@ -458,6 +615,23 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 		for (i = 0; i < 4; i ++)
 			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], min_lat, root, true));
 		set_id ++;
+	}
+
+	if (max_lat != 90 && min_lat != -90 && !cyclic) {
+		printf("find %d bounding box points: ", num_convex_set_points);
+		for (i = 0; i < num_convex_set_points; i ++)
+			printf(" (%lf %lf) ", lon_values[convex_set_points_indx[i]], lat_values[convex_set_points_indx[i]]);
+		printf("\n");
+		boundary_points[0].clear();
+		boundary_points[1].clear();
+		for (i = 1; i < num_convex_set_points; i ++) {
+			boundary_points[1].push_back(Point(lat_values[convex_set_points_indx[i]], lon_values[convex_set_points_indx[i]], convex_set_points_indx[i]));
+			cells[convex_set_points_indx[i]].center = boundary_points[1][boundary_points[1].size()-1];
+		}
+		boundary_points[0].push_back(Point(lat_values[convex_set_points_indx[0]], lon_values[convex_set_points_indx[0]], convex_set_points_indx[0]));
+		cells[convex_set_points_indx[0]].center = boundary_points[0][boundary_points[0].size()-1];
+		set_id = 2;
+		delete [] convex_set_points_indx;
 	}
 
 	generate_initial_triangles(root, &boundary_points[0], &boundary_points[1], cyclic);
@@ -509,7 +683,7 @@ void Delaunay_Voronoi::extract_vertex_coordinate_values(int num_points, bool is_
 		sort_vertexes_of_sphere_cell(current_num_vertices, tmp_vertexes_lons, tmp_vertexes_lats);
 		if (!is_point_in_2D_cell(cells[i].center.lon, cells[i].center.lat, tmp_vertexes_lons, tmp_vertexes_lats, 
 			                     current_num_vertices, true, true, true)) {
-//			EXECUTION_REPORT(REPORT_ERROR,-1, !is_global_grid, "remap software erorr in extract_vertex_coordinate_values\n");
+//			EXECUTION_REPORT(REPORT_ERROR, -1, !is_global_grid, "remap software erorr in extract_vertex_coordinate_values\n");
 			tmp_vertexes_lons[current_num_vertices] = cells[i].center.lon;
 			tmp_vertexes_lats[current_num_vertices] = cells[i].center.lat;
 			current_num_vertices ++;
@@ -573,9 +747,11 @@ void Delaunay_Voronoi::distribute_points_into_triangles(vector<Point> *pnts, vec
 
 	for (int i = 0; i < pnts->size(); i ++) {
 		find_triangle = false;
+		printf("size is %d: %lf %lf\n", triangles->size(), (*pnts)[i].lon, (*pnts)[i].lat);
 		for (int j = 0; j < triangles->size(); j ++) {
 			if (!((*triangles)[j])->is_leaf)
 				continue;
+			printf("check %d: (%lf %lf) (%lf %lf) (%lf %lf)\n", j, ((*triangles)[j])->v[0].lon, ((*triangles)[j])->v[0].lat, ((*triangles)[j])->v[1].lon, ((*triangles)[j])->v[1].lat, ((*triangles)[j])->v[2].lon, ((*triangles)[j])->v[2].lat);
 			if ((*pnts)[i].position_to_triangle(((*triangles)[j])) >= 0) {
 				(*pnts)[i].current_triangle = (*triangles)[j];
 				(*triangles)[j]->remained_points_in_triangle.push_back((*pnts)[i]);
@@ -585,8 +761,8 @@ void Delaunay_Voronoi::distribute_points_into_triangles(vector<Point> *pnts, vec
 		}
 		if (!find_triangle) 
 			if (is_global_grid)
-				EXECUTION_REPORT(REPORT_ERROR,-1, "CoR may have bugs, please contact liuli-cess@tsinghua.edu.cn");
-			else EXECUTION_REPORT(REPORT_ERROR,-1, "please enlarge the boundary of the regional grid"); 
+				EXECUTION_REPORT(REPORT_ERROR, -1, false, "CoR may have bugs, please contact liuli-cess@tsinghua.edu.cn");
+			else EXECUTION_REPORT(REPORT_ERROR, -1, false, "please enlarge the boundary of the regional grid"); 
 	}
 }
 
@@ -663,52 +839,60 @@ void Delaunay_Voronoi::triangularization_process(Triangle *triangle, bool is_glo
 				eij = triangle->edge[2];
 				break;
 			default:
-				EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in triangularization_process");
+				EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error2 in triangularization_process");
 				break;
 		}
-		EXECUTION_REPORT(REPORT_ERROR,-1, best_candidate_point.position_to_edge(vi, vj) == 0, "remap software error3 in triangularization_process");
-		EXECUTION_REPORT(REPORT_ERROR,-1, eij->twin_edge->triangle->is_leaf, "remap software error3 in triangularization_process");
-		eij->twin_edge->triangle->is_leaf = false;
+		EXECUTION_REPORT(REPORT_ERROR, -1, best_candidate_point.position_to_edge(vi, vj) == 0, "remap software error3 in triangularization_process");
+		if (eij->twin_edge != NULL)
+			EXECUTION_REPORT(REPORT_ERROR, -1, eij->twin_edge->triangle->is_leaf, "remap software error3 in triangularization_process");
         ejk = eij->next_edge_in_triangle;
         eki = ejk->next_edge_in_triangle;
-        eji = eij->twin_edge;
-        eil = eji->next_edge_in_triangle;
-        elj = eil->next_edge_in_triangle;
-        vl = elj->head;
+		if (eij->twin_edge != NULL) { 
+	        eji = eij->twin_edge;
+			eij->twin_edge->triangle->is_leaf = false;
+	        eil = eji->next_edge_in_triangle;
+	        elj = eil->next_edge_in_triangle;
+			vl = elj->head;
+		}
 		Edge *eri = new Edge(best_candidate_point, vi);
 		Edge *eir = eri->generate_twins_edge();
 		Edge *erk = new Edge(best_candidate_point, vk);
 		Edge *ekr = erk->generate_twins_edge();
 		Edge *erj = new Edge(best_candidate_point, vj);
-		Edge *ejr = erj->generate_twins_edge();
-		Edge *erl = new Edge(best_candidate_point, vl);
-		Edge *elr = erl->generate_twins_edge();
 		Triangle* tirk = new Triangle(eir, erk, eki);
-		Triangle* tilr = new Triangle(eil, elr, eri);
 		Triangle* tjkr = new Triangle(ejk, ekr, erj);
-		Triangle* tjrl = new Triangle(ejr, erl, elj);
 		leaf_triangles.push_back(triangle);
-		leaf_triangles.push_back(eij->twin_edge->triangle);
 		leaf_triangles.push_back(tirk);
-		leaf_triangles.push_back(tilr);
 		leaf_triangles.push_back(tjkr);
-		leaf_triangles.push_back(tjrl);
 		triangle->reference_count ++;
 		tirk->reference_count ++;
-		tilr->reference_count ++;
 		tjkr->reference_count ++;
-		tjrl->reference_count ++;
-		delete eij;
-        delete eji;
-		legalize_triangles(best_candidate_point, eil, &leaf_triangles);
-        legalize_triangles(best_candidate_point, elj, &leaf_triangles);
         legalize_triangles(best_candidate_point, ejk, &leaf_triangles);
         legalize_triangles(best_candidate_point, eki, &leaf_triangles);	
+		if (eij->twin_edge != NULL) {
+			Edge *ejr = erj->generate_twins_edge();
+			Edge *erl = new Edge(best_candidate_point, vl);
+			Edge *elr = erl->generate_twins_edge();
+			Triangle* tilr = new Triangle(eil, elr, eri);
+			Triangle* tjrl = new Triangle(ejr, erl, elj);
+			leaf_triangles.push_back(eij->twin_edge->triangle);
+			leaf_triangles.push_back(tilr);
+			leaf_triangles.push_back(tjrl);
+			tilr->reference_count ++;
+			tjrl->reference_count ++;
+			legalize_triangles(best_candidate_point, eil, &leaf_triangles);
+			legalize_triangles(best_candidate_point, elj, &leaf_triangles);
+			delete eji;
+		}
+		else {
+			eir->twin_edge = NULL;
+		}
+		delete eij;
 	}
 
 	for (int i = 0; i < leaf_triangles.size(); i ++) {
 		if (leaf_triangles[i]->is_leaf)
-			EXECUTION_REPORT(REPORT_ERROR,-1, leaf_triangles[i]->remained_points_in_triangle.size() == 0, "remap software error1 in triangularization_process");
+			EXECUTION_REPORT(REPORT_ERROR, -1, leaf_triangles[i]->remained_points_in_triangle.size() == 0, "remap software error1 in triangularization_process");
 	}
 	for (int i = 0; i < leaf_triangles.size(); i ++) {
 		if (leaf_triangles[i]->is_leaf)
@@ -751,15 +935,16 @@ void Delaunay_Voronoi::legalize_triangles(const Point &vr, Edge *edge, vector<Tr
 	if (is_triangle_legal(vr, edge))
 		return;
 
-	EXECUTION_REPORT(REPORT_ERROR,-1, edge->triangle->is_leaf, "remap software error1 in legalize_triangles\n");
-	EXECUTION_REPORT(REPORT_ERROR,-1, edge->twin_edge->triangle->is_leaf, "remap software error2 in legalize_triangles %lx\n", (long)(edge->twin_edge->triangle));
+	EXECUTION_REPORT(REPORT_ERROR, -1, edge->triangle->is_leaf, "remap software error1 in legalize_triangles\n");
+	EXECUTION_REPORT(REPORT_ERROR, -1, edge->twin_edge->triangle->is_leaf, "remap software error2 in legalize_triangles %lx\n", (long)(edge->twin_edge->triangle));
 	leaf_triangles->push_back(edge->twin_edge->triangle);
 	edge->twin_edge->triangle->reference_count ++;
 	edge->triangle->is_leaf = false;
 	edge->twin_edge->triangle->is_leaf = false;
 
-	const Point vi = edge->head;
-	const Point vj = edge->tail;
+	printf("twin triangle (%lf %lf) (%lf %lf) (%lf %lf)\n", edge->twin_edge->triangle->v[0].lon, edge->twin_edge->triangle->v[0].lat, 
+		edge->twin_edge->triangle->v[1].lon, edge->twin_edge->triangle->v[1].lat, edge->twin_edge->triangle->v[2].lon, edge->twin_edge->triangle->v[2].lat);
+
 	const Point vk = edge->twin_edge->prev_edge_in_triangle->head;
 	Edge *eij = edge;
 	Edge *ejr = eij->next_edge_in_triangle;
@@ -796,7 +981,7 @@ void Delaunay_Voronoi::generate_Voronoi_diagram()
 			result_leaf_triangles[i]->center = result_leaf_triangles[i]->get_center_coordinates();
 			printf("leaf triangle <%lf %lf>  <%lf %lf>  <%lf %lf>\n", result_leaf_triangles[i]->v[0].lon, result_leaf_triangles[i]->v[0].lat,
 				result_leaf_triangles[i]->v[1].lon, result_leaf_triangles[i]->v[1].lat, result_leaf_triangles[i]->v[2].lon, result_leaf_triangles[i]->v[2].lat);
-			EXECUTION_REPORT(REPORT_ERROR,-1, is_triangle_legal(result_leaf_triangles[i]->v[0],result_leaf_triangles[i]->edge[1])&&
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_triangle_legal(result_leaf_triangles[i]->v[0],result_leaf_triangles[i]->edge[1])&&
 				             is_triangle_legal(result_leaf_triangles[i]->v[1],result_leaf_triangles[i]->edge[2])&&
 				             is_triangle_legal(result_leaf_triangles[i]->v[2],result_leaf_triangles[i]->edge[0]),
 				             "remap_software error in generate_Voronoi_diagram");
@@ -813,8 +998,10 @@ void Delaunay_Voronoi::generate_Voronoi_diagram()
 				result_leaf_triangles[i]->center.lat = (cells[none_virtual_vertexes[0]].center.lat+cells[none_virtual_vertexes[1]].center.lat) / 2;
 				result_leaf_triangles[i]->center.lon = (cells[none_virtual_vertexes[0]].center.lon+cells[none_virtual_vertexes[1]].center.lon) / 2;;
 			}
-			for (j = 0, num_none_virtual_vertexes = 0; j < 3; j ++)
+			for (j = 0; j < 3; j ++)
 				if (result_leaf_triangles[i]->v[j].id != -1) {
+					if (2531 == result_leaf_triangles[i]->v[j].id)
+						printf("wuwu ai (%lf %lf) : %d\n",  result_leaf_triangles[i]->center.lon, result_leaf_triangles[i]->center.lat, num_none_virtual_vertexes);
 					cells[result_leaf_triangles[i]->v[j].id].vertexes_lats.push_back(result_leaf_triangles[i]->center.lat);
 					cells[result_leaf_triangles[i]->v[j].id].vertexes_lons.push_back(result_leaf_triangles[i]->center.lon);
 				}		

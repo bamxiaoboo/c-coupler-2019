@@ -49,8 +49,6 @@ class Remap_operator_basis
         long size_index_src_cells_overlap_with_dst_cells;
 		bool enable_extrapolate;
 
-        void get_all_overlapping_src_cells_recursively(long, long, int&, long*);
-
     public:
         Remap_operator_basis(const char*, const char*, int, bool, bool, bool, int, Remap_grid_class **);
         Remap_operator_basis() {}

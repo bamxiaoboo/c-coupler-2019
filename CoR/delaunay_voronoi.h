@@ -56,6 +56,8 @@ class Point
 		{
 			return lat != pt.lat || lon != pt.lon;
 		}
+
+		void update_coord_values(double, double);
 };
 
 
@@ -135,6 +137,7 @@ class Delaunay_Voronoi
 		Triangle *search_triangle_with_point(Triangle*, const Point &pt);
 		void generate_Voronoi_diagram();
 		void extract_vertex_coordinate_values(int, bool, double**, double**, int*);
+		void get_convex_set(int, double*, double*, double, double, int &, int **);
 };
 
 #endif

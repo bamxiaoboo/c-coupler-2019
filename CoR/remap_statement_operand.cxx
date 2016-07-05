@@ -94,7 +94,7 @@ template <class T> void interchange_array_data(int num_sized_sub_grids_src,
     }
 
     for (i = 0; i < num_sized_sub_grids_src; i ++)
-        EXECUTION_REPORT(REPORT_ERROR,-1, sub_grid_indexes_src[i] == 0 && sub_grid_indexes_interchange[i] == 0,
+        EXECUTION_REPORT(REPORT_ERROR, -1, sub_grid_indexes_src[i] == 0 && sub_grid_indexes_interchange[i] == 0,
                      "remap software error2 when interchanging field data\n");
 }
 
@@ -131,7 +131,7 @@ Remap_data_field *Remap_data_field::duplicate_remap_data_field(long data_size, b
     }
     duplicated_data_field->data_buf = new char [duplicated_data_field->required_data_size*get_data_type_size(duplicated_data_field->data_type_in_application)];
     if (copy_data) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, this->required_data_size == duplicated_data_field->required_data_size, "remap software error in duplicate_remap_data_field\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, this->required_data_size == duplicated_data_field->required_data_size, "remap software error in duplicate_remap_data_field\n");
         memcpy(duplicated_data_field->data_buf, this->data_buf, duplicated_data_field->required_data_size*get_data_type_size(duplicated_data_field->data_type_in_application));
     }
     else memset(duplicated_data_field->data_buf, 0, duplicated_data_field->required_data_size*get_data_type_size(duplicated_data_field->data_type_in_application));
@@ -153,7 +153,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
     int num_point_per_cell;
 
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, this->required_data_size % grid_src->get_grid_size() == 0,
+    EXECUTION_REPORT(REPORT_ERROR, -1, this->required_data_size % grid_src->get_grid_size() == 0,
                  "remap software error in interchange_remap_data_field\n");
 
     grid_src->get_sized_sub_grids(&num_sized_sub_grids_src, sized_sub_grids_src);
@@ -213,7 +213,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
                            (short*) field_data_interchanged->data_buf,
                            grid_src->get_grid_size(),
                            num_point_per_cell);
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error in interchange_remap_data_field\n");
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error in interchange_remap_data_field\n");
 }
 
 
@@ -239,7 +239,7 @@ void Remap_data_field::read_fill_value()
                 fill_value = (double) ((short*) field_attributes[i].attribute_value)[0];
             else if (words_are_the_same(field_attributes[i].attribute_type, DATA_TYPE_BOOL)) 
                 fill_value = (double) ((bool*) field_attributes[i].attribute_value)[0];
-            else EXECUTION_REPORT(REPORT_ERROR,-1, false, "the fill value of \"%s\" must be a float, double, int or short value, %s\n", field_name_in_application, field_attributes[i].attribute_type);
+            else EXECUTION_REPORT(REPORT_ERROR, -1, false, "the fill value of \"%s\" must be a float, double, int or short value, %s\n", field_name_in_application, field_attributes[i].attribute_type);
         }
 }
 
@@ -264,7 +264,7 @@ void Remap_data_field::set_fill_value(void *given_fill_value)
     read_fill_value();
 
     if (given_fill_value != NULL) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, have_fill_value, "remap software error1 in set_fill_value\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, have_fill_value, "remap software error1 in set_fill_value\n");
         if (words_are_the_same(data_type_in_application, DATA_TYPE_BOOL))
             fill_value = (double)(((bool*)given_fill_value)[0]);
         else if (words_are_the_same(data_type_in_application, DATA_TYPE_LONG))
@@ -277,7 +277,7 @@ void Remap_data_field::set_fill_value(void *given_fill_value)
             fill_value = (double)(((float*)given_fill_value)[0]);
         else if (words_are_the_same(data_type_in_application, DATA_TYPE_DOUBLE))
             fill_value = (double)(((double*)given_fill_value)[0]);
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error1 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);  
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error1 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);  
     }
 
     if (have_fill_value) {
@@ -294,7 +294,7 @@ void Remap_data_field::set_fill_value(void *given_fill_value)
             *((float*) attribute_value) = (float) fill_value;
         else if (words_are_the_same(data_type_in_application, DATA_TYPE_DOUBLE))
             *((double*) attribute_value) = (double) fill_value;
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error2 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);
     }
     else {
         if (words_are_the_same(data_type_in_application, DATA_TYPE_BOOL))
@@ -309,7 +309,7 @@ void Remap_data_field::set_fill_value(void *given_fill_value)
             *((float*) attribute_value) = DEFAULT_FILL_VALUE;
         else if (words_are_the_same(data_type_in_application, DATA_TYPE_DOUBLE))
             *((double*) attribute_value) = DEFAULT_FILL_VALUE;
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error2 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);
     }
 	
     strcpy(remap_field_attribute.attribute_name, FILL_VALUE_LABEL);
@@ -338,7 +338,7 @@ void Remap_data_field::initialize_to_fill_value()
         initialize_data_buf_to_fill_value((double*) data_buf, required_data_size, (double) fill_value);
     else if (words_are_the_same(data_type_in_application, DATA_TYPE_BOOL))
         initialize_data_buf_to_fill_value((bool*) data_buf, required_data_size, (bool) fill_value);
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error2 in initialize_to_fill_value \"%s\"\n", data_type_in_application);
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error2 in initialize_to_fill_value \"%s\"\n", data_type_in_application);
 }
 
 
@@ -394,13 +394,13 @@ void Remap_data_field::read_scale_factor_and_add_offset(double *scale_factor, do
     for (i = 0; i < field_attributes.size(); i ++)
         if (words_are_the_same(field_attributes[i].attribute_name, "scale_factor"))
             break;
-    EXECUTION_REPORT(REPORT_ERROR,-1, i < field_attributes.size(), "scale factor is not set in field %s\n", field_name_in_application);
+    EXECUTION_REPORT(REPORT_ERROR, -1, i < field_attributes.size(), "scale factor is not set in field %s\n", field_name_in_application);
     *scale_factor = ((double*)field_attributes[i].attribute_value)[0];
 
     for (i = 0; i < field_attributes.size(); i ++)
         if (words_are_the_same(field_attributes[i].attribute_name, "add_offset"))
             break;
-    EXECUTION_REPORT(REPORT_ERROR,-1, i < field_attributes.size(), "add offset is not set in field %s\n", field_name_in_application);
+    EXECUTION_REPORT(REPORT_ERROR, -1, i < field_attributes.size(), "add offset is not set in field %s\n", field_name_in_application);
     *add_offset = ((double*)field_attributes[i].attribute_value)[0];
 }
 

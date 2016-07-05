@@ -34,7 +34,7 @@
 #define COORD_UNIT_RADIANS                    "radians"
 #define COORD_UNIT_DEGREES                    "degrees"
 #define GRID_FIELD_ATTRIBUTE_UNITS            "units"
-#define SPHERE_GRID_ROTATION_LAT_THRESHOLD    ((double) 70.0)
+#define SPHERE_GRID_ROTATION_LAT_THRESHOLD    ((double) 90.0)
 
 
 class Runtime_remap_function;
@@ -169,7 +169,7 @@ class Remap_grid_class
         const Remap_grid_class *get_whole_grid() const { return whole_grid; }
         Remap_grid_class *get_super_grid_of_setting_coord_values() const { return super_grid_of_setting_coord_values; }
         Remap_grid_class *get_first_super_grid_of_enable_setting_coord_value() { return first_super_grid_of_enable_setting_coord_value; }
-        void get_leaf_grids(int *, Remap_grid_class**, Remap_grid_class*);
+        void get_leaf_grids(int *, Remap_grid_class**, const Remap_grid_class*) const;
 		Remap_grid_class *get_a_leaf_grid_of_sigma_or_hybrid();
 		Remap_grid_class *get_a_leaf_grid(const char*);
         void get_sized_sub_grids(int*, Remap_grid_class**);
@@ -180,8 +180,8 @@ class Remap_grid_class
 		Remap_grid_class *get_original_grid() { return original_grid; }
         Remap_grid_data_class *get_grid_center_field() const;
         Remap_grid_data_class *get_grid_vertex_field() const;
-        bool has_grid_coord_label(const char*);
-        bool get_is_sphere_grid();
+        bool has_grid_coord_label(const char*) const;
+        bool get_is_sphere_grid() const;
         bool are_all_vertex_fields_specified_by_user();
         double *get_area_or_volumn() { return area_or_volumn; }
 

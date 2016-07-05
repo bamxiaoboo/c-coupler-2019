@@ -15,7 +15,7 @@
 
 void Remap_operator_distwgt::set_parameter(const char *parameter_name, const char *parameter_value)
 {
-    EXECUTION_REPORT(REPORT_ERROR,-1, enable_to_set_parameters, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
 
@@ -29,9 +29,9 @@ void Remap_operator_distwgt::set_parameter(const char *parameter_name, const cha
 	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
 		if (words_are_the_same(parameter_value, "true"))
 	        enable_extrapolate = true;
-		else EXECUTION_REPORT(REPORT_ERROR,-1, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
 	}
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, 
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "\"%s\" is a illegal parameter of remap operator \"%s\"\n",
                       parameter_name,
                       operator_name);

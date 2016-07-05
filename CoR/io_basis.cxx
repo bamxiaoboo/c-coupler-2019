@@ -104,7 +104,7 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
                                    (short*)field_data_in_io->get_grid_data_field()->data_buf, (short)fill_value_io, runtime_mask_values, 
                                    field_data_in_application->get_grid_data_field()->required_data_size, add_offset, scale_factor);
         }
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error1 in copy_field_data_for_IO\n");
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error1 in copy_field_data_for_IO\n");
     else if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT)) 
         if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE))
             copy_data_values_for_IO((float*)field_data_in_application->get_grid_data_field()->data_buf, (float)fill_value_application, 
@@ -120,19 +120,19 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
                                    (short*)field_data_in_io->get_grid_data_field()->data_buf, (short)fill_value_io, runtime_mask_values, 
                                    field_data_in_application->get_grid_data_field()->required_data_size, add_offset, scale_factor);
         }
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error2 in copy_field_data_for_IO\n");
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error2 in copy_field_data_for_IO\n");
     else if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_LONG)) 
         if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT)) 
             copy_data_values_for_IO((long*)field_data_in_application->get_grid_data_field()->data_buf, (long)fill_value_application, 
                                    (int*)field_data_in_io->get_grid_data_field()->data_buf, (int)fill_value_io, runtime_mask_values, 
                                    field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error3 in copy_field_data_for_IO\n");    
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error3 in copy_field_data_for_IO\n");    
     else if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT)) 
         if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT)) 
             copy_data_values_for_IO((int*)field_data_in_application->get_grid_data_field()->data_buf, (int)fill_value_application, 
                                    (int*)field_data_in_io->get_grid_data_field()->data_buf, (int)fill_value_io, runtime_mask_values, 
                                    field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error4 in copy_field_data_for_IO\n"); 
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error4 in copy_field_data_for_IO\n"); 
     else if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_BOOL)) 
         if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT)) 
             copy_data_values_for_IO((bool*)field_data_in_application->get_grid_data_field()->data_buf, (bool)fill_value_application, 
@@ -142,14 +142,14 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
 					copy_data_values_for_IO((bool*)field_data_in_application->get_grid_data_field()->data_buf, (bool)fill_value_application, 
 										   (bool*)field_data_in_io->get_grid_data_field()->data_buf, (bool)fill_value_io, runtime_mask_values, 
 										   field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error5 in copy_field_data_for_IO\n");
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error5 in copy_field_data_for_IO\n");
     else if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_SHORT)) 
         if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_SHORT)) 
             copy_data_values_for_IO((short*)field_data_in_application->get_grid_data_field()->data_buf, (short)fill_value_application, 
                                    (short*)field_data_in_io->get_grid_data_field()->data_buf, (short)fill_value_io, runtime_mask_values, 
                                    field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error6 in copy_field_data_for_IO\n");
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error in copy_field_data_for_IO\n");
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error6 in copy_field_data_for_IO\n");
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error in copy_field_data_for_IO\n");
 
     if (runtime_mask_field != NULL)
         delete runtime_mask_field;

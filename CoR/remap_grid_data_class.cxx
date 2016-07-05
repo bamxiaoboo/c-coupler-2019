@@ -75,20 +75,20 @@ Remap_grid_data_class::Remap_grid_data_class(const char *field_data_name,
     grid_data_field->read_data_size = num_value_points;
 	coord_value_grid = NULL;
     if (grid_name != NULL) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_value_points == remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_grid_size(),
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_value_points == remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_grid_size(),
                      "the size of span array must be the same as the size of grid \"%s\"\n",
                      remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_grid_name());
-        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_coord_label(), field_data_name),
+        EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_coord_label(), field_data_name),
                      "remap software error1 in Remap_grid_data_class for spanning data\n");
         generate_grid_info(remap_grid_manager->search_remap_grid_with_grid_name(grid_name));
     }
     
     if (words_are_the_same(span_data_type, DATA_TYPE_LONG)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, (long) bound_start_value == bound_start_value, "the first input parameter of ispan function must be an integer\n");
-        EXECUTION_REPORT(REPORT_ERROR,-1, (long) bound_end_value == bound_end_value, "the second input parameter of ispan function must be an integer\n");
-        EXECUTION_REPORT(REPORT_ERROR,-1, ((long)bound_end_value - (long)bound_start_value)%(num_value_points-1) == 0, "for ispan function, the number of elements in span array does not match the start and end boundaries\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, (long) bound_start_value == bound_start_value, "the first input parameter of ispan function must be an integer\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, (long) bound_end_value == bound_end_value, "the second input parameter of ispan function must be an integer\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, ((long)bound_end_value - (long)bound_start_value)%(num_value_points-1) == 0, "for ispan function, the number of elements in span array does not match the start and end boundaries\n");
     }
-    else EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(span_data_type, DATA_TYPE_DOUBLE), "remap software error2 in Remap_grid_data_class for spanning data\n");
+    else EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(span_data_type, DATA_TYPE_DOUBLE), "remap software error2 in Remap_grid_data_class for spanning data\n");
 
     if (words_are_the_same(grid_data_type, DATA_TYPE_LONG) && words_are_the_same(span_data_type, DATA_TYPE_LONG))
         span_data_array((long*) grid_data_field->data_buf, (long) bound_start_value, (long) bound_end_value, num_value_points);
@@ -96,7 +96,7 @@ Remap_grid_data_class::Remap_grid_data_class(const char *field_data_name,
         span_data_array((double*) grid_data_field->data_buf, (long) bound_start_value, (long) bound_end_value, num_value_points);
     else if (words_are_the_same(grid_data_type, DATA_TYPE_DOUBLE) && words_are_the_same(span_data_type, DATA_TYPE_DOUBLE))
         span_data_array((double*) grid_data_field->data_buf, (double) bound_start_value, (double) bound_end_value, num_value_points);
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "remap software error3 in Remap_grid_data_class for spanning data\n");
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error3 in Remap_grid_data_class for spanning data\n");
 }
 
 
@@ -110,7 +110,7 @@ void Remap_grid_data_class::generate_grid_info(Remap_grid_class *coord_value_gri
     if (coord_value_grid != NULL) {
         coord_value_grid->get_sized_sub_grids(&num_sized_grids, sized_grids);
         reset_sized_grids(num_sized_grids, sized_grids);
-        EXECUTION_REPORT(REPORT_ERROR,-1, this->sized_grids.size() > 0, "remap software error in function Remap_grid_data_class\n");
+        EXECUTION_REPORT(REPORT_ERROR, -1, this->sized_grids.size() > 0, "remap software error in function Remap_grid_data_class\n");
     }
 }
 
@@ -153,14 +153,14 @@ Remap_grid_data_class *Remap_grid_data_class::duplicate_grid_data_field(Remap_gr
 
     if (copy_data) {
 		if (coord_value_grid != NULL)
-	        EXECUTION_REPORT(REPORT_ERROR,-1, associative_grid->get_grid_size() == coord_value_grid->get_grid_size(), "remap software error1 in duplicate_grid_data_field\n");
+	        EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_grid_size() == coord_value_grid->get_grid_size(), "remap software error1 in duplicate_grid_data_field\n");
 		else {
-			EXECUTION_REPORT(REPORT_ERROR,-1, associative_grid->get_grid_size() == grid_data_field->required_data_size, "remap software error1 in duplicate_grid_data_field\n");
-			EXECUTION_REPORT(REPORT_ERROR,-1, associative_grid->get_num_dimensions() == 1, "When copy none-grided field %s to a grided field, the grid %s of the grided field must be 1D grid", 
+			EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_grid_size() == grid_data_field->required_data_size, "remap software error1 in duplicate_grid_data_field\n");
+			EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_num_dimensions() == 1, "When copy none-grided field %s to a grided field, the grid %s of the grided field must be 1D grid", 
 							 grid_data_field->field_name_in_application, associative_grid->get_grid_name());
 		}
     }
-    EXECUTION_REPORT(REPORT_ERROR,-1, associative_grid->get_whole_grid() == NULL, "remap software error2 duplicate_grid_data_field\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_whole_grid() == NULL, "remap software error2 duplicate_grid_data_field\n");
 
     duplicated_data_field = grid_data_field->duplicate_remap_data_field(associative_grid->get_grid_size()*num_points_per_cell, copy_data);
     duplicated_grid_data_field = new Remap_grid_data_class(associative_grid, duplicated_data_field);
@@ -217,7 +217,7 @@ void Remap_grid_data_class::interchange_grid_data(Remap_grid_class *interchange_
     for (i = 0; i < sized_grids.size(); i ++)
         sized_grids_src[i] = sized_grids[i];
     src_grid_of_grid_data = new Remap_grid_class("TEMP_GRID\0", sized_grids.size(), sized_grids_src, 0);
-    EXECUTION_REPORT(REPORT_ERROR,-1, src_grid_of_grid_data->is_similar_grid_with(interchanged_grid_of_grid_data), 
+    EXECUTION_REPORT(REPORT_ERROR, -1, src_grid_of_grid_data->is_similar_grid_with(interchanged_grid_of_grid_data), 
                  "remap software error2 in interchange_grid_data\n\n");
 
     if (src_grid_of_grid_data->is_the_same_grid_with(interchanged_grid_of_grid_data)) {
@@ -248,7 +248,7 @@ void Remap_grid_data_class::reset_sized_grids(int num_sized_grids, Remap_grid_cl
         grid_size *= sized_grids[i]->get_grid_size();
     }
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, grid_data_field->required_data_size%grid_size == 0, "remap software error2 in reset_sized_grids\n");    
+    EXECUTION_REPORT(REPORT_ERROR, -1, grid_data_field->required_data_size%grid_size == 0, "remap software error2 in reset_sized_grids\n");    
 }
 
 
@@ -270,8 +270,8 @@ bool Remap_grid_data_class::is_unit_degree()
         if (words_are_the_same(leaf_grids[i]->get_coord_label(), grid_data_field->field_name_in_application))
             break;
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, i < num_leaf_grids, "remap software error1 in is_unit_degree\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(leaf_grids[i]->get_coord_unit(), COORD_UNIT_RADIANS), "remap software error2 in is_unit_degree\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, i < num_leaf_grids, "remap software error1 in is_unit_degree\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(leaf_grids[i]->get_coord_unit(), COORD_UNIT_RADIANS), "remap software error2 in is_unit_degree\n");
 
     return words_are_the_same(leaf_grids[i]->get_coord_unit(), COORD_UNIT_DEGREES);
 }
@@ -302,17 +302,17 @@ void Remap_grid_data_class::generate_analytic_values(const char *case_name)
     long i;
     
     
-    EXECUTION_REPORT(REPORT_ERROR,-1, coord_value_grid != NULL,
+    EXECUTION_REPORT(REPORT_ERROR, -1, coord_value_grid != NULL,
                  "the field data used to generate analytic values must have associated grid\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_DOUBLE),
+    EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_DOUBLE),
                  "the data type of the field data used to generate analytic values must be double\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, grid_data_field->required_data_size == coord_value_grid->get_grid_size(),
+    EXECUTION_REPORT(REPORT_ERROR, -1, grid_data_field->required_data_size == coord_value_grid->get_grid_size(),
                  "remap software error in generate_analytic_values\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, coord_value_grid->get_num_dimensions() == 2, "can only generate the analytic values of 2D grid\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, coord_value_grid->get_num_dimensions() == 2, "can only generate the analytic values of 2D grid\n");
 
     coord_value_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, coord_value_grid);
     for (i = 0; i < num_leaf_grids; i ++)
-        EXECUTION_REPORT(REPORT_ERROR,-1, leaf_grids[i]->get_super_grid_of_setting_coord_values() != NULL, 
+        EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids[i]->get_super_grid_of_setting_coord_values() != NULL, 
                      "can not generate the analytic values of \"%s\" because the center values of cooridinate \"%s\" in associated grid \"%s\" are not set\n",
                      grid_data_field->field_name_in_application,
                      leaf_grids[i]->get_coord_label(),
@@ -329,7 +329,7 @@ void Remap_grid_data_class::generate_analytic_values(const char *case_name)
     result_values = (double*) grid_data_field->data_buf;
 
     if (words_are_the_same(case_name, "analytic_2D_case1")) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, coord_value_grid->get_num_dimensions() == 2,
+        EXECUTION_REPORT(REPORT_ERROR, -1, coord_value_grid->get_num_dimensions() == 2,
                      "analytic_2D_case1 is used for 2D grid while associated grid \"%s\" is not a 2D grid\n",
                      coord_value_grid->get_grid_name());
         for (i = 0; i < coord_value_grid->get_grid_size(); i ++)
@@ -340,7 +340,7 @@ void Remap_grid_data_class::generate_analytic_values(const char *case_name)
             }
     }
     else if (words_are_the_same(case_name, "analytic_2D_case2")) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, coord_value_grid->get_num_dimensions() == 2,
+        EXECUTION_REPORT(REPORT_ERROR, -1, coord_value_grid->get_num_dimensions() == 2,
                      "analytic_2D_case2 is used for 2D grid while associated grid \"%s\" is not a 2D grid\n",
                      coord_value_grid->get_grid_name());
         for (i = 0; i < coord_value_grid->get_grid_size(); i ++)
@@ -351,7 +351,7 @@ void Remap_grid_data_class::generate_analytic_values(const char *case_name)
             }
     }
     else if (words_are_the_same(case_name, "analytic_2D_case3")) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, coord_value_grid->get_num_dimensions() == 2,
+        EXECUTION_REPORT(REPORT_ERROR, -1, coord_value_grid->get_num_dimensions() == 2,
                      "analytic_2D_case3 is used for 2D grid while associated grid \"%s\" is not a 2D grid\n",
                      coord_value_grid->get_grid_name());
         for (i = 0; i < coord_value_grid->get_grid_size(); i ++)
@@ -359,7 +359,7 @@ void Remap_grid_data_class::generate_analytic_values(const char *case_name)
                 result_values[i] = 0;
             else result_values[i] = 2 - cos(acos(cos(DEGREE_TO_RADIAN(expanded_grid_center_values[1][i]))*cos(DEGREE_TO_RADIAN(expanded_grid_center_values[0][i])))/1.2);    
     }
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "\"%s\" is not a legal case name of generating analytic values\n", case_name);
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "\"%s\" is not a legal case name of generating analytic values\n", case_name);
 
     grid_data_field->read_data_size = grid_data_field->required_data_size;
     for (i = 0; i < num_leaf_grids; i ++)
@@ -374,15 +374,15 @@ void Remap_grid_data_class::evaluate_error(Remap_grid_data_class *first_field_da
     double current_error, min_error, max_error, sum_error;
 
     
-    EXECUTION_REPORT(REPORT_ERROR,-1, first_field_data->coord_value_grid != NULL && first_field_data->coord_value_grid->is_similar_grid_with(second_field_data->coord_value_grid), 
+    EXECUTION_REPORT(REPORT_ERROR, -1, first_field_data->coord_value_grid != NULL && first_field_data->coord_value_grid->is_similar_grid_with(second_field_data->coord_value_grid), 
                  "the two field data used for evaluation must have similar associated grids\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, first_field_data->have_data_content(),
+    EXECUTION_REPORT(REPORT_ERROR, -1, first_field_data->have_data_content(),
                  "field data \"%s\" does not have essential data content. It can not be used for evaluation\n",
                  first_field_data->grid_data_field->field_name_in_application);
-    EXECUTION_REPORT(REPORT_ERROR,-1, second_field_data->have_data_content(),
+    EXECUTION_REPORT(REPORT_ERROR, -1, second_field_data->have_data_content(),
                  "field data \"%s\" does not have essential data content. It can not be used for evaluation\n",
                  second_field_data->grid_data_field->field_name_in_application);
-    EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(first_field_data->grid_data_field->data_type_in_application, second_field_data->grid_data_field->data_type_in_application) &&
+    EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(first_field_data->grid_data_field->data_type_in_application, second_field_data->grid_data_field->data_type_in_application) &&
                  words_are_the_same(first_field_data->grid_data_field->data_type_in_application, DATA_TYPE_DOUBLE),
                  "remap software error in evaluate_error\n");
     this->interchange_grid_data(first_field_data->get_coord_value_grid());

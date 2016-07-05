@@ -12,41 +12,7 @@
 
 #include "remap_grid_class.h"
 #include "remap_operator_basis.h"
-
-
-struct Cell_bounding_box
-{
-    double* cell_bounds;
-    long cell_id;
-};
-
-
-class Cell_lookup_table
-{
-    private:
-        Remap_operator_grid *remap_operator_grid;
-        int current_level;
-        int num_grid_dimensions;
-        long num_child_cell_lookup_table;
-        double *child_bound_value_lookup_table;
-        Cell_lookup_table **child_cell_lookup_tables;
-        long num_cell_bounding_boxes;
-        Cell_bounding_box **cell_bounding_boxes;
-        double half_cycle_value;
-        int num_max_level_of_recursive_search_in_neighbor_cells;
-
-        void initialize_cell_bounding_boxes();
-        void recursively_partition_cell_lookup_table();
-        long lookup_in_child_bound_value_lookup_table(double);
-        long recursively_lookup_in_child_bound_value_lookup_table(double, long, long);
-        long recursively_search_in_neighbor_cells_for_sphere_grid(double*, long, int);
-
-    public:
-        Cell_lookup_table(Remap_operator_grid*);
-        Cell_lookup_table(Cell_lookup_table*);
-        ~Cell_lookup_table();
-        long search_cell_of_locating_point(double*, bool);
-};
+#include "grid_cell_search.h"
 
 
 class Vertex_values_group
@@ -68,7 +34,6 @@ class Vertex_values_group
 class Remap_operator_grid 
 {
     private:
-        friend class Cell_lookup_table;
         
         Remap_operator_basis *remap_operator;
         Remap_grid_class *remap_grid;
@@ -81,10 +46,9 @@ class Remap_operator_grid
         double *center_coord_values[256];
         double *vertex_coord_values[256];
         bool *mask_values;
-        long *cell_nerghbors_indexes;
         int num_vertex_values_groups;
         Vertex_values_group *vertex_values_groups[256];
-        Cell_lookup_table *grid_cells_lookup_table;
+		H2D_grid_cell_search_engine *grid2D_search_engine;
         bool require_vertex_fields;
         bool is_grid_sphere;
         bool *cell_visiting_mark;
@@ -116,7 +80,6 @@ class Remap_operator_grid
         int get_num_grid_dimensions() { return num_grid_dimensions; }
         int get_num_vertexes() { return num_vertexes; }
         int get_num_neighbors() { return num_neighbors; }
-        long *get_cell_nerghbors_indexes() { return cell_nerghbors_indexes; }
         bool is_cell_visited(long cell_index) { return cell_visiting_mark[cell_index]; }
         long get_num_visited_cells() { return num_visited_cells; }
         bool get_is_rotated_grid() { return is_rotated_grid; }
@@ -125,6 +88,7 @@ class Remap_operator_grid
         void visit_cell(long);
         void clear_cell_visiting_info();
         long search_cell_of_locating_point(double*, bool);
+		H2D_grid_cell_search_engine *get_grid2D_search_engine() const { return grid2D_search_engine; }
 };
 
 

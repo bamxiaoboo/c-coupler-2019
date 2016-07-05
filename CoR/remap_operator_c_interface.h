@@ -11,6 +11,9 @@
 #define REMAP_OPERATOR_C_INTERFACE
 
 
+#include "grid_cell_search.h"
+
+
 extern void get_cell_mask_of_src_grid(long, bool*);
 extern void get_cell_mask_of_dst_grid(long, bool*);
 extern void get_cell_center_coord_values_of_src_grid(long, double*);
@@ -18,8 +21,6 @@ extern void get_cell_center_coord_values_of_dst_grid(long, double*);
 extern void get_cell_vertex_coord_values_of_src_grid(long, int*, double*, bool);
 extern void get_cell_vertex_coord_values_of_dst_grid(long, int*, double*, bool);
 extern void search_cell_in_src_grid(double*, long*, bool);
-extern void get_cell_neighbors_in_src_grid(long, int*, long*);
-extern bool visit_cell_in_src_grid(long);
 extern void initialize_computing_remap_weights_of_one_cell();
 extern void finalize_computing_remap_weights_of_one_cell();
 extern void clear_remap_weight_info_in_sparse_matrix();
@@ -40,6 +41,8 @@ extern bool are_the_same_sphere_points(double, double, double, double);
 
 extern long get_size_of_src_grid();
 extern long get_size_of_dst_grid();
+
+extern H2D_grid_cell_search_engine *get_current_grid2D_search_engine(bool);
 
 
 #endif

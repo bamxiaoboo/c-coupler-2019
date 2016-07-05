@@ -28,7 +28,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
 
     /* Check the semantics of function "new_1D_grid" and then initialize a 1D grid */
     if (words_are_the_same(function, FUNCTION_WORD_NEW_1D_GRID)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands >= 3 && num_operands <= 5, 
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands >= 3 && num_operands <= 5, 
                      "function \"%s\" must have one result parameter and two to four input parameters\n", 
                      function);
         check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the 1D grid to be generated");
@@ -36,7 +36,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
         check_is_parameter_string_type(function, 2, statement_operands[2], "the unit of coordinate");
         cyclic_label[0] = '\0';
         if (words_are_the_same(statement_operands[1]->extension_names[0], COORD_LABEL_LON)) {
-            EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4 || num_operands == 5 , "function \"%s\" for generating 1D grid of lon must have one result parameter and three to four input parameters\n", function);
+            EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4 || num_operands == 5 , "function \"%s\" for generating 1D grid of lon must have one result parameter and three to four input parameters\n", function);
             check_is_parameter_string_type(function, 3, statement_operands[3], "the label of cyclic or acyclic feature of lon coordinate");
             strcpy(cyclic_label, statement_operands[3]->extension_names[0]);
             dimension_para_index = 4;
@@ -52,7 +52,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
                                                    grid_size));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_EXTRACT_MASK)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4, "function \"%s\" must have one result parameter and three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4, "function \"%s\" must have one result parameter and three input parameters\n", function);
         check_is_parameter_grid_mask_field(function, statement_operands[0], NULL);
         check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "the field with missing values to extract mask");
         for (i = 2; i <= 3; i ++)
@@ -62,7 +62,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
                                                                                                                        statement_operands[3]->extension_names[0]);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_COMPUTE_OCN_MASK)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3, "function \"%s\" must have one result parameter and two input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3, "function \"%s\" must have one result parameter and two input parameters\n", function);
         check_is_parameter_grid_mask_field(function, statement_operands[0], NULL);
         check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "the topo field");
         unit_conversion = get_float_value_from_parameter(function, 2, statement_operands[2], "the unit conversion for terrain data\n");
@@ -72,7 +72,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
     /* Check the semantics of function "combine_coord_systems" and then initialize a multi-dimension grid 
         according to sub grids. The new grid can not be the same with any other grid */
     else if (words_are_the_same(function, FUNCTION_WORD_COMBINE_GRIDS)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands >= 3, "function \"%s\" must have one result parameter and at least three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands >= 3, "function \"%s\" must have one result parameter and at least three input parameters\n", function);
         check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the multi-dimension grid to be generated");
         grid_size = 0;
         has_grid_size = 0;
@@ -91,7 +91,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
     }
     else if (words_are_the_same(function, FUNCIION_WORD_LEV_COORD_FROM_SIGMA)) {
 		double scale_factor = 1.0;
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4 || num_operands == 5, "function \"%s\" must have one result parameter and three or four input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4 || num_operands == 5, "function \"%s\" must have one result parameter and three or four input parameters\n", function);
         check_is_parameter_grid_center_field(function, statement_operands[0], NULL);
         check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "the field with values at the bottom of 3D grid");
         get_float_value_from_parameter(function, 2, statement_operands[2], "the value corresponding to 3D grid top\n");
@@ -106,7 +106,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
     }
     else if (words_are_the_same(function, FUNCIION_WORD_LEV_COORD_FROM_HYBRID)) {
 		double scale_factor = 1.0;
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 5 || num_operands == 6, "function \"%s\" must have one result parameter and four or five input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 5 || num_operands == 6, "function \"%s\" must have one result parameter and four or five input parameters\n", function);
         check_is_parameter_grid_center_field(function, statement_operands[0], NULL);
         check_is_parameter_object_type_field_data(function, 1, statement_operands[1], "the field with values at the bottom of 3D grid");
         get_float_value_from_parameter(function, 2, statement_operands[2], "the constant reference value corresponding to hybrid grid\n");
@@ -123,18 +123,18 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
     }
     /* Check the semantics of function "read_field", and then use IO object to read the data */
     else if (words_are_the_same(function, FUNCTION_WORD_READ_FIELD)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3 || num_operands == 4, "function \"%s\" must have one result parameter and two or three input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3 || num_operands == 4, "function \"%s\" must have one result parameter and two or three input parameters\n", function);
         check_is_parameter_grid_field(function, statement_operands[0], NULL);
         check_is_parameter_object_type_IO(function, 1, statement_operands[1], "the IO file to read the grid field");
         check_is_parameter_string_type(function, 2, statement_operands[2], "the variable name of field in IO fiel");
         if (words_are_the_same(statement_operands[0]->extension_names[0], GRID_VERTEX_LABEL)) {
-            EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4, 
+            EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4, 
                          "when reading vertex coordinate values, function \"%s\" must have three input parameters where the last one specifies the maximum number of vertexes of each grid cell\n", 
                          function);
             num_vertexes = get_size_value_from_parameter(function, 3, statement_operands[3], "the number of vertexes of each grid cell");
         }
         else {
-            EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 3, 
+            EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 3, 
                          "when reading center coordinate values or mask values, function \"%s\" must have two input parameters\n", 
                          function);
             num_vertexes = 0;
@@ -146,7 +146,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
     }
     else if (words_are_the_same(function, FUNCTION_WORD_ISPAN) ||
              words_are_the_same(function, FUNCTION_WORD_FSPAN)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4, "function \"%s\" for reading field data must have one result parameter and three input parameter\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4, "function \"%s\" for reading field data must have one result parameter and three input parameter\n", function);
         check_is_parameter_grid_center_field(function, statement_operands[0], NULL);
         if (words_are_the_same(function, FUNCTION_WORD_ISPAN))
             for (i = 1; i < 3; i ++)
@@ -161,26 +161,26 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
                                                                                                                   function);
     }
     else if (words_are_the_same(function, FUNCTION_WORD_NEW_PARTIAL_GRID)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 2, "function \"%s\" can have only one source operand which is the whole grid\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2, "function \"%s\" can have only one source operand which is the whole grid\n", function);
         check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the partial grid to be generated");
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the whole grid");
         remap_grids.push_back(new Remap_grid_class(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_NEW_MIDDLE_GRID)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 2, "function \"%s\" can have only one source operand which is the whole grid\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2, "function \"%s\" can have only one source operand which is the whole grid\n", function);
         check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the middle level grid to be generated");
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the level grid");
         remap_grids.push_back(new Remap_grid_class(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name, "level"));
     }
     else if (words_are_the_same(function, FUNCTION_WORD_ADD_GRID_AREA)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 2, "function \"%s\" has two input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2, "function \"%s\" has two input parameters\n", function);
         check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the partial grid");
         check_is_parameter_string_type(function, 2, statement_operands[1], "the name of partial area");
         search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->add_partial_grid_area(statement_operands[1]->extension_names[0]);
     }
 	else if (words_are_the_same(function, FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO)) {
 		char *hybrid_grid_coefficient_field_name = NULL;
-		EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 4 || num_operands == 5, "function \"%s\" has four input parameters\n", function);
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 4 || num_operands == 5, "function \"%s\" has four input parameters\n", function);
 		check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the level grid (vertical grid) to be set the sigma information");
 		check_is_parameter_object_type_field_data(function, 2, statement_operands[1], "the vector of sigma values");
 		double top_value = get_float_value_from_parameter(function, 3, statement_operands[2], "the vertical coordinate value of top layer in the sigma grid");
@@ -192,7 +192,7 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
 		search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->set_lev_grid_sigma_info(statement_operands[1]->object->object_name, top_value, scale_factor, hybrid_grid_coefficient_field_name);
 	}
     else if (words_are_the_same(function, FUNCTION_WORD_ADD_AREA_BOUND)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 6, "function \"%s\" has six input parameters\n", function);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 6, "function \"%s\" has six input parameters\n", function);
         check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the partial grid");
         check_is_parameter_string_type(function, 2, statement_operands[1], "the name of area to set area bound");
         check_is_parameter_object_type_grid(function, 3, statement_operands[2], "the sub grid corresponding to setting area bounds");
@@ -210,14 +210,14 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
     }
 	else if (words_are_the_same(function, FUNCTION_WORD_SET_BOUNDARY)) {
 		check_is_parameter_grid_boundary(function, statement_operands[0], NULL);
-		EXECUTION_REPORT(REPORT_ERROR,-1, num_operands == 5, "function \"%s\" must have one result parameter and four input parameters\n", function);
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 5, "function \"%s\" must have one result parameter and four input parameters\n", function);
 		double min_lon = get_float_value_from_parameter(function, 1, statement_operands[1], "the minimum longitude of the grid boundary\n");
 		double max_lon = get_float_value_from_parameter(function, 2, statement_operands[2], "the maximum longitude of the grid boundary\n");
 		double min_lat = get_float_value_from_parameter(function, 3, statement_operands[3], "the minimum latitude of the grid boundary\n");
 		double max_lat = get_float_value_from_parameter(function, 4, statement_operands[4], "the maximum latitude of the grid boundary\n");
 		search_remap_grid_with_grid_name(statement_operands[0]->object->object_name)->set_grid_boundary(min_lon, max_lon, min_lat, max_lat);
 	}
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "\"%s\" is an unspported function\n", function);
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "\"%s\" is an unspported function\n", function);
 }
 
 

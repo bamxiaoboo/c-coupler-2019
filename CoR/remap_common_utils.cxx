@@ -119,7 +119,7 @@ bool is_point_in_2D_sphere_coord_cell(double point_sphere_coord_value_lon,
     int i, next_i;
 
     
-    EXECUTION_REPORT(REPORT_ERROR,-1, num_vertexes <= 256, "remap software error in is_point_in_2D_sphere_coord_cell\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes <= 256, "remap software error in is_point_in_2D_sphere_coord_cell\n");
     
     get_3D_cartesian_coord_of_sphere_coord(point_cartesian_coord_value_x,
                                            point_cartesian_coord_value_y,
@@ -334,8 +334,8 @@ void rotate_sphere_coordinate(double lon_original, double lat_original, double &
     lon_rotated = (double) ((float) lon_rotated);
     lat_rotated = (double) ((float) lat_rotated);
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, lon_rotated >= 0 && lon_rotated <= 360, "remap software error1 in rotate_sphere_coordinate\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, lat_rotated >= -90 && lat_rotated <= 90, "remap software error2 in rotate_sphere_coordinate\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, lon_rotated >= 0 && lon_rotated <= 360, "remap software error1 in rotate_sphere_coordinate\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, lat_rotated >= -90 && lat_rotated <= 90, "remap software error2 in rotate_sphere_coordinate\n");
 
     if (lon_rotated == 360)
         lon_rotated = 0;
