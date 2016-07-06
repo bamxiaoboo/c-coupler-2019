@@ -598,6 +598,9 @@ void Comp_comm_group_mgt_global_node::print_global_nodes()
 
 Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_name, const char *comp_type, Comp_comm_group_mgt_local_node *parent, MPI_Comm &comm, int local_id)
 {
+	char dir[NAME_STR_SIZE];
+	
+
 	self_local_node_id = local_id;
 	if (parent != NULL) {
 		parent_local_node_id = parent->get_local_node_id();
@@ -605,15 +608,15 @@ Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_
 		if (parent->get_global_node()->get_parent() == NULL) {
 			EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
 			strcpy(working_dir+strlen(working_dir), "/../");
-
 		}
 		else {
 			sprintf(working_dir, "%s/%s\0", parent->working_dir, comp_name);
 			create_directory(working_dir, global_node->get_current_proc_local_id() == 0);
 		}
-		char log_dir[NAME_STR_SIZE];
-		sprintf(log_dir, "%s/CCPL_logs", working_dir, comp_name);
-		create_directory(log_dir, global_node->get_current_proc_local_id() == 0);
+		sprintf(dir, "%s/CCPL_logs", working_dir, comp_name);
+		create_directory(dir, global_node->get_current_proc_local_id() == 0);
+		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);
+		create_directory(dir, global_node->get_current_proc_local_id() == 0);
 		MPI_Barrier(global_node->get_comm_group());
 		char file_name[NAME_STR_SIZE*2];
 		sprintf(file_name, "%s/CCPL_logs/%s.CCPL.log.%d", working_dir, global_node->get_comp_name(), global_node->get_current_proc_local_id());
@@ -623,6 +626,10 @@ Comp_comm_group_mgt_local_node::Comp_comm_group_mgt_local_node(const char *comp_
 	else {
 		parent_local_node_id = -1; 
 		global_node = new Comp_comm_group_mgt_global_node(comp_name, comp_type, local_id, NULL, comm);
+		EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
+		strcpy(working_dir+strlen(working_dir), "/../../../all/");
+		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);
+		create_directory(dir, global_node->get_current_proc_local_id() == 0);
 	}	
 }
 
@@ -863,6 +870,9 @@ FILE *Comp_comm_group_mgt_mgr::open_log_file(int comp_id)
 
 void Comp_comm_group_mgt_mgr::write_comp_comm_info_into_XML()
 {
+	char XML_file_name[NAME_STR_SIZE];
+
+	
 	TiXmlDocument *XML_file;
 	TiXmlDeclaration *XML_declaration;
 	TiXmlElement * root_element;
@@ -879,8 +889,10 @@ void Comp_comm_group_mgt_mgr::write_comp_comm_info_into_XML()
 	root_element = new TiXmlElement("Components");
 	XML_file->LinkEndChild(root_element);
 	global_node_root->write_node_into_XML(root_element);
+
+	sprintf(XML_file_name, "%s/CCPL_configs/components.xml", local_nodes[0]->get_working_dir());
 	
-	XML_file->SaveFile("components.xml");
+	XML_file->SaveFile(XML_file_name);
 }
 
 
@@ -904,11 +916,15 @@ void Comp_comm_group_mgt_mgr::read_global_node_from_XML(const TiXmlElement *curr
 
 void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
 {
+	char XML_file_name[NAME_STR_SIZE];
+
+
 	if (current_proc_global_id != 0)
 		return;
 
-	TiXmlDocument XML_file("components.xml");
-	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(), "cannot open the xml file");
+	sprintf(XML_file_name, "%s/CCPL_configs/components.xml", local_nodes[0]->get_working_dir());
+	TiXmlDocument XML_file(XML_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(), "cannot open the components xml file: %s", XML_file_name);
 	
 	TiXmlElement *XML_element = XML_file.FirstChildElement();
 	TiXmlElement *Online_Model = XML_element->FirstChildElement();
