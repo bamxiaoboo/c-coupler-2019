@@ -14,6 +14,7 @@
 #include <mpi.h>
 #include "common_utils.h"
 #include "io_netcdf.h"
+#include "tinyxml.h"
 #include <vector>
 
 
@@ -65,12 +66,14 @@ class Comp_comm_group_mgt_global_node
 		int get_local_node_id() { return local_node_id; }
 		Comp_comm_group_mgt_global_node *get_child(int indx) { return children[indx]; }
 		void reset_local_node_id(int new_id) { local_node_id = new_id; }
+		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		Comp_comm_group_mgt_global_node *search_global_node(int);
 		bool is_definition_finalized() { return definition_finalized; }
 		void print_global_nodes();
 		const char *get_annotation_start() { return annotation_start; }
 		const char *get_annotation_end() { return annotation_end; }
 		const Comp_comm_group_mgt_global_node *get_parent() const { return parent; }
+		void write_node_into_XML(TiXmlElement *);
 };
 
 
@@ -124,6 +127,10 @@ class Comp_comm_group_mgt_mgr
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return local_nodes[0]->get_global_node()->get_annotation_start(); }
 		FILE *open_log_file(int);
+		Comp_comm_group_mgt_global_node *search_global_node(int);
+		void read_global_node_from_XML(const TiXmlElement*);
+		void write_comp_comm_info_into_XML();
+		void read_comp_comm_info_from_XML();
 };
 
 

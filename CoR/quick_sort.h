@@ -71,7 +71,7 @@ template <class T1, class T2> void do_quick_sort(T1 *sorted_values,
         pivotindex = (segment_start+segment_end) / 2;
         swap(sorted_values+pivotindex, sorted_values+segment_end);
 		if (content_values != NULL)
-	        swap(content_values+pivotindex, content_values+segment_end);
+        	swap(content_values+pivotindex, content_values+segment_end);
         partition_pos = partition(sorted_values, content_values, segment_start-1, segment_end, sorted_values[segment_end]);
         swap(sorted_values+partition_pos, sorted_values+segment_end);
 		if (content_values != NULL)
