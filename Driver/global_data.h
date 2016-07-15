@@ -30,6 +30,8 @@
 #include "ensemble_mgt.h"
 #include "runtime_datamodel_algorithm.h"
 #include "object_type_prefix.h"
+#include "CCPL_api_mgt.h"
+#include "original_grid_mgt.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -40,6 +42,7 @@ extern char software_name[];
 
 extern Compset_communicators_info_mgt *compset_communicators_info_mgr;
 extern Comp_comm_group_mgt_mgr *comp_comm_group_mgt_mgr;
+extern Original_grid_mgt *original_grid_mgr;
 extern Routing_info_mgt *routing_info_mgr;
 extern Timer_mgt *timer_mgr;
 extern Timer_mgt *restart_read_timer_mgr;

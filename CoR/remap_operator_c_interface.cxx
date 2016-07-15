@@ -754,7 +754,7 @@ double compute_angle_of_great_arcs(double lon_point1, double lat_point1,
 {
     double x1, y1, z1, x2, y2, z2, x3, y3, z3;
     double vector1[3], vector2[3], vector3[3];
-    long double tmp;
+    double tmp;
     double angle;
     
 
@@ -774,7 +774,7 @@ double compute_angle_of_great_arcs(double lon_point1, double lat_point1,
     if (tmp < 0)
         angle = -angle;    
 
-	printf("angle is %lf: %lf\n", angle, tmp);
+//	printf("angle is %lf: %lf\n", angle, tmp);
     
     if (check_angle)
         EXECUTION_REPORT(REPORT_ERROR, -1, angle >= 0, "remap software error in compute_angle_of_great_arcs\n");
@@ -842,11 +842,12 @@ double compute_area_of_sphere_cell(int num_vertexes,
     double eps = 2.0e-14;
 
 
+/*
 	printf("compute area for cell: ");
 	for (int i = 0; i < num_vertexes; i ++) 
 		printf("(%lf %lf)  ", vertexes_lons[i], vertexes_lats[i]);
 	printf("\n");
-
+*/
     if (num_vertexes == 0)
         return DEFAULT_FILL_VALUE;
     
@@ -856,7 +857,7 @@ double compute_area_of_sphere_cell(int num_vertexes,
 
     area = -(num_true_vertexes-2)*PI;
     for (i = 0; i < num_vertexes; i ++) {
-		printf("okok %d\n", i);
+//		printf("okok %d\n", i);
         if (vertexes_lons[i] == NULL_COORD_VALUE)
             continue;
         next_i = (i+1) % num_vertexes;

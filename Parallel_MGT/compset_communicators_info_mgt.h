@@ -67,6 +67,7 @@ class Comp_comm_group_mgt_global_node
 		Comp_comm_group_mgt_global_node *get_child(int indx) { return children[indx]; }
 		void reset_local_node_id(int new_id) { local_node_id = new_id; }
 		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
+		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
 		Comp_comm_group_mgt_global_node *search_global_node(int);
 		bool is_definition_finalized() { return definition_finalized; }
 		void print_global_nodes();
@@ -120,13 +121,15 @@ class Comp_comm_group_mgt_mgr
 		bool is_legal_local_comp_id(int);
 		bool is_local_comp_definition_finalized(int);
 		void update_global_nodes(Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node*);
+		void transform_global_node_tree_into_array(Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node**, int&);
+		Comp_comm_group_mgt_local_node *get_local_node_of_local_comp(int);
 		Comp_comm_group_mgt_global_node *get_global_node_of_local_comp(int);
 		Comp_comm_group_mgt_global_node *get_global_node_of_global_comp(int);
 		MPI_Comm get_comm_group_of_local_comp(int);
 		MPI_Comm get_comm_group_of_global_comp(int);
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return local_nodes[0]->get_global_node()->get_annotation_start(); }
-		FILE *open_log_file(int);
+		void get_log_file_name(int, char*);
 		Comp_comm_group_mgt_global_node *search_global_node(int);
 		void read_global_node_from_XML(const TiXmlElement*);
 		void write_comp_comm_info_into_XML();

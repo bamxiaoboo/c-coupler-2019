@@ -550,8 +550,27 @@ extern "C" void coupling_register_component_(const char *comp_name, const char *
 }
 
 
+extern "C" void initialize_CCPL_mgrs(const char *executable_name)
+{
+    char root_cfg_name[NAME_STR_SIZE], line[NAME_STR_SIZE];
+	FILE *root_cfg_fp;
+	int i;
+
+
+	for (i = strlen(executable_name)-1; i >= 0; i --)
+		if (executable_name[i] == '/')
+			break;
+    sprintf(root_cfg_name, "%s_coupling.cfg", executable_name+i+1);
+    EXECUTION_REPORT(REPORT_LOG,-1, true, "root runtime configuration file name is %s", root_cfg_name);
+	root_cfg_fp = open_config_file(root_cfg_name);
+	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
+	sprintf(root_cfg_name, "%s/%s", C_COUPLER_CONFIG_DIR, line);
+	original_grid_mgr = new Original_grid_mgt(root_cfg_name);
+}
+
+
 extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *comp_type, const char *annotation, int *comp_id, 
-										const char *excutable_name, const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
+										const char *executable_name, const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
                                 		const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
 	int flag;
@@ -577,7 +596,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	if (current_proc_global_id == 0)
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at all root components");
 
-	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(excutable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
+	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
                                 		current_config_time, original_case_name, original_config_time);
 
 	get_annotation(local_annotation);
@@ -619,7 +638,9 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	*comp_id = root_comp_id;
 
-	pop_annotation(annotation);
+	pop_annotation(annotation);	
+
+	initialize_CCPL_mgrs(executable_name);
 }
 
 
@@ -654,6 +675,15 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id);
 	
+	pop_annotation(annotation);
+}
+
+
+extern "C" void register_cor_defined_grid_(int *comp_id, const char *grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
+{
+	push_annotation(annotation);
+	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, grid_name, CoR_grid_name, annotation);
+	printf("grid id is %d %lx\n", *grid_id, *grid_id);
 	pop_annotation(annotation);
 }
 

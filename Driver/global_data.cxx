@@ -15,6 +15,7 @@ char software_name[16] = "CoR";
 
 Compset_communicators_info_mgt *compset_communicators_info_mgr = NULL;
 Comp_comm_group_mgt_mgr *comp_comm_group_mgt_mgr = NULL;
+Original_grid_mgt *original_grid_mgr = NULL;
 Routing_info_mgt *routing_info_mgr = NULL;
 Timer_mgt *timer_mgr = NULL;
 Timer_mgt *restart_read_timer_mgr = NULL;

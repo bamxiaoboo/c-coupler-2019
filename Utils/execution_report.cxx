@@ -34,9 +34,13 @@ void wtime(double *t)
 
 void report_header(int report_type, int comp_id, bool &condition)
 {
-	if (comp_id == -1)
+	if (comp_id == -1 || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id))
 		log_file = NULL;
-	else log_file = comp_comm_group_mgt_mgr->open_log_file(comp_id);
+	else {
+		char log_file_name[NAME_STR_SIZE];
+		comp_comm_group_mgt_mgr->get_log_file_name(comp_id, log_file_name);
+		log_file = fopen(log_file_name, "a+");
+	}
 
 	output_string[0] = '\0';
 	
@@ -130,9 +134,13 @@ void report_ender(int report_type, int comp_id)
 	}
 
 	if (report_type == REPORT_ERROR) {
-                while(1);
+		if (log_file != NULL) {
+			char log_file_name[NAME_STR_SIZE];
+			comp_comm_group_mgt_mgr->get_log_file_name(comp_id, log_file_name);
+			printf("ERROR happens. Please check the log file \"%s\"\n", log_file_name);
+		}
 		assert(false);
-        }
+    }
 }
 
 

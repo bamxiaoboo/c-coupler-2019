@@ -2437,6 +2437,7 @@
                         trim(comp_model_nml)//char(0), trim(config_time)//char(0), &
                         trim(original_case_name)//char(0), trim(original_config_time)//char(0))
    CCPL_register_root_component = comp_id
+
    END FUNCTION CCPL_register_root_component
 
 
@@ -2478,6 +2479,29 @@
    call end_registration(comp_id, trim(local_annotation)//char(0))
 
    END SUBROUTINE CCPL_end_registration
+
+
+
+   integer FUNCTION CCPL_get_CoR_defined_grid(comp_id, local_grid_name, CoR_grid_name, annotation) 
+   implicit none
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in)            :: local_grid_name
+   character(len=*), intent(in)            :: CoR_grid_name
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: grid_id
+
+   if (present(annotation)) then
+       call register_cor_defined_grid(comp_id, trim(local_grid_name)//char(0), trim(CoR_grid_name)//char(0), trim(annotation)//char(0), grid_id)
+   else 
+       call register_cor_defined_grid(comp_id, trim(local_grid_name)//char(0), trim(CoR_grid_name)//char(0), trim("")//char(0), grid_id)
+   endif
+
+   write(*,*) 'fortran grid id is ', grid_id
+
+   CCPL_get_CoR_defined_grid = grid_id
+
+   END FUNCTION CCPL_get_CoR_defined_grid
+
 
 
    SUBROUTINE CCPL_finalize()

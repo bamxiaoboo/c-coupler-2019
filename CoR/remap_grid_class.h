@@ -34,7 +34,7 @@
 #define COORD_UNIT_RADIANS                    "radians"
 #define COORD_UNIT_DEGREES                    "degrees"
 #define GRID_FIELD_ATTRIBUTE_UNITS            "units"
-#define SPHERE_GRID_ROTATION_LAT_THRESHOLD    ((double) 90.0)
+#define SPHERE_GRID_ROTATION_LAT_THRESHOLD    ((double) 70.0)
 
 
 class Runtime_remap_function;
