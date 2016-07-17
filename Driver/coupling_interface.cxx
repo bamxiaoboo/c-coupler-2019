@@ -665,11 +665,28 @@ extern "C" void register_component_(int *parent_local_id, const char *comp_name,
 }
 
 
+extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling interface CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
+
+	Comp_comm_group_mgt_global_node *node = comp_comm_group_mgt_mgr->search_global_node(comp_name);
+
+	if (node == NULL) {
+		if (comp_comm_group_mgt_mgr->get_is_definition_finalized())
+			EXECUTION_REPORT(REPORT_ERROR, -1, false, "no component named \"%s\" has been registerred. Please check the model code related to the annotation \"%s\"", comp_name, annotation);
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "cannot get the id of the component named \"%s\". If it has been registerred by other processes, please call the interface CCPL_end_comp_registration before the model code with the annotation \"%s\"", comp_name, annotation);
+		*comp_id = -1;
+	}
+	else *comp_id = node->get_local_node_id();
+	
+}
+	
+
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_registration (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_registration");
+		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
+	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration");
 	
 	push_annotation(annotation);
 

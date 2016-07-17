@@ -2464,8 +2464,27 @@
    END FUNCTION CCPL_register_component
 
 
+   
+   integer FUNCTION CCPL_get_component_id(comp_name, annotation)
+   implicit none
+   character(len=*), intent(in)            :: comp_name
+   character(len=*), intent(in), optional  :: annotation
+   character *1024                         :: local_annotation
+   integer                     :: comp_id
 
-   SUBROUTINE CCPL_end_registration(comp_id, annotation)
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+ 
+   call get_id_of_component(trim(comp_name)//char(0), trim(local_annotation)//char(0), comp_id)
+   CCPL_get_component_id = comp_id
+
+   end FUNCTION CCPL_get_component_id
+
+
+
+   SUBROUTINE CCPL_end_comp_registration(comp_id, annotation)
    implicit none
    integer                     :: comp_id
    character(len=*), optional  :: annotation
@@ -2478,7 +2497,7 @@
 
    call end_registration(comp_id, trim(local_annotation)//char(0))
 
-   END SUBROUTINE CCPL_end_registration
+   END SUBROUTINE CCPL_end_comp_registration
 
 
 

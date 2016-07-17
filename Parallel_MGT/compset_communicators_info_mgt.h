@@ -33,7 +33,6 @@ class Comp_comm_group_mgt_global_node
 {
 	private:
 		int local_node_id;
-		int global_node_id;
 	    char comp_name[NAME_STR_SIZE];                // The name of component
     	char comp_type[NAME_STR_SIZE];	
 		char annotation_start[NAME_STR_SIZE];
@@ -46,8 +45,10 @@ class Comp_comm_group_mgt_global_node
 		int current_proc_global_id;
 		char *temp_array_buffer;
 		int buffer_content_size;
+		int buffer_content_iter;
 		int buffer_max_size;
 		bool definition_finalized;
+		char working_dir[NAME_STR_SIZE];
 
 	public:
 		Comp_comm_group_mgt_global_node(const char*, const char*, int, Comp_comm_group_mgt_global_node*, MPI_Comm&);
@@ -58,8 +59,9 @@ class Comp_comm_group_mgt_global_node
 		void transform_node_into_array();
 		void write_data_into_array_buffer(const void*, int);
 		void read_data_from_array_buffer(void*, int);
-		void merge_comp_comm_info(bool);
+		void merge_comp_comm_info();
 		int get_buffer_content_size() { return buffer_content_size; }
+		int get_buffer_content_iter() { return buffer_content_iter; }
 		const char *get_comp_name() const { return comp_name; }
 		const char *get_comp_type() const { return comp_type; }
 		int get_num_children() { return children.size(); }
@@ -68,38 +70,23 @@ class Comp_comm_group_mgt_global_node
 		void reset_local_node_id(int new_id) { local_node_id = new_id; }
 		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
-		Comp_comm_group_mgt_global_node *search_global_node(int);
+		void reset_working_dir(const char *);
 		bool is_definition_finalized() { return definition_finalized; }
 		void print_global_nodes();
 		const char *get_annotation_start() { return annotation_start; }
 		const char *get_annotation_end() { return annotation_end; }
-		const Comp_comm_group_mgt_global_node *get_parent() const { return parent; }
+		Comp_comm_group_mgt_global_node *get_parent() const { return parent; }
 		void write_node_into_XML(TiXmlElement *);
-};
-
-
-class Comp_comm_group_mgt_local_node
-{
-	private:
-		int self_local_node_id;
-		int parent_local_node_id;
-		Comp_comm_group_mgt_global_node *global_node;
-		char working_dir[NAME_STR_SIZE];
-
-	public:
-		Comp_comm_group_mgt_local_node(const char*, const char*, Comp_comm_group_mgt_local_node*, MPI_Comm&, int);
-		~Comp_comm_group_mgt_local_node() {}
-		int get_local_node_id() const { return self_local_node_id; }
-		Comp_comm_group_mgt_global_node *get_global_node() const { return global_node; }
-		void reset_global_node(Comp_comm_group_mgt_global_node *new_node) { global_node = new_node; }
 		const char *get_working_dir() const { return working_dir; }
+		void update_child(const Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node*);
+		void transfer_data_buffer(Comp_comm_group_mgt_global_node*);
 };
 
 
 class Comp_comm_group_mgt_mgr
 {
 	private:
-		std::vector<Comp_comm_group_mgt_local_node*> local_nodes;
+		std::vector<Comp_comm_group_mgt_global_node*> global_node_array;
 		Comp_comm_group_mgt_global_node *global_node_root;
 		bool definition_finalized;
 		int current_proc_global_id;
@@ -120,20 +107,19 @@ class Comp_comm_group_mgt_mgr
 		void merge_comp_comm_info(int);
 		bool is_legal_local_comp_id(int);
 		bool is_local_comp_definition_finalized(int);
-		void update_global_nodes(Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node*);
+		void update_global_nodes(Comp_comm_group_mgt_global_node**, int);
 		void transform_global_node_tree_into_array(Comp_comm_group_mgt_global_node*, Comp_comm_group_mgt_global_node**, int&);
-		Comp_comm_group_mgt_local_node *get_local_node_of_local_comp(int);
 		Comp_comm_group_mgt_global_node *get_global_node_of_local_comp(int);
-		Comp_comm_group_mgt_global_node *get_global_node_of_global_comp(int);
 		MPI_Comm get_comm_group_of_local_comp(int);
-		MPI_Comm get_comm_group_of_global_comp(int);
 		const char *get_executable_name() { return executable_name; }
-		const char *get_annotation_start() { return local_nodes[0]->get_global_node()->get_annotation_start(); }
+		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
 		void get_log_file_name(int, char*);
 		Comp_comm_group_mgt_global_node *search_global_node(int);
+		Comp_comm_group_mgt_global_node *search_global_node(const char*);
 		void read_global_node_from_XML(const TiXmlElement*);
 		void write_comp_comm_info_into_XML();
 		void read_comp_comm_info_from_XML();
+		bool get_is_definition_finalized() { return definition_finalized; }
 };
 
 
