@@ -37,6 +37,9 @@
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);
 
+extern void check_API_parameter_string(int, int, MPI_Comm, const char*, const char*, const char*, const char*);
+
+
 
 #endif
 
