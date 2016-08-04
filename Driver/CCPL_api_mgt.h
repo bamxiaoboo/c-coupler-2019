@@ -33,11 +33,13 @@
 #define API_ID_GRID_MGT_GET_GRID_GLOBAL_DATA            ((int)(0X00401000))
 #define API_ID_GRID_MGT_GET_GRID_LOCAL_DATA             ((int)(0X00402000))
 #define API_ID_GRID_MGT_GET_MID_LAYER_GRID              ((int)(0X00404000))
+#define API_ID_DECOMP_MGT_REG_DECOMP                    ((int)(0X00800001))
+
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);
-
 extern void check_API_parameter_string(int, int, MPI_Comm, const char*, const char*, const char*, const char*);
+extern void check_API_parameter_int(int, int, MPI_Comm, const char*, int, const char*, const char*);
 
 
 

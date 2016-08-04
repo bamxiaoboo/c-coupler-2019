@@ -11,16 +11,20 @@
 #include "original_grid_mgt.h"
 
 
-Original_grid_info::Original_grid_info(int comp_id, int local_grid_id, const char *grid_name, const char *annotation, Remap_grid_class *CoR_grid)
+Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *grid_name, const char *annotation, Remap_grid_class *CoR_grid)
 {
-	this->local_comp_id = comp_id;
-	this->local_grid_id = local_grid_id;
-	this->global_grid_id = -1;
+	this->comp_id = comp_id;
+	this->grid_id = grid_id;
 	this->CoR_grid = CoR_grid;
 	strcpy(this->grid_name, grid_name);
-	strcpy(this->annotation, annotation);
+	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 }
 
+
+const char *Original_grid_info::get_annotation()
+{
+	return annotation_mgr->get_annotation(this->grid_id, "grid_registration");
+}
 
 Original_grid_mgt::Original_grid_mgt(const char *script)
 {
@@ -49,6 +53,13 @@ Original_grid_info *Original_grid_mgt::search_grid_info(const char *grid_name)
 }
 
 
+Original_grid_info *Original_grid_mgt::search_grid_info(int grid_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "software error in Original_grid_mgt::search_grid_info based on grid_id");	
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK];
+}
+
+
 void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_name, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
@@ -71,5 +82,44 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_grid));
 	return original_grids[original_grids.size()-1]->get_local_grid_id();
 }
+
+
+bool Original_grid_mgt::is_grid_id_legal(int grid_id) const
+{
+	int true_grid_id = grid_id & TYPE_ID_SUFFIX_MASK;
+
+
+	if ((grid_id & TYPE_ID_PREFIX_MASK) != TYPE_GRID_LOCAL_ID_PREFIX)
+		return false;
+
+	if (true_grid_id < 0 || true_grid_id >= original_grids.size())
+		return false;
+
+	return true;
+}
+
+
+int Original_grid_mgt::get_comp_id_of_grid(int grid_id)
+{
+	int true_grid_id = grid_id & TYPE_ID_SUFFIX_MASK;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_comp_id_of_grid");
+
+	return original_grids[true_grid_id]->get_comp_id();
+}
+
+
+const char *Original_grid_mgt::get_name_of_grid(int grid_id) const
+{
+	int true_grid_id = grid_id & TYPE_ID_SUFFIX_MASK;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_name_of_grid");
+
+	return original_grids[true_grid_id]->get_grid_name();
+}
+
+
 
 

@@ -32,6 +32,8 @@ External_algorithm_mgt *external_algorithm_mgr = NULL;
 Ensemble_mgt *ensemble_mgr = NULL;
 Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr = NULL;
 const char *current_annotation = NULL;
+Annotation_mgt *annotation_mgr = NULL;
+
 
 
 void push_annotation(const char *annotation)

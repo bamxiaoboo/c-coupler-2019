@@ -567,6 +567,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	sprintf(root_cfg_name, "%s/%s", C_COUPLER_CONFIG_DIR, line);
 	execution_phase_number = 1;
 	original_grid_mgr = new Original_grid_mgt(root_cfg_name);
+	decomps_info_mgr = new Decomp_info_mgt();
 	execution_phase_number = 2;
 }
 
@@ -583,6 +584,8 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 
 	execution_phase_number = 2;
+
+	annotation_mgr = new Annotation_mgt();
 
 	push_annotation(annotation);
 
@@ -718,5 +721,15 @@ extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_n
 	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, CCPL_grid_name, CoR_grid_name, annotation);
 	printf("grid id is %d %lx\n", *grid_id, *grid_id);
 	pop_annotation(annotation);
+}
+
+
+extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells <= *array_size, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is larger than the size of the array of local cells' global indexes. Please check the model code related to \"%s\"",
+		             decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_WARNING, -1, *num_local_cells == *array_size, "The number of local cells is different from the size of the array of local cells' global indexes when registering parallel decomposition \"%s\". Please check the model code related to \"%s\"",
+		             decomp_name, annotation);
+	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 }
 

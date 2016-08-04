@@ -32,6 +32,7 @@
 #include "object_type_prefix.h"
 #include "CCPL_api_mgt.h"
 #include "original_grid_mgt.h"
+#include "annotation_mgt.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -58,6 +59,7 @@ extern Performance_timing_mgt *performance_timing_mgr;
 extern External_algorithm_mgt *external_algorithm_mgr;
 extern Ensemble_mgt *ensemble_mgr;
 extern Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr;
+extern Annotation_mgt *annotation_mgr;
 
 extern const char *current_annotation;
 extern void push_annotation(const char*);

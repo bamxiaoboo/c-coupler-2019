@@ -120,6 +120,42 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 }
 
 
+template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_Comm comm, const char *hint, T value, const char *parameter_name, const char *annotation)
+{
+	int i, local_process_id, num_processes;
+	T *values;
+	char API_label[NAME_STR_SIZE];
+	
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);	
+	values = new T [num_processes];
+	if (sizeof(T) == 1)
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&value, 1, MPI_CHAR, values, 1, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+	else if (sizeof(T) == 2)
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&value, 1, MPI_SHORT, values, 1, MPI_SHORT, 0, comm) == MPI_SUCCESS);
+	else if (sizeof(T) == 4)
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&value, 1, MPI_INT, values, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
+	else if (sizeof(T) == 8)
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&value, 1, MPI_DOUBLE, values, 1, MPI_DOUBLE, 0, comm) == MPI_SUCCESS);
+	else EXECUTION_REPORT(REPORT_ERROR, comp_id, true, "software error in check_API_parameter_scalar");
+	if (local_process_id == 0) {
+		get_API_hint(comp_id, API_id, API_label);
+		for (i = 1; i < num_processes; i ++)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\" for %s: parameter \"%s\" is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+			                  API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
+	}
+
+	delete [] values;
+}
+
+
+void check_API_parameter_int(int comp_id, int API_id, MPI_Comm comm, const char *hint, int value, const char *parameter_name, const char *annotation)
+{
+	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
+}
+
+
 void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const char *hint, const char *string, const char *parameter_name, const char *annotation)
 {
 	int local_process_id, num_processes, local_string_size, *all_string_size;

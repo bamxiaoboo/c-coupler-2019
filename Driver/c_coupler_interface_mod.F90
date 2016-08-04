@@ -2523,6 +2523,28 @@
 
 
 
+   integer FUNCTION CCPL_register_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_indx, annotation) 
+   implicit none
+   character(len=*), intent(in)                :: decomp_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in)                :: grid_id
+   integer,          intent(in)                :: num_local_cells
+   integer,          intent(in), dimension(:)  :: local_cells_global_indx(:)
+   integer                                     :: decomp_id
+
+
+   if (present(annotation)) then
+       call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_indx), local_cells_global_indx, trim(decomp_name)//char(0), trim(annotation)//char(0))
+   else 
+       call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_indx), local_cells_global_indx, trim(decomp_name)//char(0), trim("")//char(0))
+   endif
+
+   CCPL_register_parallel_decomp = decomp_id
+
+   end FUNCTION CCPL_register_parallel_decomp
+
+
+
    SUBROUTINE CCPL_finalize()
    include 'mpif.h'
    integer ierr

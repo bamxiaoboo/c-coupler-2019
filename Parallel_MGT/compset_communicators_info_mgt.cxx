@@ -611,6 +611,7 @@ void Comp_comm_group_mgt_node::transfer_data_buffer(Comp_comm_group_mgt_node *ne
 	this->temp_array_buffer = NULL;
 }
 
+
 Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name, const char *experiment_model, const char *case_name, 
 	       const char *case_desc, const char *case_mode, const char *comp_namelist,
            const char *current_config_time, const char *original_case_name, const char *original_config_time)
