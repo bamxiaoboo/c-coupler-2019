@@ -48,13 +48,7 @@
         c_coupler_register_model_integer_1D_data, &
         c_coupler_register_model_integer_2D_data, &
         c_coupler_register_model_integer_3D_data, &
-        c_coupler_register_model_integer_4D_data, &
-        c_coupler_register_model_logical_0D_data, &
-        c_coupler_register_model_logical_1D_data, &
-        c_coupler_register_model_logical_2D_data, &
-        c_coupler_register_model_logical_3D_data, &
-        c_coupler_register_model_logical_4D_data, &
-        c_coupler_register_model_string_data
+        c_coupler_register_model_integer_4D_data
    end interface
 
 
@@ -223,18 +217,6 @@
                                  trim(rest_freq_unit)//char(0), rest_freq_count, stop_latency_seconds)
    call initialize_coupling_managers(restart_date, restart_second, trim(restart_read_file)//char(0))
 
-   if (.not.(present(non_orbit) .and. non_orbit)) then
-      call parse_orb_nml(nml_filename)
-      call c_coupler_register_model_data(iyear_AD, "NULL", "input_orbYear",.false.)
-      call c_coupler_register_model_data(eccen, "NULL", "input_orbEccen",.false.)
-      call c_coupler_register_model_data(obliq, "NULL", "input_orbObliq",.false.)
-      call c_coupler_register_model_data(obliqr, "NULL", "input_orbObliqr",.false.)
-      call c_coupler_register_model_data(mvelp, "NULL", "input_orbMvelp",.false.)
-      call c_coupler_register_model_data(mvelpp, "NULL", "input_orbMvelpp",.false.)
-      call c_coupler_register_model_data(lambm0, "NULL", "input_orbLambm0",.false.)
-      call shr_orb_params(iyear_AD , eccen  , obliq , mvelp, obliqr   , lambm0 , mvelpp, .true.)
-   end if
-
    reduce_buf_real16_size = 1
    allocate(reduce_buf_real16(reduce_buf_real16_size))
 
@@ -349,571 +331,394 @@
 
 
 
-   SUBROUTINE c_coupler_register_model_double_0D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+   integer FUNCTION c_coupler_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R8), INTENT(IN)         :: data_buf
-   real(R8), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R8)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R8), INTENT(IN)                    :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_double_0D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_double_0D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_double_0D_data
 
 
-   SUBROUTINE c_coupler_register_model_double_1D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_double_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R8), DIMENSION(:)       :: data_buf
-   real(R8), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R8)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R8), INTENT(IN), DIMENSION(:)      :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_double_1D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_double_1D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_double_1D_data
 
 
-   SUBROUTINE c_coupler_register_model_double_2D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_double_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R8), DIMENSION(:,:)     :: data_buf
-   real(R8), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R8)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R8), INTENT(IN), DIMENSION(:,:)    :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_double_2D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_double_2D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_double_2D_data
 
 
-   SUBROUTINE c_coupler_register_model_double_3D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_double_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R8), DIMENSION(:,:,:)   :: data_buf
-   real(R8), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R8)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R8), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_double_3D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_double_3D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_double_3D_data
 
 
-   SUBROUTINE c_coupler_register_model_double_4D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_double_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R8), DIMENSION(:,:,:,:) :: data_buf
-   real(R8), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R8)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R8), INTENT(IN), DIMENSION(:,:,:,:)  :: data_buf
+   character(len=*), intent(in)              :: field_name
+   character(len=*), intent(in), optional    :: field_unit
+   character(len=*), intent(in), optional    :: annotation
+   integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                            :: local_field_unit, local_annotation
+   integer                                   :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real8")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_double_4D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_double_4D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_double_4D_data
 
 
-   SUBROUTINE c_coupler_register_model_float_0D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_float_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R4)                     :: data_buf
-   real(R4), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R4)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R4), INTENT(IN)                    :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_float_0D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_float_0D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_float_0D_data
 
 
-   SUBROUTINE c_coupler_register_model_float_1D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_float_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R4), DIMENSION(:)       :: data_buf
-   real(R4), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R4)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R4), INTENT(IN), DIMENSION(:)      :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_float_1D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_float_1D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_float_1D_data
 
 
-   SUBROUTINE c_coupler_register_model_float_2D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_float_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R4), DIMENSION(:,:)     :: data_buf
-   real(R4), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R4)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R4), INTENT(IN), DIMENSION(:,:)    :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_float_2D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_float_2D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_float_2D_data
 
 
-   SUBROUTINE c_coupler_register_model_float_3D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_float_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R4), DIMENSION(:,:,:)   :: data_buf
-   real(R4), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R4)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R4), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_float_3D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_float_3D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_float_3D_data
 
 
-   SUBROUTINE c_coupler_register_model_float_4D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_float_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   real(R4), DIMENSION(:,:,:,:) :: data_buf
-   real(R4), optional           :: fill_value
-   character(len=*), optional   :: grid_name
-   real(R4)                     :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   real(R4), INTENT(IN), DIMENSION(:,:,:,:)  :: data_buf
+   character(len=*), intent(in)              :: field_name
+   character(len=*), intent(in), optional    :: field_unit
+   character(len=*), intent(in), optional    :: annotation
+   integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                            :: local_field_unit, local_annotation
+   integer                                   :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("real4")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_float_4D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_float_4D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_float_4D_data
 
 
-   SUBROUTINE c_coupler_register_model_integer_0D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_integer_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   integer                      :: data_buf
-   integer, optional            :: fill_value
-   character(len=*), optional   :: grid_name
-   integer                      :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   integer, INTENT(IN)                     :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_integer_0D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_integer_0D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_integer_0D_data
 
 
-   SUBROUTINE c_coupler_register_model_integer_1D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_integer_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   integer,DIMENSION(:)         :: data_buf
-   integer, optional            :: fill_value
-   character(len=*), optional   :: grid_name
-   integer                      :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   integer, INTENT(IN), DIMENSION(:)       :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_integer_1D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_integer_1D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_integer_1D_data
 
 
-   SUBROUTINE c_coupler_register_model_integer_2D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_integer_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   integer,DIMENSION(:,:)       :: data_buf
-   integer, optional            :: fill_value
-   character(len=*), optional   :: grid_name
-   integer                      :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   integer, INTENT(IN), DIMENSION(:,:)     :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_integer_2D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_integer_2D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_integer_2D_data
 
 
-   SUBROUTINE c_coupler_register_model_integer_3D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_integer_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   integer,DIMENSION(:,:,:)     :: data_buf
-   integer, optional            :: fill_value
-   character(len=*), optional   :: grid_name
-   integer                      :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   integer, INTENT(IN), DIMENSION(:,:,:)   :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_integer_3D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_integer_3D_data = field_instance_id
+
+   END FUNCTION c_coupler_register_model_integer_3D_data
 
 
-   SUBROUTINE c_coupler_register_model_integer_4D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
+
+   integer FUNCTION c_coupler_register_model_integer_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
-   integer,DIMENSION(:,:,:,:)   :: data_buf
-   integer, optional            :: fill_value
-   character(len=*), optional   :: grid_name
-   integer                      :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
+   integer, INTENT(IN), DIMENSION(:,:,:,:) :: data_buf
+   character(len=*), intent(in)            :: field_name
+   character(len=*), intent(in), optional  :: field_unit
+   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
+   character *512                          :: local_field_unit, local_annotation
+   integer                                 :: field_instance_id
 
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
+   local_field_unit = ""
+   if (present(field_unit)) then
+       local_field_unit = field_unit
+   endif
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
    endif
 
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("integer")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_integer_4D_data
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   c_coupler_register_model_integer_4D_data = field_instance_id
 
+   END FUNCTION c_coupler_register_model_integer_4D_data
 
-   SUBROUTINE c_coupler_register_model_logical_0D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
-   implicit none
-   logical(1)                    :: data_buf
-   logical(1), optional          :: fill_value
-   character(len=*), optional    :: grid_name
-   logical(1)                    :: local_fill_value
-   logical                       :: is_restart_field
-   integer                       :: have_fill_value
-   character(len=*), intent(in)  :: decomp_name
-   character(len=*), intent(in)  :: field_name
-   character *512                :: local_grid_name
-
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
-   endif
-
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_logical_0D_data
-
-
-   SUBROUTINE c_coupler_register_model_logical_1D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
-   implicit none
-   logical(1),DIMENSION(:)       :: data_buf
-   logical(1), optional          :: fill_value
-   character(len=*), optional    :: grid_name
-   logical(1)                    :: local_fill_value
-   logical                       :: is_restart_field
-   integer                       :: have_fill_value
-   character(len=*), intent(in)  :: decomp_name
-   character(len=*), intent(in)  :: field_name
-   character *512                :: local_grid_name
-
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
-   endif
-
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_logical_1D_data
-
-
-   SUBROUTINE c_coupler_register_model_logical_2D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
-   implicit none
-   logical(1),DIMENSION(:,:)     :: data_buf
-   logical(1), optional          :: fill_value
-   character(len=*), optional    :: grid_name
-   logical(1)                    :: local_fill_value
-   logical                       :: is_restart_field
-   integer                       :: have_fill_value
-   character(len=*), intent(in)  :: decomp_name
-   character(len=*), intent(in)  :: field_name
-   character *512                :: local_grid_name
-
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
-   endif
-
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_logical_2D_data
-
-
-   SUBROUTINE c_coupler_register_model_logical_3D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
-   implicit none
-   logical(1),DIMENSION(:,:,:)   :: data_buf
-   logical(1), optional          :: fill_value
-   character(len=*), optional    :: grid_name
-   logical(1)                    :: local_fill_value
-   logical                       :: is_restart_field
-   integer                       :: have_fill_value
-   character(len=*), intent(in)  :: decomp_name
-   character(len=*), intent(in)  :: field_name
-   character *512                :: local_grid_name
-
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
-   endif
-
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_logical_3D_data
-
-
-   SUBROUTINE c_coupler_register_model_logical_4D_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
-   implicit none
-   logical(1),DIMENSION(:,:,:,:) :: data_buf
-   logical(1), optional          :: fill_value
-   character(len=*), optional    :: grid_name
-   logical(1)                    :: local_fill_value
-   logical                       :: is_restart_field
-   integer                       :: have_fill_value
-   character(len=*), intent(in)  :: decomp_name
-   character(len=*), intent(in)  :: field_name
-   character *512                :: local_grid_name
-
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
-   endif
-
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, size(data_buf), trim(decomp_name)//char(0), trim(field_name)//char(0), trim("logical")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_logical_4D_data
-
-
-   SUBROUTINE c_coupler_register_model_string_data(data_buf, decomp_name, field_name, is_restart_field, grid_name, fill_value)
-   implicit none
-   character(len=*)             :: data_buf
-   character, optional          :: fill_value
-   character(len=*), optional   :: grid_name
-   character                    :: local_fill_value
-   logical                      :: is_restart_field
-   integer                      :: have_fill_value
-   character(len=*), intent(in) :: decomp_name
-   character(len=*), intent(in) :: field_name
-   character *512               :: local_grid_name
-
-   local_grid_name = "none"
-   if (present(grid_name)) then
-       local_grid_name = grid_name
-   endif
-
-   if (present(fill_value)) then
-       have_fill_value = 1
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("string")//char(0), trim(local_grid_name)//char(0), have_fill_value, fill_value, is_restart_field)
-   else
-       have_fill_value = 0
-       call register_model_data(data_buf, 1, trim(decomp_name)//char(0), trim(field_name)//char(0), trim("string")//char(0), trim(local_grid_name)//char(0), have_fill_value, local_fill_value, is_restart_field)
-   end if
-   END SUBROUTINE c_coupler_register_model_string_data
 
 
    SUBROUTINE c_coupler_check_sum_for_external_double_0D_data(data_buf, array_size, hint)

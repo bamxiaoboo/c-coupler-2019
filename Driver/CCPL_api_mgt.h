@@ -34,6 +34,7 @@
 #define API_ID_GRID_MGT_GET_GRID_LOCAL_DATA             ((int)(0X00402000))
 #define API_ID_GRID_MGT_GET_MID_LAYER_GRID              ((int)(0X00404000))
 #define API_ID_DECOMP_MGT_REG_DECOMP                    ((int)(0X00800001))
+#define API_ID_FIELD_MGT_REG_FIELD_INST                 ((int)(0X01000001))
 
 
 

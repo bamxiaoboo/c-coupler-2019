@@ -11,6 +11,7 @@
 #define DECOMP_INFO
 
 #include "common_utils.h"
+#include "remap_grid_class.h"
 #include <vector>
 
 
@@ -65,6 +66,10 @@ class Decomp_info_mgt
         Decomp_info *generate_remap_weights_src_decomp(const char*, const char*, const char*);
 		int search_decomp_info(const char*, int);
 		int register_H2D_parallel_decomposition(const char *, int, int, const int *, const char *);
+		bool is_decomp_id_legal(int) const;
+		int get_comp_id_of_decomp(int) const;
+		Remap_grid_class *get_CoR_grid_of_decomp(int) const;
+		Decomp_info *get_decomp_info(int);
 };
 
 

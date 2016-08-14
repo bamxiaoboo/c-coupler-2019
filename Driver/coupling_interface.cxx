@@ -21,15 +21,6 @@
 int coupling_process_control_counter = 0;
 
 
-extern "C" void register_model_data_(void *model_buf, int *data_size, const char *decomp_name, const char *field_name, const char *data_type, const char *grid_name, int *have_fill_value, void *fill_value, bool *is_restart_field)
-{
-    EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, "C-Coupler interface coupling_interface_initialize has not been called\n"); 
-    if ((*have_fill_value) == 1)
-        memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, fill_value, *is_restart_field, *data_size);
-    else memory_manager->register_model_data_buf(decomp_name, field_name, data_type, model_buf, grid_name, NULL, *is_restart_field, *data_size);
-}
-
-
 extern "C" void coupling_get_field_size_(void *model_buf, const char *annotation, int *field_size)
 {
     EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
@@ -568,6 +559,8 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	execution_phase_number = 1;
 	original_grid_mgr = new Original_grid_mgt(root_cfg_name);
 	decomps_info_mgr = new Decomp_info_mgt();
+	memory_manager = new Memory_mgt(line);
+	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the field information table in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
 	execution_phase_number = 2;
 }
 
@@ -716,8 +709,8 @@ extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_n
 	push_annotation(annotation);	
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling interface CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "registering a grid based on a CoR grid", annotation);
-	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "for registering grid", CCPL_grid_name, "CCPL_grid_name", annotation);
-	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "for registering grid", CoR_grid_name, "CoR_grid_name", annotation);
+	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "registering grid", CCPL_grid_name, "CCPL_grid_name", annotation);
+	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "registering grid", CoR_grid_name, "CoR_grid_name", annotation);
 	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, CCPL_grid_name, CoR_grid_name, annotation);
 	printf("grid id is %d %lx\n", *grid_id, *grid_id);
 	pop_annotation(annotation);
@@ -726,10 +719,23 @@ extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_n
 
 extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
 {
+	push_annotation(annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells >= 0, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is smaller than 0. Please check the model code related to \"%s\"",
+		             decomp_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells <= *array_size, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is larger than the size of the array of local cells' global indexes. Please check the model code related to \"%s\"",
 		             decomp_name, annotation);
 	EXECUTION_REPORT(REPORT_WARNING, -1, *num_local_cells == *array_size, "The number of local cells is different from the size of the array of local cells' global indexes when registering parallel decomposition \"%s\". Please check the model code related to \"%s\"",
 		             decomp_name, annotation);
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
+	pop_annotation(annotation);
+}
+
+
+extern "C" void register_external_field_instance_(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
+	                                             int *buf_mark, const char *unit, const char *data_type, const char *annotation)
+{
+	if (strlen(unit) != 0)
+		*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
+	else *field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, NULL, data_type, annotation);
 }
 

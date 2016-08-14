@@ -17,6 +17,8 @@
 #define TYPE_COMP_GLOBAL_ID_PREFIX             ((int)0x02000000)
 #define TYPE_GRID_LOCAL_ID_PREFIX              ((int)0x03000000)
 #define TYPE_GRID_GLOBAL_ID_PREFIX             ((int)0x04000000)
+#define TYPE_DECOMP_ID_PREFIX                  ((int)0x06000000)
+#define TYPE_FIELD_INST_ID_PREFIX              ((int)0x07000000)
 
 
 #endif

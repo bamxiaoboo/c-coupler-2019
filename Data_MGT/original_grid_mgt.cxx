@@ -26,6 +26,7 @@ const char *Original_grid_info::get_annotation()
 	return annotation_mgr->get_annotation(this->grid_id, "grid_registration");
 }
 
+
 Original_grid_mgt::Original_grid_mgt(const char *script)
 {
 	original_grids.clear();
@@ -99,27 +100,23 @@ bool Original_grid_mgt::is_grid_id_legal(int grid_id) const
 }
 
 
-int Original_grid_mgt::get_comp_id_of_grid(int grid_id)
+int Original_grid_mgt::get_comp_id_of_grid(int grid_id) const
 {
-	int true_grid_id = grid_id & TYPE_ID_SUFFIX_MASK;
-
-
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_comp_id_of_grid");
-
-	return original_grids[true_grid_id]->get_comp_id();
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_comp_id();
 }
 
 
 const char *Original_grid_mgt::get_name_of_grid(int grid_id) const
 {
-	int true_grid_id = grid_id & TYPE_ID_SUFFIX_MASK;
-
-
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_name_of_grid");
-
-	return original_grids[true_grid_id]->get_grid_name();
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_grid_name();
 }
 
 
-
+Remap_grid_class *Original_grid_mgt::get_CoR_grid(int grid_id) const
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_CoR_grid");
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_CoR_grid();
+}
 

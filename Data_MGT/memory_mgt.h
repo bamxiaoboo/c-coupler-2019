@@ -29,8 +29,13 @@ class Field_mem_info
         char comp_name[NAME_STR_SIZE];
         char decomp_name[NAME_STR_SIZE];
         char grid_name[NAME_STR_SIZE];
-        char field_name[NAME_STR_SIZE];
         int buf_type;
+
+        char field_name[NAME_STR_SIZE];
+		int field_instance_id;
+		int decomp_id;
+		int comp_or_grid_id;
+		int buf_mark;
         bool is_registered_model_buf;
 		bool is_restart_field;
 		long last_define_time;
@@ -39,9 +44,11 @@ class Field_mem_info
         Remap_grid_data_class *grided_field_data;
 
     public:
+		Field_mem_info(const char *, int, int, int, int, const char *, const char *, const char *);
         Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool, const char*);
         bool match_field_mem(const char*, const char*, const char*, const char*, const int, const char*);
 		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int, const char*);
+		bool match_field_instance(const char *, int, int, int);
 		bool match_field_mem(void*);
         bool get_is_restart_field() { return is_restart_field; }
 		bool get_is_registered_model_buf() { return is_registered_model_buf; }
@@ -66,6 +73,7 @@ class Field_mem_info
 		long get_last_define_time() { return last_define_time; }
 		void set_define_order_count(long count) { define_order_count = count; }
 		long get_define_order_count() { return define_order_count; }
+		int get_field_instance_id() { return field_instance_id; }
         ~Field_mem_info();
 };
 
@@ -84,6 +92,7 @@ class Memory_mgt
         Memory_mgt(const char *);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
         void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool, int);
+		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
         Field_mem_info *search_field_via_data_buf(const void*, bool);
 		void write_restart_fields();
@@ -98,6 +107,7 @@ class Memory_mgt
         ~Memory_mgt();
 		void export_field_data(void*, const char*, const char*, const char*, const char *, int);
 		int get_field_size(void*, const char*);
+		Field_mem_info *search_field_instance(const char *, int, int, int);
 };
 
 

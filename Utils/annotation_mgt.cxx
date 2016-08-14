@@ -192,7 +192,7 @@ void Annotation_mgt::add_annotation(int object_id, const char *tag, const char *
 
 	sprintf(key, "%x @ %s", object_id, tag);
 	annoation_lookup_table->insert(key, annotation);
-	printf("add annotation \"%s\" vs \"%s\"\n", annotation);
+	printf("add annotation \"%s\" vs \"%s\"\n", key, annotation);
 }
 
 
@@ -204,6 +204,7 @@ const char *Annotation_mgt::get_annotation(int object_id, const char *tag)
 
 	sprintf(key, "%x @ %s", object_id, tag);
 	annotation = annoation_lookup_table->search(key, true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, annotation != NULL, "Software error in Annotation_mgt::get_annotation");
 	printf("find annotation \"%s\"\n", annotation);
 	return annotation;
 }

@@ -31,7 +31,7 @@ class Original_grid_info
 		int get_local_grid_id() const { return grid_id; }
 		~Original_grid_info() {}
 		int get_comp_id() const { return comp_id; }
-		Remap_grid_class *get_CoR_grid() { return CoR_grid; }
+		Remap_grid_class *get_CoR_grid() const { return CoR_grid; }
 };
 
 
@@ -49,8 +49,9 @@ class Original_grid_mgt
 		int get_CoR_defined_grid(int, const char*, const char*, const char*);
 		Original_grid_info *search_grid_info(const char*);
 		Original_grid_info *search_grid_info(int);
+		Remap_grid_class *get_CoR_grid(int) const;
 		bool is_grid_id_legal(int) const;		
-		int get_comp_id_of_grid(int);
+		int get_comp_id_of_grid(int) const;
 		const char *get_name_of_grid(int) const;
 };
 

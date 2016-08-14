@@ -71,6 +71,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_GRID_MGT_GET_MID_LAYER_GRID:
 			sprintf(API_label, "CCPL_get_mid_layer_grid");
 			break;
+		case API_ID_DECOMP_MGT_REG_DECOMP:
+			sprintf(API_label, "CCPL_register_parallel_decomp");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;
