@@ -15,6 +15,9 @@
 #include "remap_grid_data_class.h"
 
 
+#define BUF_MARK_GRID_FIELD              (-100)
+
+
 struct Registered_field_info
 {
     char field_name[NAME_STR_SIZE];
@@ -91,6 +94,7 @@ class Memory_mgt
     public: 
         Memory_mgt(const char *);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
+		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*);
         void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool, int);
 		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
@@ -113,5 +117,6 @@ class Memory_mgt
 
 extern Field_mem_info *alloc_mem(const char *, const char *, const char *, const char *, const char *, const int,  bool, const char*);
 extern Field_mem_info *alloc_full_grid_mem(const char *, const char *, const char *, const char *, const char*, const int, bool, const char*);
+extern Field_mem_info *alloc_mem(const char *, int, int, int, const char *, const char *, const char *);
 
 #endif

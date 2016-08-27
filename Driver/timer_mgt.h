@@ -10,6 +10,7 @@
 #ifndef COUPLING_TIME_MGT
 #define COUPLING_TIME_MGT
 
+#define FREQUENCY_UNIT_STEPS            "steps"
 #define FREQUENCY_UNIT_SECONDS          "seconds"
 #define FREQUENCY_UNIT_DAYS             "days"
 #define FREQUENCY_UNIT_MONTHS           "months"
@@ -20,7 +21,7 @@
 #include <vector>
 
 
-class Timer_mgt;
+class Time_mgt;
 
 
 struct Comps_transfer_time_info
@@ -36,21 +37,47 @@ struct Comps_transfer_time_info
 class Coupling_timer
 {
     private:
-        friend class Timer_mgt;
+        friend class Time_mgt;
         char frequency_unit[NAME_STR_SIZE];
         int frequency_count;
         int delay_count;
+		int timer_id;
+		int comp_id;
+		std::vector<Coupling_timer*> children;
+		Time_mgt *comp_time_mgr;
+		int or_or_and;
         
     public:
+		Coupling_timer(int, int, int*, int, int, const char *);
+		Coupling_timer(int, int, const char*, int, int, const char*);
         Coupling_timer(const char*, int, int, const char*);
         Coupling_timer(char**, const char*);
+		Coupling_timer(int, int, Coupling_timer*);
 		Coupling_timer(Coupling_timer*);
         ~Coupling_timer() {}
         bool is_timer_on();
+		int get_timer_id() { return timer_id; }
+		int get_comp_id() { return comp_id; }
 };
 
 
 class Timer_mgt
+{
+	private:
+		std::vector<Coupling_timer*> timers;
+
+	public:
+		Timer_mgt() {};
+		~Timer_mgt();
+		bool check_is_legal_timer_id(int);
+		Coupling_timer *get_timer(int);
+		int define_timer(int, const char*, int, int, const char*);
+		int define_timer(int, int*, int, int, const char*);
+		int define_timer(int, Coupling_timer*);
+};
+
+
+class Time_mgt
 {
     private:
         int start_year;
@@ -81,10 +108,20 @@ class Timer_mgt
         Coupling_timer *restart_timer;
         std::vector<Comps_transfer_time_info*> comps_transfer_time_infos;
 
+		int comp_id;
+		char case_name[NAME_STR_SIZE];
+		char case_desc[NAME_STR_SIZE];
+		char run_type[NAME_STR_SIZE];
+		char stop_option[NAME_STR_SIZE];
+		char rest_freq_unit[NAME_STR_SIZE];
+		int rest_freq_count;
+
     public:
-        Timer_mgt(int, int, int, int, int, bool, int, const char*, int, int);
-        ~Timer_mgt();
-        void advance_coupling_step();
+		Time_mgt() {}
+		Time_mgt(int, const char *);
+        Time_mgt(int, int, int, int, int, int, bool, int, const char*, int, int);
+        ~Time_mgt();
+        void advance_time(const char*);
         int get_current_year() { return current_year; }
         int get_current_month() { return current_month; }
         int get_current_day() { return current_day; }
@@ -120,6 +157,28 @@ class Timer_mgt
 		void reset_timer();
 		bool check_is_time_legal(int, int, int, int, const char*);
 		bool get_is_leap_year_on() { return leap_year_on; }
+		int get_comp_id() { return comp_id; }
+		Time_mgt *clone_time_mgr(int);
+		void set_sec_per_step(int, const char*);
+		bool is_a_leap_year(int);
+		void build_restart_timer();
+		int get_current_step_id() { return current_step_id; }
+};
+
+
+class Components_time_mgt
+{
+	private:
+		std::vector<Time_mgt*> components_time_mgrs;
+
+	public:
+		Components_time_mgt() {}
+		~Components_time_mgt();
+		Time_mgt *get_time_mgr(int);
+		void define_root_comp_time_mgr(int, const char*);
+		void clone_parent_comp_time_mgr(int, int, const char*);
+		void set_component_time_step(int, int, const char*);
+		void advance_component_time(int, const char*);
 };
 
 

@@ -19,6 +19,7 @@
 #define TYPE_GRID_GLOBAL_ID_PREFIX             ((int)0x04000000)
 #define TYPE_DECOMP_ID_PREFIX                  ((int)0x06000000)
 #define TYPE_FIELD_INST_ID_PREFIX              ((int)0x07000000)
+#define TYPE_TIMER_ID_PREFIX                   ((int)0x08000000)
 
 
 #endif

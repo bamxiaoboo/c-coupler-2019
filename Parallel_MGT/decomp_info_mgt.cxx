@@ -32,9 +32,9 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int grid_id, in
 	strcpy(this->decomp_name, decomp_name);
 	annotation_mgr->add_annotation(decomp_id, "register decomposition", annotation);
 	is_registered = false;
-	synchronize_comp_processes_for_API(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id), "for register a parallel decomposition of a grid", annotation);
-	check_API_parameter_string(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id), "for register a parallel decomposition of a grid", decomp_name, "decomp_name", annotation);
-	check_API_parameter_string(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id), "for register a parallel decomposition of a grid", original_grid_mgr->get_name_of_grid(grid_id), "grid_id (the corresponding grid name)", annotation);	
+	synchronize_comp_processes_for_API(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", annotation);
+	check_API_parameter_string(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", decomp_name, "decomp_name", annotation);
+	check_API_parameter_string(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", original_grid_mgr->get_name_of_grid(grid_id), "grid_id (the corresponding grid name)", annotation);	
 
 	CoR_grid = original_grid_mgr->search_grid_info(grid_id)->get_CoR_grid();
 	EXECUTION_REPORT(REPORT_ERROR, this->comp_id, CoR_grid->get_is_sphere_grid(), "the grid \"%s\" for registering parallel decomposition \"%s\" is not a H2D grid. Please check the model code related to the annoation \"%s\"",
@@ -372,7 +372,7 @@ int Decomp_info_mgt::search_decomp_info(const char *decomp_name, int grid_id)
 
 int Decomp_info_mgt::register_H2D_parallel_decomposition(const char *decomp_name, int grid_id, int num_local_cells, const int *cell_indexes_in_decomp, const char *annotation)
 {
-	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_GRID_GLOBAL_ID_PREFIX|decomps_info.size()), grid_id, num_local_cells, cell_indexes_in_decomp, annotation);
+	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), grid_id, num_local_cells, cell_indexes_in_decomp, annotation);
 
 	if (search_decomp_info(decomp_name,grid_id) != -1)
 		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, "The parallel decomposition \"%s\" corresponding to grid \"%s\" has been registered before. Please check the model code corresponding to annotations \"%s\" and \"%s\"",

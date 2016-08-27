@@ -47,12 +47,13 @@ class Original_grid_mgt
 		~Original_grid_mgt();
 		void check_for_grid_definition(int, const char*, const char*);
 		int get_CoR_defined_grid(int, const char*, const char*, const char*);
-		Original_grid_info *search_grid_info(const char*);
+		Original_grid_info *search_grid_info(const char*, int);
 		Original_grid_info *search_grid_info(int);
 		Remap_grid_class *get_CoR_grid(int) const;
 		bool is_grid_id_legal(int) const;		
 		int get_comp_id_of_grid(int) const;
 		const char *get_name_of_grid(int) const;
+		int get_grid_size(int, const char*) const;
 };
 
 

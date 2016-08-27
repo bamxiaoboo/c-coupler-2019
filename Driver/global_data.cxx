@@ -17,8 +17,9 @@ Compset_communicators_info_mgt *compset_communicators_info_mgr = NULL;
 Comp_comm_group_mgt_mgr *comp_comm_group_mgt_mgr = NULL;
 Original_grid_mgt *original_grid_mgr = NULL;
 Routing_info_mgt *routing_info_mgr = NULL;
-Timer_mgt *timer_mgr = NULL;
-Timer_mgt *restart_read_timer_mgr = NULL;
+Time_mgt *timer_mgr = NULL;
+Timer_mgt *timer_mgr2 = NULL;
+Time_mgt *restart_read_timer_mgr = NULL;
 Decomp_info_mgt *decomps_info_mgr = NULL;
 Field_info_mgt *fields_info = NULL;
 Memory_mgt *memory_manager = NULL;
@@ -31,23 +32,7 @@ Performance_timing_mgt *performance_timing_mgr = NULL;
 External_algorithm_mgt *external_algorithm_mgr = NULL;
 Ensemble_mgt *ensemble_mgr = NULL;
 Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr = NULL;
-const char *current_annotation = NULL;
 Annotation_mgt *annotation_mgr = NULL;
-
-
-
-void push_annotation(const char *annotation)
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, current_annotation == NULL, "software error in push_annotation");
-	current_annotation = annotation;
-}
-
-
-void pop_annotation(const char *annotation)
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, current_annotation == annotation, "software error in pop_annotation");
-	current_annotation = NULL;
-}
-
+Components_time_mgt *components_time_mgrs;
 
 

@@ -51,7 +51,7 @@ class Comp_comm_group_mgt_node
 		char working_dir[NAME_STR_SIZE];
 
 	public:
-		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&);
+		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
 		Comp_comm_group_mgt_node(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*, int &);
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
@@ -59,7 +59,7 @@ class Comp_comm_group_mgt_node
 		void transform_node_into_array();
 		void write_data_into_array_buffer(const void*, int);
 		void read_data_from_array_buffer(void*, int);
-		void merge_comp_comm_info();
+		void merge_comp_comm_info(const char*);
 		int get_buffer_content_size() { return buffer_content_size; }
 		int get_buffer_content_iter() { return buffer_content_iter; }
 		const char *get_comp_name() const { return comp_name; }
@@ -80,6 +80,7 @@ class Comp_comm_group_mgt_node
 		const char *get_working_dir() const { return working_dir; }
 		void update_child(const Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*);
 		void transfer_data_buffer(Comp_comm_group_mgt_node*);
+		int get_num_procs() const { return local_processes_global_ids.size(); }
 };
 
 
@@ -103,14 +104,14 @@ class Comp_comm_group_mgt_mgr
 	public:
 		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
 		~Comp_comm_group_mgt_mgr();
-		int register_component(const char*, const char*, MPI_Comm&, int);
-		void merge_comp_comm_info(int);
+		int register_component(const char*, const char*, MPI_Comm&, int, const char*);
+		void merge_comp_comm_info(int, const char*);
 		bool is_legal_local_comp_id(int);
 		bool is_local_comp_definition_finalized(int);
 		void update_global_nodes(Comp_comm_group_mgt_node**, int);
 		void transform_global_node_tree_into_array(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node**, int&);
-		Comp_comm_group_mgt_node *get_global_node_of_local_comp(int);
-		MPI_Comm get_comm_group_of_local_comp(int);
+		Comp_comm_group_mgt_node *get_global_node_of_local_comp(int, const char*);
+		MPI_Comm get_comm_group_of_local_comp(int, const char*);
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
 		void get_log_file_name(int, char*);
@@ -120,6 +121,10 @@ class Comp_comm_group_mgt_mgr
 		void write_comp_comm_info_into_XML();
 		void read_comp_comm_info_from_XML();
 		bool get_is_definition_finalized() { return definition_finalized; }
+		int get_current_proc_id_in_comp(int, const char *);
+		int get_num_proc_in_comp(int, const char *);
+		int get_current_proc_global_id() { return current_proc_global_id; }
+		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
 };
 
 

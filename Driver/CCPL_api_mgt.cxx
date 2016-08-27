@@ -74,6 +74,12 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_DECOMP_MGT_REG_DECOMP:
 			sprintf(API_label, "CCPL_register_parallel_decomp");
 			break;
+		case API_ID_FIELD_MGT_REG_FIELD_INST:
+			sprintf(API_label, "CCPL_register_field_instance");
+			break;
+		case API_ID_TIME_MGT_SET_TIME_STEP:
+			sprintf(API_label, "CCPL_set_time_step");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;
@@ -84,9 +90,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, const char *hint, const char *annotation)
 {
 	char API_label_local[NAME_STR_SIZE], API_label_another[NAME_STR_SIZE];
-	int local_process_id, num_processes, diff_pos;
-	int *API_ids;
-	char *annotations;
+	int local_process_id, num_processes;
+	int *API_ids, *comp_ids;
+	char *annotations, *comp_names;
 
 
 	get_API_hint(-1, API_id, API_label_local);
@@ -97,7 +103,7 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	if (hint != NULL)
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
 	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(comm) == MPI_SUCCESS);
+	MPI_Barrier(comm);
 	if (hint != NULL)
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
 	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
@@ -106,20 +112,36 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	API_ids = new int [num_processes];
 	annotations = new char [num_processes*NAME_STR_SIZE];
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&API_id, 1, MPI_INT, API_ids, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "annotation is \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((void*)annotation, NAME_STR_SIZE, MPI_CHAR, annotations, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
-	diff_pos = -1;
+	if (local_process_id == 0) {
+		for (int i = 1; i < num_processes; i ++) {
+			get_API_hint(comp_id, API_ids[i], API_label_another);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, API_id == API_ids[i], "different kinds of C-Coupler API calls (\"%s\" and \"%s\") are mapped to the same synchronization. Please check the model code related to the annotations \"%s\" and \"%s\".",
+							 API_label_local, API_label_another, annotation, annotations+NAME_STR_SIZE*i);			
+		}	
+	}
+	comp_ids = new int [num_processes];
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&comp_id, 1, MPI_INT, comp_ids, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
 	if (local_process_id == 0) {
 		for (int i = 1; i < num_processes; i ++)
-			if (API_id != API_ids[i])
-				diff_pos = i;
-		if (diff_pos != -1)
-			get_API_hint(comp_id, API_ids[diff_pos], API_label_another);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, diff_pos == -1, "different kinds of C-Coupler API calls (\"%s\" and \"%s\") are mapped to the same synchronization. Please check the model code related to the annotations \"%s\" and \"%s\".",
-						 API_label_local, API_label_another, annotation, annotations+NAME_STR_SIZE*diff_pos);
+			EXECUTION_REPORT(REPORT_ERROR, -1, comp_ids[0] == -1 && comp_ids[i] == -1 || comp_ids[0] != -1 && comp_ids[i] != -1, "It is wrong that different components take part in the same API (\"%s\"). Please check the model code related to the annotations \"%s\" and \"%s\".", 
+						     API_label_local, annotation, annotations+NAME_STR_SIZE*i);
+	}
+	if (comp_id != -1) {
+		comp_names = new char [num_processes*NAME_STR_SIZE];
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather((void*)comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"C-Coupler gets component node in synchronize_comp_processes_for_API")->get_comp_name(), NAME_STR_SIZE, MPI_CHAR, comp_names, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+		if (local_process_id == 0) {
+			for (int i = 1; i < num_processes; i ++)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(comp_names, comp_names+NAME_STR_SIZE*i), "It is wrong that two different components (\"%s\" and \"%s\") take part in the same API (\"%s\"). Please check the model code related to the annotations \"%s\" and \"%s\".",
+							 comp_names, comp_names+NAME_STR_SIZE*i, API_label_local, annotation, annotations+NAME_STR_SIZE*i);		
+		}
+		delete [] comp_names;
 	}
 	
 	delete [] API_ids;
 	delete [] annotations;
+	delete [] comp_ids;
 }
 
 

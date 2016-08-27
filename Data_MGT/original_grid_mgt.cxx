@@ -44,10 +44,10 @@ Original_grid_mgt::~Original_grid_mgt()
 }
 
 
-Original_grid_info *Original_grid_mgt::search_grid_info(const char *grid_name)
+Original_grid_info *Original_grid_mgt::search_grid_info(const char *grid_name, int comp_id)
 {
 	for (int i = 0; i < original_grids.size(); i ++)
-		if (words_are_the_same(original_grids[i]->get_grid_name(), grid_name))
+		if (words_are_the_same(original_grids[i]->get_grid_name(), grid_name) && original_grids[i]->get_comp_id() == comp_id)
 			return original_grids[i];
 
 	return NULL;
@@ -64,9 +64,9 @@ Original_grid_info *Original_grid_mgt::search_grid_info(int grid_id)
 void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_name, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
-	if (search_grid_info(grid_name) != NULL)
+	if (search_grid_info(grid_name, comp_id) != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "grid \"%s\" has been defined in component \"%s\" before. Please check the model code with the annoation \"%s\" and \"%s\"",
-		                 grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id)->get_comp_name(), search_grid_info(grid_name)->get_annotation(), annotation);
+		                 grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler code in check_for_grid_definition for getting component management node")->get_comp_name(), search_grid_info(grid_name, comp_id)->get_annotation(), annotation);
 }
 
 
@@ -118,5 +118,12 @@ Remap_grid_class *Original_grid_mgt::get_CoR_grid(int grid_id) const
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_CoR_grid");
 	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_CoR_grid();
+}
+
+
+int Original_grid_mgt::get_grid_size(int grid_id, const char *annotation) const
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "The grid id used for getting grid size is wrong. Please verify the model code corresponding to the annotation \"%s\"", annotation);		
+	return get_CoR_grid(grid_id)->get_grid_size();
 }
 

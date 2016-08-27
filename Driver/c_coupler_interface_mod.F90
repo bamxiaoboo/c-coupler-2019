@@ -33,7 +33,7 @@
    public :: c_coupler_check_sum_for_all_fields
    public :: c_coupler_export_field_instance
 
-   interface c_coupler_register_model_data ; module procedure &
+   interface CCPL_register_field_instance ; module procedure &
         c_coupler_register_model_double_0D_data, &
         c_coupler_register_model_double_1D_data, &
         c_coupler_register_model_double_2D_data, &
@@ -376,7 +376,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_double_1D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_double_1D_data
@@ -402,7 +402,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_double_2D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_double_2D_data
@@ -428,7 +428,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_double_3D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_double_3D_data
@@ -454,7 +454,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_double_4D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_double_4D_data
@@ -506,7 +506,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_float_1D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_float_1D_data
@@ -532,7 +532,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_float_2D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_float_2D_data
@@ -558,7 +558,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_float_3D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_float_3D_data
@@ -584,7 +584,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_float_4D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_float_4D_data
@@ -636,7 +636,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_integer_1D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_integer_1D_data
@@ -662,7 +662,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_integer_2D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_integer_2D_data
@@ -688,7 +688,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_integer_3D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_integer_3D_data
@@ -714,7 +714,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    c_coupler_register_model_integer_4D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_integer_4D_data
@@ -2289,6 +2289,43 @@
 
 
 
+   integer FUNCTION CCPL_get_current_process_id_in_component(comp_id, annotation)
+   implicit none
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in), optional  :: annotation
+   character *1024                         :: local_annotation
+   integer                                 :: proc_id
+   
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+
+   call get_current_proc_id_in_comp(comp_id, proc_id, local_annotation)
+   CCPL_get_current_process_id_in_component = proc_id
+
+   END FUNCTION CCPL_get_current_process_id_in_component
+   
+
+
+   integer FUNCTION CCPL_get_num_process_in_component(comp_id, annotation)
+   implicit none
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in), optional  :: annotation
+   character *1024                         :: local_annotation
+   integer                                 :: num_proc
+   
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+   call get_num_proc_in_comp(comp_id, num_proc, annotation)
+   CCPL_get_num_process_in_component = num_proc
+
+   END FUNCTION CCPL_get_num_process_in_component
+
+
+
    SUBROUTINE CCPL_end_comp_registration(comp_id, annotation)
    implicit none
    integer                     :: comp_id
@@ -2328,6 +2365,23 @@
 
 
 
+   integer FUNCTION CCPL_get_grid_size(grid_id, annotation) 
+   implicit none
+   integer, intent(in)                     :: grid_id
+   integer                                 :: grid_size
+   character(len=*), intent(in), optional  :: annotation
+
+   if (present(annotation)) then
+       call get_grid_size(grid_id, grid_size, trim(annotation)//char(0))
+   else 
+       call get_grid_size(grid_id, grid_size, trim("")//char(0))
+   endif
+   
+   CCPL_get_grid_size = grid_size
+    
+   END FUNCTION CCPL_get_grid_size
+
+
    integer FUNCTION CCPL_register_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_indx, annotation) 
    implicit none
    character(len=*), intent(in)                :: decomp_name
@@ -2347,6 +2401,83 @@
    CCPL_register_parallel_decomp = decomp_id
 
    end FUNCTION CCPL_register_parallel_decomp
+
+
+
+   integer FUNCTION CCPL_define_single_timer(comp_id, frequency_unit, frequency_count, delay_count, annotation) 
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in)                :: frequency_unit
+   integer,          intent(in)                :: frequency_count
+   integer,          intent(in), optional      :: delay_count
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: local_delay_count
+   integer                                     :: timer_id
+ 
+   local_delay_count = 0
+   if (present(delay_count)) local_delay_count = delay_count
+   if (present(annotation)) then
+        call define_single_timer(comp_id, timer_id, frequency_unit, frequency_count, local_delay_count, trim(annotation)//char(0))
+   else
+        call define_single_timer(comp_id, timer_id, frequency_unit, frequency_count, local_delay_count, trim("")//char(0))
+        
+   endif
+   CCPL_define_single_timer = timer_id
+
+   end FUNCTION CCPL_define_single_timer 
+
+
+
+   integer FUNCTION CCPL_define_complex_timer(comp_id, children_timers_id, num_children_timers, OR_or_AND, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in)                :: OR_or_AND
+   integer,          intent(in)                :: num_children_timers
+   integer                                     :: timer_id
+   integer,          intent(in), dimension(:)  :: children_timers_id
+
+
+   if (present(annotation)) then
+       call define_complex_timer(comp_id, timer_id, children_timers_id, num_children_timers, OR_or_AND, trim(annotation)//char(0))
+   else
+       call define_complex_timer(comp_id, timer_id, children_timers_id, num_children_timers, OR_or_AND, trim("")//char(0))
+   endif
+
+   CCPL_define_complex_timer = timer_id
+
+   end FUNCTION CCPL_define_complex_timer
+
+
+
+   SUBROUTINE CCPL_set_time_step(comp_id, time_step_in_second, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in)                :: time_step_in_second
+
+   if (present(annotation)) then
+       call set_component_time_step(comp_id, time_step_in_second, trim(annotation)//char(0))
+   else
+       call set_component_time_step(comp_id, time_step_in_second, trim("")//char(0))
+   endif
+
+   end SUBROUTINE CCPL_set_time_step
+
+
+
+   SUBROUTINE CCPL_advance_time(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+
+   if (present(annotation)) then
+        call advance_component_time(comp_id, trim(annotation)//char(0))
+   else
+        call advance_component_time(comp_id, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_advance_time
 
 
 

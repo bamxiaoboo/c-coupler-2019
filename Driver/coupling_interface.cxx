@@ -255,9 +255,9 @@ extern "C" void coupling_perturb_roundoff_errors_()
 
 extern "C" void coupling_advance_timer_()
 {
-    timer_mgr->advance_coupling_step();
+    timer_mgr->advance_time("");
 	if (restart_read_timer_mgr != NULL)
-		restart_read_timer_mgr->advance_coupling_step();
+		restart_read_timer_mgr->advance_time("");
 	ensemble_mgr->run();
 }
 
@@ -308,8 +308,8 @@ extern "C" void initialize_coupler_timer_(const int *start_date, const int *star
 	                          const int *cpl_step, const char *rest_freq_unit, const int *rest_freq_count, const int *stop_latency_seconds)
 {
 	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart") || words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid"))
-		restart_read_timer_mgr = new Timer_mgt(*start_date, *start_second, *stop_date, *stop_second, *reference_date, *leap_year_on, *cpl_step, rest_freq_unit, *rest_freq_count, *stop_latency_seconds);
-    timer_mgr = new Timer_mgt(*start_date, *start_second, *stop_date, *stop_second, *reference_date, *leap_year_on, *cpl_step, rest_freq_unit, *rest_freq_count, *stop_latency_seconds);
+		restart_read_timer_mgr = new Time_mgt(-1, *start_date, *start_second, *stop_date, *stop_second, *reference_date, *leap_year_on, *cpl_step, rest_freq_unit, *rest_freq_count, *stop_latency_seconds);
+    timer_mgr = new Time_mgt(-1, *start_date, *start_second, *stop_date, *stop_second, *reference_date, *leap_year_on, *cpl_step, rest_freq_unit, *rest_freq_count, *stop_latency_seconds);
 }
 
 
@@ -557,10 +557,15 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
 	sprintf(root_cfg_name, "%s/%s", C_COUPLER_CONFIG_DIR, line);
 	execution_phase_number = 1;
+	annotation_mgr = new Annotation_mgt();
 	original_grid_mgr = new Original_grid_mgt(root_cfg_name);
 	decomps_info_mgr = new Decomp_info_mgt();
-	memory_manager = new Memory_mgt(line);
+	decomp_grids_mgr = new Decomp_grid_mgt();
+	memory_manager = new Memory_mgt("NULL");
 	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the field information table in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
+	fields_info = new Field_info_mgt(line, "NULL");
+	components_time_mgrs = new Components_time_mgt();
+	timer_mgr2 = new Timer_mgt();
 	execution_phase_number = 2;
 }
 
@@ -573,14 +578,10 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	MPI_Comm local_comm = -1;
 	int root_comp_id;
 	int current_proc_global_id;
-	char local_annotation[NAME_STR_SIZE];
+	char file_name[NAME_STR_SIZE];
 
 
-	execution_phase_number = 2;
-
-	annotation_mgr = new Annotation_mgt();
-
-	push_annotation(annotation);
+	initialize_CCPL_mgrs(executable_name);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
 		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before %s", comp_comm_group_mgt_mgr->get_annotation_start());  // add debug information
@@ -595,15 +596,14 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
                                 		current_config_time, original_case_name, original_config_time);
 
-	get_annotation(local_annotation);
 	if (*comm != -1) {
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component %s.", comp_name, local_annotation);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(*comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component %s.", comp_name, local_annotation);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		
 	}
 
-	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, local_comm, -1);
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, local_comm, -1, annotation);
 
 	if (*comm != -1) {
 		int input_comm_size, new_comm_size;
@@ -611,7 +611,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		int current_proc_global_id, current_proc_local_id;
 		MPI_Comm new_comm;
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(*comm, &input_comm_size) == MPI_SUCCESS);
-		new_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(root_comp_id);
+		new_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(root_comp_id, "C-Coupler code in register_root_component for getting component management node");
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(new_comm, &new_comm_size) == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_size == new_comm_size);  // add debug information
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
@@ -624,8 +624,8 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		do_quick_sort(new_comm_process_ids, temp_array, 0, new_comm_size-1);
 		for (int i = 0; i < input_comm_size; i ++)
 			EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_process_ids[i] == new_comm_process_ids[i], 
-			                 "The communicator of root component \"%s\" %s does not match the communicator generated (processes of the two communicators are not the same). ",
-			                 comp_name, local_annotation);
+			                 "The communicator of root component \"%s\" does not match the communicator generated (processes of the two communicators are not the same). Please check the model code with the annotation \"%s\"",
+			                 comp_name, annotation);
 		delete [] input_comm_process_ids;
 		delete [] new_comm_process_ids;
 		delete [] temp_array;
@@ -634,19 +634,13 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	*comp_id = root_comp_id;
 
-	pop_annotation(annotation);	
-
-	initialize_CCPL_mgrs(executable_name);
+	sprintf(file_name, "%s/CCPL_configs/env_run.xml", comp_comm_group_mgt_mgr->get_root_working_dir());
+	components_time_mgrs->define_root_comp_time_mgr(*comp_id, file_name);
 }
 
 
 extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
-	char local_annotation[NAME_STR_SIZE];
-
-
-	push_annotation(annotation);
-
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id), 
 					 "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong (the corresponding annotation of model code is \"%s\").",
 					 comp_name, comp_type, annotation);
@@ -660,14 +654,10 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_name, "comp_name", annotation);
 		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_type, "comp_type", annotation);
 	}
-	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id), "registering component based on the parent component", annotation);
+	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	get_annotation(local_annotation);
-	EXECUTION_REPORT(REPORT_ERROR,-1, *parent_comp_id != -1, "The component \"%s\" %s to be registerred must have a parent component. However, the value of parent id is -1, which means it does not have a parent.", comp_name, local_annotation);
-
-	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, *comm, *parent_comp_id);
-
-	pop_annotation(annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, *comm, *parent_comp_id, annotation);
+	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
 }
 
 
@@ -686,40 +676,51 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 	else *comp_id = node->get_local_node_id();
 	
 }
-	
+
+
+extern "C" void get_current_proc_id_in_comp_(int *comp_id, int *proc_id, const char * annotation)
+{
+	*proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(*comp_id, annotation);
+}
+
+
+extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * annotation)
+{
+	*num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
+}
+
 
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	if (strlen(annotation) != 0)
 		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
 	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration");
-	
-	push_annotation(annotation);
 
-	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "ending the registration of a component", annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "ending the registration of a component", annotation);
 
-	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id);
-	
-	pop_annotation(annotation);
+	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 }
 
 
 extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
 {
-	push_annotation(annotation);	
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling interface CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
-	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "registering a grid based on a CoR grid", annotation);
-	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "registering grid", CCPL_grid_name, "CCPL_grid_name", annotation);
-	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id), "registering grid", CoR_grid_name, "CoR_grid_name", annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid based on a CoR grid", annotation);
+	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering grid", CCPL_grid_name, "CCPL_grid_name", annotation);
+	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering grid", CoR_grid_name, "CoR_grid_name", annotation);
 	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, CCPL_grid_name, CoR_grid_name, annotation);
 	printf("grid id is %d %lx\n", *grid_id, *grid_id);
-	pop_annotation(annotation);
+}
+
+
+extern "C" void get_grid_size_(int *grid_id, int *grid_size, const char *annotation)
+{
+	*grid_size = original_grid_mgr->get_grid_size(*grid_id, annotation);
 }
 
 
 extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
 {
-	push_annotation(annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells >= 0, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is smaller than 0. Please check the model code related to \"%s\"",
 		             decomp_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells <= *array_size, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is larger than the size of the array of local cells' global indexes. Please check the model code related to \"%s\"",
@@ -727,7 +728,6 @@ extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, i
 	EXECUTION_REPORT(REPORT_WARNING, -1, *num_local_cells == *array_size, "The number of local cells is different from the size of the array of local cells' global indexes when registering parallel decomposition \"%s\". Please check the model code related to \"%s\"",
 		             decomp_name, annotation);
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
-	pop_annotation(annotation);
 }
 
 
@@ -737,5 +737,39 @@ extern "C" void register_external_field_instance_(int *field_instance_id, const 
 	if (strlen(unit) != 0)
 		*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
 	else *field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, NULL, data_type, annotation);
+}
+
+
+extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *del_count, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_comp_frequency() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
+	*timer_id = timer_mgr2->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
+}
+
+
+extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *or_or_and, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_comp_frequency() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
+	*timer_id = timer_mgr2->define_timer(*comp_id, children_timers_id, *num_children_timers, *or_or_and, annotation);
+}
+
+
+extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when setting the step of a component. Please check the model code with the annotation \"%s\"", annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component", annotation);
+	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), "setting the time step of a component", *time_step_in_second, "the value of the time step (the unit is seconds)", annotation);
+	components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
+}
+
+
+extern "C" void advance_component_time_(int *comp_id, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
+	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
 

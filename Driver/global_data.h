@@ -45,8 +45,9 @@ extern Compset_communicators_info_mgt *compset_communicators_info_mgr;
 extern Comp_comm_group_mgt_mgr *comp_comm_group_mgt_mgr;
 extern Original_grid_mgt *original_grid_mgr;
 extern Routing_info_mgt *routing_info_mgr;
-extern Timer_mgt *timer_mgr;
-extern Timer_mgt *restart_read_timer_mgr;
+extern Time_mgt *timer_mgr;
+extern Timer_mgt *timer_mgr2;
+extern Time_mgt *restart_read_timer_mgr;
 extern Decomp_info_mgt *decomps_info_mgr;
 extern Field_info_mgt *fields_info;
 extern Memory_mgt *memory_manager;
@@ -60,9 +61,6 @@ extern External_algorithm_mgt *external_algorithm_mgr;
 extern Ensemble_mgt *ensemble_mgr;
 extern Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr;
 extern Annotation_mgt *annotation_mgr;
-
-extern const char *current_annotation;
-extern void push_annotation(const char*);
-extern void pop_annotation(const char*);
+extern Components_time_mgt *components_time_mgrs;
 
 #endif

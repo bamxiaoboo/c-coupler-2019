@@ -18,6 +18,8 @@
 #define API_ID_COMP_MGT_REG_ROOT_COMP                   ((int)(0x00200001))
 #define API_ID_COMP_MGT_REG_COMP                        ((int)(0x00200002))
 #define API_ID_COMP_MGT_END_COMP_REG                    ((int)(0x00200004))
+#define API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP     ((int)(0x00200008))
+#define API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP            ((int)(0x00200010))
 #define API_ID_GRID_MGT_REG_H2D_GRID_ONLINE             ((int)(0X00400001))
 #define API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE           ((int)(0X00400002))
 #define API_ID_GRID_MGT_REG_1D_GRID_ONLINE              ((int)(0X00400004))
@@ -33,9 +35,10 @@
 #define API_ID_GRID_MGT_GET_GRID_GLOBAL_DATA            ((int)(0X00401000))
 #define API_ID_GRID_MGT_GET_GRID_LOCAL_DATA             ((int)(0X00402000))
 #define API_ID_GRID_MGT_GET_MID_LAYER_GRID              ((int)(0X00404000))
+#define API_ID_GRID_MGT_GET_GRID_SIZE                   ((int)(0X00408000))
 #define API_ID_DECOMP_MGT_REG_DECOMP                    ((int)(0X00800001))
 #define API_ID_FIELD_MGT_REG_FIELD_INST                 ((int)(0X01000001))
-
+#define API_ID_TIME_MGT_SET_TIME_STEP                   ((int)(0X02000001))
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);

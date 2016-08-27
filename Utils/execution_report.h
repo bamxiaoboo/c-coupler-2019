@@ -26,6 +26,7 @@ extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*);
 extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*, const char*);
 extern void EXECUTION_REPORT(int, int, bool, const char*, int, int);
 extern void EXECUTION_REPORT(int, int, bool, const char*, int, int, const char*);
+extern void EXECUTION_REPORT(int, int, bool, const char*, int, int, int); 
 extern void EXECUTION_REPORT(int, int, bool, const char*, int, int, int, int); 
 extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*, int, long); 
 extern void EXECUTION_REPORT(int, int, bool, const char*, const void*);
