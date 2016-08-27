@@ -570,7 +570,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 }
 
 
-extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *comp_type, const char *annotation, int *comp_id, 
+extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *annotation, int *comp_id, 
 										const char *executable_name, const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
                                 		const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
@@ -603,7 +603,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		
 	}
 
-	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, local_comm, -1, annotation);
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comm, -1, annotation);
 
 	if (*comm != -1) {
 		int input_comm_size, new_comm_size;
@@ -639,11 +639,11 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 }
 
 
-extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
+extern "C" void register_component_(int *parent_comp_id, const char *comp_name, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id), 
 					 "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong (the corresponding annotation of model code is \"%s\").",
-					 comp_name, comp_type, annotation);
+					 comp_name, annotation);
 	
 	if (strlen(annotation) != 0)
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component (corresponding to annotation \"%s\")", annotation);
@@ -652,11 +652,10 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 	if (*comm !=-1) {
 		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on the parent component", annotation);
 		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_name, "comp_name", annotation);
-		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_type, "comp_type", annotation);
 	}
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, comp_type, *comm, *parent_comp_id, annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, *comm, *parent_comp_id, annotation);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
 }
 

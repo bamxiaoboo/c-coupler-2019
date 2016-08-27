@@ -2237,7 +2237,7 @@
    open(unit=6,file=comp_log_filename,position='APPEND')         ! open the log file of component running and connect it to unit 6 
    write(6,*) 'before call c++ interface'
    flush(6)
-   call register_root_component(comp_comm, trim(component_name)//char(0), trim(component_name)//char(0), trim(local_annotation)//char(0), comp_id, &
+   call register_root_component(comp_comm, trim(component_name)//char(0), trim(local_annotation)//char(0), comp_id, &
                         trim(exe_name)//char(0), trim(exp_model)//char(0),trim(case_name)//char(0), trim(case_desc)//char(0), trim(run_type)//char(0), &
                         trim(comp_model_nml)//char(0), trim(config_time)//char(0), &
                         trim(original_case_name)//char(0), trim(original_config_time)//char(0))
@@ -2247,7 +2247,7 @@
 
 
 
-   integer FUNCTION CCPL_register_component(parent_id, comp_name, comp_type, comp_comm, annotation)
+   integer FUNCTION CCPL_register_component(parent_id, comp_name, comp_comm, annotation)
    implicit none
    integer                     :: parent_id
    integer                     :: comp_id
@@ -2255,7 +2255,6 @@
    character *1024             :: local_annotation
    integer                     :: comp_comm
    character(len=*)            :: comp_name
-   character(len=*)            :: comp_type
    
 
    local_annotation = ""
@@ -2263,7 +2262,7 @@
        local_annotation = annotation
    endif
 
-   call register_component(parent_id, trim(comp_name)//char(0), trim(comp_type)//char(0), comp_comm, trim(local_annotation)//char(0), comp_id)
+   call register_component(parent_id, trim(comp_name)//char(0), comp_comm, trim(local_annotation)//char(0), comp_id)
    CCPL_register_component = comp_id
 
    END FUNCTION CCPL_register_component

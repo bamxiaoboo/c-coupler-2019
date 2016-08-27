@@ -33,8 +33,7 @@ class Comp_comm_group_mgt_node
 {
 	private:
 		int comp_id;
-	    char comp_name[NAME_STR_SIZE];                // The name of component
-    	char comp_type[NAME_STR_SIZE];	
+	    char comp_name[NAME_STR_SIZE];                // The name of component	
 		char annotation_start[NAME_STR_SIZE];
 		char annotation_end[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
@@ -51,7 +50,7 @@ class Comp_comm_group_mgt_node
 		char working_dir[NAME_STR_SIZE];
 
 	public:
-		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
+		Comp_comm_group_mgt_node(const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
 		Comp_comm_group_mgt_node(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*, int &);
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
@@ -63,7 +62,6 @@ class Comp_comm_group_mgt_node
 		int get_buffer_content_size() { return buffer_content_size; }
 		int get_buffer_content_iter() { return buffer_content_iter; }
 		const char *get_comp_name() const { return comp_name; }
-		const char *get_comp_type() const { return comp_type; }
 		int get_num_children() { return children.size(); }
 		int get_local_node_id() { return comp_id; }
 		Comp_comm_group_mgt_node *get_child(int indx) { return children[indx]; }
@@ -104,7 +102,7 @@ class Comp_comm_group_mgt_mgr
 	public:
 		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
 		~Comp_comm_group_mgt_mgr();
-		int register_component(const char*, const char*, MPI_Comm&, int, const char*);
+		int register_component(const char*, MPI_Comm&, int, const char*);
 		void merge_comp_comm_info(int, const char*);
 		bool is_legal_local_comp_id(int);
 		bool is_local_comp_definition_finalized(int);

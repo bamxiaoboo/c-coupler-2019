@@ -262,7 +262,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	buffer_node->read_data_from_array_buffer(annotation_end, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(annotation_start, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(comp_name, NAME_STR_SIZE);
-	buffer_node->read_data_from_array_buffer(comp_type, NAME_STR_SIZE);
 	buffer_node->read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm));
 	buffer_node->read_data_from_array_buffer(&num_procs, sizeof(int));
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
@@ -286,17 +285,16 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 }
 
 
-Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const char *comp_type, int comp_id, Comp_comm_group_mgt_node *parent, MPI_Comm &comm, const char *annotation)
+Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, int comp_id, Comp_comm_group_mgt_node *parent, MPI_Comm &comm, const char *annotation)
 {
-	char *all_comp_name, *all_comp_type;
-	std::vector<char*> unique_comp_name, unique_comp_type;
+	char *all_comp_name;
+	std::vector<char*> unique_comp_name;
 	int i, j, num_procs, current_proc_local_id_in_parent, *process_comp_id, *processes_global_id;
 	MPI_Comm parent_comm;
 	char dir[NAME_STR_SIZE];
 
 	
 	strcpy(this->comp_name, comp_name);
-	strcpy(this->comp_type, comp_type);
 	strcpy(this->annotation_start, annotation);
 	this->annotation_end[0] = '\0';
 	this->comp_id = comp_id;
@@ -324,33 +322,24 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(parent_comm, &current_proc_local_id_in_parent) == MPI_SUCCESS);
 		all_comp_name = new char [NAME_STR_SIZE*num_procs];
-		all_comp_type = new char [NAME_STR_SIZE*num_procs];
 		process_comp_id = new int [num_procs];
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((char*)comp_name, NAME_STR_SIZE, MPI_CHAR, all_comp_name, NAME_STR_SIZE, MPI_CHAR, 0, parent_comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((char*)comp_type, NAME_STR_SIZE, MPI_CHAR, all_comp_type, NAME_STR_SIZE, MPI_CHAR, 0, parent_comm) == MPI_SUCCESS);
 		if (current_proc_local_id_in_parent == 0) {
 			unique_comp_name.push_back(all_comp_name);
-			unique_comp_type.push_back(all_comp_type);
 			process_comp_id[0] = 0;
 			for (i = 1; i < num_procs; i ++) {
 				for (j = 0; j < unique_comp_name.size(); j ++)
 					if (words_are_the_same(unique_comp_name[j], all_comp_name+i*NAME_STR_SIZE)) {
-						EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE), 
-							             "The type of the components is different (\"%s\" vs \"%s\") among the processes of the component \"%s\". Please verify the model code corresponding to the annotation \"%s\".", 
-							             unique_comp_type[j], all_comp_type+i*NAME_STR_SIZE, unique_comp_name[j], annotation_start);
 						break;
 					}
-				if (j == unique_comp_name.size()) {
+				if (j == unique_comp_name.size())
 					unique_comp_name.push_back(all_comp_name+i*NAME_STR_SIZE);
-					unique_comp_type.push_back(all_comp_type+i*NAME_STR_SIZE);
-				}
 				process_comp_id[i] = j;
 			}
 		}
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(process_comp_id, num_procs, MPI_INT, 0, parent_comm)  == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_split(parent_comm, process_comp_id[current_proc_local_id_in_parent], 0, &comm_group) == MPI_SUCCESS);
 		delete [] all_comp_name;
-		delete [] all_comp_type;
 		delete [] process_comp_id;
 		comm = comm_group;
 	}
@@ -417,7 +406,6 @@ void Comp_comm_group_mgt_node::transform_node_into_array()
 	}
 	write_data_into_array_buffer(&num_procs, sizeof(int));
 	write_data_into_array_buffer(&comm_group, sizeof(MPI_Comm));
-	write_data_into_array_buffer(comp_type, NAME_STR_SIZE);
 	write_data_into_array_buffer(comp_name, NAME_STR_SIZE);
 	write_data_into_array_buffer(annotation_start, NAME_STR_SIZE);
 	write_data_into_array_buffer(annotation_end, NAME_STR_SIZE);
@@ -533,7 +521,6 @@ void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 	current_element = new TiXmlElement("Online_Model");
 	parent_element->LinkEndChild(current_element);
 	current_element->SetAttribute("name", comp_name);
-	current_element->SetAttribute("type", comp_type);
 
 	segments_start = new int [local_processes_global_ids.size()];
 	segments_end = new int [local_processes_global_ids.size()];
@@ -717,7 +704,7 @@ bool Comp_comm_group_mgt_mgr::is_local_comp_definition_finalized(int local_comp_
 }
 
 
-int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, const char *annotation)
+int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, MPI_Comm &comm, int parent_local_id, const char *annotation)
 {
 	int i, true_parent_id = 0;
 	Comp_comm_group_mgt_node *root_local_node, *new_comp;
@@ -736,10 +723,10 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 						 "A component with the name \"%s\" has already been registered at the model code with the annotation \"%s\". The same name cannot be used for registerring another component at the model code with the annotation \"%s\"", comp_name, global_node_array[i]->get_annotation_start(), annotation);
 
 	if (parent_local_id == -1) {
-		root_local_node = new Comp_comm_group_mgt_node("ROOT", "ROOT", global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, annotation);
+		root_local_node = new Comp_comm_group_mgt_node("ROOT", global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, annotation);
 		global_node_array.push_back(root_local_node);
 		global_node_root = root_local_node;
-		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, annotation);
+		new_comp = new Comp_comm_group_mgt_node(comp_name, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, annotation);
 		global_node_array.push_back(new_comp);
 	}
 	else {
@@ -747,7 +734,7 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		EXECUTION_REPORT(REPORT_ERROR, -1, !global_node_array[true_parent_id]->is_definition_finalized(), 
 			             "Cannot register component \"%s\" at the model code with the annotation \"%s\" because the registration corresponding to the parent \"%s\" has been ended at the model code with the annotation \"%s\"", 
 			             comp_name, annotation, global_node_array[true_parent_id]->get_comp_name(), global_node_array[true_parent_id]->get_annotation_end()); // add debug information
-		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, global_node_array[true_parent_id], comm, annotation);
+		new_comp = new Comp_comm_group_mgt_node(comp_name, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, global_node_array[true_parent_id], comm, annotation);
 		global_node_array.push_back(new_comp);
 	}
 
@@ -867,7 +854,6 @@ void Comp_comm_group_mgt_mgr::read_global_node_from_XML(const TiXmlElement *curr
 	global_node = search_global_node(current_element->Attribute("name"));
 	EXECUTION_REPORT(REPORT_ERROR, -1, global_node != NULL, "The XML file of component model hierarchy has been illegally modified by others or C-Coupler has software bugs");
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(global_node->get_comp_name(), current_element->Attribute("name")), "The XML file of component model hierarchy has been illegally modified by others or there are software errors");
-	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(global_node->get_comp_type(), current_element->Attribute("type")), "The XML file of component model hierarchy has been illegally modified by others or there are software errors");
 
 	for (child = current_element->FirstChild(); child != NULL; child = child->NextSibling())
 		read_global_node_from_XML(child->ToElement());
