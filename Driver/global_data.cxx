@@ -33,6 +33,7 @@ External_algorithm_mgt *external_algorithm_mgr = NULL;
 Ensemble_mgt *ensemble_mgr = NULL;
 Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr = NULL;
 Annotation_mgt *annotation_mgr = NULL;
-Components_time_mgt *components_time_mgrs;
+Components_time_mgt *components_time_mgrs = NULL;
+Inout_interface_mgt *inout_interface_mgr = NULL;
 
 

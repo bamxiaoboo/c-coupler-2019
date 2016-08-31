@@ -47,7 +47,7 @@ class Field_mem_info
         Remap_grid_data_class *grided_field_data;
 
     public:
-		Field_mem_info(const char *, int, int, int, int, const char *, const char *, const char *);
+		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *);
         Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool, const char*);
         bool match_field_mem(const char*, const char*, const char*, const char*, const int, const char*);
 		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int, const char*);
@@ -77,6 +77,11 @@ class Field_mem_info
 		void set_define_order_count(long count) { define_order_count = count; }
 		long get_define_order_count() { return define_order_count; }
 		int get_field_instance_id() { return field_instance_id; }
+		int get_comp_id();
+		int get_grid_id();
+		int get_buf_mark() { return buf_mark; }
+		int get_decomp_id() { return decomp_id; }
+		void set_field_instance_id(int, const char*);
         ~Field_mem_info();
 };
 
@@ -112,6 +117,8 @@ class Memory_mgt
 		void export_field_data(void*, const char*, const char*, const char*, const char *, int);
 		int get_field_size(void*, const char*);
 		Field_mem_info *search_field_instance(const char *, int, int, int);
+		bool check_is_legal_field_instance_id(int);
+		Field_mem_info *get_field_instance(int);
 };
 
 

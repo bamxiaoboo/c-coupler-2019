@@ -2480,10 +2480,113 @@
 
 
 
+   logical FUNCTION CCPL_is_timer_on(timer_id, annotation)
+   implicit none
+   integer,          intent(in)                :: timer_id
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: is_on
+
+   if ((present(annotation))) then
+       call is_ccpl_timer_on(timer_id, is_on, trim(annotation)//char(0))
+   else
+       call is_ccpl_timer_on(timer_id, is_on, trim("")//char(0))
+   endif 
+   
+   if (is_on .eq. 1) then
+       CCPL_is_timer_on = .true.
+   else
+       CCPL_is_timer_on = .false.
+   endif
+
+   end FUNCTION CCPL_is_timer_on
+
+
+
+   SUBROUTINE CCPL_check_current_time(comp_id, date, second, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   integer,          intent(in)                :: date
+   integer,          intent(in)                :: second
+   character(len=*), intent(in), optional      :: annotation
+
+   if (present(annotation)) then
+        call check_ccpl_component_current_time(comp_id, date, second, trim(annotation)//char(0))
+   else
+        call check_ccpl_component_current_time(comp_id, date, second, trim("")//char(0))
+   endif
+
+   end SUBROUTINE CCPL_check_current_time
+
+
    SUBROUTINE CCPL_finalize()
    include 'mpif.h'
    integer ierr
    call MPI_FINALIZE(ierr)
    END SUBROUTINE  CCPL_finalize
+
+
+
+   logical FUNCTION CCPL_is_model_run_ended(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: is_ended
+
+   if (present(annotation)) then
+       call check_is_ccpl_model_run_ended(comp_id, is_ended, trim(annotation)//char(0))
+   else
+       call check_is_ccpl_model_run_ended(comp_id, is_ended, trim("")//char(0))
+   endif
+
+   if (is_ended .eq. 1) then
+       CCPL_is_model_run_ended = .true.
+   else 
+       CCPL_is_model_run_ended = .false.
+   endif
+
+   end FUNCTION CCPL_is_model_run_ended
+
+
+
+   integer FUNCTION CCPL_register_import_interface(interface_name, timer_IDs, field_instance_IDs, num_field_instances, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in), dimension(:)  :: timer_IDs
+   integer,          intent(in), dimension(:)  :: field_instance_IDs
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   
+   if (present(annotation)) then
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs))
+   else
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, trim("")//char(0), size(field_instance_IDs), size(timer_IDs))
+   endif
+   CCPL_register_import_interface = interface_id;
+
+   end FUNCTION CCPL_register_import_interface
+
+
+
+   integer FUNCTION CCPL_register_export_interface(interface_name, timer_IDs, field_instance_IDs, num_field_instances, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in), dimension(:)  :: timer_IDs
+   integer,          intent(in), dimension(:)  :: field_instance_IDs
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   
+   if (present(annotation)) then
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_IDs, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs))
+   else
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_IDs, trim("")//char(0), size(field_instance_IDs), size(timer_IDs))
+   endif
+   CCPL_register_export_interface = interface_id;
+
+   end FUNCTION CCPL_register_export_interface
+
 
  END MODULE c_coupler_interface_mod

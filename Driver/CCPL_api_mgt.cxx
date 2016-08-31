@@ -80,6 +80,15 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_SET_TIME_STEP:
 			sprintf(API_label, "CCPL_set_time_step");
 			break;
+		case API_ID_TIME_MGT_ADVANCE_TIME:
+			sprintf(API_label, "CCPL_advance_time");
+			break;
+		case API_ID_INTERFACE_REG_IMPORT:
+			sprintf(API_label, "CCPL_register_import_interface");
+			break;
+		case API_ID_INTERFACE_REG_EXPORT:
+			sprintf(API_label, "CCPL_register_export_interface");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;
@@ -178,6 +187,40 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 void check_API_parameter_int(int comp_id, int API_id, MPI_Comm comm, const char *hint, int value, const char *parameter_name, const char *annotation)
 {
 	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
+}
+
+
+void check_API_parameter_timer(int comp_id, int API_id, MPI_Comm comm, const char *hint, int timer_id, const char *parameter_name, const char *annotation)
+{
+	Coupling_timer *timer;
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr2->check_is_legal_timer_id(timer_id), "Software error in check_API_parameter_timer");
+	timer = timer_mgr2->get_timer(timer_id);
+	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_frequency_count(), parameter_name, annotation);
+	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_delay_count(), parameter_name, annotation);
+	check_API_parameter_string(comp_id, API_id, comm, hint, timer->get_frequency_unit(), parameter_name, annotation);
+}
+
+
+void check_API_parameter_field_instance(int comp_id, int API_id, MPI_Comm comm, const char *hint, int field_id, const char *parameter_name, const char *annotation)
+{
+	Field_mem_info *field_instance;
+	int decomp_class;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(field_id), "Software error in check_API_parameter_field_instance");
+	field_instance = memory_manager->get_field_instance(field_id);
+	if (field_instance->get_decomp_id() == -1)
+		decomp_class = -1;
+	else decomp_class = 0;
+	check_API_parameter_int(comp_id, API_id, comm, hint, decomp_class, parameter_name, annotation);	
+	check_API_parameter_string(comp_id, API_id, comm, hint, field_instance->get_field_name(), parameter_name, annotation);
+	if (field_instance->get_decomp_id() != -1) {
+		check_API_parameter_string(comp_id, API_id, comm, hint, decomps_info_mgr->get_decomp_info(field_instance->get_decomp_id())->get_decomp_name(), parameter_name, annotation);
+		check_API_parameter_string(comp_id, API_id, comm, hint, original_grid_mgr->get_name_of_grid(field_instance->get_grid_id()), parameter_name, annotation);
+	}
+	check_API_parameter_int(comp_id, API_id, comm, hint, field_instance->get_buf_mark(), parameter_name, annotation);
 }
 
 

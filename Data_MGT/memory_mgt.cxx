@@ -36,7 +36,7 @@ Field_mem_info *alloc_full_grid_mem(const char *comp_name, const char *decomp_na
 }
 	
 
-Field_mem_info::Field_mem_info(const char *field_name, int field_instance_id, int decomp_id, int comp_or_grid_id, 
+Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_or_grid_id, 
 	                           int buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
 	int comp_id = -1, mem_size;
@@ -72,9 +72,7 @@ Field_mem_info::Field_mem_info(const char *field_name, int field_instance_id, in
 
 	// check the field unit
 
-	annotation_mgr->add_annotation(field_instance_id, "allocate field instance", annotation);
 	strcpy(this->field_name, field_name);
-	this->field_instance_id = field_instance_id;
 	this->decomp_id = decomp_id;
 	this->comp_or_grid_id = comp_or_grid_id;
 	this->buf_mark = buf_mark;
@@ -190,6 +188,7 @@ void Field_mem_info::reset_mem_buf(void * buf, bool is_restart_field)
     grided_field_data->get_grid_data_field()->data_buf = buf;
     is_registered_model_buf = true;
     this->is_restart_field = is_restart_field;
+	printf("label registered buff %lx\n", this);
 }
 
 
@@ -365,6 +364,28 @@ long Field_mem_info::get_size_of_field()
 }
 
 
+int Field_mem_info::get_comp_id()
+{
+	if (decomp_id == -1)
+		return comp_or_grid_id;
+	return original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
+}
+
+
+int Field_mem_info::get_grid_id() 
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, decomp_id != -1, "Software error is reported in Field_mem_info::get_grid_id");
+	return comp_or_grid_id; 
+}
+
+
+void Field_mem_info::set_field_instance_id(int field_instance_id, const char *annotation)
+{
+	this->field_instance_id = field_instance_id;
+	annotation_mgr->add_annotation(field_instance_id, "allocate field instance", annotation);
+}
+
+
 Memory_mgt::Memory_mgt(const char *model_mem_cfg_file)
 {
     FILE *cfg_fp;
@@ -477,7 +498,8 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *field_name, int decomp_id, int
         }
 
     /* Compute the size of the memory buffer and then allocate and return it */
-    field_mem = new Field_mem_info(field_name, TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), decomp_id, comp_or_grid_id, buf_mark, field_unit, data_type, annotation);
+    field_mem = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, data_type, annotation);
+	field_mem->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), annotation);
 	fields_mem.push_back(field_mem);
 
     return field_mem;
@@ -893,14 +915,38 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Cannot register an instance of coupling field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
 						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance->get_field_instance_id(), "allocate field instance"));
 
-	new_field_instance = new Field_mem_info(field_name, TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), decomp_id, comp_or_grid_id, 
+	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, 
 	                           buf_mark, unit, data_type, annotation);
 	printf("qiguaiqiguai %x: %d %d\n", comp_id, field_size, new_field_instance->get_size_of_field());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register an instance of coupling field of \"%s\" because the size of the model data buffer is different from the size determined by the parallel decomposition and grid. Please check the model code with the annotation \"%s\"",
 					 field_name, annotation);
 	new_field_instance->reset_mem_buf(data_buffer, true);
+	new_field_instance->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), annotation);
 	fields_mem.push_back(new_field_instance);
-	
+
+	printf("okokokqiguai %lx %lx\n", new_field_instance, get_field_instance(new_field_instance->get_field_instance_id()));
 	return new_field_instance->get_field_instance_id();
+}
+
+
+bool Memory_mgt::check_is_legal_field_instance_id(int field_instance_id)
+{
+	printf("check field %x vs %x: %d vs %d: %lx\n", (field_instance_id&TYPE_ID_PREFIX_MASK), TYPE_FIELD_INST_ID_PREFIX, field_instance_id&TYPE_ID_SUFFIX_MASK, fields_mem.size(), fields_mem[field_instance_id&TYPE_ID_SUFFIX_MASK]);
+	if ((field_instance_id&TYPE_ID_PREFIX_MASK) != TYPE_FIELD_INST_ID_PREFIX)
+		return false;
+
+	if (fields_mem[field_instance_id&TYPE_ID_SUFFIX_MASK]->get_is_registered_model_buf())
+		printf("find a register field instance\n");
+
+	return (field_instance_id&TYPE_ID_SUFFIX_MASK) < fields_mem.size();
+}
+
+
+Field_mem_info *Memory_mgt::get_field_instance(int field_instance_id)
+{
+	if (!check_is_legal_field_instance_id(field_instance_id))
+		return NULL;
+
+	return fields_mem[field_instance_id&TYPE_ID_SUFFIX_MASK];
 }
 

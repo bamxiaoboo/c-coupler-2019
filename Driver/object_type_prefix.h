@@ -20,6 +20,7 @@
 #define TYPE_DECOMP_ID_PREFIX                  ((int)0x06000000)
 #define TYPE_FIELD_INST_ID_PREFIX              ((int)0x07000000)
 #define TYPE_TIMER_ID_PREFIX                   ((int)0x08000000)
+#define TYPE_INOUT_INTERFACE_ID_PREFIX         ((int)0x09000000)
 
 
 #endif

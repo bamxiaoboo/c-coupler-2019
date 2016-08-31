@@ -123,8 +123,7 @@ bool Timer_mgt::check_is_legal_timer_id(int timer_id)
 	if ((timer_id & TYPE_ID_PREFIX_MASK) != TYPE_TIMER_ID_PREFIX)
 		return false;
 
-	if ((timer_id & TYPE_ID_SUFFIX_MASK) >= timers.size())
-		return false;
+	return (timer_id & TYPE_ID_SUFFIX_MASK) < timers.size();
 }
 
 
@@ -157,6 +156,13 @@ int Timer_mgt::define_timer(int comp_id, Coupling_timer *existing_timer)
 	Coupling_timer *new_timer = new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), existing_timer);
 	timers.push_back(new_timer);
 	return new_timer->get_timer_id();
+}
+
+
+bool Timer_mgt::is_timer_on(int timer_id, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, check_is_legal_timer_id(timer_id), "The timer id is wrong when checking whether a timer is on. Please check the model code with the annotation \"%s\"", annotation);
+	return timers[timer_id&TYPE_ID_SUFFIX_MASK]->is_timer_on();
 }
 
 
@@ -217,6 +223,7 @@ Time_mgt::Time_mgt(int comp_id, int start_date, int start_second, int stop_date,
     this->stop_latency_seconds = stop_latency_seconds;
     this->leap_year_on = leap_year_on;
 	this->comp_id = comp_id;
+	this->advance_time_synchronized = false;
 
     EXECUTION_REPORT(REPORT_ERROR,-1, sec_per_step>0 && (SECONDS_PER_DAY%sec_per_step)==0, "The number of seconds per day is not a multiple of the number of seconds per step\n");
     EXECUTION_REPORT(REPORT_ERROR,-1, stop_latency_seconds%sec_per_step == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
@@ -253,6 +260,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Time_mgt::Time_mgt: wrong component id");
 	this->comp_id = comp_id;
 	this->restart_timer = NULL;
+	this->advance_time_synchronized = false;
 
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
 		int start_date, stop_date, reference_date, stop_n, rest_freq_count, time_step;
@@ -402,16 +410,16 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 					Time_mgt *cloned_time_mgr = clone_time_mgr(comp_id);
 					cloned_time_mgr->set_sec_per_step(SECONDS_PER_DAY, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_days; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)");
+						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
 					cloned_time_mgr->set_sec_per_step(3600, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_hours; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)");
+						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
 					cloned_time_mgr->set_sec_per_step(60, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_minutes; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)");
+						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
 					cloned_time_mgr->set_sec_per_step(1, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_seconds; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)");
+						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
 					this->stop_year = cloned_time_mgr->current_year;
 					this->stop_month = cloned_time_mgr->current_month;
 					this->stop_day = cloned_time_mgr->current_day;
@@ -462,6 +470,7 @@ void Time_mgt::build_restart_timer()
 {
 	if (!words_are_the_same(rest_freq_unit, "none"))
 		restart_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, rest_freq_unit, rest_freq_count, 0, "C-Coupler define restart timer"));
+	printf("information for building restart timer is %s %d\n", rest_freq_unit, rest_freq_count);
 }
 
 
@@ -516,13 +525,17 @@ long Time_mgt::calculate_elapsed_day(int year, int month, int day)
 }
 
 
-void Time_mgt::advance_time(const char *annotation)
+void Time_mgt::advance_time(const char *annotation, bool from_external_model)
 {
     int i, num_days_in_current_month;
  
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, sec_per_step != -1, "Cannot advance the time of the component \"\%s\" at the model code with the annotation \"%s\", because the time step has not been specified.", 
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);
+	if (from_external_model && !advance_time_synchronized) {		
+		synchronize_comp_processes_for_API(comp_id, API_ID_TIME_MGT_ADVANCE_TIME, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "C-Coupler code in Time_mgt::advance_time"), "advance the time of a component", annotation);
+		advance_time_synchronized = true;
+	}
 
 	previous_year = current_year;
 	previous_month = current_month;
@@ -633,7 +646,7 @@ void Time_mgt::set_restart_time(long start_full_time, long restart_full_time)
 bool Time_mgt::check_is_coupled_run_finished()
 {
     EXECUTION_REPORT(REPORT_LOG,-1, true, "check_is_coupled_run_finished %d %ld", current_step_id, num_total_steps);
-    return (current_step_id > num_total_steps + (stop_latency_seconds/sec_per_step));
+    return current_step_id > num_total_steps;
 }
 
 
@@ -864,13 +877,15 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->stop_latency_seconds = this->stop_latency_seconds;
 	new_time_mgr->leap_year_on = this->leap_year_on;
 	new_time_mgr->comp_id = comp_id;
-	if (restart_timer == NULL)
-		new_time_mgr->restart_timer = NULL;
-	else new_time_mgr->restart_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, this->restart_timer));
+	new_time_mgr->current_num_elapsed_day = this->current_num_elapsed_day;
+	new_time_mgr->advance_time_synchronized = false;
 	strcpy(new_time_mgr->case_name, this->case_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);
 	strcpy(new_time_mgr->run_type, this->run_type);
 	strcpy(new_time_mgr->stop_option, this->stop_option);
+	strcpy(new_time_mgr->rest_freq_unit, this->rest_freq_unit);
+	new_time_mgr->rest_freq_count = this->rest_freq_count;
+	new_time_mgr->restart_timer = NULL;
 
 	return new_time_mgr;
 }
@@ -882,9 +897,9 @@ void Time_mgt::set_sec_per_step(int sec_per_step, const char *annotation)
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, sec_per_step > 0, "The value of the time step is wrong when setting the time step of the component \"%s\". It must be a positive value. Please check the model code with the annotation \"%s\"",
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "get comp name in Time_mgt::set_sec_per_step")->get_comp_name(), annotation);
 	if (stop_year != -1) {
-		printf("stop time is %d %d %d\n", stop_year, stop_month, stop_day);
 		long total_seconds = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, total_seconds%((long)sec_per_step) == 0, "The time step setting at model code with the annotation \"%s\" does not match the start time and the stop time of the simulation. Please check the model code and the XML file \"env_run.xml\"", annotation);
+		printf("stop time is %d %d %d %d: %d %d %d %d: %ld : %d VS %d %d\n", stop_year, stop_month, stop_day, stop_second, start_year, start_month, start_day, start_second, total_seconds, current_num_elapsed_day, calculate_elapsed_day(start_year,start_month,start_day), calculate_elapsed_day(stop_year,stop_month,stop_day));
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, total_seconds%((long)sec_per_step) == 0, "The time step set at model code with the annotation \"%s\" does not match the start time and the stop time of the simulation. Please check the model code and the XML file \"env_run.xml\"", annotation);
 		num_total_steps = total_seconds / sec_per_step;
 	}
 	else num_total_steps = -1;
@@ -896,7 +911,8 @@ void Time_mgt::set_sec_per_step(int sec_per_step, const char *annotation)
 			rest_freq = SECONDS_PER_DAY;
 		else if (words_are_the_same(rest_freq_unit, "seconds"))
 			rest_freq = rest_freq_count;
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)sec_per_step) == 0, "The time step setting at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
+		printf("qiguai %d vs %d: %s %d\n", rest_freq, sec_per_step, rest_freq_unit, rest_freq_count);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)sec_per_step) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
 	}	
 }
 
@@ -904,6 +920,12 @@ void Time_mgt::set_sec_per_step(int sec_per_step, const char *annotation)
 bool Time_mgt::is_a_leap_year(int year)
 {
 	return ((year%4) == 0 && (year%100) != 0) || (year%400) == 0;
+}
+
+
+void Time_mgt::check_consistency_of_current_time(int date, int second, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, date==get_current_date() && second == get_current_second(), "the model time is different from the time managed by the C-Coupler. Please verify the model code according to the annotation \"%s\"", annotation);
 }
 
 
@@ -954,13 +976,30 @@ void Components_time_mgt::clone_parent_comp_time_mgr(int comp_id, int parent_com
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, parent_time_mgr != NULL, "Software error in Components_time_mgt::clone_parent_comp_time_mgr: parent time manager is NULL");
 	new_time_mgr = parent_time_mgr->clone_time_mgr(comp_id);
 	components_time_mgrs.push_back(new_time_mgr);
+	new_time_mgr->build_restart_timer();
 }
 
 
 void Components_time_mgt::advance_component_time(int comp_id, const char *annotation)
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
-	time_mgr->advance_time(annotation);
+	time_mgr->advance_time(annotation, true);
     EXECUTION_REPORT(REPORT_LOG, comp_id, true, "The current time is %08d-%05d, and the current number of the time step is %d", time_mgr->get_current_date(), time_mgr->get_current_second(), time_mgr->get_current_step_id());
+}
+
+
+void Components_time_mgt::check_component_current_time(int comp_id, int date, int second, const char *annotation)
+{
+	Time_mgt *comp_time_mgr = get_time_mgr(comp_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "The parameter of component id for checking the current time is wrong. Please check the model code with the annotation of \"%s\"", annotation);
+	comp_time_mgr->check_consistency_of_current_time(date, second, annotation);
+}
+
+
+bool Components_time_mgt::is_model_run_ended(int comp_id, const char *annotation)
+{
+	Time_mgt *comp_time_mgr = get_time_mgr(comp_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "The parameter of component id for checking the current time is wrong. Please check the model code with the annotation of \"%s\"", annotation);
+	return comp_time_mgr->check_is_coupled_run_finished();
 }
 

@@ -39,13 +39,17 @@
 #define API_ID_DECOMP_MGT_REG_DECOMP                    ((int)(0X00800001))
 #define API_ID_FIELD_MGT_REG_FIELD_INST                 ((int)(0X01000001))
 #define API_ID_TIME_MGT_SET_TIME_STEP                   ((int)(0X02000001))
+#define API_ID_TIME_MGT_ADVANCE_TIME                    ((int)(0X02000002))
+#define API_ID_INTERFACE_REG_IMPORT                     ((int)(0X04000001))
+#define API_ID_INTERFACE_REG_EXPORT                     ((int)(0X04000002))
+
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);
 extern void check_API_parameter_string(int, int, MPI_Comm, const char*, const char*, const char*, const char*);
 extern void check_API_parameter_int(int, int, MPI_Comm, const char*, int, const char*, const char*);
-
-
+extern void check_API_parameter_timer(int, int, MPI_Comm, const char*, int, const char*, const char*);
+extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, int, const char*, const char*);
 
 #endif
 

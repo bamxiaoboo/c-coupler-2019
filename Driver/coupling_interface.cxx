@@ -255,9 +255,9 @@ extern "C" void coupling_perturb_roundoff_errors_()
 
 extern "C" void coupling_advance_timer_()
 {
-    timer_mgr->advance_time("");
+    timer_mgr->advance_time("", false);
 	if (restart_read_timer_mgr != NULL)
-		restart_read_timer_mgr->advance_time("");
+		restart_read_timer_mgr->advance_time("", false);
 	ensemble_mgr->run();
 }
 
@@ -567,6 +567,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	components_time_mgrs = new Components_time_mgt();
 	timer_mgr2 = new Timer_mgt();
 	execution_phase_number = 2;
+	inout_interface_mgr = new Inout_interface_mgt();
 }
 
 
@@ -745,6 +746,7 @@ extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *fr
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_comp_frequency() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr2->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
+	printf("timer comp id is %x  %x at %lx\n", *timer_id, timer_mgr2->get_timer(*timer_id)->get_comp_id(), timer_mgr2->get_timer(*timer_id));
 }
 
 
@@ -770,5 +772,37 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
+}
+
+
+extern "C" void check_ccpl_component_current_time_(int *comp_id, int *date, int *second, const char *annotation)
+{
+	components_time_mgrs->check_component_current_time(*comp_id, *date, *second, annotation);
+}
+
+
+extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotation)
+{
+	if (timer_mgr2->is_timer_on(*timer_id, annotation))
+		*is_on = 1;
+	else *is_on = 0;
+}
+
+
+extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, const char *annotation)
+{
+	if (components_time_mgrs->is_model_run_ended(*comp_id, annotation))
+		*is_ended = 1;
+	else *is_ended = 0;
+}
+
+
+extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_ids, const char *annotation, int *array_size1, int *array_size2)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size1 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of field instances is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
+		             interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size2 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of timers is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
+		             interface_name, annotation);
+	*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, annotation);
 }
 

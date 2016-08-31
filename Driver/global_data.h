@@ -33,6 +33,7 @@
 #include "CCPL_api_mgt.h"
 #include "original_grid_mgt.h"
 #include "annotation_mgt.h"
+#include "inout_interface_mgt.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -62,5 +63,6 @@ extern Ensemble_mgt *ensemble_mgr;
 extern Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr;
 extern Annotation_mgt *annotation_mgr;
 extern Components_time_mgt *components_time_mgrs;
+extern Inout_interface_mgt *inout_interface_mgr;
 
 #endif

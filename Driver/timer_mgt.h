@@ -58,6 +58,9 @@ class Coupling_timer
         bool is_timer_on();
 		int get_timer_id() { return timer_id; }
 		int get_comp_id() { return comp_id; }
+		int get_frequency_count() { return frequency_count; }
+		int get_delay_count() { return delay_count; }
+		const char *get_frequency_unit() { return frequency_unit; }
 };
 
 
@@ -74,6 +77,7 @@ class Timer_mgt
 		int define_timer(int, const char*, int, int, const char*);
 		int define_timer(int, int*, int, int, const char*);
 		int define_timer(int, Coupling_timer*);
+		bool is_timer_on(int, const char*);
 };
 
 
@@ -115,13 +119,14 @@ class Time_mgt
 		char stop_option[NAME_STR_SIZE];
 		char rest_freq_unit[NAME_STR_SIZE];
 		int rest_freq_count;
+		bool advance_time_synchronized;
 
     public:
 		Time_mgt() {}
 		Time_mgt(int, const char *);
         Time_mgt(int, int, int, int, int, int, bool, int, const char*, int, int);
         ~Time_mgt();
-        void advance_time(const char*);
+        void advance_time(const char*, bool);
         int get_current_year() { return current_year; }
         int get_current_month() { return current_month; }
         int get_current_day() { return current_day; }
@@ -163,6 +168,7 @@ class Time_mgt
 		bool is_a_leap_year(int);
 		void build_restart_timer();
 		int get_current_step_id() { return current_step_id; }
+		void check_consistency_of_current_time(int, int, const char*);
 };
 
 
@@ -179,6 +185,8 @@ class Components_time_mgt
 		void clone_parent_comp_time_mgr(int, int, const char*);
 		void set_component_time_step(int, int, const char*);
 		void advance_component_time(int, const char*);
+		bool is_model_run_ended(int, const char*);
+		void check_component_current_time(int, int, int, const char*);
 };
 
 
