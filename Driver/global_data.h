@@ -34,6 +34,7 @@
 #include "original_grid_mgt.h"
 #include "annotation_mgt.h"
 #include "inout_interface_mgt.h"
+#include "coupling_generator.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"

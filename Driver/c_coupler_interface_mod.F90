@@ -2325,7 +2325,7 @@
 
 
 
-   SUBROUTINE CCPL_end_comp_registration(comp_id, annotation)
+   SUBROUTINE CCPL_end_coupling_configuration(comp_id, annotation)
    implicit none
    integer                     :: comp_id
    character(len=*), optional  :: annotation
@@ -2338,7 +2338,7 @@
 
    call end_registration(comp_id, trim(local_annotation)//char(0))
 
-   END SUBROUTINE CCPL_end_comp_registration
+   END SUBROUTINE CCPL_end_coupling_configuration
 
 
 

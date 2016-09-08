@@ -258,16 +258,17 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 {	
 	int num_procs, *proc_id, num_children;
 
-
-	buffer_node->read_data_from_array_buffer(annotation_end, NAME_STR_SIZE);
-	buffer_node->read_data_from_array_buffer(annotation_start, NAME_STR_SIZE);
-	buffer_node->read_data_from_array_buffer(comp_name, NAME_STR_SIZE);
-	buffer_node->read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm));
-	buffer_node->read_data_from_array_buffer(&num_procs, sizeof(int));
+	int old_iter = buffer_content_iter;
+	read_data_from_array_buffer(annotation_end, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
+	read_data_from_array_buffer(annotation_start, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
+	read_data_from_array_buffer(full_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
+	read_data_from_array_buffer(comp_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
+	read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
+	read_data_from_array_buffer(&num_procs, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	proc_id = new int [num_procs];
 	for (int i = 0; i < num_procs; i ++)
-		buffer_node->read_data_from_array_buffer(&proc_id[num_procs-1-i], sizeof(int));
+		read_data_from_array_buffer(&proc_id[num_procs-1-i], sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
 	for (int i = 0; i < num_procs; i ++)
 		local_processes_global_ids.push_back(proc_id[i]);
 	this->comp_id = -1;
@@ -279,7 +280,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	temp_array_buffer = NULL;
 	definition_finalized = true;
 
-	buffer_node->read_data_from_array_buffer(&num_children, sizeof(int));
+	read_data_from_array_buffer(&num_children, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
 	for (int i = 0; i < num_children; i ++)
 		children.push_back(new Comp_comm_group_mgt_node(buffer_node, this, global_node_id));
 }
@@ -295,6 +296,9 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, int co
 
 	
 	strcpy(this->comp_name, comp_name);
+	if (parent == NULL || words_are_the_same(parent->get_comp_name(), "ROOT"))
+		strcpy(this->full_name, this->comp_name);
+	else sprintf(this->full_name, "%s @ %s", parent->get_full_name(), this->comp_name);
 	strcpy(this->annotation_start, annotation);
 	this->annotation_end[0] = '\0';
 	this->comp_id = comp_id;
@@ -402,40 +406,14 @@ void Comp_comm_group_mgt_node::transform_node_into_array()
 	num_procs = local_processes_global_ids.size();
 	for (int i = 0; i < num_procs; i ++) {
 		proc_id = local_processes_global_ids[i];
-		write_data_into_array_buffer(&proc_id, sizeof(int));
+		write_data_into_array_buffer(&proc_id, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
 	}
-	write_data_into_array_buffer(&num_procs, sizeof(int));
-	write_data_into_array_buffer(&comm_group, sizeof(MPI_Comm));
-	write_data_into_array_buffer(comp_name, NAME_STR_SIZE);
-	write_data_into_array_buffer(annotation_start, NAME_STR_SIZE);
-	write_data_into_array_buffer(annotation_end, NAME_STR_SIZE);
-}
-
-
-void Comp_comm_group_mgt_node::write_data_into_array_buffer(const void *data, int data_size)
-{
-	if (buffer_max_size < buffer_content_size+data_size) {
-		buffer_max_size = (buffer_content_size+data_size) * 2;
-		char *temp_buffer = new char [buffer_max_size];
-		for (int i = 0; i < buffer_content_size; i ++)
-			temp_buffer[i] = temp_array_buffer[i];
-		delete [] temp_array_buffer;
-		temp_array_buffer = temp_buffer;
-	}
-
-	for (int i = 0; i < data_size; i ++)
-		temp_array_buffer[buffer_content_size++] = ((char*)data)[i];
-}
-
-
-void Comp_comm_group_mgt_node::read_data_from_array_buffer(void *data, int data_size)
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, data_size <= buffer_content_iter, "Software error in Comp_comm_group_mgt_node::read_data_into_array_buffer");
-	
-	for (int i = 0; i < data_size; i ++)
-		((char*) data)[i] = temp_array_buffer[buffer_content_iter-data_size+i];
-	
-	buffer_content_iter -= data_size;
+	write_data_into_array_buffer(&num_procs, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&comm_group, sizeof(MPI_Comm), &temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(comp_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(full_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(annotation_start, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(annotation_end, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 }
 
 
@@ -464,7 +442,7 @@ void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 	for (i = 0, num_children_at_root = 0; i < children.size(); i ++)
 		if (children[i]->current_proc_local_id == 0) {
 			num_children_at_root ++;
-			write_data_into_array_buffer(children[i]->temp_array_buffer, children[i]->buffer_content_size);
+			write_data_into_array_buffer(children[i]->temp_array_buffer, children[i]->buffer_content_size, &temp_array_buffer, buffer_max_size, buffer_content_size);
 		}
 	
 	if (current_proc_local_id == 0) {
@@ -492,7 +470,7 @@ void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 		temp_array_buffer = temp_buffer;
 		buffer_content_size = displs[i-1]+counts[i-1];
 		buffer_max_size = buffer_content_size+100;
-		write_data_into_array_buffer(&num_children_at_root, sizeof(int));
+		write_data_into_array_buffer(&num_children_at_root, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
 		transform_node_into_array();
 		delete [] num_children_for_all;
 		delete [] counts;
@@ -521,6 +499,7 @@ void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 	current_element = new TiXmlElement("Online_Model");
 	parent_element->LinkEndChild(current_element);
 	current_element->SetAttribute("name", comp_name);
+	current_element->SetAttribute("full_name", full_name);
 
 	segments_start = new int [local_processes_global_ids.size()];
 	segments_end = new int [local_processes_global_ids.size()];
@@ -593,6 +572,16 @@ void Comp_comm_group_mgt_node::transfer_data_buffer(Comp_comm_group_mgt_node *ne
 	new_node->buffer_content_size = this->buffer_content_size;
 	new_node->buffer_max_size = this->buffer_max_size;
 	this->temp_array_buffer = NULL;
+}
+
+
+void Comp_comm_group_mgt_node::confirm_coupling_configuration_active(int API_id, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE]; 
+
+	get_API_hint(comp_id, API_id, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, !definition_finalized, "component \"%s\" cannot call the C-Coupler interface \"%s\" at the model code with the annotation \"%s\", because the coupling configuration stage has been ended at the model code with the annotation \"%s\"", 
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"confirm_coupling_configuration_active")->get_comp_name(), API_label, annotation, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"confirm_coupling_configuration_active")->get_annotation_end());
 }
 
 
@@ -851,7 +840,7 @@ void Comp_comm_group_mgt_mgr::read_global_node_from_XML(const TiXmlElement *curr
 	const TiXmlNode *child;
 
 
-	global_node = search_global_node(current_element->Attribute("name"));
+	global_node = search_global_node(current_element->Attribute("full_name"));
 	EXECUTION_REPORT(REPORT_ERROR, -1, global_node != NULL, "The XML file of component model hierarchy has been illegally modified by others or C-Coupler has software bugs");
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(global_node->get_comp_name(), current_element->Attribute("name")), "The XML file of component model hierarchy has been illegally modified by others or there are software errors");
 
@@ -878,10 +867,10 @@ void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
 }
 
 
-Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(const char *comp_name)
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(const char *full_name)
 {
 	for (int i = 0; i < global_node_array.size(); i ++)
-		if (words_are_the_same(global_node_array[i]->get_comp_name(), comp_name))
+		if (words_are_the_same(global_node_array[i]->get_full_name(), full_name))
 			return global_node_array[i];
 		
 	return NULL;	
@@ -914,3 +903,8 @@ int Comp_comm_group_mgt_mgr::get_num_proc_in_comp(int comp_id, const char *annot
 }
 
 
+void Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active(int comp_id, int API_id, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active");
+	get_global_node_of_local_comp(comp_id, "in Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active")->confirm_coupling_configuration_active(API_id, annotation);
+}

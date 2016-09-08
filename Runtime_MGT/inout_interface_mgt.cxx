@@ -11,12 +11,32 @@
 #include "inout_interface_mgt.h"
 
 
+Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_content_iter)
+{
+	char comp_long_name[NAME_STR_SIZE];
+	int num_interfaces;
+
+
+	interface_id = 0;
+	read_data_from_array_buffer(comp_long_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&num_interfaces, sizeof(int), temp_array_buffer, buffer_content_iter);
+	for (int i = 0; i < num_interfaces; i ++) {
+		fields_name.push_back(temp_array_buffer+buffer_content_iter-NAME_STR_SIZE);
+		buffer_content_iter -= NAME_STR_SIZE;
+	}
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_long_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_node != NULL, "Software error in Inout_interface::Inout_interface");
+	comp_id = comp_node->get_local_node_id();
+}
+
+
 Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export, int num_fields, int *field_ids, int *timer_ids, const char *annotation)
 {
 	int API_id;
 
 	
-	strcpy(this->interface_name, interface_name);
 	this->interface_id = interface_id;
 	this->import_or_export = import_or_export;
 	this->comp_id = -1;
@@ -44,6 +64,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_REG_EXPORT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for exporting field instances", annotation);
 		API_id = API_ID_INTERFACE_REG_EXPORT;
 	}
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);	
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", num_fields, "num_fields", annotation);
 	for (int i = 0; i < num_fields; i ++) {
 		check_API_parameter_timer(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", timer_ids[i], "timer ids (the information of the timers)", annotation);
@@ -54,18 +75,61 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		fields_mem.push_back(memory_manager->get_field_instance(field_ids[i]));
 	}
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
+	strcpy(this->interface_name, interface_name);
+	check_and_verify_name_format_of_string_for_API(this->comp_id, this->interface_name, API_id, "the interface", annotation);
 }
 
 
 void Inout_interface::report_common_field_instances(const Inout_interface *another_interface)
 {
-	if (this->import_or_export == 1 && another_interface->import_or_export == 1)
+	if (this->import_or_export != another_interface->import_or_export)
 		return;
 
 	for (int i = 0; i < this->fields_mem.size(); i ++)
 		for (int j = 0; j < another_interface->fields_mem.size(); j ++)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, this->fields_mem[i] != another_interface->fields_mem[j], "Two import/export interfaces use the same field instance (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(this->fields_mem[i]->get_field_name(), another_interface->fields_mem[j]->get_field_name()), "Two import interfaces use the same field instance (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
 			                 fields_mem[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));
+}
+
+
+void Inout_interface::get_fields_name(std::vector<const char*> *fields_name)
+{
+	for (int i = 0; i < this->fields_mem.size(); i ++)
+		fields_name->push_back(this->fields_mem[i]->get_field_name());
+}
+
+
+void Inout_interface::transform_interface_into_array(char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
+{
+	int temp_int;
+
+	
+	for (int i = 0; i < fields_mem.size(); i ++)
+		write_data_into_array_buffer(fields_mem[i]->get_field_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
+	temp_int = fields_mem.size();
+	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::transform_interface_into_array")->get_full_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
+Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, int buffer_content_iter)
+{
+	this->temp_array_buffer = NULL;
+	while (buffer_content_iter > 0) {
+		printf("iter is %d\n", buffer_content_iter);
+		interfaces.push_back(new Inout_interface(temp_array_buffer, buffer_content_iter));
+	}
+}
+
+
+Inout_interface_mgt::Inout_interface_mgt()
+{
+	temp_array_buffer = NULL;
+	buffer_content_size = 0;
+	buffer_content_iter = 0;
+	buffer_max_size = 0;
 }
 
 
@@ -73,6 +137,9 @@ Inout_interface_mgt::~Inout_interface_mgt()
 {
 	for (int i = 0; i < interfaces.size(); i ++)
 		delete interfaces[i];
+
+	if (temp_array_buffer != NULL)
+		delete [] temp_array_buffer;
 }
 
 
@@ -90,5 +157,99 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 	}
 	interfaces.push_back(new_interface);
 	return new_interface->get_interface_id();
+}
+
+
+Inout_interface *Inout_interface_mgt::search_an_interface(int comp_id, const char *interface_name)
+{
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
+			return interfaces[i];
+
+	return NULL;
+}
+
+
+bool Inout_interface_mgt::is_interface_id_legal(int interface_id)
+{
+	if ((interface_id & TYPE_ID_PREFIX_MASK) != TYPE_INOUT_INTERFACE_ID_PREFIX)
+		return false;
+
+	return (interface_id&TYPE_ID_SUFFIX_MASK) < interfaces.size();
+}
+
+
+Inout_interface *Inout_interface_mgt::get_interface(int interface_id)
+{
+	if (!is_interface_id_legal(interface_id))
+		return NULL;
+
+	return interfaces[interface_id&TYPE_ID_SUFFIX_MASK];
+}
+
+
+void Inout_interface_mgt::merge_inout_interface_fields_info(int comp_id)
+{
+	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in merge_inout_interface_fields_info");
+	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in merge_inout_interface_fields_info");
+	int num_local_procs = comp_comm_group_mgt_mgr->get_num_proc_in_comp(comp_id, "in merge_inout_interface_fields_info");
+	int *counts = new int [num_local_procs];
+	int *displs = new int [num_local_procs];
+	char *temp_buffer;
+
+
+	MPI_Gather(&buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm);
+	if (local_proc_id == 0) {
+		displs[0] = 0;
+		for (int i = 1; i < num_local_procs; i ++)
+			displs[i] = displs[i-1]+counts[i-1];
+		buffer_content_size = displs[num_local_procs-1]+counts[num_local_procs-1];
+		buffer_max_size = buffer_content_size + 100;
+		temp_buffer = new char [buffer_max_size];
+		
+	}
+	MPI_Gatherv(temp_array_buffer, buffer_content_size, MPI_CHAR, temp_buffer, counts, displs, MPI_CHAR, 0, comm);
+	if (temp_array_buffer != NULL) {
+		delete [] temp_array_buffer;
+		temp_array_buffer = NULL;
+	}
+
+	if (local_proc_id == 0) {
+		temp_array_buffer = temp_buffer;
+		for (int i = 0; i < interfaces.size(); i ++)
+			if (interfaces[i]->get_comp_id() == comp_id)
+				interfaces[i]->transform_interface_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
+	}
+	else {
+		buffer_max_size = 0;
+		buffer_content_size = 0;
+	}
+	
+	delete [] counts;
+	delete [] displs;
+}
+
+
+void Inout_interface_mgt::write_all_interfaces_fields_info()
+{
+	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
+		buffer_content_iter = buffer_content_iter = buffer_content_size;
+		while (buffer_content_iter > 0) {
+			char comp_full_name[NAME_STR_SIZE], interface_name[NAME_STR_SIZE], field_name[NAME_STR_SIZE];
+			int import_or_export, num_fields;
+			read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter);
+			if (import_or_export == 0)
+				printf("import interface \"%s\" of component \"%s\" has %d fields\n", interface_name, comp_full_name, num_fields);
+			else printf("export interface \"%s\" of component \"%s\" has %d fields\n", interface_name, comp_full_name, num_fields);
+			for (int i = 0; i < num_fields; i ++) {
+				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+				printf("            %s\n", field_name);
+			}
+			printf("\n\n");
+		}
+	}
 }
 

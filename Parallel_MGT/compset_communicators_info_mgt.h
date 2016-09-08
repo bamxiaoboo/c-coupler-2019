@@ -34,6 +34,7 @@ class Comp_comm_group_mgt_node
 	private:
 		int comp_id;
 	    char comp_name[NAME_STR_SIZE];                // The name of component	
+	    char full_name[NAME_STR_SIZE];
 		char annotation_start[NAME_STR_SIZE];
 		char annotation_end[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
@@ -56,8 +57,6 @@ class Comp_comm_group_mgt_node
 		MPI_Comm get_comm_group() const { return comm_group; }
 		int get_current_proc_local_id() const { return current_proc_local_id; }
 		void transform_node_into_array();
-		void write_data_into_array_buffer(const void*, int);
-		void read_data_from_array_buffer(void*, int);
 		void merge_comp_comm_info(const char*);
 		int get_buffer_content_size() { return buffer_content_size; }
 		int get_buffer_content_iter() { return buffer_content_iter; }
@@ -79,6 +78,8 @@ class Comp_comm_group_mgt_node
 		void update_child(const Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*);
 		void transfer_data_buffer(Comp_comm_group_mgt_node*);
 		int get_num_procs() const { return local_processes_global_ids.size(); }
+		void confirm_coupling_configuration_active(int, const char*);
+		const char *get_full_name() { return full_name; }
 };
 
 
@@ -123,6 +124,7 @@ class Comp_comm_group_mgt_mgr
 		int get_num_proc_in_comp(int, const char *);
 		int get_current_proc_global_id() { return current_proc_global_id; }
 		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
+		void confirm_coupling_configuration_active(int, int, const char*);
 };
 
 
