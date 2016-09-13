@@ -38,6 +38,8 @@ class Inout_interface
 		int get_import_or_export() { return import_or_export; }
 		void report_common_field_instances(const Inout_interface*);
 		void get_fields_name(std::vector<const char*>*);
+		const char *get_field_name(int);
+		int get_num_fields();
 		void transform_interface_into_array(char**, int&, int&);
 		
 };
@@ -57,9 +59,9 @@ class Inout_interface_mgt
 		Inout_interface_mgt();
 		~Inout_interface_mgt();
 		int register_inout_interface(const char *, int import_or_export, int num_fields, int *field_ids, int *timer_ids, const char*);
-		Inout_interface *search_an_interface(int, const char*);
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);
+		Inout_interface *get_interface(const char*, const char*);
 		void merge_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
 		const char *get_temp_array_buffer() { return temp_array_buffer; } 

@@ -55,12 +55,14 @@ class Comp_comm_group_mgt_node
 		Comp_comm_group_mgt_node(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*, int &);
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
+		int get_comp_id() const { return comp_id; }
 		int get_current_proc_local_id() const { return current_proc_local_id; }
 		void transform_node_into_array();
 		void merge_comp_comm_info(const char*);
 		int get_buffer_content_size() { return buffer_content_size; }
 		int get_buffer_content_iter() { return buffer_content_iter; }
 		const char *get_comp_name() const { return comp_name; }
+		const char *get_comp_full_name() const { return full_name; }
 		int get_num_children() { return children.size(); }
 		int get_local_node_id() { return comp_id; }
 		Comp_comm_group_mgt_node *get_child(int indx) { return children[indx]; }
@@ -125,6 +127,7 @@ class Comp_comm_group_mgt_mgr
 		int get_current_proc_global_id() { return current_proc_global_id; }
 		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
 		void confirm_coupling_configuration_active(int, int, const char*);
+		const int *get_all_components_ids();
 };
 
 

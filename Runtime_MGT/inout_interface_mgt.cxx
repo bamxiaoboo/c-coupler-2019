@@ -29,6 +29,7 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_cont
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_long_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_node != NULL, "Software error in Inout_interface::Inout_interface");
 	comp_id = comp_node->get_local_node_id();
+	printf("comp full name is %s: %x\n", comp_long_name, comp_id);
 }
 
 
@@ -99,6 +100,26 @@ void Inout_interface::get_fields_name(std::vector<const char*> *fields_name)
 }
 
 
+const char *Inout_interface::get_field_name(int number)
+{
+	if (number >= fields_name.size() && number >= fields_mem.size())
+		return NULL;
+
+	if (number < fields_name.size())
+		return fields_name[number];
+
+	return fields_mem[number]->get_field_name();
+}
+
+
+int Inout_interface::get_num_fields()
+{
+	if (fields_name.size() >= fields_mem.size())
+		return fields_name.size();
+	return fields_mem.size();
+}
+
+
 void Inout_interface::transform_interface_into_array(char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
 {
 	int temp_int;
@@ -160,16 +181,6 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 }
 
 
-Inout_interface *Inout_interface_mgt::search_an_interface(int comp_id, const char *interface_name)
-{
-	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
-			return interfaces[i];
-
-	return NULL;
-}
-
-
 bool Inout_interface_mgt::is_interface_id_legal(int interface_id)
 {
 	if ((interface_id & TYPE_ID_PREFIX_MASK) != TYPE_INOUT_INTERFACE_ID_PREFIX)
@@ -188,6 +199,20 @@ Inout_interface *Inout_interface_mgt::get_interface(int interface_id)
 }
 
 
+Inout_interface *Inout_interface_mgt::get_interface(const char *comp_full_name, const char *interface_name)
+{
+	if (comp_comm_group_mgt_mgr->search_global_node(comp_full_name) == NULL)
+		return NULL;
+
+	int comp_id = comp_comm_group_mgt_mgr->search_global_node(comp_full_name)->get_comp_id();
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
+			return interfaces[i];
+
+	return NULL;;
+}
+
+
 void Inout_interface_mgt::merge_inout_interface_fields_info(int comp_id)
 {
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in merge_inout_interface_fields_info");
@@ -203,8 +228,7 @@ void Inout_interface_mgt::merge_inout_interface_fields_info(int comp_id)
 		displs[0] = 0;
 		for (int i = 1; i < num_local_procs; i ++)
 			displs[i] = displs[i-1]+counts[i-1];
-		buffer_content_size = displs[num_local_procs-1]+counts[num_local_procs-1];
-		buffer_max_size = buffer_content_size + 100;
+		buffer_max_size = displs[num_local_procs-1]+counts[num_local_procs-1] + 100;
 		temp_buffer = new char [buffer_max_size];
 		
 	}
@@ -216,6 +240,7 @@ void Inout_interface_mgt::merge_inout_interface_fields_info(int comp_id)
 
 	if (local_proc_id == 0) {
 		temp_array_buffer = temp_buffer;
+		buffer_content_size = displs[num_local_procs-1]+counts[num_local_procs-1];
 		for (int i = 0; i < interfaces.size(); i ++)
 			if (interfaces[i]->get_comp_id() == comp_id)
 				interfaces[i]->transform_interface_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
@@ -232,24 +257,17 @@ void Inout_interface_mgt::merge_inout_interface_fields_info(int comp_id)
 
 void Inout_interface_mgt::write_all_interfaces_fields_info()
 {
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
-		buffer_content_iter = buffer_content_iter = buffer_content_size;
-		while (buffer_content_iter > 0) {
-			char comp_full_name[NAME_STR_SIZE], interface_name[NAME_STR_SIZE], field_name[NAME_STR_SIZE];
-			int import_or_export, num_fields;
-			read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter);
-			if (import_or_export == 0)
-				printf("import interface \"%s\" of component \"%s\" has %d fields\n", interface_name, comp_full_name, num_fields);
-			else printf("export interface \"%s\" of component \"%s\" has %d fields\n", interface_name, comp_full_name, num_fields);
-			for (int i = 0; i < num_fields; i ++) {
-				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-				printf("            %s\n", field_name);
-			}
-			printf("\n\n");
+	const char *field_name;
+
+	
+ 	for (int i = 0; i < interfaces.size(); i ++) {
+		if (interfaces[i]->get_import_or_export() == 0)
+			printf("import interface \"%s\" of component \"%s\" has %d fields\n", interfaces[i]->get_interface_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(interfaces[i]->get_comp_id(),"in write_all_interfaces_fields_info")->get_comp_full_name(), interfaces[i]->get_num_fields());
+		else printf("export interface \"%s\" of component \"%s\" has %d fields\n", interfaces[i]->get_interface_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(interfaces[i]->get_comp_id(),"in write_all_interfaces_fields_info")->get_comp_full_name(), interfaces[i]->get_num_fields());
+		for (int i = 0; (field_name = interfaces[i]->get_field_name(i)) != NULL; i ++) {
+			printf("            %s\n", field_name);
 		}
+		printf("\n\n");
 	}
 }
 

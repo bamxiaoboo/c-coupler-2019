@@ -274,23 +274,9 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 
 bool check_and_verify_name_format_of_string(char *string)
 {
-	char local_string[NAME_STR_SIZE];
-	int i;
-
-	
-	for (i = 0; i < strlen(string); i ++)
-			if (!(string[i] == ' ' || (string[i] >= 'a' && string[i] <= 'z') || (string[i] >= 'A' && string[i] <= 'Z') || (string[i] >= '0' && string[i] <= '9') || string[i] == '_' || string[i] == '-' || string[i] == '.'))
-				return false;
-	for (i = 0; i < strlen(string); i ++)
-		if (string[i] != ' ')
-			break;
-	strcpy(local_string, string+i);
-	for (i = strlen(local_string)-1; i >= 0; i --)
-		if (string[i] != ' ')
-			break;
-	local_string[i+1] = '\0';
-	
-	strcpy(string, local_string);
+	for (int i = 0; i < strlen(string); i ++)
+		if (!((string[i] >= 'a' && string[i] <= 'z') || (string[i] >= 'A' && string[i] <= 'Z') || (string[i] >= '0' && string[i] <= '9') || string[i] == '_' || string[i] == '-' || string[i] == '.'))
+			return false;
 
 	return true;
 }
@@ -298,22 +284,22 @@ bool check_and_verify_name_format_of_string(char *string)
 
 void check_and_verify_name_format_of_string_for_API(int comp_id, char *string, int API_id, const char *name_owner, const char *annotation)
 {
-	char local_string[NAME_STR_SIZE], API_label[NAME_STR_SIZE];
+	char API_label[NAME_STR_SIZE];
 	int i;
 
 
 	get_API_hint(comp_id, API_id, API_label);
 	
-	EXECUTION_REPORT(REPORT_ERROR, check_and_verify_name_format_of_string(string),
-					 "When calling the C-Coupler interface \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be ' ', '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the model code with the annotation \"%s\"",
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, check_and_verify_name_format_of_string(string),
+					 "When calling the C-Coupler interface \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the model code with the annotation \"%s\"",
 					 API_label, name_owner, string, annotation);
 }
 
 
 void check_and_verify_name_format_of_string_for_XML(int comp_id, char *string, const char *name_owner, const char *XML_file_name)
 {
-	EXECUTION_REPORT(REPORT_ERROR, check_and_verify_name_format_of_string(string),
-					 "When reading the XML file \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be ' ', '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the model code with the annotation \"%s\"",
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, check_and_verify_name_format_of_string(string),
+					 "When reading the XML file \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the model code with the annotation \"%s\"",
 					 XML_file_name, name_owner, string);
 }
 
