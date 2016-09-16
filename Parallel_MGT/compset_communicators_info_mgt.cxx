@@ -299,7 +299,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, int co
 	strcpy(this->comp_name, comp_name);
 	if (parent == NULL || words_are_the_same(parent->get_comp_name(), "ROOT"))
 		strcpy(this->full_name, this->comp_name);
-	else sprintf(this->full_name, "%s @ %s", parent->get_full_name(), this->comp_name);
+	else sprintf(this->full_name, "%s@%s", parent->get_full_name(), this->comp_name);
 	strcpy(this->annotation_start, annotation);
 	this->annotation_end[0] = '\0';
 	this->comp_id = comp_id;

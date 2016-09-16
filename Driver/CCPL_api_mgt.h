@@ -54,7 +54,7 @@ extern void check_API_parameter_timer(int, int, MPI_Comm, const char*, int, cons
 extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, int, const char*, const char*);
 extern void get_API_hint(int, int, char*);
 extern void check_and_verify_name_format_of_string_for_API(int, char*, int, const char*, const char*);
-extern void check_and_verify_name_format_of_string_for_XML(int, char*, const char*, const char*);
+extern void check_and_verify_name_format_of_string_for_XML(int, char*, const char*, const char*, int);
 
 #endif
 

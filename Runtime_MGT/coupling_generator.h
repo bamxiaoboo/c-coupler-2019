@@ -17,6 +17,18 @@
 #include "dictionary.h"
 
 
+class Import_interface_configuration;
+
+
+struct Coupling_connection
+{
+	char field_name[NAME_STR_SIZE];
+	std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > src_comp_interfaces;
+	char dst_comp_full_name[NAME_STR_SIZE];
+	char dst_interface_name[NAME_STR_SIZE];
+};
+
+
 class Import_direction_setting
 {
 	private:
@@ -30,7 +42,7 @@ class Import_direction_setting
 		// ... remapping and merge setting;
 	
 	public:
-		Import_direction_setting(const char*, const char*, TiXmlElement*, const char*, std::vector<const char*>&, int*);
+		Import_direction_setting(Import_interface_configuration *, const char*, const char*, TiXmlElement*, const char*, std::vector<const char*>&, int*);
 		~Import_direction_setting();
 };
 
@@ -40,10 +52,15 @@ class Import_interface_configuration
 	private:
 		char interface_name[NAME_STR_SIZE];
 		std::vector<Import_direction_setting*> import_directions;
+		std::vector<const char*> fields_name;
+		std::vector<std::vector<const char*> > fields_src_components;
 
 	public:
 		Import_interface_configuration(const char*, const char*, TiXmlElement*, const char*, Inout_interface_mgt *);
 		~Import_interface_configuration();
+		const char *get_interface_name() { return interface_name; }
+		void add_field_src_component(int comp_id, const char*, const char*);
+		void get_field_import_configuration(const char*, std::vector<const char*>&);
 };
 
 
@@ -56,6 +73,7 @@ class Component_import_interfaces_configuration
 	public:
 		Component_import_interfaces_configuration(int, Inout_interface_mgt*);
 		~Component_import_interfaces_configuration();
+		void get_interface_field_import_configuration(const char*, const char*, std::vector<const char*>&);
 };
 
 
@@ -63,13 +81,15 @@ class Component_import_interfaces_configuration
 class Coupling_generator
 {
 	private:
-		std::map<int,std::vector<char*> > import_fields_src_components;
-		std::map<int,std::vector<char*> > export_fields_dst_components;
+		std::map<int,std::vector<std::pair<const char*, const char*> > > import_fields_src_components;
+		std::map<int,std::vector<std::pair<const char*, const char*> > > export_fields_dst_components;
 		Dictionary<int> *import_field_index_lookup_table;
 		Dictionary<int> *export_field_index_lookup_table;
+		std::vector<Coupling_connection*> all_coupling_connections;
 		
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();
+		void generate_coupling_connection(const Coupling_connection *);
 
 	public:
 		Coupling_generator() {};

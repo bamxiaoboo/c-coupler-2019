@@ -296,10 +296,10 @@ void check_and_verify_name_format_of_string_for_API(int comp_id, char *string, i
 }
 
 
-void check_and_verify_name_format_of_string_for_XML(int comp_id, char *string, const char *name_owner, const char *XML_file_name)
+void check_and_verify_name_format_of_string_for_XML(int comp_id, char *string, const char *name_owner, const char *XML_file_name, int line_number)
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, check_and_verify_name_format_of_string(string),
-					 "When reading the XML file \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the model code with the annotation \"%s\"",
-					 XML_file_name, name_owner, string);
+					 "When reading the XML file \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the XML file arround the line number %d",
+					 XML_file_name, name_owner, string, line_number);
 }
 

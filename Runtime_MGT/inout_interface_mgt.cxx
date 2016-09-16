@@ -83,20 +83,26 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 
 void Inout_interface::report_common_field_instances(const Inout_interface *another_interface)
 {
-	if (this->import_or_export != another_interface->import_or_export)
+	if (this->import_or_export != 1 || another_interface->import_or_export != 1)
 		return;
 
 	for (int i = 0; i < this->fields_mem.size(); i ++)
 		for (int j = 0; j < another_interface->fields_mem.size(); j ++)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(this->fields_mem[i]->get_field_name(), another_interface->fields_mem[j]->get_field_name()), "Two import interfaces use the same field instance (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
-			                 fields_mem[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(this->fields_mem[i]->get_field_name(), another_interface->fields_mem[j]->get_field_name()), "Two export interfaces (\"%s\" and \"%s\") provide the same field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
+			                 this->interface_name, another_interface->interface_name, fields_mem[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));
 }
 
 
 void Inout_interface::get_fields_name(std::vector<const char*> *fields_name)
 {
-	for (int i = 0; i < this->fields_mem.size(); i ++)
-		fields_name->push_back(this->fields_mem[i]->get_field_name());
+	if (this->fields_mem.size() > 0) {
+		for (int i = 0; i < this->fields_mem.size(); i ++)
+			fields_name->push_back(this->fields_mem[i]->get_field_name());
+	}
+	else {
+		for (int i = 0; i < this->fields_name.size(); i ++)
+			fields_name->push_back(this->fields_name[i]);
+	}
 }
 
 
@@ -252,6 +258,17 @@ void Inout_interface_mgt::merge_inout_interface_fields_info(int comp_id)
 	
 	delete [] counts;
 	delete [] displs;
+}
+
+
+
+void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<Inout_interface*> &import_interfaces, int comp_id)
+{
+	import_interfaces.clear();
+
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export() == 0)
+			import_interfaces.push_back(interfaces[i]);
 }
 
 

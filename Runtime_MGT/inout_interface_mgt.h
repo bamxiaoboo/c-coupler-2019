@@ -62,6 +62,7 @@ class Inout_interface_mgt
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);
 		Inout_interface *get_interface(const char*, const char*);
+		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, int);
 		void merge_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
 		const char *get_temp_array_buffer() { return temp_array_buffer; } 

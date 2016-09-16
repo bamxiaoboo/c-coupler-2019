@@ -26,6 +26,8 @@ distribution.
 #include <stddef.h>
 
 #include "tinyxml.h"
+#include <iostream>
+using namespace std;
 
 //#define DEBUG_PARSER
 #if defined( DEBUG_PARSER )
@@ -805,6 +807,7 @@ void TiXmlDocument::SetError( int err, const char* pError, TiXmlParsingData* dat
 	error   = true;
 	errorId = err;
 	errorDesc = errorString[ errorId ];
+    cout<<errorDesc.c_str()<<"In the file: "<<Value()<<", ";
 
 	errorLocation.Clear();
 	if ( pError && data )
@@ -812,6 +815,7 @@ void TiXmlDocument::SetError( int err, const char* pError, TiXmlParsingData* dat
 		data->Stamp( pError, encoding );
 		errorLocation = data->Cursor();
 	}
+    cout<<" line in:"<<ErrorRow()<<", column in:"<<ErrorCol()<<endl;
 }
 
 
