@@ -80,6 +80,7 @@ class Comp_comm_group_mgt_node
 		void update_child(const Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*);
 		void transfer_data_buffer(Comp_comm_group_mgt_node*);
 		int get_num_procs() const { return local_processes_global_ids.size(); }
+		int get_root_proc_global_id() const { return local_processes_global_ids[0]; }
 		void confirm_coupling_configuration_active(int, const char*);
 		const char *get_full_name() { return full_name; }
 };

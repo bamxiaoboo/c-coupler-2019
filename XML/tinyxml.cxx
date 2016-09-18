@@ -26,10 +26,11 @@ distribution.
 
 #ifdef TIXML_USE_STL
 #include <sstream>
-#include <iostream>
 #endif
-
+#include <iostream>
 #include "tinyxml.h"
+
+using namespace std;
 
 FILE* TiXmlFOpen( const char* filename, const char* mode );
 
@@ -593,8 +594,9 @@ const std::string* TiXmlElement::Attribute( const std::string& name ) const
 }
 #endif
 
-
-const char* TiXmlElement::Attribute( const char* name, int* i ) const
+/********************************old**********************************/
+/*
+const char* TiXmlElement::Attribute( const char* name, int* i) const
 {
 	const TiXmlAttribute* attrib = attributeSet.Find( name );
 	const char* result = 0;
@@ -607,7 +609,19 @@ const char* TiXmlElement::Attribute( const char* name, int* i ) const
 	}
 	return result;
 }
+*/
+/*******************************new**********************************/
+const char* TiXmlElement::Attribute( const char* name, int* line) const
+{
+    const TiXmlAttribute* attrib = attributeSet.Find( name );
+    const char* result = 0;
 
+    if ( attrib ) {
+        result = attrib->Value();
+        *line = attrib->Row();
+    }
+    return result;
+}
 
 #ifdef TIXML_USE_STL
 const std::string* TiXmlElement::Attribute( const std::string& name, int* i ) const
@@ -1073,9 +1087,7 @@ bool TiXmlDocument::LoadFile( FILE* file, TiXmlEncoding encoding )
 	}
 	assert( q <= (buf+length) );
 	*q = 0;
-
 	Parse( buf, 0, encoding );
-
 	delete [] buf;
 	return !Error();
 }

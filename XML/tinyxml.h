@@ -959,13 +959,21 @@ public:
 	*/
 	const char* Attribute( const char* name ) const;
 
+    /***********************old******************************/
 	/** Given an attribute name, Attribute() returns the value
 		for the attribute of that name, or null if none exists.
 		If the attribute exists and can be converted to an integer,
 		the integer value will be put in the return 'i', if 'i'
 		is non-null.
 	*/
-	const char* Attribute( const char* name, int* i ) const;
+    // const char* Attribure( const char* name, int* i ) const;
+    /***********************new*****************************/
+    /** Given an attribute name, Attribute() return the value
+        for the attribute of that name, or null if none exists.
+        If the attribute exists, put the Row() of the attribte
+        in the 'i'.
+     */
+	const char* Attribute( const char* name, int* line ) const;
 
 	/** Given an attribute name, Attribute() returns the value
 		for the attribute of that name, or null if none exists.

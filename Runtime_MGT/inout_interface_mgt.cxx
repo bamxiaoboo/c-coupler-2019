@@ -83,6 +83,14 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 
 void Inout_interface::report_common_field_instances(const Inout_interface *another_interface)
 {
+	if (this->import_or_export == 0 && another_interface->import_or_export == 0) {
+		for (int i = 0; i < this->fields_mem.size(); i ++)
+			for (int j = 0; j < another_interface->fields_mem.size(); j ++)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, this->fields_mem[i]->get_data_buf() != another_interface->fields_mem[j]->get_data_buf(), "Two import interfaces (\"%s\" and \"%s\") share the same data buffer of the field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
+				                 this->interface_name, another_interface->interface_name, fields_mem[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));		
+		return;
+	}
+
 	if (this->import_or_export != 1 || another_interface->import_or_export != 1)
 		return;
 
