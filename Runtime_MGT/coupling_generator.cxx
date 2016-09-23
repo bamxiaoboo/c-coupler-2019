@@ -263,7 +263,7 @@ void Component_import_interfaces_configuration::get_interface_field_import_confi
 void Coupling_generator::generate_coupling_procedures()
 {
 	bool define_use_wrong = false;
-	char *temp_array_buffer = NULL;
+	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
 	int current_array_buffer_size, max_array_buffer_size, temp_int;	
 	Coupling_connection *coupling_connection;
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
@@ -288,7 +288,7 @@ void Coupling_generator::generate_coupling_procedures()
 					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_components_full_name);
 					strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Component_import_interfaces_configuration")->get_full_name());
 					strcpy(coupling_connection->dst_interface_name, import_interfaces_of_a_component[j]->get_interface_name());
-					strcpy(coupling_connection->field_name, import_fields_name[k]);					
+					coupling_connection->fields_name.push_back(strdup(import_fields_name[k]));					
 					int field_index = export_field_index_lookup_table->search(import_fields_name[k],false);
 					if (field_index != 0) {
 						if (configuration_export_components_full_name.size() == 0) {
@@ -313,15 +313,15 @@ void Coupling_generator::generate_coupling_procedures()
 					}
 					all_coupling_connections.push_back(coupling_connection);
 					if (coupling_connection->src_comp_interfaces.size() == 1)
-						printf("field \"%s\" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", coupling_connection->field_name, coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
+						printf("field \"%s\" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
 					else if (coupling_connection->src_comp_interfaces.size() == 0) {
 						define_use_wrong = true;
 						if (export_fields_dst_components[field_index].size() == 0)
-							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: no component exports this field. \n", coupling_connection->field_name, coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
-						else printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: there are components exporting this field, however, none of which is specified in the corresponding configuration XML file\n", coupling_connection->field_name, coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
+							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: no component exports this field. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
+						else printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: there are components exporting this field, however, none of which is specified in the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
 					}
 					else {
-						printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" have more than 1 (%d) sources as follows. Please add or modify the corresponding configuration XML file\n", coupling_connection->field_name, coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
+						printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" have more than 1 (%d) sources as follows. Please add or modify the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
 						define_use_wrong = true;
 						
 					}
@@ -333,35 +333,59 @@ void Coupling_generator::generate_coupling_procedures()
 			delete comp_import_interfaces_config;
 		}
 		delete all_interfaces_mgr;
+		
+		EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");
+
+		for (int j, i = all_coupling_connections.size() - 1; i >= 0; i --) {
+			for (j = 0; j < i; j ++)
+				if (words_are_the_same(all_coupling_connections[i]->src_comp_interfaces[0].first, all_coupling_connections[j]->src_comp_interfaces[0].first) &&
+					words_are_the_same(all_coupling_connections[i]->src_comp_interfaces[0].second, all_coupling_connections[j]->src_comp_interfaces[0].second) &&
+					words_are_the_same(all_coupling_connections[i]->dst_comp_full_name, all_coupling_connections[j]->dst_comp_full_name) &&
+					words_are_the_same(all_coupling_connections[i]->dst_interface_name, all_coupling_connections[j]->dst_interface_name))
+					break;
+			if (j < i) {
+				EXECUTION_REPORT(REPORT_ERROR, -1, all_coupling_connections[j]->fields_name.size() == 1,  "software error in Coupling_generator::generate_coupling_procedures");
+				all_coupling_connections[j]->fields_name.push_back(all_coupling_connections[i]->fields_name[0]);
+				all_coupling_connections.erase(all_coupling_connections.begin()+i);
+			}
+		}
+
 		for (int i = all_coupling_connections.size() - 1; i >= 0; i --) {
+			// all_coupling_connections[i]->src_comp_interfaces.size() is 1
 			for (int j = all_coupling_connections[i]->src_comp_interfaces.size()-1; j >= 0; j --) {
 				write_data_into_array_buffer(all_coupling_connections[i]->src_comp_interfaces[j].second, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 				write_data_into_array_buffer(all_coupling_connections[i]->src_comp_interfaces[j].first, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 			}
 			temp_int = all_coupling_connections[i]->src_comp_interfaces.size();
 			write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			for (int j = all_coupling_connections[i]->fields_name.size() - 1; j >= 0; j --)
+				write_data_into_array_buffer(all_coupling_connections[i]->fields_name[j], NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			temp_int = all_coupling_connections[i]->fields_name.size();
+			write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);			
 			write_data_into_array_buffer(all_coupling_connections[i]->dst_interface_name, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 			write_data_into_array_buffer(all_coupling_connections[i]->dst_comp_full_name, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);			
-			write_data_into_array_buffer(all_coupling_connections[i]->field_name, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 		}
 		temp_int = all_coupling_connections.size();
 		write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 	}
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");
 
 	MPI_Bcast(&current_array_buffer_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) 
 		temp_array_buffer = new char [current_array_buffer_size];
 	MPI_Bcast(temp_array_buffer, current_array_buffer_size, MPI_CHAR, 0, MPI_COMM_WORLD);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) {
-		int num_connections, num_sources, buffer_content_iter = current_array_buffer_size;
+		int num_connections, num_fields, num_sources, buffer_content_iter = current_array_buffer_size;
 		read_data_from_array_buffer(&num_connections, sizeof(int), temp_array_buffer, buffer_content_iter);
 		for (int i = 0; i < num_connections; i ++) {
 			coupling_connection = new Coupling_connection;
-			read_data_from_array_buffer(coupling_connection->field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
 			read_data_from_array_buffer(coupling_connection->dst_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
 			read_data_from_array_buffer(coupling_connection->dst_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter);
+			for (int j = 0; j < num_fields; j ++) {
+				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+				coupling_connection->fields_name.push_back(strdup(field_name));					
+			}		
 			read_data_from_array_buffer(&num_sources, sizeof(int), temp_array_buffer, buffer_content_iter);
 			for (int j = 0; j < num_sources; j ++) {
 				read_data_from_array_buffer(src_comp_interface.first, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
@@ -375,7 +399,11 @@ void Coupling_generator::generate_coupling_procedures()
 
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 2) {
 		for (int i = 0; i < all_coupling_connections.size(); i ++) {
-			printf("check field \"%s\" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", all_coupling_connections[i]->field_name, all_coupling_connections[i]->dst_interface_name, all_coupling_connections[i]->dst_comp_full_name, all_coupling_connections[i]->src_comp_interfaces.size());
+			printf("check fields (");
+			for (int j = 0; j < all_coupling_connections[i]->fields_name.size(); j ++)
+				printf("%s ", all_coupling_connections[i]->fields_name[j]);
+			printf(")");
+			printf(" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", all_coupling_connections[i]->dst_interface_name, all_coupling_connections[i]->dst_comp_full_name, all_coupling_connections[i]->src_comp_interfaces.size());
 			for (int j = 0; j < all_coupling_connections[i]->src_comp_interfaces.size(); j ++)
 				printf("		component is \"%s\", interface is \"%s\"\n", all_coupling_connections[i]->src_comp_interfaces[j].first, all_coupling_connections[i]->src_comp_interfaces[j].second);
 		}

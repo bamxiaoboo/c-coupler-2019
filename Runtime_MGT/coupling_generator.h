@@ -22,7 +22,7 @@ class Import_interface_configuration;
 
 struct Coupling_connection
 {
-	char field_name[NAME_STR_SIZE];
+	std::vector<const char*> fields_name;
 	std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > src_comp_interfaces;
 	char dst_comp_full_name[NAME_STR_SIZE];
 	char dst_interface_name[NAME_STR_SIZE];
