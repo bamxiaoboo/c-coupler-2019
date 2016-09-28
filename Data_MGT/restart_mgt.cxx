@@ -261,7 +261,7 @@ void Restart_mgt::write_one_restart_field(Field_mem_info *restart_field_mem, int
 		starts[0] = num_restart_var_attrs+5;
 		tmp_long_value = computing_count;
 		tmp_long_value = (tmp_long_value << 32);
-		tmp_long_value = (tmp_long_value | restart_field_mem->get_buf_type());
+		tmp_long_value = (tmp_long_value | restart_field_mem->get_buf_mark());
 		sprintf(attr_string, "%ld\0", tmp_long_value);
 		rcode = nc_put_vara_text(ncfile_id, restart_vars_attrs_id, starts, counts, attr_string);
 		EXECUTION_REPORT(REPORT_ERROR,-1, rcode == NC_NOERR, "Netcdf error: %s for file %s\n", nc_strerror(rcode), restart_write_nc_file->get_file_name());

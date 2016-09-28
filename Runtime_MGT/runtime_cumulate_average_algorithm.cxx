@@ -204,14 +204,14 @@ void Runtime_cumulate_average_algorithm::read_restart_computing_count()
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_decomp_name(),
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_grid_name(),
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_field_name(),
-		                                                                      cumulate_average_fields[i]->mem_info_dst->get_buf_type());
+		                                                                      cumulate_average_fields[i]->mem_info_dst->get_buf_mark());
 		if (computing_count >= 0) {
 			cumulate_average_fields[i]->current_computing_count = computing_count;
 			EXECUTION_REPORT(REPORT_LOG,-1, true, "comulative_averaging algorithm read restart field (%s %s %s %s %d), count is %d ", cumulate_average_fields[i]->mem_info_dst->get_comp_name(), 
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_decomp_name(),
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_grid_name(),
 		                                                                      cumulate_average_fields[i]->mem_info_dst->get_field_name(),
-		                                                                      cumulate_average_fields[i]->mem_info_dst->get_buf_type(),
+		                                                                      cumulate_average_fields[i]->mem_info_dst->get_buf_mark(),
 		                                                                      computing_count);
 		}
 	}

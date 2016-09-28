@@ -27,7 +27,7 @@ void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Fi
 	EXECUTION_REPORT(REPORT_LOG,-1, true, "Add data type transformation for field %s from data type %s to %s", src_field->get_field_name(), src_field->get_field_data()->get_grid_data_field()->data_type_in_application, dst_field->get_field_data()->get_grid_data_field()->data_type_in_application);
 	EXECUTION_REPORT(REPORT_ERROR,-1, src_field != NULL && dst_field != NULL, "C-Coupler software error1 in add_pair_fields of Runtime_datatype_transformer");
 	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(src_field->get_grid_name(), dst_field->get_grid_name()) && words_are_the_same(src_field->get_field_name(), dst_field->get_field_name()) 
-		             && words_are_the_same(src_field->get_decomp_name(), dst_field->get_decomp_name()) && src_field->get_buf_type() == dst_field->get_buf_type(), 
+		             && words_are_the_same(src_field->get_decomp_name(), dst_field->get_decomp_name()) && src_field->get_buf_mark() == dst_field->get_buf_mark(), 
 		             "C-Coupler software error2 in add_pair_fields of Runtime_datatype_transformer");
 	if (src_field == dst_field)
 		return;
