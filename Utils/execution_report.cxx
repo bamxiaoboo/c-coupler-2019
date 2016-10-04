@@ -9,6 +9,8 @@
 
 #ifndef ONLY_CoR
 #include "global_data.h"
+#else
+#define NAME_STR_SIZE 1024
 #endif
 #include "execution_report.h"
 #include "cor_global_data.h"
@@ -114,6 +116,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 
 void report_ender(int report_type, int comp_id, char *output_string)
 {
+#ifndef ONLY_CoR
 	if (comp_id == -1 || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id)) {
 		printf("%s\n\n", output_string);
 		fflush(NULL);
@@ -127,7 +130,10 @@ void report_ender(int report_type, int comp_id, char *output_string)
 		if (report_type == REPORT_ERROR)
 			printf("ERROR happens. Please check the log file \"%s\"\n\n", log_file_name);
 	}
-	
+#else
+	printf("%s\n\n", output_string);
+	fflush(NULL);	
+#endif	
 	if (report_type == REPORT_ERROR)
 		assert(false);
 }
