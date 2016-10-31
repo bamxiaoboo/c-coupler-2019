@@ -33,7 +33,7 @@ class Runtime_common_algorithm : public Runtime_algorithm_basis
         ~Runtime_common_algorithm();
         bool is_model_algorithm() { return model_algorithm != NULL; }
 		void allocate_src_dst_fields(bool);
-        void run(bool);
+        bool run(bool);
 };
 
 

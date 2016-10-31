@@ -91,6 +91,97 @@ void Coupling_connection::generate_a_coupling_procedure()
 }
 
 
+void Coupling_generator::generate_coupling_connection(Coupling_connection *coupling_connection)
+{
+	Comp_comm_group_mgt_node *src_comp_node = comp_comm_group_mgt_mgr->search_global_node(coupling_connection->src_comp_interfaces[0].first);
+	Comp_comm_group_mgt_node *dst_comp_node =comp_comm_group_mgt_mgr->search_global_node(coupling_connection->dst_comp_full_name);
+	int current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
+	int	current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
+	int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
+	int dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
+    int src_comp_num_procs = src_comp_node->get_num_procs();
+    int dst_comp_num_procs = dst_comp_node->get_num_procs();
+    int src_comp_id = src_comp_node->get_comp_id();
+    int dst_comp_id = dst_comp_node->get_comp_id();
+
+    Field_mem_info ** fields_mem = NULL;
+    Coupling_timer ** fields_timer = NULL;
+    Routing_info ** fields_router = NULL;
+    Runtime_algorithm_basis * runtime_algorithm_object = NULL;
+
+	int msg_tag;
+	MPI_Request send_req, recv_req;
+	MPI_Status status;
+
+    if (routing_info_mgr == NULL) routing_info_mgr = new Routing_info_mgt();
+
+    if (current_proc_id_src_comp != -1){
+        int num_fields = coupling_connection->fields_name.size();
+        fields_mem = new Field_mem_info *[num_fields];
+        fields_timer = new Coupling_timer *[num_fields];
+        fields_router = new Routing_info *[num_fields];
+
+        Inout_interface * src_interface = inout_interface_mgr->get_interface(coupling_connection->src_comp_interfaces[0].first, coupling_connection->src_comp_interfaces[0].second);
+        for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
+            fields_mem[i] = src_interface->search_registered_field_instance(coupling_connection->fields_name[i]);
+            int decomp_id = fields_mem[i]->get_decomp_id();
+            int remote_decomp_id = -1;
+            if (current_proc_id_src_comp == 0){
+                MPI_Send(&decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
+                MPI_Recv(&remote_decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+            }
+            MPI_Bcast(&remote_decomp_id, 1, MPI_INT, 0, src_comp_node->get_comm_group());
+            fields_timer[i] = coupling_connection->src_fields_info[i]->timer;
+            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, decomp_id, remote_decomp_id);
+        }
+        runtime_algorithm_object = new Runtime_trans_algorithm(num_fields, 0, fields_mem, fields_router, fields_timer);
+        src_interface->add_runtime_algorithm(runtime_algorithm_object);
+    }
+    else if (current_proc_id_dst_comp != -1){
+        int num_fields = coupling_connection->fields_name.size();
+        fields_mem = new Field_mem_info *[num_fields];
+        fields_timer = new Coupling_timer *[num_fields];
+        fields_router = new Routing_info *[num_fields];
+        
+        Inout_interface * dst_interface = inout_interface_mgr->get_interface(coupling_connection->dst_comp_full_name, coupling_connection->dst_interface_name);
+        for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
+            fields_mem[i] = dst_interface->search_registered_field_instance(coupling_connection->fields_name[i]);
+
+            int decomp_id = fields_mem[i]->get_decomp_id();
+            int remote_decomp_id = -1;
+            if (current_proc_id_dst_comp == 0){
+                MPI_Recv(&remote_decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+                MPI_Send(&decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
+            }
+            MPI_Bcast(&remote_decomp_id, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
+            fields_timer[i] = coupling_connection->dst_fields_info[i]->timer;
+            fields_router[i] = routing_info_mgr->search_or_add_router(dst_comp_id, src_comp_id, decomp_id, remote_decomp_id);
+        }
+        runtime_algorithm_object = new Runtime_trans_algorithm(0, num_fields, fields_mem, fields_router, fields_timer);
+        dst_interface->add_runtime_algorithm(runtime_algorithm_object);
+    }
+
+    if (current_proc_id_dst_comp != -1){
+        Runtime_trans_algorithm * runtime_trans_object = (Runtime_trans_algorithm *) runtime_algorithm_object;
+        runtime_trans_object->create_win();
+    }
+    else if (current_proc_id_src_comp != -1){
+        Runtime_trans_algorithm * runtime_trans_object = (Runtime_trans_algorithm *) runtime_algorithm_object;
+        runtime_trans_object->create_win();
+    }
+    else {
+        MPI_Win data_win, tag_win;
+        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &data_win);
+        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &tag_win);
+    }
+	
+	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
+		return;
+	
+	printf("generate coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
+}
+
+
 void Coupling_connection::generate_value_averaging()
 {
 }
@@ -641,6 +732,7 @@ void Coupling_generator::generate_coupling_procedures()
 
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure();
+		generate_coupling_connection(all_coupling_connections[i]);
 	}
 }
 

@@ -372,7 +372,7 @@ Runtime_datamodel_algorithm::~Runtime_datamodel_algorithm()
 }
 
 
-void Runtime_datamodel_algorithm::run(bool is_algorithm_in_kernel_stage)
+bool Runtime_datamodel_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
     if (is_algorithm_in_kernel_stage && !io_timer->is_timer_on())
         return;
@@ -383,6 +383,8 @@ void Runtime_datamodel_algorithm::run(bool is_algorithm_in_kernel_stage)
         datamodel_write();
     else if (words_are_the_same(datamodel_type, "datamodel_check"))
         datamodel_check();
+
+	return true;
 }
 
 

@@ -35,6 +35,7 @@
 #include "annotation_mgt.h"
 #include "inout_interface_mgt.h"
 #include "coupling_generator.h"
+#include "runtime_trans_algorithm.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"

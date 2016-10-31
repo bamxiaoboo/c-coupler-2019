@@ -541,10 +541,12 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 }
 
 
-void Runtime_remap_algorithm::run(bool is_algorithm_in_kernel_stage)
+bool Runtime_remap_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
     if (!is_algorithm_in_kernel_stage || timer->is_timer_on())
         do_remap(is_algorithm_in_kernel_stage);
+
+	return true;
 }
 
 

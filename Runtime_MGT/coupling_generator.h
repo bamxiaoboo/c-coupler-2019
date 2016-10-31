@@ -134,6 +134,7 @@ class Coupling_generator
 		Coupling_generator() {};
 		~Coupling_generator() {}
 		void generate_coupling_procedures();
+		void generate_coupling_connection(Coupling_connection *);
 };
 
 

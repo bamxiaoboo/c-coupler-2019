@@ -36,7 +36,7 @@ Compset_communicators_info_mgt::Compset_communicators_info_mgt(const char *exper
 	if (words_are_the_same(case_mode, "initial")) {
 		strcpy(this->original_case_name, "none");
 		strcpy(this->original_config_time, "none");
-	}	
+	}
 }
 
 
@@ -584,6 +584,17 @@ void Comp_comm_group_mgt_node::confirm_coupling_configuration_active(int API_id,
 	get_API_hint(comp_id, API_id, API_label);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, !definition_finalized, "component \"%s\" cannot call the C-Coupler interface \"%s\" at the model code with the annotation \"%s\", because the coupling configuration stage has been ended at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"confirm_coupling_configuration_active")->get_comp_name(), API_label, annotation, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"confirm_coupling_configuration_active")->get_annotation_end());
+}
+
+
+int Comp_comm_group_mgt_node::get_local_proc_global_id(int local_indx)
+{
+    if (local_indx < local_processes_global_ids.size())
+        return local_processes_global_ids[local_indx];
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Comp_comm_group_mgt_node::get_local_proc_global_id");
+	
+    return -1;
 }
 
 

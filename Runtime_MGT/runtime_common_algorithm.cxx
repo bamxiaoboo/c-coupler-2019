@@ -179,7 +179,7 @@ Runtime_common_algorithm::~Runtime_common_algorithm()
 }
 
 
-void Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
+bool Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
     if (!is_algorithm_in_kernel_stage || timer->is_timer_on()) {
         for (int i = 0; i < num_src_fields; i ++) {
@@ -196,5 +196,7 @@ void Runtime_common_algorithm::run(bool is_algorithm_in_kernel_stage)
 			memory_manager->search_field_via_data_buf(dst_fields_data_buffers[i], true)->define_field_values(false);
         }
     }
+
+	return true;
 }
 

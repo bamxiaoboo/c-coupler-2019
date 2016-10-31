@@ -40,7 +40,7 @@ class Runtime_cumulate_average_algorithm : public Runtime_algorithm_basis
         ~Runtime_cumulate_average_algorithm();
         void write_restart_fields();
 		void read_restart_computing_count();
-        void run(bool);
+        bool run(bool);
 		void allocate_src_dst_fields(bool);
 		Field_mem_info *add_one_field(Field_mem_info*, Coupling_timer *);
 };

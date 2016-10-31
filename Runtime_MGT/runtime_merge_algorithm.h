@@ -33,7 +33,7 @@ class Runtime_merge_algorithm: public Runtime_algorithm_basis
 	public:
 		Runtime_merge_algorithm(const char*);
 		~Runtime_merge_algorithm();
-		void run(bool);
+		bool run(bool);
 		void allocate_src_dst_fields(bool);
 };
 

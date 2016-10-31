@@ -66,6 +66,7 @@ class Inout_interface
 		std::vector<const char*> fields_name;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
 		int execution_checking_status;
+		std::vector<Runtime_algorithm_basis *> runtime_algorithms;
 
 	public:
 		Inout_interface(const char*, int&);
@@ -84,6 +85,7 @@ class Inout_interface
 		Coupling_timer *search_a_timer(const char*);
 		void add_coupling_procedure(Connection_coupling_procedure*);
 		void execute(bool, const char*);
+		void add_runtime_algorithm(Runtime_algorithm_basis * runtime_algorithm) {runtime_algorithms.push_back(runtime_algorithm);}
 };
 
 

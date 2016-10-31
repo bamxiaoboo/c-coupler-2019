@@ -69,7 +69,7 @@ class Runtime_transfer_algorithm: public Runtime_algorithm_basis
         Runtime_transfer_algorithm(const char *);
         Runtime_transfer_algorithm(int, Field_mem_info**, Routing_info*, Coupling_timer*);
         ~Runtime_transfer_algorithm();
-        void run(bool);
+        bool run(bool);
 		void allocate_src_dst_fields(bool);
 };
 

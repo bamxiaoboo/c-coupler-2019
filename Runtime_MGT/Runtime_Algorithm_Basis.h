@@ -45,7 +45,7 @@ class Runtime_algorithm_basis
     public:
         Runtime_algorithm_basis();
         virtual ~Runtime_algorithm_basis();
-        virtual void run(bool) = 0;
+        virtual bool run(bool) = 0;
 		virtual void allocate_src_dst_fields(bool) = 0;
 //		virtual void generate_algorithm_info_from_cfg_file() = 0;
 		Field_mem_info *add_one_field_for_cumulate_average(Field_mem_info*, Coupling_timer*);

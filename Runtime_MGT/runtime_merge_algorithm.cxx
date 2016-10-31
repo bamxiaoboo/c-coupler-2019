@@ -269,7 +269,7 @@ Field_mem_info *Runtime_merge_algorithm::get_a_field(char *line, bool input, int
 }
 
 
-void Runtime_merge_algorithm::run(bool is_algorithm_in_kernel_stage)
+bool Runtime_merge_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
 	long i, j, k, m, f, num_fields;
 	bool have_illegal_weight;
@@ -361,6 +361,8 @@ void Runtime_merge_algorithm::run(bool is_algorithm_in_kernel_stage)
 
 	delete [] temp_input_data_buffers;
 	delete [] temp_output_data_buffers;
+
+	return true;
 }
 
 

@@ -353,7 +353,7 @@ void Runtime_transfer_algorithm::allocate_src_dst_fields(bool is_algorithm_in_ke
 }
 
 
-void Runtime_transfer_algorithm::run(bool is_algorithm_in_kernel_stage)
+bool Runtime_transfer_algorithm::run(bool is_algorithm_in_kernel_stage)
 {
     if (num_src_fields > 0 && num_dst_fields == 0)
         send_data(is_algorithm_in_kernel_stage);
@@ -361,6 +361,8 @@ void Runtime_transfer_algorithm::run(bool is_algorithm_in_kernel_stage)
         recv_data(is_algorithm_in_kernel_stage);
     else
         sendrecv_data(is_algorithm_in_kernel_stage);
+
+	return true;
 }
 
 

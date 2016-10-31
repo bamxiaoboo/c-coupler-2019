@@ -75,7 +75,7 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
     public:
         Runtime_remap_algorithm(const char *);
 		Runtime_remap_algorithm(Runtime_remap_algorithm*, Field_mem_info*, Field_mem_info*, Remap_weight_of_strategy_class*);
-        void run(bool);
+        bool run(bool);
 		void allocate_src_dst_fields(bool);
         ~Runtime_remap_algorithm();
 };

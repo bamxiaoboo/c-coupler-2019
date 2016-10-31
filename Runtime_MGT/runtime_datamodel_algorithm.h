@@ -134,7 +134,7 @@ class Runtime_datamodel_algorithm : public Runtime_algorithm_basis
         ~Runtime_datamodel_algorithm();
         char *get_datamodel_type() { return datamodel_type; }
         void change_IO_file_name_for_restart(const char *);
-        virtual void run(bool);
+        virtual bool run(bool);
         void allocate_src_dst_fields(bool);
 		const char *get_algorithm_cfg_name() { return algorithm_cfg_name; }
 };

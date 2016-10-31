@@ -30,13 +30,20 @@ struct Routing_info_with_one_process
 
 class Routing_info
 {
-    private: 
+    private:
+        int local_comp_id;
+        int remote_comp_id;
+        int local_decomp_id;
+        int remote_decomp_id;
+        Comp_comm_group_mgt_node * local_comp_node;
+        Comp_comm_group_mgt_node * remote_comp_node;
+
         char remote_comp_name[NAME_STR_SIZE];
         char local_decomp_name[NAME_STR_SIZE];
         char remote_decomp_name[NAME_STR_SIZE];
         int num_dimensions;
-        int local_comm_id;
-        int remote_comm_id;
+        //int local_comm_id;
+        //int remote_comm_id;
         int total_num_transferred_cells;
         long local_decomp_size;
 		long remap_decomp_size;
@@ -45,6 +52,7 @@ class Routing_info
 
     public:
         Routing_info(const char*, const char *, const char *, const char*);
+        Routing_info(const int, const int, const int, const int);
         ~Routing_info();
         int get_true_routing_info_index(bool, int);
         int get_num_remote_procs() { return remote_procs_routing_info.size(); }
@@ -53,12 +61,16 @@ class Routing_info
         int *get_local_indx_segment_lengths_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->local_indx_segment_lengths; }
         int get_num_local_indx_segments_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->num_local_indx_segments; }
         bool match_router(const char*, const char*, const char*);
+        bool match_router(const int, const int, const int, const int);
         int get_num_dimensions() { return num_dimensions; }
         long get_local_decomp_size() { return local_decomp_size; }
 		long get_remap_decomp_size() { return remap_decomp_size; }
+        int get_local_comp_id() { return local_comp_id; }
+        int get_remote_comp_id() { return remote_comp_id; }
         
     private:
         void build_2D_remote_router(const char*);
+        void build_2D_remote_router();
         void build_2D_self_router(const char*, const char*);
         void compute_routing_info_between_decomps(int, const int*, int, const int*, int, int, int);
 };
@@ -73,7 +85,9 @@ class Routing_info_mgt
         Routing_info_mgt() {}
         ~Routing_info_mgt();
         Routing_info *search_router(const char*, const char*, const char*);
+        Routing_info *search_router(const int, const int, const int, const int);
         Routing_info *search_or_add_router(const char*, const char*, const char*, const char*);
+        Routing_info *search_or_add_router(const int, const int, const int, const int);
 };
 
 #endif
