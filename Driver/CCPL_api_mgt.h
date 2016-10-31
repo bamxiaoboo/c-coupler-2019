@@ -45,6 +45,7 @@
 #define API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER            ((int)(0X02000008))
 #define API_ID_INTERFACE_REG_IMPORT                     ((int)(0X04000001))
 #define API_ID_INTERFACE_REG_EXPORT                     ((int)(0X04000002))
+#define API_ID_INTERFACE_EXECUTE                        ((int)(0X04000004))
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);

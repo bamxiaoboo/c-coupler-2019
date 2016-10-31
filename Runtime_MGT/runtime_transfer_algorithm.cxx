@@ -888,7 +888,7 @@ void Runtime_transfer_algorithm::exchange_comp_time_info()
         return;
 
     local_comp_time = timer_mgr->get_current_full_time();
-    local_comp_frequency = timer_mgr->get_comp_frequency();
+    local_comp_frequency = timer_mgr->get_time_step_in_second();
     send_buffer[0] = local_comp_time;
     send_buffer[1] = local_comp_frequency;
 

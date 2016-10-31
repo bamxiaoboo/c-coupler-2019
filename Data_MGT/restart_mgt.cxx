@@ -26,7 +26,7 @@ bool Restart_mgt::is_in_restart_write_time_window()
     diff_time_step = timer_mgr->get_current_num_time_step() - current_restart_num_time_step;
     EXECUTION_REPORT(REPORT_LOG,-1, true, "time step diff is %d", diff_time_step);
     EXECUTION_REPORT(REPORT_ERROR,-1, diff_time_step >= 0, "C-Coupler error in is_in_restart_write_time_window\n");
-    if (diff_time_step*timer_mgr->get_comp_frequency() > timer_mgr->get_comp_stop_latency_seconds())
+    if (diff_time_step*timer_mgr->get_time_step_in_second() > timer_mgr->get_comp_stop_latency_seconds())
         return false;
 
     EXECUTION_REPORT(REPORT_LOG,-1, true, "is in restart window %ld", timer_mgr->get_current_full_time());
@@ -41,7 +41,7 @@ bool Restart_mgt::is_in_restart_read_time_window()
 	
 	EXECUTION_REPORT(REPORT_ERROR,-1, restart_read_timer_mgr->get_current_num_time_step() >= restart_read_num_time_step && restart_read_num_time_step >= 0, 
 	             "C-Coupler software error in is_in_restart_read_time_window\n");
-	return (restart_read_timer_mgr->get_current_num_time_step()-restart_read_num_time_step)*restart_read_timer_mgr->get_comp_frequency() <= restart_read_timer_mgr->get_comp_stop_latency_seconds();
+	return (restart_read_timer_mgr->get_current_num_time_step()-restart_read_num_time_step)*restart_read_timer_mgr->get_time_step_in_second() <= restart_read_timer_mgr->get_comp_stop_latency_seconds();
 }
 
 
@@ -87,7 +87,7 @@ Restart_mgt::Restart_mgt(int restart_date, int restart_second, const char *resta
 
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, restart_second >=0 && restart_second <= 86400, "restart_second of simulation run must between 0 and 86400");
-	EXECUTION_REPORT(REPORT_ERROR,-1, restart_second%timer_mgr->get_comp_frequency()==0 && restart_second%timer_mgr->get_comp_frequency()==0, "restart_second of simulation run must integer multiple of the time step");
+	EXECUTION_REPORT(REPORT_ERROR,-1, restart_second%timer_mgr->get_time_step_in_second()==0 && restart_second%timer_mgr->get_time_step_in_second()==0, "restart_second of simulation run must integer multiple of the time step");
 
 	restart_read_fields_attr_strings = NULL;
 	num_restart_read_fields_attrs = -999;
@@ -142,7 +142,7 @@ int Restart_mgt::get_restart_read_field_computing_count(const char *comp_name, c
 			local_buf_type == buf_type) {
 			computing_count = (tmp_long_value >> 32);
 			sscanf(restart_read_fields_attr_strings+NAME_STR_SIZE*(i*7+6), "%ld", &field_restart_time);			
-			EXECUTION_REPORT(REPORT_ERROR,-1, field_restart_time+restart_read_timer_mgr->get_comp_frequency() >= restart_read_timer_mgr->get_current_full_time(), "C-Coupler error1 in get_restart_read_field_computing_count\n");
+			EXECUTION_REPORT(REPORT_ERROR,-1, field_restart_time+restart_read_timer_mgr->get_time_step_in_second() >= restart_read_timer_mgr->get_current_full_time(), "C-Coupler error1 in get_restart_read_field_computing_count\n");
 			return computing_count;
 		}
 	}

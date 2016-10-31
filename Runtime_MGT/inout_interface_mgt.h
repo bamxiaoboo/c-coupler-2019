@@ -17,6 +17,43 @@
 #include "timer_mgt.h"
 
 
+class Inout_interface;
+class Coupling_connection;
+
+
+struct Connection_field_time_info
+{
+	int current_year;
+	int current_month;
+	int current_day;
+	int current_second;
+	int num_elapsed_days;
+	int time_step_in_second;
+	Coupling_timer *timer;
+};
+
+
+class Connection_coupling_procedure
+{
+	private:
+		std::vector<Field_mem_info *> fields_mem_registered;
+		std::vector<Field_mem_info *> fields_mem_averaged;
+		std::vector<Field_mem_info *> fields_mem_remapped;
+		std::vector<Field_mem_info *> fields_mem_datatype_transformed;
+		std::vector<Field_mem_info *> fields_mem_transfer;
+		std::vector<Connection_field_time_info *> fields_time_info_src;
+		std::vector<Connection_field_time_info *> fields_time_info_dst;
+		std::vector<bool> transfer_process_on;
+		Coupling_connection *coupling_connection;
+		Inout_interface *inout_interface;
+		
+	public:
+		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
+		void alloc_field_inst_for_datatype_transformation(const char*, const char*);
+		void execute(bool);
+};
+
+
 class Inout_interface
 {
 	private:
@@ -24,9 +61,11 @@ class Inout_interface
 		int interface_id;
 		int comp_id;
 		int import_or_export;     // 0: import; 1: export;
-		std::vector<Field_mem_info *> fields_mem;
+		std::vector<Field_mem_info *> fields_mem_registered;
 		std::vector<Coupling_timer*> timers;
 		std::vector<const char*> fields_name;
+		std::vector<Connection_coupling_procedure*> coupling_procedures;
+		int execution_checking_status;
 
 	public:
 		Inout_interface(const char*, int&);
@@ -41,7 +80,10 @@ class Inout_interface
 		const char *get_field_name(int);
 		int get_num_fields();
 		void transform_interface_into_array(char**, int&, int&);
-		
+		Field_mem_info *search_registered_field_instance(const char*);
+		Coupling_timer *search_a_timer(const char*);
+		void add_coupling_procedure(Connection_coupling_procedure*);
+		void execute(bool, const char*);
 };
 
 
@@ -62,11 +104,14 @@ class Inout_interface_mgt
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);
 		Inout_interface *get_interface(const char*, const char*);
+		Inout_interface *get_interface(int, const char*);
 		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, int);
 		void merge_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
 		const char *get_temp_array_buffer() { return temp_array_buffer; } 
 		int get_buffer_content_size()  { return buffer_content_size; }
+		void execute_interface(int, bool, const char*);
+		void execute_interface(int, const char*, bool, const char*);
 };
 
 #endif

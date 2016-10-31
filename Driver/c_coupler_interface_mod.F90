@@ -172,6 +172,13 @@
         c_coupler_get_float_current_calendar_time 
    end interface
 
+
+   interface CCPL_execute_interface ; module procedure &
+        CCPL_execute_interface_using_id, &
+        CCPL_execute_interface_using_name
+   end interface
+
+
    REAL, parameter, public :: coupling_fill_value = 1.0e30 
    integer,parameter,private :: R16 = selected_real_kind(24) ! 16 byte real
    integer,parameter,private :: R8  = selected_real_kind(12) ! 8 byte real
@@ -2587,6 +2594,54 @@
    CCPL_register_export_interface = interface_id;
 
    end FUNCTION CCPL_register_export_interface
+
+
+
+   SUBROUTINE CCPL_execute_interface_using_id(interface_id, bypass_timers, annotation)
+   implicit none
+   integer,          intent(in)                :: interface_id
+   logical,          intent(in)                :: bypass_timers
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: local_bypass_timers
+
+
+   if (bypass_timers) then
+       local_bypass_timers = 1
+   else
+       local_bypass_timers = 0
+   endif
+   if (present(annotation)) then
+       call execute_inout_interface_with_id(interface_id, local_bypass_timers, trim(annotation)//char(0))
+   else 
+       call execute_inout_interface_with_id(interface_id, local_bypass_timers, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_execute_interface_using_id
+
+
+
+   SUBROUTINE CCPL_execute_interface_using_name(component_id, interface_name, bypass_timers, annotation)
+   implicit none
+   integer,          intent(in)                :: component_id
+   logical,          intent(in)                :: bypass_timers
+   character(len=*), intent(in), optional      :: annotation
+   character(len=*), intent(in)                :: interface_name
+   integer                                     :: local_bypass_timers
+
+
+   if (bypass_timers) then
+       local_bypass_timers = 1
+   else
+       local_bypass_timers = 0
+   endif
+   if (present(annotation)) then
+       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timers, trim(annotation)//char(0))
+   else 
+       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timers, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_execute_interface_using_name
+
 
 
  END MODULE c_coupler_interface_mod

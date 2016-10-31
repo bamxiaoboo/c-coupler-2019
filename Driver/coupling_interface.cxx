@@ -255,9 +255,9 @@ extern "C" void coupling_perturb_roundoff_errors_()
 
 extern "C" void coupling_advance_timer_()
 {
-    timer_mgr->advance_time("", false);
+    timer_mgr->advance_model_time("", false);
 	if (restart_read_timer_mgr != NULL)
-		restart_read_timer_mgr->advance_time("", false);
+		restart_read_timer_mgr->advance_model_time("", false);
 	ensemble_mgr->run();
 }
 
@@ -394,7 +394,7 @@ extern "C" void coupling_get_num_total_step_(int *nstep)
 
 extern "C" void coupling_get_step_size_(int *step_size)
 {
-    *step_size = timer_mgr->get_comp_frequency();
+    *step_size = timer_mgr->get_time_step_in_second();
 }
 
 
@@ -709,7 +709,7 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
 	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration");
 
-	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "ending the registration of a component", annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "ending the registration of a component", annotation);
 
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	inout_interface_mgr->merge_inout_interface_fields_info(*comp_id);
@@ -771,7 +771,7 @@ extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *fr
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_comp_frequency() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr2->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
 	printf("timer comp id is %x  %x at %lx\n", *timer_id, timer_mgr2->get_timer(*timer_id)->get_comp_id(), timer_mgr2->get_timer(*timer_id));
@@ -782,7 +782,7 @@ extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_comp_frequency() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr2->define_timer(*comp_id, children_timers_id, *num_children_timers, *or_or_and, annotation);
 }
@@ -834,5 +834,17 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size2 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of timers is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
 		             interface_name, annotation);
 	*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, annotation);
+}
+
+
+extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, const char *annotation)
+{
+	inout_interface_mgr->execute_interface(*interface_id, *bypass_timer == 1, annotation);
+}
+
+
+extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *interface_name, int *bypass_timer, const char *annotation)
+{
+	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, annotation);
 }
 

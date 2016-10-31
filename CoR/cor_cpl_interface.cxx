@@ -7,6 +7,7 @@
   ***************************************************************/
 
 
+#include "global_data.h"
 #include "cor_cpl_interface.h"
 #include "cor_global_data.h"
 #include "execution_report.h"
@@ -98,6 +99,27 @@ long cpl_get_sphere_grid_subgrid_size(const char *grid_name, const char *coord_l
             break;
 
     return leaf_grids[i]->get_grid_size();
+}
+
+
+long cpl_get_num_levs_in_grid(int grid_id)
+{
+    Remap_grid_class *leaf_grids[256], *grid;
+    int num_leaf_grids;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, grid_id == -1 || original_grid_mgr->is_grid_id_legal(grid_id), "Software error in cpl_get_num_levs_in_grid");
+
+	if (grid_id == -1)
+		return 1;
+
+	grid = original_grid_mgr->get_CoR_grid(grid_id);
+    EXECUTION_REPORT(REPORT_ERROR, -1, grid->get_num_dimensions() == 3, "C-Coupler software error1 in cpl_get_num_levs_in_grid\n");
+    
+    grid->get_leaf_grids(&num_leaf_grids, leaf_grids, grid);
+    EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(leaf_grids[2]->get_coord_label(), COORD_LABEL_LEV), "C-Coupler software error2 in cpl_get_num_levs_in_grid\n");
+
+    return leaf_grids[2]->get_grid_size();
 }
 
 

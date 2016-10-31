@@ -18,14 +18,54 @@
 
 
 class Import_interface_configuration;
+class Coupling_generator;
 
 
-struct Coupling_connection
+struct Interface_field_info
 {
-	std::vector<const char*> fields_name;
-	std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > src_comp_interfaces;
-	char dst_comp_full_name[NAME_STR_SIZE];
-	char dst_interface_name[NAME_STR_SIZE];
+	char grid_name[NAME_STR_SIZE];
+	char data_type[NAME_STR_SIZE];
+	char unit[NAME_STR_SIZE];
+	Coupling_timer *timer;
+	int time_step_in_second;
+};
+
+
+class Coupling_connection
+{
+	private:
+		friend class Coupling_generator;
+		friend class Connection_coupling_procedure;
+		int connection_id;
+		std::vector<const char*> fields_name;
+		std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > src_comp_interfaces;
+		char dst_comp_full_name[NAME_STR_SIZE];
+		char dst_interface_name[NAME_STR_SIZE];
+		std::vector<Interface_field_info*> src_fields_info;
+		std::vector<Interface_field_info*> dst_fields_info;
+		Inout_interface *import_interface;
+		Inout_interface *export_interface;
+		Connection_coupling_procedure *import_procedure;
+		Connection_coupling_procedure *export_procedure;
+		Comp_comm_group_mgt_node *src_comp_node;
+		Comp_comm_group_mgt_node *dst_comp_node;
+		int current_proc_id_src_comp;
+		int	current_proc_id_dst_comp;
+		int src_comp_root_proc_global_id;
+		int dst_comp_root_proc_global_id;
+
+		void write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size);	
+		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int);
+		void exchange_connection_fields_info();
+		void generate_unit_transformation();
+		void generate_value_averaging();
+		void generate_datatype_transformation();
+		void generate_interpolation();
+		void generate_transfer();
+
+	public:
+		Coupling_connection(int);
+		void generate_a_coupling_procedure();
 };
 
 
@@ -89,7 +129,6 @@ class Coupling_generator
 		
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();
-		void generate_coupling_connection(const Coupling_connection *);
 
 	public:
 		Coupling_generator() {};

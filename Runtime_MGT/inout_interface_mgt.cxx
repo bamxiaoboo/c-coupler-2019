@@ -11,6 +11,117 @@
 #include "inout_interface_mgt.h"
 
 
+Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *inout_interface, Coupling_connection *coupling_connection)
+{
+	this->inout_interface = inout_interface;
+	this->coupling_connection = coupling_connection;
+
+	for (int i = 0; i < coupling_connection->fields_name.size(); i ++) {
+		fields_mem_registered.push_back(inout_interface->search_registered_field_instance(coupling_connection->fields_name[i]));
+		transfer_process_on.push_back(false);
+		if (inout_interface->get_import_or_export() == 1)
+			fields_mem_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED, coupling_connection->connection_id, NULL));
+		else fields_mem_averaged.push_back(NULL);
+		fields_mem_remapped.push_back(NULL);
+		fields_mem_datatype_transformed.push_back(NULL);
+		fields_mem_transfer.push_back(NULL);
+		Connection_field_time_info *field_time_info = new Connection_field_time_info;
+		field_time_info->timer = coupling_connection->src_fields_info[i]->timer;
+		components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day, field_time_info->current_second, 0);
+		field_time_info->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->calculate_elapsed_day(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day);
+		field_time_info->time_step_in_second = coupling_connection->src_fields_info[i]->time_step_in_second;
+		fields_time_info_src.push_back(field_time_info);
+		field_time_info = new Connection_field_time_info;
+		field_time_info->timer = coupling_connection->dst_fields_info[i]->timer;
+		field_time_info->time_step_in_second = coupling_connection->dst_fields_info[i]->time_step_in_second;
+		components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day, field_time_info->current_second, 0);
+		field_time_info->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->calculate_elapsed_day(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day);
+		fields_time_info_dst.push_back(field_time_info);
+		printf("haohao %d  vs %d\n", coupling_connection->src_fields_info[i]->time_step_in_second, coupling_connection->dst_fields_info[i]->time_step_in_second);
+	}
+}
+
+
+void Connection_coupling_procedure::alloc_field_inst_for_datatype_transformation(const char *field_name, const char *new_data_type)
+{	int i;
+
+
+	for (i = 0; i < fields_mem_registered.size(); i ++)
+		if (words_are_the_same(fields_mem_registered[i]->get_field_name(), field_name))
+			break;
+	EXECUTION_REPORT(REPORT_ERROR, -1, i < fields_mem_registered.size(), "Software error in Inout_interface::alloc_field_inst_for_datatype_transformation");
+	fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, new_data_type);
+}
+
+
+void Connection_coupling_procedure::execute(bool bypass_timer)
+{
+
+
+	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
+		if (inout_interface->get_import_or_export() == 0) {
+			components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, 0);
+			fields_time_info_dst[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();				
+		}
+		else {
+			components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, 0);
+			fields_time_info_src[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
+		}
+	}
+	
+
+	if (!bypass_timer) {
+		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
+			Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
+			Coupling_timer *dst_timer = fields_time_info_dst[i]->timer;
+			Coupling_timer *src_timer = fields_time_info_src[i]->timer;
+			if (inout_interface->get_import_or_export() == 0) {
+				transfer_process_on[i] = time_mgr->is_timer_on(dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count());
+				continue;
+			}			
+			if (!time_mgr->is_timer_on(src_timer->get_frequency_unit(), src_timer->get_frequency_count(), src_timer->get_delay_count())) {
+				transfer_process_on[i] = false;
+				printf("src inner average field %s\n", fields_mem_registered[i]->get_field_name());
+				continue;
+			}
+			if (time_mgr->is_timer_on(dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count())) {
+				transfer_process_on[i] = true;
+				continue;
+			}
+			while((((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second < (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second) 
+				time_mgr->advance_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days,  fields_time_info_dst[i]->time_step_in_second);				
+			while(!dst_timer->is_timer_on(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days, time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
+				printf("qiguaiqiguai %ld %ld : %d : %d\n", (((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second, (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second, fields_time_info_dst[i]->num_elapsed_days, time_mgr->get_start_num_elapsed_day());
+				printf("dst timer info: %s %d %d\n", dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count());
+				time_mgr->advance_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days,  fields_time_info_dst[i]->time_step_in_second);
+			}
+			printf("special1 case current (%d %d %d %d) : %d, remote (%d %d %d %d): %d\n", fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days,
+				fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days);
+			do {
+				time_mgr->advance_time(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days,  fields_time_info_src[i]->time_step_in_second);				
+			} while(!src_timer->is_timer_on(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days, time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day()));
+			printf("special2 case current (%d %d %d %d) : %d, remote (%d %d %d %d): %d\n", fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days,
+				fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days);
+			if ((((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second < (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second) {
+				transfer_process_on[i] = true;
+				double average_ratio = ((double)((((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second - ((((long)time_mgr->get_current_num_elapsed_day())*((long)86400)) + time_mgr->get_current_second()))) / 
+					                   ((double)((((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400))+fields_time_info_src[i]->current_second - ((((long)time_mgr->get_current_num_elapsed_day())*((long)86400)) + time_mgr->get_current_second())));
+				printf("process transfer process with inter avarage with ratio %lf\n", average_ratio);
+				EXECUTION_REPORT(REPORT_ERROR, -1, average_ratio > 0 && average_ratio < 1.0, "Software error in Connection_coupling_procedure::execute: wrong average ratio");
+			}
+			else {
+				printf("process inter average\n");
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < fields_time_info_dst.size(); i ++)
+			transfer_process_on[i] = true;
+	}
+			
+}
+
+
 Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_content_iter)
 {
 	char comp_long_name[NAME_STR_SIZE];
@@ -40,6 +151,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	
 	this->interface_id = interface_id;
 	this->import_or_export = import_or_export;
+	this->execution_checking_status = 0;
 	this->comp_id = -1;
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "The number of fields for registering an import/export interface is wrong (negative). Please verify the model code related to the annotation \"%s\"", annotation);
 	for (int i = 0; i < num_fields; i ++) {
@@ -73,7 +185,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	}
 	for (int i = 0; i < num_fields; i ++) {
 		timers.push_back(timer_mgr2->get_timer(timer_ids[i]));
-		fields_mem.push_back(memory_manager->get_field_instance(field_ids[i]));
+		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
 	}
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	strcpy(this->interface_name, interface_name);
@@ -84,28 +196,28 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 void Inout_interface::report_common_field_instances(const Inout_interface *another_interface)
 {
 	if (this->import_or_export == 0 && another_interface->import_or_export == 0) {
-		for (int i = 0; i < this->fields_mem.size(); i ++)
-			for (int j = 0; j < another_interface->fields_mem.size(); j ++)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, this->fields_mem[i]->get_data_buf() != another_interface->fields_mem[j]->get_data_buf(), "Two import interfaces (\"%s\" and \"%s\") share the same data buffer of the field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
-				                 this->interface_name, another_interface->interface_name, fields_mem[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));		
+		for (int i = 0; i < this->fields_mem_registered.size(); i ++)
+			for (int j = 0; j < another_interface->fields_mem_registered.size(); j ++)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, this->fields_mem_registered[i]->get_data_buf() != another_interface->fields_mem_registered[j]->get_data_buf(), "Two import interfaces (\"%s\" and \"%s\") share the same data buffer of the field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
+				                 this->interface_name, another_interface->interface_name, fields_mem_registered[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));		
 		return;
 	}
 
 	if (this->import_or_export != 1 || another_interface->import_or_export != 1)
 		return;
 
-	for (int i = 0; i < this->fields_mem.size(); i ++)
-		for (int j = 0; j < another_interface->fields_mem.size(); j ++)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(this->fields_mem[i]->get_field_name(), another_interface->fields_mem[j]->get_field_name()), "Two export interfaces (\"%s\" and \"%s\") provide the same field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
-			                 this->interface_name, another_interface->interface_name, fields_mem[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));
+	for (int i = 0; i < this->fields_mem_registered.size(); i ++)
+		for (int j = 0; j < another_interface->fields_mem_registered.size(); j ++)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(this->fields_mem_registered[i]->get_field_name(), another_interface->fields_mem_registered[j]->get_field_name()), "Two export interfaces (\"%s\" and \"%s\") provide the same field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
+			                 this->interface_name, another_interface->interface_name, fields_mem_registered[i]->get_field_name(), annotation_mgr->get_annotation(this->interface_id, "registering interface"), annotation_mgr->get_annotation(another_interface->interface_id, "registering interface"));
 }
 
 
 void Inout_interface::get_fields_name(std::vector<const char*> *fields_name)
 {
-	if (this->fields_mem.size() > 0) {
-		for (int i = 0; i < this->fields_mem.size(); i ++)
-			fields_name->push_back(this->fields_mem[i]->get_field_name());
+	if (this->fields_mem_registered.size() > 0) {
+		for (int i = 0; i < this->fields_mem_registered.size(); i ++)
+			fields_name->push_back(this->fields_mem_registered[i]->get_field_name());
 	}
 	else {
 		for (int i = 0; i < this->fields_name.size(); i ++)
@@ -116,21 +228,41 @@ void Inout_interface::get_fields_name(std::vector<const char*> *fields_name)
 
 const char *Inout_interface::get_field_name(int number)
 {
-	if (number >= fields_name.size() && number >= fields_mem.size())
+	if (number >= fields_name.size() && number >= fields_mem_registered.size())
 		return NULL;
 
 	if (number < fields_name.size())
 		return fields_name[number];
 
-	return fields_mem[number]->get_field_name();
+	return fields_mem_registered[number]->get_field_name();
 }
 
 
 int Inout_interface::get_num_fields()
 {
-	if (fields_name.size() >= fields_mem.size())
+	if (fields_name.size() >= fields_mem_registered.size())
 		return fields_name.size();
-	return fields_mem.size();
+	return fields_mem_registered.size();
+}
+
+
+Field_mem_info *Inout_interface::search_registered_field_instance(const char *field_name)
+{
+	for (int i = 0; i < fields_mem_registered.size(); i ++)
+		if (words_are_the_same(fields_mem_registered[i]->get_field_name(), field_name))
+			return fields_mem_registered[i];
+
+	return NULL;
+}
+
+
+Coupling_timer *Inout_interface::search_a_timer(const char *field_name)
+{
+	for (int i = 0; i < fields_mem_registered.size(); i ++)
+		if (words_are_the_same(fields_mem_registered[i]->get_field_name(), field_name))
+			return timers[i];
+
+	return NULL;
 }
 
 
@@ -139,13 +271,49 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, i
 	int temp_int;
 
 	
-	for (int i = 0; i < fields_mem.size(); i ++)
-		write_data_into_array_buffer(fields_mem[i]->get_field_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
-	temp_int = fields_mem.size();
+	for (int i = 0; i < fields_mem_registered.size(); i ++)
+		write_data_into_array_buffer(fields_mem_registered[i]->get_field_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
+	temp_int = fields_mem_registered.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::transform_interface_into_array")->get_full_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
+void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coupling_procedure)
+{
+	coupling_procedures.push_back(coupling_procedure);
+}
+
+
+void Inout_interface::execute(bool bypass_timer, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Cannot execute the interface \"%s\" corresponding to the model code with the annotation \"%s\" because the coupling procedures of interfaces have not been generated. Please call API \"CCPL_end_coupling_configuration\" of all components before executing an import/export interface", interface_name, annotation);
+	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
+		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "software error")->get_comm_group(), "executing an import/export interface", annotation);
+		check_API_parameter_string(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", interface_name, "the corresponding interface name", annotation);
+		int bypass_timer_int;
+		if (bypass_timer)
+			bypass_timer_int = 0;
+		else bypass_timer_int = 1;
+		check_API_parameter_int(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", bypass_timer_int, "the value for specifying whether bypass timers", annotation);
+		if (bypass_timer) {
+			execution_checking_status = execution_checking_status | 0x1;
+			annotation_mgr->add_annotation(interface_id, "bypassing timer", annotation);
+		}
+		else {
+			execution_checking_status = execution_checking_status | 0x2;
+			annotation_mgr->add_annotation(interface_id, "using timer", annotation);
+		}
+	}
+
+	if (bypass_timer)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status | 0x2) == 0, "Cannot bypass the timers when executing import/export interface \"%s\" (the corrsponding code annotation is \"%s\") because this interface has been executed without bypassing timers before (the corrsponding code annotation is \"%s\")",
+		                 interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
+
+	for (int i = 0; i < coupling_procedures.size(); i ++)
+		coupling_procedures[i]->execute(bypass_timer);
 }
 
 
@@ -223,7 +391,17 @@ Inout_interface *Inout_interface_mgt::get_interface(const char *comp_full_name, 
 		if (interfaces[i]->get_comp_id() == comp_id && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
 			return interfaces[i];
 
-	return NULL;;
+	return NULL;
+}
+
+
+Inout_interface *Inout_interface_mgt::get_interface(int comp_id, const char *interface_name)
+{
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
+			return interfaces[i];
+
+	return NULL;
 }
 
 
@@ -294,5 +472,29 @@ void Inout_interface_mgt::write_all_interfaces_fields_info()
 		}
 		printf("\n\n");
 	}
+}
+
+
+void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer, const char *annotation)
+{
+	Inout_interface *inout_interface;
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_interface_id_legal(interface_id), "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
+	inout_interface = get_interface(interface_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface != NULL, "0x%x should be the ID of import/export interface. However, it is wrong as the corresponding interface is not found. Please check the model code with the annotation \"%s\"", interface_id, annotation);
+	inout_interface->execute(bypass_timer, annotation);
+}
+
+
+void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_name, bool bypass_timer, const char *annotation)
+{
+	Inout_interface *inout_interface;
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "0x%x is not an legal ID of a component. Please check the model code with the annotation \"%s\"", comp_id, annotation);
+	inout_interface = get_interface(comp_id, interface_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, inout_interface != NULL, "Registered interface of this component does not contain an import/export interface named \"%s\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
+	inout_interface->execute(bypass_timer, annotation);
 }
 

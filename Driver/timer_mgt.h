@@ -54,13 +54,16 @@ class Coupling_timer
         Coupling_timer(char**, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
 		Coupling_timer(Coupling_timer*);
+		Coupling_timer(const char*, int &);
         ~Coupling_timer() {}
         bool is_timer_on();
+		bool is_timer_on(int, int, int, int, int, int, int, int, int, int);
 		int get_timer_id() { return timer_id; }
 		int get_comp_id() { return comp_id; }
 		int get_frequency_count() { return frequency_count; }
 		int get_delay_count() { return delay_count; }
 		const char *get_frequency_unit() { return frequency_unit; }
+		void write_timer_into_array(char **, int &, int &);
 };
 
 
@@ -104,8 +107,9 @@ class Time_mgt
         int stop_day;
         int stop_second;
         int stop_latency_seconds;
-        int sec_per_step; 
+        int time_step_in_second; 
         int current_num_elapsed_day;
+		int start_num_elapsed_day;
         int current_step_id;
         long num_total_steps;
         bool leap_year_on;
@@ -126,20 +130,26 @@ class Time_mgt
 		Time_mgt(int, const char *);
         Time_mgt(int, int, int, int, int, int, bool, int, const char*, int, int);
         ~Time_mgt();
-        void advance_time(const char*, bool);
+        void advance_model_time(const char*, bool);
+		void advance_time(int &, int &, int &, int &, int &, int);
         int get_current_year() { return current_year; }
         int get_current_month() { return current_month; }
         int get_current_day() { return current_day; }
         int get_current_hour() { return current_second /3600; }
         int get_current_minute() { return (current_second % 3600) / 60; }
         int get_current_second() { return current_second; }
-        int get_comp_frequency() { return sec_per_step; }
+        int get_time_step_in_second() { return time_step_in_second; }
 		int get_stop_year() { return stop_year; }
 		int get_stop_month() { return stop_month; }
 		int get_stop_day() { return stop_day; }
 		int get_stop_second() { return stop_second; }
+		int get_start_year() { return start_year; }
+		int get_start_month() { return start_month; }
+		int get_start_day() { return start_day; }
+		int get_start_second() { return start_second; }
+		int get_start_num_elapsed_day() { return start_num_elapsed_day; }
         void set_restart_time(long, long);
-        bool is_timer_on(char *, int, int);
+        bool is_timer_on(const char *, int, int);
         bool check_is_coupled_run_finished();
         bool check_is_coupled_run_restart_time();
         double get_double_current_calendar_time(int);
@@ -164,11 +174,12 @@ class Time_mgt
 		bool get_is_leap_year_on() { return leap_year_on; }
 		int get_comp_id() { return comp_id; }
 		Time_mgt *clone_time_mgr(int);
-		void set_sec_per_step(int, const char*);
+		void set_time_step_in_second(int, const char*);
 		bool is_a_leap_year(int);
 		void build_restart_timer();
 		int get_current_step_id() { return current_step_id; }
 		void check_consistency_of_current_time(int, int, const char*);
+		int get_current_num_elapsed_day() { return current_num_elapsed_day; }
 };
 
 

@@ -378,6 +378,21 @@ int Field_mem_info::get_grid_id()
 }
 
 
+const char *Field_mem_info::get_grid_name() 
+{
+	if (decomp_id == -1)
+		return NULL;
+
+	return original_grid_mgr->search_grid_info(comp_or_grid_id)->get_grid_name();
+}
+
+
+const char *Field_mem_info::get_data_type()
+{
+	return get_field_data()->get_grid_data_field()->data_type_in_application;
+}
+
+
 void Field_mem_info::set_field_instance_id(int field_instance_id, const char *annotation)
 {
 	this->field_instance_id = field_instance_id;
@@ -465,6 +480,28 @@ void Memory_mgt::add_field_instance(Field_mem_info *field_instance, const char *
 }
 
 
+Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, int special_buf_mark, int object_id, const char *unit_or_datatype)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED || special_buf_mark == BUF_MARK_UNIT_TRANS, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
+	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
+	printf("buf mark is %d vs %d\n", new_buf_mark, original_field_instance->get_buf_mark());
+	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
+	EXECUTION_REPORT(REPORT_ERROR, -1, existing_field_instance == NULL, "Software error in Field_mem_info *alloc_mem: special field instance exists");
+	if (special_buf_mark == BUF_MARK_AVERAGED)
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging"));
+	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS) {
+		get_data_type_size(unit_or_datatype);
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation"));
+	}
+	else if (special_buf_mark == BUF_MARK_UNIT_TRANS) {
+		// check unit
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for unit transformation"));
+	}
+
+	return fields_mem[fields_mem.size()-1];
+}
+
+
 Field_mem_info *Memory_mgt::alloc_mem(const char *field_name, int decomp_id, int comp_or_grid_id, int buf_mark, const char *data_type, const char *field_unit, const char *annotation)
 {
     Field_mem_info *field_mem, *pair_field;
@@ -487,12 +524,12 @@ Field_mem_info *Memory_mgt::alloc_mem(const char *field_name, int decomp_id, int
 	}
 
 	
-
     /* If memory buffer has been allocated, return it */
     for (i = 0; i < fields_mem.size(); i ++)
         if (fields_mem[i]->match_field_instance(field_name, decomp_id, comp_or_grid_id, buf_mark)) {
             // EXECUTION_REPORT(REPORT_ERROR, comp_id, field_unitÒ»ÖÂ, ...);
-			// EXECUTION_REPORT(REPORT_ERROR, comp_id, data typeÒ»ÖÂ, ...);
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, fields_mem[i]->get_field_data()->get_grid_data_field()->data_type_in_application),
+			                 "Software error in Memory_mgt::alloc_mem: data types conflict");
             return fields_mem[i];
         }
 
@@ -871,7 +908,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	                                             int buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
 	int comp_id;
-	Field_mem_info *existing_field_instance, *new_field_instance;
+	Field_mem_info *existing_field_instance_instance, *new_field_instance;
 
 	
 	if (decomp_id == -1) {
@@ -910,10 +947,10 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, buf_mark >= 0, "When registering an instance of coupling field of \"%s\", the parameter of the mark of the field instance cannot be a negative integer. Please check the model code with the annotation \"%s\"",
 			         field_name, annotation);
 
-	existing_field_instance = search_field_instance(field_name, decomp_id, comp_or_grid_id, buf_mark);
-	if (existing_field_instance != NULL)
+	existing_field_instance_instance = search_field_instance(field_name, decomp_id, comp_or_grid_id, buf_mark);
+	if (existing_field_instance_instance != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Cannot register an instance of coupling field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
-						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance->get_field_instance_id(), "allocate field instance"));
+						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance_instance->get_field_instance_id(), "allocate field instance"));
 
 	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, 
 	                           buf_mark, unit, data_type, annotation);

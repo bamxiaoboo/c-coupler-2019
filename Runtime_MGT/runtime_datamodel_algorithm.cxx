@@ -907,6 +907,7 @@ void Datamodel_field_read_handler::initialize_time_filename_map()
 
     if (star_pos_in_fname_pattern != -1) {
         DIR *dir=opendir(file_dir);
+		EXECUTION_REPORT(REPORT_ERROR, -1, dir != NULL, "The directory \"%s\" specified in the field read handler \"%s\" cannot be opened. Please verify.", file_dir, handler_name);
         struct dirent *ent;
         while((ent=readdir(dir)) != NULL) {
             int size = strlen(ent->d_name); 

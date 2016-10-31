@@ -11,6 +11,234 @@
 #include "coupling_generator.h"
 
 
+
+Coupling_connection::Coupling_connection(int id)
+{
+	import_interface = NULL;
+	export_interface = NULL;
+	import_procedure = NULL;
+	export_procedure = NULL;
+	connection_id = id;
+}
+
+
+void Coupling_connection::generate_a_coupling_procedure()
+{
+	int msg_tag;
+	MPI_Request send_req, recv_req;
+	MPI_Status status;
+	
+
+	src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first);
+	dst_comp_node =comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name);
+	current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
+	current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
+	src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
+	dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
+
+	
+	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
+		return;
+
+	if (current_proc_id_src_comp != -1)
+		MPI_Barrier(src_comp_node->get_comm_group());
+	if (current_proc_id_dst_comp != -1)
+		MPI_Barrier(dst_comp_node->get_comm_group());
+
+	if (current_proc_id_src_comp == 0) {		
+		MPI_Isend(&msg_tag, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &send_req);
+	}
+	if (current_proc_id_dst_comp == 0) {
+		MPI_Irecv(&msg_tag, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &recv_req);	 		
+	}
+
+
+	if (current_proc_id_src_comp == 0) {
+		MPI_Wait(&send_req, &status);
+	}
+	
+	if (current_proc_id_dst_comp == 0) {
+		MPI_Wait(&recv_req, &status);
+	}
+	printf("start to generate coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
+
+	if (current_proc_id_src_comp != -1) {
+		export_interface = inout_interface_mgr->get_interface(src_comp_interfaces[0].first, src_comp_interfaces[0].second);
+		EXECUTION_REPORT(REPORT_ERROR, -1, export_interface != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: NULL export interface");
+	}
+	if (current_proc_id_dst_comp != -1) {
+		import_interface = inout_interface_mgr->get_interface(dst_comp_full_name, dst_interface_name);
+		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: NULL import interface");
+	}
+	
+	exchange_connection_fields_info();
+	if (current_proc_id_src_comp != -1) {
+		export_procedure = new Connection_coupling_procedure(export_interface, this);
+		export_interface->add_coupling_procedure(export_procedure);
+	}
+	if (current_proc_id_dst_comp != -1) {
+		import_procedure = new Connection_coupling_procedure(import_interface, this);
+		import_interface->add_coupling_procedure(import_procedure);
+	}
+	
+	generate_value_averaging();
+	generate_unit_transformation();
+	generate_datatype_transformation();
+	generate_interpolation();
+	generate_transfer();
+
+	printf("finish generating coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
+}
+
+
+void Coupling_connection::generate_value_averaging()
+{
+}
+
+
+void Coupling_connection::generate_unit_transformation()
+{
+}
+
+
+void Coupling_connection::generate_datatype_transformation()
+{
+	for (int i = 0; i < fields_name.size(); i ++) {
+		if (words_are_the_same(src_fields_info[i]->data_type, dst_fields_info[i]->data_type))
+			continue;
+		int datatype_size_src = get_data_type_size(src_fields_info[i]->data_type);
+		int datatype_size_dst = get_data_type_size(dst_fields_info[i]->data_type);
+		if (datatype_size_src >= datatype_size_dst) {
+			printf("for field %s, add data type transformation at src from %s to %s\n", fields_name[i], src_fields_info[i]->data_type, dst_fields_info[i]->data_type);
+			if (export_procedure != NULL)
+				export_procedure->alloc_field_inst_for_datatype_transformation(fields_name[i], dst_fields_info[i]->data_type);
+		}
+		else {
+			printf("for field %s, add data type transformation at dst from %s to %s\n", fields_name[i], src_fields_info[i]->data_type, dst_fields_info[i]->data_type);
+			if (import_procedure != NULL)
+				import_procedure->alloc_field_inst_for_datatype_transformation(fields_name[i], src_fields_info[i]->data_type);
+		}
+	}
+}
+
+
+void Coupling_connection::generate_interpolation()
+{
+}
+
+
+void Coupling_connection::generate_transfer()
+{
+}
+
+
+void Coupling_connection::exchange_connection_fields_info()
+{
+	char *src_fields_info_array = NULL, *dst_fields_info_array = NULL;
+	int src_fields_info_array_size, dst_fields_info_array_size, buffer_max_size;
+	MPI_Request send_req, recv_req;
+	MPI_Status status;
+
+
+	if (current_proc_id_dst_comp == 0)
+		write_connection_fields_info_into_array(import_interface, &dst_fields_info_array, buffer_max_size, dst_fields_info_array_size);
+	if (current_proc_id_src_comp == 0)
+		write_connection_fields_info_into_array(export_interface, &src_fields_info_array, buffer_max_size, src_fields_info_array_size);
+	
+	if (current_proc_id_src_comp == 0 && current_proc_id_dst_comp != 0) {
+		MPI_Send(&src_fields_info_array_size, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
+		MPI_Send(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
+		MPI_Recv(&dst_fields_info_array_size, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+		dst_fields_info_array = new char [dst_fields_info_array_size];
+		MPI_Recv(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+	}
+	if (current_proc_id_src_comp != 0 && current_proc_id_dst_comp == 0) {
+		MPI_Recv(&src_fields_info_array_size, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+		src_fields_info_array = new char [src_fields_info_array_size];
+		MPI_Recv(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+		MPI_Send(&dst_fields_info_array_size, 1, MPI_INT, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
+		MPI_Send(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
+	}
+
+	if (current_proc_id_src_comp != -1) {
+		MPI_Bcast(&src_fields_info_array_size, 1, MPI_INT, 0, src_comp_node->get_comm_group());
+		if (src_fields_info_array == NULL)
+			src_fields_info_array = new char [src_fields_info_array_size];
+		MPI_Bcast(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, 0, src_comp_node->get_comm_group());
+		MPI_Bcast(&dst_fields_info_array_size, 1, MPI_INT, 0, src_comp_node->get_comm_group());
+		if (dst_fields_info_array == NULL)
+			dst_fields_info_array = new char [dst_fields_info_array_size];
+		MPI_Bcast(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, 0, src_comp_node->get_comm_group());
+	}
+
+	if (current_proc_id_dst_comp != -1) {
+		MPI_Bcast(&src_fields_info_array_size, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
+		if (src_fields_info_array == NULL)
+			src_fields_info_array = new char [src_fields_info_array_size];
+		MPI_Bcast(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, 0, dst_comp_node->get_comm_group());
+		MPI_Bcast(&dst_fields_info_array_size, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
+		if (dst_fields_info_array == NULL)
+			dst_fields_info_array = new char [dst_fields_info_array_size];
+		MPI_Bcast(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, 0, dst_comp_node->get_comm_group());
+	}	
+
+	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size);
+	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size);
+	EXECUTION_REPORT(REPORT_ERROR, -1, fields_name.size() == src_fields_info.size() && fields_name.size() == dst_fields_info.size(), "Software error in Coupling_connection::exchange_connection_fields_info");
+
+	if (current_proc_id_src_comp == 0) {
+		for (int i = 0; i < fields_name.size(); i ++) {
+			printf("src field info: %s    %s     %s   %s  :  %s (%d  %d) : %d \n", fields_name[i], src_fields_info[i]->grid_name, src_fields_info[i]->data_type, src_fields_info[i]->unit, 
+				src_fields_info[i]->timer->get_frequency_unit(), src_fields_info[i]->timer->get_frequency_count(), src_fields_info[i]->timer->get_delay_count(), src_fields_info[i]->time_step_in_second);
+			printf("dst field info: %s    %s     %s   %s  :  %s (%d  %d) : %d \n", fields_name[i], dst_fields_info[i]->grid_name, dst_fields_info[i]->data_type, dst_fields_info[i]->unit, 
+				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_delay_count(), dst_fields_info[i]->time_step_in_second);
+		}
+	}
+}
+
+
+void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter)
+{
+	while (buffer_content_iter > 0) {
+		Interface_field_info *field_info = new Interface_field_info;
+		read_data_from_array_buffer(&field_info->time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
+		field_info->timer = new Coupling_timer(array_buffer, buffer_content_iter);
+		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
+		read_data_from_array_buffer(field_info->unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
+		read_data_from_array_buffer(field_info->data_type, NAME_STR_SIZE, array_buffer, buffer_content_iter);
+		fields_info.push_back(field_info);
+	}
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_iter == 0, "Software error in Coupling_connection::read_connection_fields_info_from_array: wrong buffer_content_iter");
+	EXECUTION_REPORT(REPORT_ERROR, -1, fields_info.size() == fields_name.size(), "Software error in Coupling_connection::read_connection_fields_info_from_array: wrong size of fields_info");
+}
+
+
+void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size)
+{
+	char tmp_string[NAME_STR_SIZE];
+
+	
+	for (int i = fields_name.size() - 1; i >= 0; i --) {
+		Field_mem_info *field = inout_interface->search_registered_field_instance(fields_name[i]);
+		EXECUTION_REPORT(REPORT_ERROR, -1, field != NULL, "Software error in Coupling_generator::write_connection_fields_info_into_array: NULL field");
+		write_data_into_array_buffer(field->get_field_data()->get_grid_data_field()->data_type_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		write_data_into_array_buffer(field->get_unit(), NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		const char *grid_name = field->get_grid_name();
+		if (grid_name == NULL) {
+			strcpy(tmp_string, "NULL");
+			write_data_into_array_buffer(tmp_string, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		}
+		else write_data_into_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		Coupling_timer *timer = inout_interface->search_a_timer(fields_name[i]);
+		EXECUTION_REPORT(REPORT_ERROR, -1, timer != NULL, "Software error in Coupling_generator::write_connection_fields_info_into_array: NULL timer");
+		timer->write_timer_into_array(array, buffer_max_size, buffer_content_size);
+		int time_step_in_second = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_time_step_in_second();
+		write_data_into_array_buffer(&time_step_in_second, sizeof(int), array, buffer_max_size, buffer_content_size);
+	}
+}
+
+
 Import_direction_setting::Import_direction_setting(Import_interface_configuration *interface_configuration, const char *comp_full_name, const char *interface_name, TiXmlElement *redirection_element, const char *XML_file_name, std::vector<const char*> &interface_fields_name, int *fields_count)
 {
 	int comp_id = comp_comm_group_mgt_mgr->search_global_node(comp_full_name)->get_comp_id();
@@ -284,7 +512,7 @@ void Coupling_generator::generate_coupling_procedures()
 				import_interfaces_of_a_component[j]->get_fields_name(&import_fields_name);
 				for (int k = 0; k < import_fields_name.size(); k ++) {
 					std::vector<const char*> configuration_export_components_full_name;
-					coupling_connection = new Coupling_connection;
+					coupling_connection = new Coupling_connection((all_coupling_connections.size())<<4);
 					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_components_full_name);
 					strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Component_import_interfaces_configuration")->get_full_name());
 					strcpy(coupling_connection->dst_interface_name, import_interfaces_of_a_component[j]->get_interface_name());
@@ -378,7 +606,7 @@ void Coupling_generator::generate_coupling_procedures()
 		int num_connections, num_fields, num_sources, buffer_content_iter = current_array_buffer_size;
 		read_data_from_array_buffer(&num_connections, sizeof(int), temp_array_buffer, buffer_content_iter);
 		for (int i = 0; i < num_connections; i ++) {
-			coupling_connection = new Coupling_connection;
+			coupling_connection = new Coupling_connection((all_coupling_connections.size())<<4);
 			read_data_from_array_buffer(coupling_connection->dst_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
 			read_data_from_array_buffer(coupling_connection->dst_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
 			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter);
@@ -412,49 +640,11 @@ void Coupling_generator::generate_coupling_procedures()
 	delete [] temp_array_buffer;
 
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
-		generate_coupling_connection(all_coupling_connections[i]);
+		all_coupling_connections[i]->generate_a_coupling_procedure();
 	}
 }
 
 
-void Coupling_generator::generate_coupling_connection(const Coupling_connection *coupling_connection)
-{
-	Comp_comm_group_mgt_node *src_comp_node = comp_comm_group_mgt_mgr->search_global_node(coupling_connection->src_comp_interfaces[0].first);
-	Comp_comm_group_mgt_node *dst_comp_node =comp_comm_group_mgt_mgr->search_global_node(coupling_connection->dst_comp_full_name);
-	int current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
-	int	current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
-	int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
-	int dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
-	int msg_tag;
-	MPI_Request send_req, recv_req;
-	MPI_Status status;
-
-	
-	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
-		return;
-
-	if (current_proc_id_src_comp != -1)
-		MPI_Barrier(src_comp_node->get_comm_group());
-	if (current_proc_id_dst_comp != -1)
-		MPI_Barrier(dst_comp_node->get_comm_group());
-
-	if (current_proc_id_src_comp == 0) {		
-		MPI_Isend(&msg_tag, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &send_req);
-	}
-	if (current_proc_id_dst_comp == 0) {
-		MPI_Irecv(&msg_tag, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &recv_req);	 		
-	}
-
-
-	if (current_proc_id_src_comp == 0) {
-		MPI_Wait(&send_req, &status);
-	}
-	
-	if (current_proc_id_dst_comp == 0) {
-		MPI_Wait(&recv_req, &status);
-	}
-	printf("generate coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
-}
 
 
 void Coupling_generator::generate_interface_fields_source_dst(const char *temp_array_buffer, int buffer_content_size)

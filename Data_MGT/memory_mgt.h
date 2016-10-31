@@ -16,6 +16,9 @@
 
 
 #define BUF_MARK_GRID_FIELD              (-100)
+#define BUF_MARK_AVERAGED                ((int)(0xFFFF0000))
+#define BUF_MARK_UNIT_TRANS              ((int)(0xFFF70000))
+#define BUF_MARK_DATATYPE_TRANS          ((int)(0xFFF00000))
 
 
 struct Registered_field_info
@@ -34,6 +37,7 @@ class Field_mem_info
         char grid_name[NAME_STR_SIZE];
 
         char field_name[NAME_STR_SIZE];
+		char unit[NAME_STR_SIZE];
 		int field_instance_id;
 		int decomp_id;
 		int comp_or_grid_id;
@@ -59,10 +63,9 @@ class Field_mem_info
         Remap_grid_data_class *get_field_data() { return grided_field_data; }
         void reset_mem_buf(void *buf, bool);
         void get_field_mem_full_name(char*);
-        const char *get_decomp_name() { return decomp_name; }
-        const char *get_comp_name() { return comp_name; }
-        const char *get_grid_name() { return grid_name; }
-        const char *get_field_name() { return field_name; }
+        const char *get_decomp_name() const { return decomp_name; }
+        const char *get_comp_name() const { return comp_name; }
+        const char *get_field_name() const { return field_name; }
 		long get_size_of_field();
         void reset_field_name(const char*);
 		void change_datatype_to_double();
@@ -71,15 +74,19 @@ class Field_mem_info
 		void define_field_values(bool);
 		void use_field_values(const char*);
 		bool field_has_been_defined();
-		long get_last_define_time() { return last_define_time; }
+		long get_last_define_time() const { return last_define_time; }
 		void set_define_order_count(long count) { define_order_count = count; }
-		long get_define_order_count() { return define_order_count; }
-		int get_field_instance_id() { return field_instance_id; }
+		long get_define_order_count() const { return define_order_count; }
+		int get_field_instance_id() const { return field_instance_id; }
 		int get_comp_id();
 		int get_grid_id();
-		int get_buf_mark() { return buf_mark; }
-		int get_decomp_id() { return decomp_id; }
+        const char *get_grid_name();
+		const char *get_unit() const { return unit; }
+		int get_buf_mark() const { return buf_mark; }
+		int get_comp_or_grid_id() const { return comp_or_grid_id; }
+		int get_decomp_id() const { return decomp_id; }
 		void set_field_instance_id(int, const char*);
+		const char *get_data_type();
         ~Field_mem_info();
 };
 
@@ -96,6 +103,7 @@ class Memory_mgt
         
     public: 
         Memory_mgt(const char *);
+		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
 		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*);
         void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool, int);

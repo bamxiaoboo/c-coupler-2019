@@ -24,6 +24,40 @@ int num_days_of_month_of_nonleap_year[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 3
 int num_days_of_month_of_leap_year[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 
+
+bool common_is_timer_on(const char *frequency_unit, int frequency_count, int delay_count, int current_year, 
+	                  int current_month, int current_day, int current_second, int current_num_elapsed_day,
+	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
+{
+    long num_elapsed_time;
+
+
+    EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
+
+    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
+        num_elapsed_time = (current_num_elapsed_day-start_num_elapsed_day)*SECONDS_PER_DAY + current_second - start_second;
+    }
+    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS)) {
+        if (current_second != 0)
+            return false;
+        num_elapsed_time = current_num_elapsed_day-start_num_elapsed_day;
+    }
+    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS)) {
+        if (current_second != 0 || current_day != 1)
+            return false;
+        num_elapsed_time = (current_year-start_year)*NUM_MONTH_PER_YEAR+current_month-start_month;
+    }
+    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS)) {
+        if (current_second != 0 || current_day != 1 || current_month != 1)
+            return false;
+        num_elapsed_time = current_year-start_year;
+    }
+    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler software error: frequency unit %s is unsupported\n", frequency_unit);
+
+    return num_elapsed_time >= delay_count && ((num_elapsed_time-delay_count)%frequency_count) == 0;
+}
+
+
 Coupling_timer::Coupling_timer(int comp_id, int timer_id, int *children_timers_id, int num_children_timers, int or_or_and, const char *annotation)
 {
 	this->timer_id = timer_id;
@@ -65,6 +99,12 @@ Coupling_timer::Coupling_timer(const char *freq_unit, int freq_count, int del_co
 	timer_id = -1;
 	comp_id = -1;
     timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count, annotation);
+	if (words_are_the_same(freq_unit, FREQUENCY_UNIT_STEPS)) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr->get_time_step_in_second() > 0, "Software error in Coupling_timer::Coupling_timer: uninitialized time step");
+		strcpy(frequency_unit, FREQUENCY_UNIT_SECONDS);
+		frequency_count *= timer_mgr->get_time_step_in_second();
+		delay_count *= timer_mgr->get_time_step_in_second();
+	}
 }
 
 
@@ -96,6 +136,42 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, Coupling_timer *existi
 	this->timer_id = timer_id;
 	this->comp_id = comp_id;
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
+}
+
+
+Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_iter)
+{
+	int num_children;
+
+	
+	read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&delay_count, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter);
+	for (int i = 0; i < num_children; i ++)
+		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter));
+}
+
+
+void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max_size, int &buffer_content_size)
+{
+	int num_children = children.size();
+	for (int i = num_children-1; i >= 0; i --)
+		children[i]->write_timer_into_array(array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&num_children, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&delay_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
+	printf("field info timer is %s (%d %d)\n", frequency_unit, frequency_count, delay_count);
+}
+
+
+bool Coupling_timer::is_timer_on(int current_year, int current_month, int current_day, int current_second, int current_num_elapsed_day,
+	                             int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
+{
+	return common_is_timer_on(frequency_unit, frequency_count, delay_count, current_year,  
+		                      current_month, current_day, current_second, current_num_elapsed_day,
+	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
 }
 
 
@@ -210,7 +286,7 @@ Time_mgt::Time_mgt(int comp_id, int start_date, int start_second, int stop_date,
     reference_year = reference_date / 10000;
     reference_month = (reference_date%10000) / 100;
     reference_day = reference_date % 100;
-    sec_per_step = cpl_step;
+    time_step_in_second = cpl_step;
     previous_year = start_year;
     previous_month = start_month;
     previous_day = start_day;
@@ -225,15 +301,16 @@ Time_mgt::Time_mgt(int comp_id, int start_date, int start_second, int stop_date,
 	this->comp_id = comp_id;
 	this->advance_time_synchronized = false;
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, sec_per_step>0 && (SECONDS_PER_DAY%sec_per_step)==0, "The number of seconds per day is not a multiple of the number of seconds per step\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, stop_latency_seconds%sec_per_step == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, time_step_in_second>0 && (SECONDS_PER_DAY%time_step_in_second)==0, "The number of seconds per day is not a multiple of the number of seconds per step\n");
+    EXECUTION_REPORT(REPORT_ERROR,-1, stop_latency_seconds%time_step_in_second == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
 	check_is_time_legal(start_year, start_month, start_day, start_second, "start");
 	check_is_time_legal(stop_year, stop_month, stop_day, stop_second, "stop");
 //	check_is_time_legal(reference_year, reference_month, reference_day, 0, "feference");  This check is disabled due to MASNUM2
 
-    steps_per_day = SECONDS_PER_DAY / sec_per_step;
+    steps_per_day = SECONDS_PER_DAY / time_step_in_second;
     current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
-    num_total_steps = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*steps_per_day + (stop_second-start_second)/sec_per_step;
+	start_num_elapsed_day = current_num_elapsed_day;
+    num_total_steps = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*steps_per_day + (stop_second-start_second)/time_step_in_second;
     EXECUTION_REPORT(REPORT_ERROR,-1, num_total_steps > 0, "the end simulation time must be after the start simulation time\n");
 
     timer_mgr = this;
@@ -257,7 +334,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	int line_number;
 
 	
-	sec_per_step = -1;
+	time_step_in_second = -1;
 	case_desc[0] = '\0';
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Time_mgt::Time_mgt: wrong component id");
@@ -306,6 +383,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		sscanf(start_second_string, "%d", &this->start_second);		
 		EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(start_year, start_month, start_day, start_second, NULL), "The start second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
+		start_num_elapsed_day = current_num_elapsed_day;
 		current_year = start_year;
 		current_month = start_month;
 		current_day = start_day;
@@ -411,18 +489,18 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 					this->stop_day = -1;
 					this->stop_second = -1;
 					Time_mgt *cloned_time_mgr = clone_time_mgr(comp_id);
-					cloned_time_mgr->set_sec_per_step(SECONDS_PER_DAY, "C-Coupler creates the time manager of a component");
+					cloned_time_mgr->set_time_step_in_second(SECONDS_PER_DAY, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_days; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
-					cloned_time_mgr->set_sec_per_step(3600, "C-Coupler creates the time manager of a component");
+						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+					cloned_time_mgr->set_time_step_in_second(3600, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_hours; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
-					cloned_time_mgr->set_sec_per_step(60, "C-Coupler creates the time manager of a component");
+						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+					cloned_time_mgr->set_time_step_in_second(60, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_minutes; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
-					cloned_time_mgr->set_sec_per_step(1, "C-Coupler creates the time manager of a component");
+						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+					cloned_time_mgr->set_time_step_in_second(1, "C-Coupler creates the time manager of a component");
 					for (int i = 0; i < num_seconds; i ++)
-						cloned_time_mgr->advance_time("in Time_mgt(...)", false);
+						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
 					this->stop_year = cloned_time_mgr->current_year;
 					this->stop_month = cloned_time_mgr->current_month;
 					this->stop_day = cloned_time_mgr->current_day;
@@ -464,6 +542,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
     current_day = start_day;
     current_second = start_second;
 	current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
+	start_num_elapsed_day = current_num_elapsed_day;
 	current_step_id = 0;
 	num_total_steps = -1;
 }
@@ -495,6 +574,7 @@ void Time_mgt::reset_timer()
 	current_step_id = 0;
 	
 	current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
+	start_num_elapsed_day = current_num_elapsed_day;
 }
 
 
@@ -528,25 +608,12 @@ long Time_mgt::calculate_elapsed_day(int year, int month, int day)
 }
 
 
-void Time_mgt::advance_time(const char *annotation, bool from_external_model)
+void Time_mgt::advance_time(int &current_year, int &current_month, int &current_day, int &current_second, int &current_num_elapsed_day, int time_step_in_second)
 {
     int i, num_days_in_current_month;
- 
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, sec_per_step != -1, "Cannot advance the time of the component \"\%s\" at the model code with the annotation \"%s\", because the time step has not been specified.", 
-					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);
-	if (from_external_model && !advance_time_synchronized) {		
-		synchronize_comp_processes_for_API(comp_id, API_ID_TIME_MGT_ADVANCE_TIME, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "C-Coupler code in Time_mgt::advance_time"), "advance the time of a component", annotation);
-		advance_time_synchronized = true;
-	}
 
-	previous_year = current_year;
-	previous_month = current_month;
-	previous_day = current_day;
-	previous_second = current_second;
-
-    current_second += sec_per_step;
-    current_step_id ++;
+    current_second += time_step_in_second;
 	for (i = 0; i < current_second / SECONDS_PER_DAY; i ++) {
         current_num_elapsed_day ++;
 		if (leap_year_on && is_a_leap_year(current_year)) 
@@ -562,7 +629,30 @@ void Time_mgt::advance_time(const char *annotation, bool from_external_model)
 			current_year ++;
 		}
     }
-	current_second = current_second % SECONDS_PER_DAY;
+	current_second = current_second % SECONDS_PER_DAY;	
+}
+
+
+void Time_mgt::advance_model_time(const char *annotation, bool from_external_model)
+{
+    int i, num_days_in_current_month;
+ 
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second != -1, "Cannot advance the time of the component \"\%s\" at the model code with the annotation \"%s\", because the time step has not been specified.", 
+					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);
+	if (from_external_model && !advance_time_synchronized) {		
+		synchronize_comp_processes_for_API(comp_id, API_ID_TIME_MGT_ADVANCE_TIME, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "C-Coupler code in Time_mgt::advance_model_time"), "advance the time of a component", annotation);
+		advance_time_synchronized = true;
+	}
+
+	previous_year = current_year;
+	previous_month = current_month;
+	previous_day = current_day;
+	previous_second = current_second;
+    current_step_id ++;
+
+	advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_day, time_step_in_second);
+	printf("current time is %d   %d   %d   %d   %d  %d\n", current_year, current_month, current_day, current_second, current_num_elapsed_day, current_step_id); 
 }
 
 
@@ -594,35 +684,14 @@ float Time_mgt::get_float_current_calendar_time(int shift_second)
 }
 
 
-bool Time_mgt::is_timer_on(char *frequency_unit, int frequency_count, int delay_count)
+bool Time_mgt::is_timer_on(const char *frequency_unit, int frequency_count, int delay_count)
 {
     long num_elapsed_time;
 
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
-
-    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, (frequency_count%sec_per_step) == 0, "C-Coupler software error: the frequency count of seconds must be integer multiple of coupling step\n");
-        num_elapsed_time = (current_num_elapsed_day-calculate_elapsed_day(start_year,start_month,start_day))*SECONDS_PER_DAY+current_second;
-    }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS)) {
-        if (current_second != 0)
-            return false;
-        num_elapsed_time = current_num_elapsed_day-calculate_elapsed_day(start_year,start_month,start_day);
-    }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS)) {
-        if (current_second != 0 || current_day != 1)
-            return false;
-        num_elapsed_time = (current_year-start_year)*NUM_MONTH_PER_YEAR+current_month-start_month;
-    }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS)) {
-        if (current_second != 0 || current_day != 1 || current_month != 1)
-            return false;
-        num_elapsed_time = current_year-start_year;
-    }
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler software error: frequency unit %s is unsupported\n", frequency_unit);
-
-    return num_elapsed_time >= delay_count && ((num_elapsed_time-delay_count)%frequency_count) == 0;
+   	return common_is_timer_on(frequency_unit, frequency_count, delay_count, current_year,  
+		                      current_month, current_day, current_second, current_num_elapsed_day,
+	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
 }
 
 
@@ -641,7 +710,7 @@ void Time_mgt::set_restart_time(long start_full_time, long restart_full_time)
     current_month = (restart_full_time/10000000)%100;
     current_year = restart_full_time/1000000000;
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
-	current_step_id = (current_num_elapsed_day-calculate_elapsed_day(start_year,start_month,start_day)) * (SECONDS_PER_DAY/sec_per_step);
+	current_step_id = (current_num_elapsed_day-start_num_elapsed_day) * (SECONDS_PER_DAY/time_step_in_second);
 	EXECUTION_REPORT(REPORT_LOG,-1, true, "current step id from restart is %d", current_step_id);
 }
 
@@ -690,27 +759,27 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
     bool fit_small_rest_freq;
 
 
-	if (sec_per_step > 0) {
+	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
 	                 words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
 	                 "The frequency unit in timer must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "The frquency count in timer must be larger than 0. Please check the model code with the annotation \"%s\"", annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, delay_count >= 0, "The delay count in timer must be positive. Please check the model code with the annotation \"%s\"", annotation);		
 	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
-	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%sec_per_step == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
-	        EXECUTION_REPORT(REPORT_ERROR, comp_id, delay_count%sec_per_step == 0, "The delay count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, delay_count%time_step_in_second == 0, "The delay count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
 	    }
 		if (num_total_steps > 0) {
 			if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS))
 				too_small_end_time = num_total_steps <= delay_count;
 		    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS))
-		        too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count;
+		        too_small_end_time = ((long)num_total_steps)*((long)time_step_in_second) <= delay_count;
 		    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS))
-		        too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*SECONDS_PER_DAY;
+		        too_small_end_time = ((long)num_total_steps)*((long)time_step_in_second) <= delay_count*SECONDS_PER_DAY;
 		    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS))
-		        too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*SECONDS_PER_DAY*31;
+		        too_small_end_time = ((long)num_total_steps)*((long)time_step_in_second) <= delay_count*SECONDS_PER_DAY*31;
 		    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS))
-		        too_small_end_time = ((long)num_total_steps)*((long)sec_per_step) <= delay_count*SECONDS_PER_DAY*NUM_DAYS_PER_LEAP_YEAR;
+		        too_small_end_time = ((long)num_total_steps)*((long)time_step_in_second) <= delay_count*SECONDS_PER_DAY*NUM_DAYS_PER_LEAP_YEAR;
 		    EXECUTION_REPORT(REPORT_ERROR, comp_id, !too_small_end_time, "The integration time of the simulation should be larger than the coupling delay time <%s, %d>. Please check the model code with the annotation \"%s\"", frequency_unit, delay_count, annotation);
 		}
 	}
@@ -844,8 +913,8 @@ void Time_mgt::get_current_time(int &year, int &month, int &day, int &second, in
 
 int Time_mgt::get_current_num_time_step()
 {
-	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid") && current_step_id < SECONDS_PER_DAY/sec_per_step)
-		return current_step_id + SECONDS_PER_DAY/sec_per_step;
+	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid") && current_step_id < SECONDS_PER_DAY/time_step_in_second)
+		return current_step_id + SECONDS_PER_DAY/time_step_in_second;
     return current_step_id; 
 }
 
@@ -874,7 +943,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->stop_month = this->stop_month;
 	new_time_mgr->stop_day = this->stop_day;
 	new_time_mgr->stop_second = this->stop_second;
-	new_time_mgr->sec_per_step = -1;
+	new_time_mgr->time_step_in_second = -1;
 	new_time_mgr->current_step_id = 0;
 	new_time_mgr->num_total_steps = 0;
 	new_time_mgr->stop_latency_seconds = this->stop_latency_seconds;
@@ -894,16 +963,16 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 }
 
 
-void Time_mgt::set_sec_per_step(int sec_per_step, const char *annotation)
+void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *annotation)
 {
-	this->sec_per_step = sec_per_step;
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, sec_per_step > 0, "The value of the time step is wrong when setting the time step of the component \"%s\". It must be a positive value. Please check the model code with the annotation \"%s\"",
-					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "get comp name in Time_mgt::set_sec_per_step")->get_comp_name(), annotation);
+	this->time_step_in_second = time_step_in_second;
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second > 0, "The value of the time step is wrong when setting the time step of the component \"%s\". It must be a positive value. Please check the model code with the annotation \"%s\"",
+					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "get comp name in Time_mgt::set_time_step_in_second")->get_comp_name(), annotation);
 	if (stop_year != -1) {
 		long total_seconds = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
-		printf("stop time is %d %d %d %d: %d %d %d %d: %ld : %d VS %d %d\n", stop_year, stop_month, stop_day, stop_second, start_year, start_month, start_day, start_second, total_seconds, current_num_elapsed_day, calculate_elapsed_day(start_year,start_month,start_day), calculate_elapsed_day(stop_year,stop_month,stop_day));
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, total_seconds%((long)sec_per_step) == 0, "The time step set at model code with the annotation \"%s\" does not match the start time and the stop time of the simulation. Please check the model code and the XML file \"env_run.xml\"", annotation);
-		num_total_steps = total_seconds / sec_per_step;
+		printf("stop time is %d %d %d %d: %d %d %d %d: %ld : %d VS %d %d\n", stop_year, stop_month, stop_day, stop_second, start_year, start_month, start_day, start_second, total_seconds, current_num_elapsed_day, start_num_elapsed_day, calculate_elapsed_day(stop_year,stop_month,stop_day));
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, total_seconds%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the start time and the stop time of the simulation. Please check the model code and the XML file \"env_run.xml\"", annotation);
+		num_total_steps = total_seconds / time_step_in_second;
 	}
 	else num_total_steps = -1;
 	if (restart_timer != NULL) {
@@ -914,8 +983,8 @@ void Time_mgt::set_sec_per_step(int sec_per_step, const char *annotation)
 			rest_freq = SECONDS_PER_DAY;
 		else if (words_are_the_same(rest_freq_unit, "seconds"))
 			rest_freq = rest_freq_count;
-		printf("qiguai %d vs %d: %s %d\n", rest_freq, sec_per_step, rest_freq_unit, rest_freq_count);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)sec_per_step) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
+		printf("qiguai %d vs %d: %s %d\n", rest_freq, time_step_in_second, rest_freq_unit, rest_freq_count);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
 	}	
 }
 
@@ -959,13 +1028,13 @@ void Components_time_mgt::define_root_comp_time_mgr(int comp_id, const char *xml
 void Components_time_mgt::set_component_time_step(int comp_id, int time_step, const char *annotation)
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
-	if (comp_id, time_mgr->get_comp_frequency() != -1)
+	if (comp_id, time_mgr->get_time_step_in_second() != -1)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, true, "The time step of the component \"%s\" has been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
 						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "get the local id of the current component in Components_time_mgt::set_component_time_step") == 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step > 0, "The value of time step is wrong. It must be a positive value. Please check the model code with the annotation \"%s\"", annotation);
-	get_time_mgr(comp_id)->set_sec_per_step(time_step, annotation);
+	get_time_mgr(comp_id)->set_time_step_in_second(time_step, annotation);
 }
 
 
@@ -986,7 +1055,7 @@ void Components_time_mgt::clone_parent_comp_time_mgr(int comp_id, int parent_com
 void Components_time_mgt::advance_component_time(int comp_id, const char *annotation)
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
-	time_mgr->advance_time(annotation, true);
+	time_mgr->advance_model_time(annotation, true);
     EXECUTION_REPORT(REPORT_LOG, comp_id, true, "The current time is %08d-%05d, and the current number of the time step is %d", time_mgr->get_current_date(), time_mgr->get_current_second(), time_mgr->get_current_step_id());
 }
 
