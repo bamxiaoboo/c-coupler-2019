@@ -35,6 +35,8 @@ class Runtime_algorithm_basis
 		int *buf_marks;
 		bool *average_mark;
 
+		int comp_id;
+
 		Runtime_cumulate_average_algorithm *cumulate_average_algorithm_before_run;
 		Runtime_datatype_transformer datatype_transformer_before_run;
 		Runtime_datatype_transformer datatype_transformer_after_run;

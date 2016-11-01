@@ -88,6 +88,12 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit,
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "Software error in Coupling_timer::Coupling_timer, with annotation \"%s\"", annotation);
 	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, delay_count, annotation);
 	annotation_mgr->add_annotation(timer_id, "define timer", annotation);
+	if (words_are_the_same(freq_unit, FREQUENCY_UNIT_STEPS)) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr->get_time_step_in_second() > 0, "Software error in Coupling_timer::Coupling_timer: uninitialized time step");
+		strcpy(frequency_unit, FREQUENCY_UNIT_SECONDS);
+		frequency_count *= comp_time_mgr->get_time_step_in_second();
+		delay_count *= comp_time_mgr->get_time_step_in_second();
+	}
 }
 
 
@@ -99,12 +105,6 @@ Coupling_timer::Coupling_timer(const char *freq_unit, int freq_count, int del_co
 	timer_id = -1;
 	comp_id = -1;
     timer_mgr->check_timer_format(frequency_unit, frequency_count, delay_count, annotation);
-	if (words_are_the_same(freq_unit, FREQUENCY_UNIT_STEPS)) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr->get_time_step_in_second() > 0, "Software error in Coupling_timer::Coupling_timer: uninitialized time step");
-		strcpy(frequency_unit, FREQUENCY_UNIT_SECONDS);
-		frequency_count *= timer_mgr->get_time_step_in_second();
-		delay_count *= timer_mgr->get_time_step_in_second();
-	}
 }
 
 
@@ -139,7 +139,7 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, Coupling_timer *existi
 }
 
 
-Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_iter)
+Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_iter, int comp_id)
 {
 	int num_children;
 
@@ -148,8 +148,9 @@ Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_ite
 	read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&delay_count, sizeof(int), array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter);
+	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	for (int i = 0; i < num_children; i ++)
-		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter));
+		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter, comp_id));
 }
 
 

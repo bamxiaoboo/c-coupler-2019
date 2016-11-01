@@ -298,9 +298,10 @@ bool Runtime_trans_algorithm::run(bool is_algorithm_in_kernel_stage)
 
 bool Runtime_trans_algorithm::send(bool is_algorithm_in_kernel_stage)
 {
-    if (! is_remote_data_buf_ready()) return false;
+//    if (! is_remote_data_buf_ready()) return false;
     preprocess();
-    
+
+	printf("before MPI_put send\n");
     int offset = 0;
     for (int i = 0; i < num_remote_procs; i ++) {
         if (send_size_with_remote_procs[i] == 0) continue;
@@ -329,6 +330,8 @@ bool Runtime_trans_algorithm::send(bool is_algorithm_in_kernel_stage)
 
     set_remote_tags();
     advance_step();
+
+	printf("After MPI_put send\n");
 
     return true;
 }

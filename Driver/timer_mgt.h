@@ -54,7 +54,7 @@ class Coupling_timer
         Coupling_timer(char**, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
 		Coupling_timer(Coupling_timer*);
-		Coupling_timer(const char*, int &);
+		Coupling_timer(const char*, int &, int);
         ~Coupling_timer() {}
         bool is_timer_on();
 		bool is_timer_on(int, int, int, int, int, int, int, int, int, int);

@@ -37,6 +37,8 @@ class Runtime_cumulate_average_algorithm : public Runtime_algorithm_basis
     public:
 		Runtime_cumulate_average_algorithm() {}
         Runtime_cumulate_average_algorithm(const char * cfg);
+		Runtime_cumulate_average_algorithm(Field_mem_info*, Field_mem_info*);
+		
         ~Runtime_cumulate_average_algorithm();
         void write_restart_fields();
 		void read_restart_computing_count();

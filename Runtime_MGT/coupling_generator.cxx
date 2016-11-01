@@ -135,7 +135,7 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, decomp_id, remote_decomp_id);
         }
         runtime_algorithm_object = new Runtime_trans_algorithm(num_fields, 0, fields_mem, fields_router, fields_timer);
-        src_interface->add_runtime_algorithm(runtime_algorithm_object);
+        coupling_connection->export_procedure->add_runtime_algorithm(runtime_algorithm_object);
     }
     else if (current_proc_id_dst_comp != -1){
         int num_fields = coupling_connection->fields_name.size();
@@ -158,7 +158,7 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_router[i] = routing_info_mgr->search_or_add_router(dst_comp_id, src_comp_id, decomp_id, remote_decomp_id);
         }
         runtime_algorithm_object = new Runtime_trans_algorithm(0, num_fields, fields_mem, fields_router, fields_timer);
-        dst_interface->add_runtime_algorithm(runtime_algorithm_object);
+		coupling_connection->import_procedure->add_runtime_algorithm(runtime_algorithm_object);
     }
 
     if (current_proc_id_dst_comp != -1){
@@ -226,7 +226,7 @@ void Coupling_connection::generate_transfer()
 void Coupling_connection::exchange_connection_fields_info()
 {
 	char *src_fields_info_array = NULL, *dst_fields_info_array = NULL;
-	int src_fields_info_array_size, dst_fields_info_array_size, buffer_max_size;
+	int src_fields_info_array_size, dst_fields_info_array_size, buffer_max_size, comp_id;
 	MPI_Request send_req, recv_req;
 	MPI_Status status;
 
@@ -273,8 +273,10 @@ void Coupling_connection::exchange_connection_fields_info()
 		MPI_Bcast(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, 0, dst_comp_node->get_comm_group());
 	}	
 
-	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size);
-	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size);
+	comp_id = export_interface != NULL? export_interface->get_comp_id() : import_interface->get_comp_id();
+	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size, comp_id);
+	comp_id = import_interface != NULL? import_interface->get_comp_id() : export_interface->get_comp_id();
+	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_name.size() == src_fields_info.size() && fields_name.size() == dst_fields_info.size(), "Software error in Coupling_connection::exchange_connection_fields_info");
 
 	if (current_proc_id_src_comp == 0) {
@@ -288,12 +290,12 @@ void Coupling_connection::exchange_connection_fields_info()
 }
 
 
-void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter)
+void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter, int comp_id)
 {
 	while (buffer_content_iter > 0) {
 		Interface_field_info *field_info = new Interface_field_info;
 		read_data_from_array_buffer(&field_info->time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
-		field_info->timer = new Coupling_timer(array_buffer, buffer_content_iter);
+		field_info->timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
 		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->data_type, NAME_STR_SIZE, array_buffer, buffer_content_iter);

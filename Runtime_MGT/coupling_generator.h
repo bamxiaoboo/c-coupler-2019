@@ -55,7 +55,7 @@ class Coupling_connection
 		int dst_comp_root_proc_global_id;
 
 		void write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size);	
-		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int);
+		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int);
 		void exchange_connection_fields_info();
 		void generate_unit_transformation();
 		void generate_value_averaging();

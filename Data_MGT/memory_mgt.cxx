@@ -201,7 +201,7 @@ void Field_mem_info::define_field_values(bool is_restarting)
 {
 	if (!is_restarting)
 		is_field_active = true;
-    last_define_time = timer_mgr->get_current_full_time();
+    last_define_time = components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time();
 }
 
 
@@ -210,11 +210,11 @@ void Field_mem_info::use_field_values(const char *cfg_name)
     if (is_registered_model_buf) 
         return;
     
-    if (last_define_time == timer_mgr->get_current_full_time())
+    if (last_define_time == components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time())
         return;
 
-    EXECUTION_REPORT(REPORT_ERROR,-1, last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%d) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR,-1, last_define_time <= timer_mgr->get_current_full_time(), "C-Coupler error in set_use_field\n");
+    EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%d) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time <= components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time(), "C-Coupler error in set_use_field\n");
     is_restart_field = true;
 }
 
@@ -343,10 +343,8 @@ void Field_mem_info::check_field_sum()
     partial_sum = 0;
     for (long j = 0; j < size; j ++)
         partial_sum += (((int*) get_data_buf())[j]);
-    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, compset_communicators_info_mgr->get_current_comp_comm_group());
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
-        EXECUTION_REPORT(REPORT_LOG,-1, true, "check sum of field (%s %s) is %x vs %x", get_comp_name(), get_field_name(), total_sum, partial_sum);
-
+    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(get_comp_id(), "Field_mem_info::check_field_sum"));
+    EXECUTION_REPORT(REPORT_LOG, get_comp_id(), true, "check sum of field \"%s\" is %x vs %x", get_field_name(), total_sum, partial_sum);
 #endif
 }
 
@@ -482,12 +480,12 @@ void Memory_mgt::add_field_instance(Field_mem_info *field_instance, const char *
 
 Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, int special_buf_mark, int object_id, const char *unit_or_datatype)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED || special_buf_mark == BUF_MARK_UNIT_TRANS, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
+	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
 	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
 	printf("buf mark is %d vs %d\n", new_buf_mark, original_field_instance->get_buf_mark());
 	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
 	EXECUTION_REPORT(REPORT_ERROR, -1, existing_field_instance == NULL, "Software error in Field_mem_info *alloc_mem: special field instance exists");
-	if (special_buf_mark == BUF_MARK_AVERAGED)
+	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging"));
 	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS) {
 		get_data_type_size(unit_or_datatype);

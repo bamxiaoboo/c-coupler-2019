@@ -16,9 +16,10 @@
 
 
 #define BUF_MARK_GRID_FIELD              (-100)
-#define BUF_MARK_AVERAGED                ((int)(0xFFFF0000))
-#define BUF_MARK_UNIT_TRANS              ((int)(0xFFF70000))
-#define BUF_MARK_DATATYPE_TRANS          ((int)(0xFFF00000))
+#define BUF_MARK_AVERAGED_INNER          ((int)(0xFFFF0000))
+#define BUF_MARK_AVERAGED_INTER          ((int)(0xFFF70000))
+#define BUF_MARK_UNIT_TRANS              ((int)(0xFFF00000))
+#define BUF_MARK_DATATYPE_TRANS          ((int)(0xFF700000))
 
 
 struct Registered_field_info

@@ -37,19 +37,28 @@ class Connection_coupling_procedure
 {
 	private:
 		std::vector<Field_mem_info *> fields_mem_registered;
-		std::vector<Field_mem_info *> fields_mem_averaged;
+		std::vector<Field_mem_info *> fields_mem_inner_step_averaged;
+		std::vector<Field_mem_info *> fields_mem_inter_step_averaged;
 		std::vector<Field_mem_info *> fields_mem_remapped;
 		std::vector<Field_mem_info *> fields_mem_datatype_transformed;
 		std::vector<Field_mem_info *> fields_mem_transfer;
 		std::vector<Connection_field_time_info *> fields_time_info_src;
 		std::vector<Connection_field_time_info *> fields_time_info_dst;
+		std::vector<Runtime_algorithm_basis *> runtime_algorithms;
 		std::vector<bool> transfer_process_on;
 		Coupling_connection *coupling_connection;
 		Inout_interface *inout_interface;
+		std::vector<Runtime_algorithm_basis*> runtime_inner_averaging_algorithm;
+		std::vector<Runtime_algorithm_basis*> runtime_inter_averaging_algorithm;
+		std::vector<Runtime_algorithm_basis*> runtime_remap_algorithms;
+		std::vector<Runtime_algorithm_basis*> runtime_unit_transform_algorithms;
+		std::vector<Runtime_algorithm_basis*> runtime_datatype_transform_algorithms;
+		std::vector<Runtime_algorithm_basis*> runtime_data_transfer_algorithms;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
 		void alloc_field_inst_for_datatype_transformation(const char*, const char*);
+		void add_runtime_algorithm(Runtime_algorithm_basis * runtime_algorithm) {runtime_algorithms.push_back(runtime_algorithm);}
 		void execute(bool);
 };
 
@@ -66,7 +75,6 @@ class Inout_interface
 		std::vector<const char*> fields_name;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
 		int execution_checking_status;
-		std::vector<Runtime_algorithm_basis *> runtime_algorithms;
 
 	public:
 		Inout_interface(const char*, int&);
@@ -85,7 +93,6 @@ class Inout_interface
 		Coupling_timer *search_a_timer(const char*);
 		void add_coupling_procedure(Connection_coupling_procedure*);
 		void execute(bool, const char*);
-		void add_runtime_algorithm(Runtime_algorithm_basis * runtime_algorithm) {runtime_algorithms.push_back(runtime_algorithm);}
 };
 
 
