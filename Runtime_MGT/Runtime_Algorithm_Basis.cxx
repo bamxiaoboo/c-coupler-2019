@@ -70,13 +70,9 @@ void Runtime_algorithm_basis::add_runtime_datatype_transformation(Field_mem_info
 
 	if (is_input_field) {
 		pair_field = memory_manager->search_last_define_field(current_field->get_comp_name(), current_field->get_decomp_name(), current_field->get_grid_name(), current_field->get_field_name(), current_field->get_buf_mark(), true, cfg_name);
-		if (pair_field != current_field)
-			datatype_transformer_before_run.add_pair_fields(pair_field, current_field, timer);
 	}
 	else {
 		pair_field = memory_manager->search_registerred_field(current_field->get_comp_name(), current_field->get_decomp_name(), current_field->get_grid_name(), current_field->get_field_name(), current_field->get_buf_mark());
-		if (pair_field != NULL && pair_field != current_field)
-			datatype_transformer_after_run.add_pair_fields(current_field, pair_field, timer);
 	}
 }
 
@@ -101,13 +97,11 @@ void Runtime_algorithm_basis::cumulate_average_before_run(bool is_algorithm_in_k
 
 void Runtime_algorithm_basis::transfer_fields_data_type_before_run() 
 { 
-	datatype_transformer_before_run.transform_fields_datatype(); 
 }
 
 
 void Runtime_algorithm_basis::transfer_fields_data_type_after_run() 
 {
-	datatype_transformer_after_run.transform_fields_datatype(); 
 }
 
 

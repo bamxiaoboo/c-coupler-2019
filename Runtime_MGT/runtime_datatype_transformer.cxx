@@ -18,6 +18,14 @@ template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *
 }
 
 
+Runtime_datatype_transformer::Runtime_datatype_transformer(Field_mem_info *src_field, Field_mem_info *dst_field)
+{
+	src_fields.push_back(src_field);
+	dst_fields.push_back(dst_field);
+	timers.push_back(NULL);
+}
+
+
 void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Field_mem_info *dst_field, Coupling_timer *timer)
 {
 	char *data_type_src, *data_type_dst;
@@ -51,6 +59,14 @@ void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Fi
 	src_fields.push_back(src_field);
 	dst_fields.push_back(dst_field);
 	timers.push_back(timer);
+}
+
+
+bool Runtime_datatype_transformer::run(bool bypass_timer)
+{
+	transform_fields_datatype();
+	
+	return true;
 }
 
 

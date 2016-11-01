@@ -57,7 +57,6 @@ class Connection_coupling_procedure
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
-		void alloc_field_inst_for_datatype_transformation(const char*, const char*);
 		void add_runtime_algorithm(Runtime_algorithm_basis * runtime_algorithm) {runtime_algorithms.push_back(runtime_algorithm);}
 		void execute(bool);
 };

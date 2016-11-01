@@ -11,7 +11,6 @@
 #define _ALGORITHM_RUNTIME_BASIS_H_
 
 
-#include "runtime_datatype_transformer.h"
 #include "timer_mgt.h"
 #include "memory_mgt.h"
 #include <vector>
@@ -38,8 +37,6 @@ class Runtime_algorithm_basis
 		int comp_id;
 
 		Runtime_cumulate_average_algorithm *cumulate_average_algorithm_before_run;
-		Runtime_datatype_transformer datatype_transformer_before_run;
-		Runtime_datatype_transformer datatype_transformer_after_run;
 
         void runtime_algorithm_common_initialize(const int, const int);
 		void add_runtime_datatype_transformation(Field_mem_info*, bool, Coupling_timer*, const char*);

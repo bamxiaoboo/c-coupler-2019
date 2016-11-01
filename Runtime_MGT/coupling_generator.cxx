@@ -194,22 +194,6 @@ void Coupling_connection::generate_unit_transformation()
 
 void Coupling_connection::generate_datatype_transformation()
 {
-	for (int i = 0; i < fields_name.size(); i ++) {
-		if (words_are_the_same(src_fields_info[i]->data_type, dst_fields_info[i]->data_type))
-			continue;
-		int datatype_size_src = get_data_type_size(src_fields_info[i]->data_type);
-		int datatype_size_dst = get_data_type_size(dst_fields_info[i]->data_type);
-		if (datatype_size_src >= datatype_size_dst) {
-			printf("for field %s, add data type transformation at src from %s to %s\n", fields_name[i], src_fields_info[i]->data_type, dst_fields_info[i]->data_type);
-			if (export_procedure != NULL)
-				export_procedure->alloc_field_inst_for_datatype_transformation(fields_name[i], dst_fields_info[i]->data_type);
-		}
-		else {
-			printf("for field %s, add data type transformation at dst from %s to %s\n", fields_name[i], src_fields_info[i]->data_type, dst_fields_info[i]->data_type);
-			if (import_procedure != NULL)
-				import_procedure->alloc_field_inst_for_datatype_transformation(fields_name[i], src_fields_info[i]->data_type);
-		}
-	}
 }
 
 
