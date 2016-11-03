@@ -70,6 +70,9 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 		             "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered). Please check the model code with the annotation \"%s\"",
 		             field_name, annotation);
 
+	if (strlen(unit) > 0)
+		strcpy(field_unit, unit);
+	else strcpy(field_unit, fields_info->search_field_info(field_name)->field_unit);
 	// check the field unit
 
 	strcpy(this->field_name, field_name);
@@ -202,6 +205,7 @@ void Field_mem_info::define_field_values(bool is_restarting)
 	if (!is_restarting)
 		is_field_active = true;
     last_define_time = components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time();
+	printf("define field instance %lx\n", this);
 }
 
 
@@ -212,6 +216,8 @@ void Field_mem_info::use_field_values(const char *cfg_name)
     
     if (last_define_time == components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time())
         return;
+
+	printf("use field instance %lx\n", this);
 
     EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%d) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
     EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time <= components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time(), "C-Coupler error in set_use_field\n");
@@ -480,7 +486,7 @@ void Memory_mgt::add_field_instance(Field_mem_info *field_instance, const char *
 
 Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, int special_buf_mark, int object_id, const char *unit_or_datatype)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
+	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
 	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
 	printf("buf mark is %d vs %d\n", new_buf_mark, original_field_instance->get_buf_mark());
 	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
@@ -620,110 +626,6 @@ void Memory_mgt::export_field_data(void *model_buf, const char *field_name, cons
 		             field_name, decomp_name, grid_name, field_instance->get_field_data()->get_grid_data_field()->data_type_in_application);
 
 	memcpy(model_buf, field_instance->get_data_buf(), get_data_type_size(data_type)*field_instance->get_size_of_field());
-}
-
-
-void Memory_mgt::register_model_data_buf(const char *model_data_decomp_name, const char *model_data_field_name, const char *data_type, void *model_data_buffer, const char *grid_name, void *fill_value, bool is_restart_field, int data_size)
-{
-    Field_mem_info *field_mem;
-    bool find_field_in_cfg;
-    int i, j;
-	char local_grid_name[NAME_STR_SIZE];
-
-
-	if (model_data_buffer != NULL) {
-		field_mem = search_field_via_data_buf(model_data_buffer, false);
-		if (field_mem != NULL)
-			EXECUTION_REPORT(REPORT_WARNING, -1, words_are_the_same(field_mem->get_decomp_name(), model_data_decomp_name) && words_are_the_same(field_mem->get_field_name(), model_data_field_name) && words_are_the_same(field_mem->get_grid_name(), grid_name),
-							 "Model data buffer currently registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\") has been registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\")",
-							 model_data_field_name, grid_name, model_data_decomp_name, field_mem->get_field_name(), field_mem->get_grid_name(), field_mem->get_decomp_name());
-	}
-	field_define_order_counter ++;
-
-	if (words_are_the_same(grid_name, "none")) {
-	    find_field_in_cfg = false;
-	    for (i = 0; i < registered_fields_info.size(); i ++) {
-	        if (words_are_the_same(model_data_field_name, registered_fields_info[i]->field_name) &&
-	            words_are_the_same(model_data_decomp_name, registered_fields_info[i]->decomp_name)) {
-	            find_field_in_cfg = true;
-	            break;
-	        }
-	    }
-		if (!words_are_the_same(model_data_decomp_name,"NULL")) {
-	    	EXECUTION_REPORT(REPORT_ERROR,-1, find_field_in_cfg, "field (%s %s) registered by model %s is not a legal field (not in the configuration file \"%s\". Please check the model code of component \"%s\".",
-	        		         model_data_field_name, model_data_decomp_name, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), field_register_cfg_file, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name());
-			strcpy(local_grid_name, registered_fields_info[i]->grid_name);
-		}
-		else strcpy(local_grid_name, "NULL");
-	}
-	else strcpy(local_grid_name, grid_name);
-	
-	if (!words_are_the_same(local_grid_name, "NULL")) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name) != NULL, "\"%s\" has not been defined as a grid when allocating memory for the corresponding field instance. Please check the model code of component \"%s\".", 
-			             grid_name, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name());
-		decomp_grids_mgr->search_decomp_grid_info(model_data_decomp_name, remap_grid_manager->search_remap_grid_with_grid_name(local_grid_name), false);
-	}
-
-    EXECUTION_REPORT(REPORT_LOG,-1, true, "register new memory for field (%s %s %s %d) at address %lx", model_data_decomp_name, model_data_field_name, local_grid_name, 0, model_data_buffer);
-
-	if (!words_are_the_same(model_data_decomp_name,"NULL"))	
-		EXECUTION_REPORT(REPORT_ERROR,-1, search_registerred_field(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0) == NULL,
-						 "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been registerred more than once by component \"%s\"). Please check the model code. ", 
-						 model_data_field_name, model_data_decomp_name, local_grid_name, decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name());
-	else EXECUTION_REPORT(REPORT_ERROR,-1, search_registerred_field(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, 0) == NULL,
-						  "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been registerred more than once by component \"%s\"). Please check the model code. ", 
-						  model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
-
-    for (j = 0; j < fields_mem.size(); j ++) {
-		if (!words_are_the_same(model_data_decomp_name,"NULL"))	{
-	        if (fields_mem[j]->match_field_mem(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, NULL)) {
-    	        field_mem = fields_mem[j];
-        	    break;
-        	}
-		}
-		else {
-	        if (fields_mem[j]->match_field_mem(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, NULL)) {
-    	        field_mem = fields_mem[j];
-        	    break;
-        	}
-		}
-    }
-    if (j == fields_mem.size()) {
-		if (!words_are_the_same(model_data_decomp_name,"NULL"))
-	        field_mem = new Field_mem_info(decomps_info_mgr->search_decomp_info(model_data_decomp_name)->get_model_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, false, field_register_cfg_file);
-		else field_mem = new Field_mem_info(compset_communicators_info_mgr->get_current_comp_name(), model_data_decomp_name, local_grid_name, model_data_field_name, data_type, 0, false, field_register_cfg_file);
-		if (field_mem->get_size_of_field() != 0)
-			EXECUTION_REPORT(REPORT_ERROR,-1, model_data_buffer != NULL,
-					 		 "Model data buffer currently registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\") is not allocated by the model program",
-					 		 model_data_field_name, grid_name, model_data_decomp_name);	
-        field_mem->reset_mem_buf(model_data_buffer, is_restart_field);
-        add_field_instance(field_mem, NULL);
-    }
-    else {
-        EXECUTION_REPORT(REPORT_ERROR,-1, !field_mem->get_is_registered_model_buf(), "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been registerred more than once by component \"%s\"). Please check the model code. ",
-                         model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
-        if (!(words_are_the_same(model_data_field_name, "lon") || words_are_the_same(model_data_field_name, "lat") || words_are_the_same(model_data_field_name, "mask") || words_are_the_same(model_data_field_name, "arear")))
-            EXECUTION_REPORT(REPORT_ERROR,-1, false, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has been used before registering it. Please check the model code of component \"%s\"", 
-                         model_data_field_name, model_data_decomp_name, local_grid_name, compset_communicators_info_mgr->get_current_comp_name());
-		if (field_mem->get_size_of_field() != 0)
-			EXECUTION_REPORT(REPORT_ERROR,-1, model_data_buffer != NULL,
-					 		 "Model data buffer currently registered for field (name=\"%s\", grid=\"%s\", decomp=\"%s\") is not allocated by the model program",
-					 		 model_data_field_name, grid_name, model_data_decomp_name);	
-        field_mem->reset_mem_buf(model_data_buffer, is_restart_field);
-    }
-
-	field_mem->set_define_order_count(field_define_order_counter);
-    if (fill_value != NULL)
-        field_mem->get_field_data()->get_grid_data_field()->set_fill_value(fill_value);
-
-/*
-	if (field_mem->get_size_of_field() > 0)
-		EXECUTION_REPORT(REPORT_ERROR,-1, data_size == field_mem->get_size_of_field(), 
-			             "The size of the data buffer registered by the component model for field (field_name=\"%s\", decomposition=\"%s\", grid=\"%s\") is %d, which is not consistent with the size (%d) determined by the decomposition and grid\n", model_data_field_name, model_data_decomp_name, grid_name, data_size, field_mem->get_size_of_field());
-*/
-
-	if (field_mem->get_size_of_field() > 0)
-		EXECUTION_REPORT(REPORT_ERROR,-1, model_data_buffer != NULL, "The data buffer for registered field (field_name=\"%s\", decomposition=\"%s\", grid=\"%s\") may not have been allocated. Please check the corresponding model code\n", model_data_field_name, model_data_decomp_name, grid_name);
 }
 
 

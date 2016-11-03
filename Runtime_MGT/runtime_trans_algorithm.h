@@ -1,11 +1,23 @@
+/***************************************************************
+  *  Copyright (c) 2013, Tsinghua University.
+  *  This is a source file of C-Coupler.
+  *  This file was initially finished by Dr. Cheng Zhang and then
+  *  modified by Dr. Cheng Zhang and Dr. Li Liu. 
+  *  If you have any problem, 
+  *  please contact Dr. Cheng Zhang via zhangc-cess@tsinghua.edu.cn
+  *  or Dr. Li Liu via liuli-cess@tsinghua.edu.cn
+  ***************************************************************/
+
+
 #ifndef RUNTIME_TRANS
 #define RUNTIME_TRANS
-
+#include <vector>
 #include "mpi.h"
 #include "Runtime_Algorithm_Basis.h"
 #include "routing_info_mgt.h"
 #include "memory_mgt.h"
 #include "timer_mgt.h"
+
 
 class Runtime_trans_algorithm: public Runtime_algorithm_basis
 {
@@ -29,6 +41,7 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         int * recv_size_with_remote_procs;
         int * fields_data_type_sizes;
         long * field_grids_num_lev;
+		bool *transfer_process_on;
 
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
@@ -63,6 +76,8 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         int get_data_buf_size() {return data_buf_size;}
         int get_tag_buf_size() {return tag_buf_size;}
         void create_win();
+		void pass_transfer_status(std::vector<bool> &);
 };
+
 
 #endif

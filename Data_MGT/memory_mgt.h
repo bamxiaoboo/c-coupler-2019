@@ -20,6 +20,7 @@
 #define BUF_MARK_AVERAGED_INTER          ((int)(0xFFF70000))
 #define BUF_MARK_UNIT_TRANS              ((int)(0xFFF00000))
 #define BUF_MARK_DATATYPE_TRANS          ((int)(0xFF700000))
+#define BUF_MARK_DATA_TRANSFER           ((int)(0xFF000000))
 
 
 struct Registered_field_info
@@ -38,7 +39,7 @@ class Field_mem_info
         char grid_name[NAME_STR_SIZE];
 
         char field_name[NAME_STR_SIZE];
-		char unit[NAME_STR_SIZE];
+		char field_unit[NAME_STR_SIZE];
 		int field_instance_id;
 		int decomp_id;
 		int comp_or_grid_id;
@@ -82,7 +83,7 @@ class Field_mem_info
 		int get_comp_id();
 		int get_grid_id();
         const char *get_grid_name();
-		const char *get_unit() const { return unit; }
+		const char *get_unit() const { return field_unit; }
 		int get_buf_mark() const { return buf_mark; }
 		int get_comp_or_grid_id() const { return comp_or_grid_id; }
 		int get_decomp_id() const { return decomp_id; }
@@ -107,8 +108,7 @@ class Memory_mgt
 		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
 		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*);
-        void register_model_data_buf(const char*, const char*, const char*, void*, const char*, void*, bool, int);
-		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
+ 		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
         Field_mem_info *search_field_via_data_buf(const void*, bool);
 		void write_restart_fields();

@@ -103,11 +103,11 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
     int dst_comp_num_procs = dst_comp_node->get_num_procs();
     int src_comp_id = src_comp_node->get_comp_id();
     int dst_comp_id = dst_comp_node->get_comp_id();
-
-    Field_mem_info ** fields_mem = NULL;
-    Coupling_timer ** fields_timer = NULL;
-    Routing_info ** fields_router = NULL;
-    Runtime_algorithm_basis * runtime_algorithm_object = NULL;
+	int num_fields = coupling_connection->fields_name.size();
+	Field_mem_info ** fields_mem = new Field_mem_info *[num_fields];
+	Coupling_timer **fields_timer = new Coupling_timer *[num_fields];
+	Routing_info **fields_router = new Routing_info *[num_fields];
+	Runtime_algorithm_basis * runtime_algorithm_object = NULL;
 
 	int msg_tag;
 	MPI_Request send_req, recv_req;
@@ -116,14 +116,9 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
     if (routing_info_mgr == NULL) routing_info_mgr = new Routing_info_mgt();
 
     if (current_proc_id_src_comp != -1){
-        int num_fields = coupling_connection->fields_name.size();
-        fields_mem = new Field_mem_info *[num_fields];
-        fields_timer = new Coupling_timer *[num_fields];
-        fields_router = new Routing_info *[num_fields];
-
         Inout_interface * src_interface = inout_interface_mgr->get_interface(coupling_connection->src_comp_interfaces[0].first, coupling_connection->src_comp_interfaces[0].second);
         for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
-            fields_mem[i] = src_interface->search_registered_field_instance(coupling_connection->fields_name[i]);
+            fields_mem[i] = coupling_connection->export_procedure->get_data_transfer_field_instance(i);
             int decomp_id = fields_mem[i]->get_decomp_id();
             int remote_decomp_id = -1;
             if (current_proc_id_src_comp == 0){
@@ -135,18 +130,12 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, decomp_id, remote_decomp_id);
         }
         runtime_algorithm_object = new Runtime_trans_algorithm(num_fields, 0, fields_mem, fields_router, fields_timer);
-        coupling_connection->export_procedure->add_runtime_algorithm(runtime_algorithm_object);
+        coupling_connection->export_procedure->add_data_transfer_algorithm(runtime_algorithm_object);
     }
     else if (current_proc_id_dst_comp != -1){
-        int num_fields = coupling_connection->fields_name.size();
-        fields_mem = new Field_mem_info *[num_fields];
-        fields_timer = new Coupling_timer *[num_fields];
-        fields_router = new Routing_info *[num_fields];
-        
         Inout_interface * dst_interface = inout_interface_mgr->get_interface(coupling_connection->dst_comp_full_name, coupling_connection->dst_interface_name);
         for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
-            fields_mem[i] = dst_interface->search_registered_field_instance(coupling_connection->fields_name[i]);
-
+            fields_mem[i] = coupling_connection->import_procedure->get_data_transfer_field_instance(i);
             int decomp_id = fields_mem[i]->get_decomp_id();
             int remote_decomp_id = -1;
             if (current_proc_id_dst_comp == 0){
@@ -158,7 +147,7 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_router[i] = routing_info_mgr->search_or_add_router(dst_comp_id, src_comp_id, decomp_id, remote_decomp_id);
         }
         runtime_algorithm_object = new Runtime_trans_algorithm(0, num_fields, fields_mem, fields_router, fields_timer);
-		coupling_connection->import_procedure->add_runtime_algorithm(runtime_algorithm_object);
+		coupling_connection->import_procedure->add_data_transfer_algorithm(runtime_algorithm_object);
     }
 
     if (current_proc_id_dst_comp != -1){

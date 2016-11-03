@@ -24,7 +24,6 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		runtime_remap_algorithms.push_back(NULL);
 		runtime_unit_transform_algorithms.push_back(NULL);
 		runtime_datatype_transform_algorithms.push_back(NULL);
-		runtime_data_transfer_algorithms.push_back(NULL);
 		fields_mem_registered.push_back(inout_interface->search_registered_field_instance(coupling_connection->fields_name[i]));
 		transfer_process_on.push_back(false);
 		if (inout_interface->get_import_or_export() == 1) {
@@ -37,6 +36,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		}
 		fields_mem_remapped.push_back(NULL);
 		fields_mem_datatype_transformed.push_back(NULL);
+		fields_mem_unit_transformed.push_back(NULL);
 		fields_mem_transfer.push_back(NULL);
 		Connection_field_time_info *field_time_info = new Connection_field_time_info;
 		field_time_info->timer = coupling_connection->src_fields_info[i]->timer;
@@ -65,11 +65,31 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			else {
 				if (inout_interface->get_import_or_export() == 0) {
 					printf("for field %s, add data type transformation at dst from %s to %s\n", coupling_connection->fields_name[i], coupling_connection->src_fields_info[i]->data_type, coupling_connection->dst_fields_info[i]->data_type);
+					fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, coupling_connection->src_fields_info[i]->data_type);
 					fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->src_fields_info[i]->data_type);
-//					runtime_data_transfer_algorithms[i] = new Runtime_datatype_transformer(..., ...);
+					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
 				}
 			}
-
+		}
+		if (inout_interface->get_import_or_export() == 1) {
+			if (fields_mem_remapped[i] != NULL)
+				fields_mem_transfer[i] = fields_mem_remapped[i];
+			else if (fields_mem_unit_transformed[i] != NULL)
+				fields_mem_transfer[i] = fields_mem_unit_transformed[i];
+			else if (fields_mem_datatype_transformed[i] != NULL)
+				fields_mem_transfer[i] = fields_mem_datatype_transformed[i];
+			else fields_mem_transfer[i] = fields_mem_inter_step_averaged[i];
+		}
+		else {
+			Field_mem_info *last_field_instance;
+			if (fields_mem_transfer[i] == NULL)
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type);
+			if (fields_mem_remapped[i] != NULL)
+				last_field_instance = fields_mem_remapped[i];
+			else if (fields_mem_datatype_transformed[i] != NULL)
+				last_field_instance = fields_mem_datatype_transformed[i];
+			else last_field_instance = fields_mem_transfer[i];
+			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(last_field_instance, fields_mem_registered[i]);
 		}
 	}
 }
@@ -77,24 +97,43 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 
 void Connection_coupling_procedure::execute(bool bypass_timer)
 {
-	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-		if (inout_interface->get_import_or_export() == 0) {
+	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
+	bool receive_data = false, send_data = false;
+
+
+	if (inout_interface->get_import_or_export() == 0) {
+		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 			components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, 0);
 			fields_time_info_dst[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();				
+			if (bypass_timer || time_mgr->is_timer_on(fields_time_info_dst[i]->timer->get_frequency_unit(), fields_time_info_dst[i]->timer->get_frequency_count(), fields_time_info_dst[i]->timer->get_delay_count()))
+				receive_data = true;
 		}
-		else {
-			components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, 0);
-			fields_time_info_src[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
+		if (receive_data) {
+			runtime_data_transfer_algorithm->run(true);
+			for (int i = 0; i < fields_time_info_dst.size(); i ++) {
+				if (bypass_timer || time_mgr->is_timer_on(fields_time_info_dst[i]->timer->get_frequency_unit(), fields_time_info_dst[i]->timer->get_frequency_count(), fields_time_info_dst[i]->timer->get_delay_count())) {
+					if (runtime_datatype_transform_algorithms[i] != NULL)
+						runtime_datatype_transform_algorithms[i]->run(true);			
+					if (runtime_remap_algorithms[i] != NULL)
+						runtime_remap_algorithms[i]->run(true);					
+					runtime_inter_averaging_algorithm[i]->run(true);
+				}				
+			}
 		}
+		return;
+	}
+
+	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
+		components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, 0);
+		fields_time_info_src[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
 	}
 
 	if (bypass_timer) {
 		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 			transfer_process_on[i] = true;
-			if (runtime_inner_averaging_algorithm[i] != NULL)
-				runtime_inner_averaging_algorithm[i]->run(true);
-			if (runtime_inter_averaging_algorithm[i] != NULL)
-				runtime_inter_averaging_algorithm[i]->run(true);
+			send_data = true;
+			runtime_inner_averaging_algorithm[i]->run(true);
+			runtime_inter_averaging_algorithm[i]->run(true);
 			if (runtime_unit_transform_algorithms[i] != NULL)
 				runtime_unit_transform_algorithms[i]->run(true);
 			if (runtime_datatype_transform_algorithms[i] != NULL)
@@ -105,15 +144,10 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 	}
 	else {
 		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-			Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
 			Coupling_timer *dst_timer = fields_time_info_dst[i]->timer;
-			Coupling_timer *src_timer = fields_time_info_src[i]->timer;
-			if (inout_interface->get_import_or_export() == 0) {
-				transfer_process_on[i] = time_mgr->is_timer_on(dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count());
-				continue;
-			}			
+			Coupling_timer *src_timer = fields_time_info_src[i]->timer;			
+			transfer_process_on[i] = false;
 			if (!time_mgr->is_timer_on(src_timer->get_frequency_unit(), src_timer->get_frequency_count(), src_timer->get_delay_count())) {
-				transfer_process_on[i] = false;
 				runtime_inner_averaging_algorithm[i]->run(false);			
 				printf("src accum/aver %d: inner accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
 				continue;
@@ -122,6 +156,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			printf("src accum/aver %d: inner average field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
 			if (time_mgr->is_timer_on(dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count())) {
 				transfer_process_on[i] = true;
+				send_data = true;
 				runtime_inter_averaging_algorithm[i]->run(true);
 				printf("src accum/aver %d: inter average field normal %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
 				if (runtime_datatype_transform_algorithms[i] != NULL) {
@@ -146,6 +181,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days);
 			if ((((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second < (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second) {
 				transfer_process_on[i] = true;
+				send_data = true;
 				runtime_inter_averaging_algorithm[i]->run(true);
 				printf("src accum/aver %d: inter average field special %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
 				if (runtime_datatype_transform_algorithms[i] != NULL) {
@@ -160,8 +196,17 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 	}
 
-	for (int i = 0; i < runtime_algorithms.size(); i ++)
-		runtime_algorithms[i]->run(true);
+	if (send_data) {
+		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_status(transfer_process_on);
+		runtime_data_transfer_algorithm->run(true); 
+	}
+}
+
+
+Field_mem_info *Connection_coupling_procedure::get_data_transfer_field_instance(int i)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, fields_mem_transfer[i] != NULL, "Software error in Connection_coupling_procedure::get_data_transfer_field_instance");
+	return fields_mem_transfer[i]; 
 }
 
 

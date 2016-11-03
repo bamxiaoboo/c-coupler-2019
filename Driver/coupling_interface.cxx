@@ -761,9 +761,7 @@ extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, i
 extern "C" void register_external_field_instance_(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
 	                                             int *buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
-	if (strlen(unit) != 0)
-		*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
-	else *field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, NULL, data_type, annotation);
+	*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
 }
 
 
