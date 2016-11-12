@@ -64,6 +64,7 @@ class Coupling_timer
 		int get_delay_count() { return delay_count; }
 		const char *get_frequency_unit() { return frequency_unit; }
 		void write_timer_into_array(char **, int &, int &);
+		void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
 };
 
 

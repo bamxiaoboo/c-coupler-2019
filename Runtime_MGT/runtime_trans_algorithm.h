@@ -28,7 +28,7 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         Coupling_timer **fields_timers;
         Routing_info **fields_routers;
         void * data_buf;
-        int * tag_buf;
+        long * tag_buf;
         MPI_Win data_win;
         MPI_Win tag_win;
         int data_buf_size;
@@ -42,12 +42,14 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         int * fields_data_type_sizes;
         long * field_grids_num_lev;
 		bool *transfer_process_on;
+		long *current_remote_fields_time;
+		long *last_remote_fields_time;
+		Time_mgt *time_mgr;
 
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
-        int pre_tag;
-        int current_tag;
-        int next_tag;
+	    int current_proc_local_id;
+    	int current_proc_global_id;		
 
         bool send(bool);
         bool recv(bool);
@@ -57,7 +59,6 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         bool is_local_data_buf_ready();
         bool set_remote_tags();
         bool set_local_tags();
-        void advance_step();
         void preprocess();
         void pack_MD_data(int, int, int *);
         void unpack_MD_data(int, int, int *);
@@ -72,11 +73,11 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         MPI_Win * get_data_win() {return &data_win;}
         MPI_Win * get_tag_win() {return &tag_win;}
         void * get_data_buf() {return data_buf;}
-        int * get_tag_buf() {return tag_buf;}
+        long * get_tag_buf() {return tag_buf;}
         int get_data_buf_size() {return data_buf_size;}
         int get_tag_buf_size() {return tag_buf_size;}
         void create_win();
-		void pass_transfer_status(std::vector<bool> &);
+		void pass_transfer_parameters(std::vector<bool> &, std::vector<long> &);
 };
 
 

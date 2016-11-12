@@ -13,6 +13,31 @@
 #include "inout_interface_mgt.h"
 
 
+Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_interface, Coupling_timer *timer, int time_step_in_second)
+{
+	this->inout_interface = inout_interface;
+	this->timer = timer;
+	components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(current_year, current_month, current_day, current_second, 0);
+	current_num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
+	this->time_step_in_second = time_step_in_second;
+	if (components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->is_timer_on(timer->get_frequency_unit(), timer->get_frequency_count(), timer->get_delay_count())) {
+		last_timer_num_elapsed_days = current_num_elapsed_days;
+		last_timer_second = current_second;
+	}
+	else {
+		last_timer_num_elapsed_days = -1;
+		last_timer_second = -1;
+	}
+	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
+}
+
+
+void Connection_field_time_info::get_time_of_next_timer_on(bool advance)
+{
+	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, advance);
+}
+
+
 Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *inout_interface, Coupling_connection *coupling_connection)
 {
 	this->inout_interface = inout_interface;
@@ -26,6 +51,8 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		runtime_datatype_transform_algorithms.push_back(NULL);
 		fields_mem_registered.push_back(inout_interface->search_registered_field_instance(coupling_connection->fields_name[i]));
 		transfer_process_on.push_back(false);
+		current_remote_fields_time.push_back(0);
+		last_remote_fields_time.push_back(-1);
 		if (inout_interface->get_import_or_export() == 1) {
 			fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL));
 			fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL));
@@ -38,17 +65,9 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		fields_mem_datatype_transformed.push_back(NULL);
 		fields_mem_unit_transformed.push_back(NULL);
 		fields_mem_transfer.push_back(NULL);
-		Connection_field_time_info *field_time_info = new Connection_field_time_info;
-		field_time_info->timer = coupling_connection->src_fields_info[i]->timer;
-		components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day, field_time_info->current_second, 0);
-		field_time_info->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->calculate_elapsed_day(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day);
-		field_time_info->time_step_in_second = coupling_connection->src_fields_info[i]->time_step_in_second;
+		Connection_field_time_info *field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->src_fields_info[i]->timer, coupling_connection->src_fields_info[i]->time_step_in_second);
 		fields_time_info_src.push_back(field_time_info);
-		field_time_info = new Connection_field_time_info;
-		field_time_info->timer = coupling_connection->dst_fields_info[i]->timer;
-		field_time_info->time_step_in_second = coupling_connection->dst_fields_info[i]->time_step_in_second;
-		components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day, field_time_info->current_second, 0);
-		field_time_info->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->calculate_elapsed_day(field_time_info->current_year, field_time_info->current_month, field_time_info->current_day);
+		field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->dst_fields_info[i]->timer, coupling_connection->dst_fields_info[i]->time_step_in_second);
 		fields_time_info_dst.push_back(field_time_info);
 		if (inout_interface->get_import_or_export() == 1) {
 			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
@@ -98,107 +117,155 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 void Connection_coupling_procedure::execute(bool bypass_timer)
 {
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
-	bool receive_data = false, send_data = false;
+	bool transfer_data = false;
+	Connection_field_time_info *local_fields_time_info, *remote_fields_time_info;
 
 
-	if (inout_interface->get_import_or_export() == 0) {
-		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-			components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, 0);
-			fields_time_info_dst[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();				
-			if (bypass_timer || time_mgr->is_timer_on(fields_time_info_dst[i]->timer->get_frequency_unit(), fields_time_info_dst[i]->timer->get_frequency_count(), fields_time_info_dst[i]->timer->get_delay_count()))
-				receive_data = true;
+	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
+		if (inout_interface->get_import_or_export() == 0) {
+			local_fields_time_info = fields_time_info_dst[i];
+			remote_fields_time_info = fields_time_info_src[i];
 		}
-		if (receive_data) {
+		else {
+			local_fields_time_info = fields_time_info_src[i];
+			remote_fields_time_info = fields_time_info_dst[i];
+		}
+		time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0);
+		local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();
+		if (local_fields_time_info->last_timer_num_elapsed_days != -1) 
+			EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
+			                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
+		EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
+		                 "Please make sure that the import/export interface \"%s\" is called when the timer of any field is on. Please check the model code with the annotation \"%s\"", 
+		                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
+		if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_delay_count())) {
+			if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {
+				local_fields_time_info->last_timer_num_elapsed_days = local_fields_time_info->next_timer_num_elapsed_days;
+				local_fields_time_info->last_timer_second = local_fields_time_info->next_timer_second;
+				local_fields_time_info->get_time_of_next_timer_on(true);
+			}
+			while((((long)remote_fields_time_info->current_num_elapsed_days)*((long)100000))+remote_fields_time_info->current_second <= (((long)local_fields_time_info->current_num_elapsed_days)*((long)100000)) + local_fields_time_info->current_second) {
+				if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
+					remote_fields_time_info->last_timer_num_elapsed_days = remote_fields_time_info->current_num_elapsed_days;
+					remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
+				}	
+				time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
+			}
+			remote_fields_time_info->get_time_of_next_timer_on(false);
+		}
+	}
+	
+	if (inout_interface->get_import_or_export() == 0) { 
+		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
+			if (bypass_timer) {
+				transfer_process_on[i] = true;
+				current_remote_fields_time[i] = -1;
+				EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+				transfer_data = true;
+				continue;
+			}
+			if (fields_time_info_dst[i]->current_num_elapsed_days != fields_time_info_dst[i]->last_timer_num_elapsed_days || fields_time_info_dst[i]->current_second != fields_time_info_dst[i]->last_timer_second) {
+				transfer_process_on[i] = false;
+				continue;
+			}
+			current_remote_fields_time[i] = ((long)fields_time_info_src[i]->last_timer_num_elapsed_days) * 100000 + fields_time_info_src[i]->last_timer_second; 
+			if (current_remote_fields_time[i] != last_remote_fields_time[i]) {
+				transfer_process_on[i] = true;
+				last_remote_fields_time[i] = current_remote_fields_time[i];
+				printf("receive remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_dst[i]->current_num_elapsed_days)*100000+fields_time_info_dst[i]->current_second);
+				transfer_data = true;
+			}
+			else {
+				transfer_process_on[i] = false;
+				printf("neglecting remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_dst[i]->current_num_elapsed_days)*100000+fields_time_info_dst[i]->current_second);
+			}
+		}
+		if (transfer_data) {
+			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
 			runtime_data_transfer_algorithm->run(true);
 			for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-				if (bypass_timer || time_mgr->is_timer_on(fields_time_info_dst[i]->timer->get_frequency_unit(), fields_time_info_dst[i]->timer->get_frequency_count(), fields_time_info_dst[i]->timer->get_delay_count())) {
+				if (transfer_process_on[i]) {
 					if (runtime_datatype_transform_algorithms[i] != NULL)
 						runtime_datatype_transform_algorithms[i]->run(true);			
 					if (runtime_remap_algorithms[i] != NULL)
 						runtime_remap_algorithms[i]->run(true);					
-					runtime_inter_averaging_algorithm[i]->run(true);
 				}				
 			}
 		}
 		return;
 	}
-
-	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-		components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, 0);
-		fields_time_info_src[i]->num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
-	}
-
-	if (bypass_timer) {
-		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-			transfer_process_on[i] = true;
-			send_data = true;
-			runtime_inner_averaging_algorithm[i]->run(true);
-			runtime_inter_averaging_algorithm[i]->run(true);
-			if (runtime_unit_transform_algorithms[i] != NULL)
-				runtime_unit_transform_algorithms[i]->run(true);
-			if (runtime_datatype_transform_algorithms[i] != NULL)
-				runtime_datatype_transform_algorithms[i]->run(true);
-			if (runtime_remap_algorithms[i] != NULL)
-				runtime_remap_algorithms[i]->run(true);
-		}
-	}
 	else {
-		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-			Coupling_timer *dst_timer = fields_time_info_dst[i]->timer;
-			Coupling_timer *src_timer = fields_time_info_src[i]->timer;			
-			transfer_process_on[i] = false;
-			if (!time_mgr->is_timer_on(src_timer->get_frequency_unit(), src_timer->get_frequency_count(), src_timer->get_delay_count())) {
-				runtime_inner_averaging_algorithm[i]->run(false);			
-				printf("src accum/aver %d: inner accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
-				continue;
-			}
-			runtime_inner_averaging_algorithm[i]->run(true);
-			printf("src accum/aver %d: inner average field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
-			if (time_mgr->is_timer_on(dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count())) {
+		for (int i = 0; i < fields_time_info_src.size(); i ++) {
+			if (bypass_timer) {
 				transfer_process_on[i] = true;
-				send_data = true;
+				current_remote_fields_time[i] = -1;
+				EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+				transfer_data = true;
+				runtime_inner_averaging_algorithm[i]->run(true);
 				runtime_inter_averaging_algorithm[i]->run(true);
-				printf("src accum/aver %d: inter average field normal %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
-				if (runtime_datatype_transform_algorithms[i] != NULL) {
-					runtime_datatype_transform_algorithms[i]->run(false);
-					printf("after data type transformation %f\n", ((float*)fields_mem_datatype_transformed[i]->get_data_buf())[0]);
-				}
-				continue;
-			}
-			while((((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second < (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second) 
-				time_mgr->advance_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days,  fields_time_info_dst[i]->time_step_in_second);				
-			while(!dst_timer->is_timer_on(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days, time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
-				printf("qiguaiqiguai %ld %ld : %d : %d\n", (((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second, (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second, fields_time_info_dst[i]->num_elapsed_days, time_mgr->get_start_num_elapsed_day());
-				printf("dst timer info: %s %d %d\n", dst_timer->get_frequency_unit(), dst_timer->get_frequency_count(), dst_timer->get_delay_count());
-				time_mgr->advance_time(fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days,  fields_time_info_dst[i]->time_step_in_second);
-			}
-			printf("special1 case current (%d %d %d %d) : %d, remote (%d %d %d %d): %d\n", fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days,
-				fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days);
-			do {
-				time_mgr->advance_time(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days,  fields_time_info_src[i]->time_step_in_second);				
-			} while(!src_timer->is_timer_on(fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days, time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day()));
-			printf("special2 case current (%d %d %d %d) : %d, remote (%d %d %d %d): %d\n", fields_time_info_src[i]->current_year, fields_time_info_src[i]->current_month, fields_time_info_src[i]->current_day, fields_time_info_src[i]->current_second, fields_time_info_src[i]->num_elapsed_days,
-				fields_time_info_dst[i]->current_year, fields_time_info_dst[i]->current_month, fields_time_info_dst[i]->current_day, fields_time_info_dst[i]->current_second, fields_time_info_dst[i]->num_elapsed_days);
-			if ((((long)fields_time_info_dst[i]->num_elapsed_days)*((long)86400))+fields_time_info_dst[i]->current_second < (((long)fields_time_info_src[i]->num_elapsed_days)*((long)86400)) + fields_time_info_src[i]->current_second) {
-				transfer_process_on[i] = true;
-				send_data = true;
-				runtime_inter_averaging_algorithm[i]->run(true);
-				printf("src accum/aver %d: inter average field special %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
-				if (runtime_datatype_transform_algorithms[i] != NULL) {
-					runtime_datatype_transform_algorithms[i]->run(false);
-					printf("after data type transformation %f\n", ((float*)fields_mem_datatype_transformed[i]->get_data_buf())[0]);
-				}				
+				if (runtime_unit_transform_algorithms[i] != NULL)
+					runtime_unit_transform_algorithms[i]->run(true);
+				if (runtime_datatype_transform_algorithms[i] != NULL)
+					runtime_datatype_transform_algorithms[i]->run(true);
+				if (runtime_remap_algorithms[i] != NULL)
+					runtime_remap_algorithms[i]->run(true);
 			}
 			else {
-				runtime_inter_averaging_algorithm[i]->run(false);
-				printf("src accum/aver %d: inter accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
+				Coupling_timer *dst_timer = fields_time_info_dst[i]->timer;
+				Coupling_timer *src_timer = fields_time_info_src[i]->timer;			
+				transfer_process_on[i] = false;
+				if (fields_time_info_src[i]->current_num_elapsed_days != fields_time_info_src[i]->last_timer_num_elapsed_days || fields_time_info_src[i]->current_second != fields_time_info_src[i]->last_timer_second) {
+					runtime_inner_averaging_algorithm[i]->run(false);			
+					printf("src accum/aver %d: inner accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
+					continue;
+				}
+				if (fields_time_info_src[i]->current_num_elapsed_days != fields_time_info_src[i]->last_timer_num_elapsed_days || fields_time_info_src[i]->current_second != fields_time_info_src[i]->last_timer_second)
+					printf("error11\n");
+				runtime_inner_averaging_algorithm[i]->run(true);
+				printf("src accum/aver %d: inner average field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
+				if (fields_time_info_src[i]->current_num_elapsed_days == fields_time_info_dst[i]->last_timer_num_elapsed_days && fields_time_info_src[i]->current_second == fields_time_info_dst[i]->last_timer_second) {
+					transfer_process_on[i] = true;
+					transfer_data = true;
+					current_remote_fields_time[i] = ((long)fields_time_info_dst[i]->last_timer_num_elapsed_days)*100000 + fields_time_info_dst[i]->last_timer_second;
+					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] != current_remote_fields_time[i], "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+					last_remote_fields_time[i] = current_remote_fields_time[i];
+					runtime_inter_averaging_algorithm[i]->run(true);
+					printf("src accum/aver %d: inter average field normal %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
+					if (runtime_datatype_transform_algorithms[i] != NULL) {
+						runtime_datatype_transform_algorithms[i]->run(false);
+						printf("after data type transformation %f\n", ((float*)fields_mem_datatype_transformed[i]->get_data_buf())[0]);
+					}
+					if (fields_time_info_src[i]->current_num_elapsed_days != fields_time_info_dst[i]->last_timer_num_elapsed_days || fields_time_info_src[i]->current_second != fields_time_info_dst[i]->last_timer_second)
+						printf("error12\n");
+					continue;
+				}
+				if ((((long)fields_time_info_dst[i]->next_timer_num_elapsed_days)*((long)100000))+fields_time_info_dst[i]->next_timer_second < (((long)fields_time_info_src[i]->next_timer_num_elapsed_days)*((long)100000)) + fields_time_info_src[i]->next_timer_second) {
+					transfer_process_on[i] = true;
+					transfer_data = true;
+					current_remote_fields_time[i] = ((long)fields_time_info_dst[i]->next_timer_num_elapsed_days)*100000 + fields_time_info_dst[i]->next_timer_second;
+					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] != current_remote_fields_time[i], "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+					last_remote_fields_time[i] = current_remote_fields_time[i];
+					runtime_inter_averaging_algorithm[i]->run(true);
+					printf("src accum/aver %d: inter average field special %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
+					if (runtime_datatype_transform_algorithms[i] != NULL) {
+						runtime_datatype_transform_algorithms[i]->run(false);
+						printf("after data type transformation %f\n", ((float*)fields_mem_datatype_transformed[i]->get_data_buf())[0]);
+					}	
+				}
+				else {
+					runtime_inter_averaging_algorithm[i]->run(false);
+					printf("src accum/aver %d: inter accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
+				}	
 			}
 		}
-	}
-
-	if (send_data) {
-		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_status(transfer_process_on);
-		runtime_data_transfer_algorithm->run(true); 
+		for (int i = 0; i < fields_time_info_src.size(); i ++) {
+			if (transfer_process_on[i])
+				printf("send remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_src[i]->current_num_elapsed_days)*100000+fields_time_info_src[i]->current_second);
+		}
+		if (transfer_data) {
+			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
+			runtime_data_transfer_algorithm->run(true); 
+		}
 	}
 }
 
@@ -387,6 +454,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		else bypass_timer_int = 1;
 		check_API_parameter_int(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", bypass_timer_int, "the value for specifying whether bypass timers", annotation);
 		if (bypass_timer) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x1) == 0, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "bypassing timer"));
 			execution_checking_status = execution_checking_status | 0x1;
 			annotation_mgr->add_annotation(interface_id, "bypassing timer", annotation);
 		}
@@ -396,9 +464,10 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		}
 	}
 
-	if (bypass_timer)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status | 0x2) == 0, "Cannot bypass the timers when executing import/export interface \"%s\" (the corrsponding code annotation is \"%s\") because this interface has been executed without bypassing timers before (the corrsponding code annotation is \"%s\")",
+	if (bypass_timer) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x2) == 0, "Cannot bypass the timers when executing import/export interface \"%s\" (the corrsponding code annotation is \"%s\") because this interface has been executed without bypassing timers before (the corrsponding code annotation is \"%s\")",
 		                 interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
+	}
 
 	for (int i = 0; i < coupling_procedures.size(); i ++)
 		coupling_procedures[i]->execute(bypass_timer);

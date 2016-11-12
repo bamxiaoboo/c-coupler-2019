@@ -34,8 +34,10 @@ bool common_is_timer_on(const char *frequency_unit, int frequency_count, int del
 
     EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
 
+	printf("check %d-%d-%d-%d: %s %d %d\n", current_year, current_month, current_day, current_second, frequency_unit, frequency_count, delay_count);
+
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
-        num_elapsed_time = (current_num_elapsed_day-start_num_elapsed_day)*SECONDS_PER_DAY + current_second - start_second;
+        num_elapsed_time = ((long)(current_num_elapsed_day-start_num_elapsed_day))*SECONDS_PER_DAY + current_second - start_second;
     }
     else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS)) {
         if (current_second != 0)
@@ -163,7 +165,6 @@ void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max
 	write_data_into_array_buffer(&delay_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
-	printf("field info timer is %s (%d %d)\n", frequency_unit, frequency_count, delay_count);
 }
 
 
@@ -174,6 +175,20 @@ bool Coupling_timer::is_timer_on(int current_year, int current_month, int curren
 		                      current_month, current_day, current_second, current_num_elapsed_day,
 	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
 }
+
+
+void Coupling_timer::get_time_of_next_timer_on(Time_mgt *time_mgr, int current_year, int current_month, int current_day, int current_second, int current_num_elapsed_days, int time_step_in_second, int &next_timer_num_elapsed_days, int &next_timer_second, bool advance)
+{
+	if (advance)
+		time_mgr->advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_step_in_second);
+	while (!is_timer_on(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_mgr->get_start_year(), 
+		                time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day()))	
+		time_mgr->advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_step_in_second);
+
+	next_timer_num_elapsed_days = current_num_elapsed_days;
+	next_timer_second = current_second;
+}
+
 
 
 bool Coupling_timer::is_timer_on()
@@ -653,7 +668,7 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
     current_step_id ++;
 
 	advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_day, time_step_in_second);
-	printf("current time is %d   %d   %d   %d   %d  %d\n", current_year, current_month, current_day, current_second, current_num_elapsed_day, current_step_id); 
+	printf("current time is %d   %d   %d   %d   %d  %d\n", current_year, current_month, current_day, current_second, current_num_elapsed_day, current_step_id);
 }
 
 
@@ -951,6 +966,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->leap_year_on = this->leap_year_on;
 	new_time_mgr->comp_id = comp_id;
 	new_time_mgr->current_num_elapsed_day = this->current_num_elapsed_day;
+	new_time_mgr->start_num_elapsed_day = this->start_num_elapsed_day;
 	new_time_mgr->advance_time_synchronized = false;
 	strcpy(new_time_mgr->case_name, this->case_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);

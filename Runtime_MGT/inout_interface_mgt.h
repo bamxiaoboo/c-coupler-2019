@@ -21,15 +21,24 @@ class Inout_interface;
 class Coupling_connection;
 
 
-struct Connection_field_time_info
+class Connection_field_time_info
 {
-	int current_year;
-	int current_month;
-	int current_day;
-	int current_second;
-	int num_elapsed_days;
-	int time_step_in_second;
-	Coupling_timer *timer;
+	public:
+		int current_year;
+		int current_month;
+		int current_day;
+		int current_second;
+		int current_num_elapsed_days;
+		int last_timer_num_elapsed_days;
+		int last_timer_second;
+		int next_timer_num_elapsed_days;
+		int next_timer_second;
+		int time_step_in_second;
+		Coupling_timer *timer;
+		Inout_interface *inout_interface;
+
+		Connection_field_time_info(Inout_interface*, Coupling_timer*, int);
+		void get_time_of_next_timer_on(bool);
 };
 
 
@@ -46,6 +55,8 @@ class Connection_coupling_procedure
 		std::vector<Connection_field_time_info *> fields_time_info_src;
 		std::vector<Connection_field_time_info *> fields_time_info_dst;
 		std::vector<bool> transfer_process_on;
+		std::vector<long> last_remote_fields_time;
+		std::vector<long> current_remote_fields_time;
 		Coupling_connection *coupling_connection;
 		Inout_interface *inout_interface;
 		std::vector<Runtime_algorithm_basis*> runtime_inner_averaging_algorithm;
