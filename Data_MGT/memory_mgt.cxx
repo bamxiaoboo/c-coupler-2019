@@ -391,6 +391,15 @@ const char *Field_mem_info::get_grid_name()
 }
 
 
+const char *Field_mem_info::get_decomp_name()
+{
+	if (decomp_id == -1)
+		return NULL;
+
+	return decomps_info_mgr->get_decomp_info(decomp_id)->get_decomp_name();
+}
+
+
 const char *Field_mem_info::get_data_type()
 {
 	return get_field_data()->get_grid_data_field()->data_type_in_application;

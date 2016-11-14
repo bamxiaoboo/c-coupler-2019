@@ -251,8 +251,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
         if (send_size_with_remote_procs[i] > 0) {
             int remote_proc_global_id = remote_comp_node->get_local_proc_global_id(i);
             MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_global_id, 0, tag_win);
-//            MPI_Get(tag_buf+tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, remote_proc_global_id, tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, tag_win);
-            MPI_Get(tag_buf, tag_buf_size, MPI_LONG, remote_proc_global_id, 0, tag_buf_size, MPI_LONG, tag_win);
+            MPI_Get(tag_buf+tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, remote_proc_global_id, tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, tag_win);
             MPI_Win_unlock(remote_proc_global_id, tag_win);
 			for (int j = 0; j < num_src_fields; j ++) {
 				printf("remote tag: %d vs %d\n", tag_buf[tag_buf_size-num_src_fields+j], last_remote_fields_time[j]);

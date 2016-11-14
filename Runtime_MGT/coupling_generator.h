@@ -25,6 +25,7 @@ struct Interface_field_info
 {
 	char grid_name[NAME_STR_SIZE];
 	char data_type[NAME_STR_SIZE];
+	char decomp_name[NAME_STR_SIZE];
 	char unit[NAME_STR_SIZE];
 	Coupling_timer *timer;
 	int time_step_in_second;

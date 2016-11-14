@@ -65,7 +65,7 @@ class Field_mem_info
         Remap_grid_data_class *get_field_data() { return grided_field_data; }
         void reset_mem_buf(void *buf, bool);
         void get_field_mem_full_name(char*);
-        const char *get_decomp_name() const { return decomp_name; }
+        const char *get_decomp_name();
         const char *get_comp_name() const { return comp_name; }
         const char *get_field_name() const { return field_name; }
 		long get_size_of_field();
