@@ -17,6 +17,10 @@
 #include "dictionary.h"
 
 
+#define USING_INSTANTANEOUS_VALUE            0
+#define USING_AVERAGE_VALUE                  1
+
+
 class Import_interface_configuration;
 class Coupling_generator;
 
@@ -29,6 +33,7 @@ struct Interface_field_info
 	char unit[NAME_STR_SIZE];
 	Coupling_timer *timer;
 	int time_step_in_second;
+	int inst_or_aver;
 };
 
 

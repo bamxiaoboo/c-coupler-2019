@@ -825,13 +825,18 @@ extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, cons
 }
 
 
-extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_ids, const char *annotation, int *array_size1, int *array_size2)
+extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_ids, int *inst_or_aver, const char *annotation, int *array_size1, int *array_size2, int *array_size3)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size1 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of field instances is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
 		             interface_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size2 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of timers is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
+	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size2 == 1 || *array_size2 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of timers is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
 		             interface_name, annotation);
-	*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, annotation);
+	if (*import_or_export == 0)
+		EXECUTION_REPORT(REPORT_ERROR, -1, *array_size3 == 1 || *array_size3 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for specifying instantaneous or average value is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
+			             interface_name, annotation);
+	if (*import_or_export == 0)
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, inst_or_aver, annotation, *array_size2, *array_size3);
+	else *interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, NULL, annotation, *array_size2, *array_size3);
 }
 
 

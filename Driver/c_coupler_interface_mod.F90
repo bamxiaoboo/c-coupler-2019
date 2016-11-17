@@ -52,6 +52,24 @@
    end interface
 
 
+
+   interface CCPL_register_import_interface ; module procedure &
+        CCPL_register_import_interface_1, &
+        CCPL_register_import_interface_2, &
+        CCPL_register_import_interface_3, &
+        CCPL_register_import_interface_4
+   end interface
+
+
+
+
+   interface CCPL_register_export_interface ; module procedure &
+        CCPL_register_export_interface_1, &
+        CCPL_register_export_interface_2
+   end interface
+
+
+
    interface c_coupler_check_sum_for_external_data ; module procedure &
         c_coupler_check_sum_for_external_double_0D_data, &
         c_coupler_check_sum_for_external_double_1D_data, &
@@ -2556,7 +2574,96 @@
 
 
 
-   integer FUNCTION CCPL_register_import_interface(interface_name, timer_IDs, field_instance_IDs, num_field_instances, annotation)
+   integer FUNCTION CCPL_register_import_interface_1(interface_name, num_field_instances, field_instance_IDs, timer_IDs, inst_or_aver, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in), dimension(:)  :: timer_IDs
+   integer,          intent(in), dimension(:)  :: inst_or_aver
+   integer,          intent(in), dimension(:)  :: field_instance_IDs
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   
+   if (present(annotation)) then
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs), size(inst_or_aver))
+   else
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, inst_or_aver, trim("")//char(0), size(field_instance_IDs), size(timer_IDs), size(inst_or_aver))
+   endif
+   CCPL_register_import_interface_1 = interface_id;
+
+   end FUNCTION CCPL_register_import_interface_1
+
+
+
+   integer FUNCTION CCPL_register_import_interface_2(interface_name, num_field_instances,  field_instance_IDs, timer_ID, inst_or_aver, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in)                :: timer_ID
+   integer,          intent(in), dimension(:)  :: inst_or_aver
+   integer,          intent(in), dimension(:)  :: field_instance_IDs
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   
+   if (present(annotation)) then
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs), 1, size(inst_or_aver))
+   else
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs), 1, size(inst_or_aver))
+   endif
+   CCPL_register_import_interface_2 = interface_id;
+
+   end FUNCTION CCPL_register_import_interface_2
+
+
+
+   integer FUNCTION CCPL_register_import_interface_3(interface_name, num_field_instances, field_instance_IDs, timer_IDs, inst_or_aver, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in), dimension(:)  :: timer_IDs
+   integer,          intent(in)                :: inst_or_aver
+   integer,          intent(in), dimension(:)  :: field_instance_IDs
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   
+   if (present(annotation)) then
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs), 1)
+   else
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, inst_or_aver, trim("")//char(0), size(field_instance_IDs), size(timer_IDs), 1)
+   endif
+   CCPL_register_import_interface_3 = interface_id;
+
+   end FUNCTION CCPL_register_import_interface_3
+
+
+
+   integer FUNCTION CCPL_register_import_interface_4(interface_name, num_field_instances,  field_instance_IDs, timer_ID, inst_or_aver, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in)                :: timer_ID
+   integer,          intent(in)                :: inst_or_aver
+   integer,          intent(in), dimension(:)  :: field_instance_IDs
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   
+   if (present(annotation)) then
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs), 1, 1)
+   else
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs), 1, 1)
+   endif
+   CCPL_register_import_interface_4 = interface_id;
+
+   end FUNCTION CCPL_register_import_interface_4
+
+
+
+
+   integer FUNCTION CCPL_register_export_interface_1(interface_name, num_field_instances, field_instance_IDs, timer_IDs, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name
    character(len=*), intent(in), optional      :: annotation
@@ -2567,34 +2674,34 @@
 
    
    if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_IDs, field_instance_IDs, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs), 0)
    else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_IDs, trim("")//char(0), size(field_instance_IDs), size(timer_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_IDs, field_instance_IDs, trim("")//char(0), size(field_instance_IDs), size(timer_IDs), 0)
    endif
-   CCPL_register_import_interface = interface_id;
+   CCPL_register_export_interface_1 = interface_id;
 
-   end FUNCTION CCPL_register_import_interface
+   end FUNCTION CCPL_register_export_interface_1
 
 
 
-   integer FUNCTION CCPL_register_export_interface(interface_name, timer_IDs, field_instance_IDs, num_field_instances, annotation)
+   integer FUNCTION CCPL_register_export_interface_2(interface_name, num_field_instances, field_instance_IDs, timer_ID, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name
    character(len=*), intent(in), optional      :: annotation
-   integer,          intent(in), dimension(:)  :: timer_IDs
+   integer,          intent(in)                :: timer_ID
    integer,          intent(in), dimension(:)  :: field_instance_IDs
    integer,          intent(in)                :: num_field_instances
    integer                                     :: interface_id
 
    
    if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_IDs, trim(annotation)//char(0), size(field_instance_IDs), size(timer_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(annotation)//char(0), size(field_instance_IDs), 1, 0)
    else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_IDs, trim("")//char(0), size(field_instance_IDs), size(timer_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim("")//char(0), size(field_instance_IDs), 1, 0)
    endif
-   CCPL_register_export_interface = interface_id;
+   CCPL_register_export_interface_2 = interface_id;
 
-   end FUNCTION CCPL_register_export_interface
+   end FUNCTION CCPL_register_export_interface_2
 
 
 

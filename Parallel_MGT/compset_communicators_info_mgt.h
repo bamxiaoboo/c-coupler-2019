@@ -94,6 +94,7 @@ class Comp_comm_group_mgt_mgr
 		Comp_comm_group_mgt_node *global_node_root;
 		bool definition_finalized;
 		int current_proc_global_id;
+		int num_total_global_procs;
         char experiment_model[NAME_STR_SIZE];
         char original_case_name[NAME_STR_SIZE];
         char current_case_name[NAME_STR_SIZE];
@@ -127,6 +128,7 @@ class Comp_comm_group_mgt_mgr
 		int get_current_proc_id_in_comp(int, const char *);
 		int get_num_proc_in_comp(int, const char *);
 		int get_current_proc_global_id() { return current_proc_global_id; }
+		int get_num_total_global_procs() { return num_total_global_procs; }
 		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
 		void confirm_coupling_configuration_active(int, int, const char*);
 		const int *get_all_components_ids();

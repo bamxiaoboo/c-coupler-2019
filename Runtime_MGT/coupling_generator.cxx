@@ -254,10 +254,10 @@ void Coupling_connection::exchange_connection_fields_info()
 
 	if (current_proc_id_src_comp == 0) {
 		for (int i = 0; i < fields_name.size(); i ++) {
-			printf("src field info: %s    %s     %s   %s  :  %s (%d  %d) : %d \n", fields_name[i], src_fields_info[i]->grid_name, src_fields_info[i]->decomp_name, src_fields_info[i]->data_type, src_fields_info[i]->unit, 
+			printf("src field info: %s    %s     %s   %s  :  %s (%d  %d) : %d %d\n", fields_name[i], src_fields_info[i]->grid_name, src_fields_info[i]->decomp_name, src_fields_info[i]->data_type, src_fields_info[i]->unit, 
 				src_fields_info[i]->timer->get_frequency_unit(), src_fields_info[i]->timer->get_frequency_count(), src_fields_info[i]->timer->get_delay_count(), src_fields_info[i]->time_step_in_second);
-			printf("dst field info: %s    %s     %s   %s  :  %s (%d  %d) : %d \n", fields_name[i], dst_fields_info[i]->grid_name, dst_fields_info[i]->decomp_name, dst_fields_info[i]->data_type, dst_fields_info[i]->unit, 
-				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_delay_count(), dst_fields_info[i]->time_step_in_second);
+			printf("dst field info: %s    %s     %s   %s  :  %s (%d  %d) : %d %d  %d\n", fields_name[i], dst_fields_info[i]->grid_name, dst_fields_info[i]->decomp_name, dst_fields_info[i]->data_type, dst_fields_info[i]->unit, 
+				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_delay_count(), dst_fields_info[i]->time_step_in_second, dst_fields_info[i]->inst_or_aver);
 		}
 	}
 }
@@ -268,6 +268,7 @@ void Coupling_connection::read_connection_fields_info_from_array(std::vector<Int
 	while (buffer_content_iter > 0) {
 		Interface_field_info *field_info = new Interface_field_info;
 		read_data_from_array_buffer(&field_info->time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
+		read_data_from_array_buffer(&field_info->inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
 		field_info->timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
 		read_data_from_array_buffer(field_info->decomp_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
@@ -284,6 +285,7 @@ void Coupling_connection::read_connection_fields_info_from_array(std::vector<Int
 void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size)
 {
 	char tmp_string[NAME_STR_SIZE];
+	int inst_or_aver;
 
 	
 	for (int i = fields_name.size() - 1; i >= 0; i --) {
@@ -306,6 +308,8 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 		Coupling_timer *timer = inout_interface->search_a_timer(fields_name[i]);
 		EXECUTION_REPORT(REPORT_ERROR, -1, timer != NULL, "Software error in Coupling_generator::write_connection_fields_info_into_array: NULL timer");
 		timer->write_timer_into_array(array, buffer_max_size, buffer_content_size);
+		inst_or_aver = inout_interface->get_inst_or_aver(i);
+		write_data_into_array_buffer(&inst_or_aver, sizeof(int), array, buffer_max_size, buffer_content_size);
 		int time_step_in_second = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_time_step_in_second();
 		write_data_into_array_buffer(&time_step_in_second, sizeof(int), array, buffer_max_size, buffer_content_size);
 	}

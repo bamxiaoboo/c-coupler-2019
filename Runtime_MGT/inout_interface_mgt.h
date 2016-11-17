@@ -34,10 +34,11 @@ class Connection_field_time_info
 		int next_timer_num_elapsed_days;
 		int next_timer_second;
 		int time_step_in_second;
+		int inst_or_aver;
 		Coupling_timer *timer;
 		Inout_interface *inout_interface;
 
-		Connection_field_time_info(Inout_interface*, Coupling_timer*, int);
+		Connection_field_time_info(Inout_interface*, Coupling_timer*, int, int);
 		void get_time_of_next_timer_on(bool);
 };
 
@@ -83,13 +84,14 @@ class Inout_interface
 		int import_or_export;     // 0: import; 1: export;
 		std::vector<Field_mem_info *> fields_mem_registered;
 		std::vector<Coupling_timer*> timers;
+		std::vector<int> inst_or_aver;
 		std::vector<const char*> fields_name;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
 		int execution_checking_status;
 
 	public:
 		Inout_interface(const char*, int&);
-		Inout_interface(const char*, int, int, int, int*, int*, const char*);
+		Inout_interface(const char*, int, int, int, int*, int*, int*, const char*, int, int);
 		~Inout_interface() {}
 		const char *get_interface_name() { return interface_name; }
 		int get_comp_id() { return comp_id; }
@@ -103,6 +105,7 @@ class Inout_interface
 		Field_mem_info *search_registered_field_instance(const char*);
 		Coupling_timer *search_a_timer(const char*);
 		void add_coupling_procedure(Connection_coupling_procedure*);
+		int get_inst_or_aver(int);
 		void execute(bool, const char*);
 };
 
@@ -120,7 +123,7 @@ class Inout_interface_mgt
 		Inout_interface_mgt(const char*, int);
 		Inout_interface_mgt();
 		~Inout_interface_mgt();
-		int register_inout_interface(const char *, int import_or_export, int num_fields, int *field_ids, int *timer_ids, const char*);
+		int register_inout_interface(const char*, int, int, int*, int*, int*, const char*, int, int);
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);
 		Inout_interface *get_interface(const char*, const char*);

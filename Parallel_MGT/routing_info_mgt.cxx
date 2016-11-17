@@ -198,7 +198,7 @@ void Routing_info::build_2D_remote_router()
     Decomp_info *decomp_info = decomps_info_mgr->get_decomp_info(local_decomp_id);
     int local_proc_global_id =  comp_comm_group_mgt_mgr->get_current_proc_global_id();
     int num_local_cells = decomp_info->get_num_local_cells();
-    int num_global_cells;
+    int num_global_cells = decomp_info->get_num_global_cells();
 	const int * local_cell_global_indx = decomp_info->get_local_cell_global_indx();
     int num_remote_procs = remote_comp_node->get_num_procs();
     MPI_Comm global_comm_group = MPI_COMM_WORLD;
@@ -209,17 +209,16 @@ void Routing_info::build_2D_remote_router()
     MPI_Status status;
     int remote_proc_global_id;
 
-    MPI_Allreduce(&num_local_cells, &num_global_cells, 1, MPI_INT, MPI_SUM, local_comp_node->get_comm_group());
 
     for (int i = 0; i < num_remote_procs; i ++) {
         remote_proc_global_id = remote_comp_node->get_local_proc_global_id(i);
         if (local_proc_global_id < remote_proc_global_id) {
-	        MPI_Send(&num_local_cells, 1, MPI_INT, remote_proc_global_id, local_decomp_id, global_comm_group);
-    	    MPI_Recv(&num_cells_each_remote_proc[i], 1, MPI_INT, remote_proc_global_id, remote_decomp_id, global_comm_group, &status);    
+	        MPI_Send(&num_local_cells, 1, MPI_INT, remote_proc_global_id, 0, global_comm_group);
+    	    MPI_Recv(&num_cells_each_remote_proc[i], 1, MPI_INT, remote_proc_global_id, 0, global_comm_group, &status);    
         }
         else {
-    	    MPI_Recv(&num_cells_each_remote_proc[i], 1, MPI_INT, remote_proc_global_id, remote_decomp_id, global_comm_group, &status);    
-	        MPI_Send(&num_local_cells, 1, MPI_INT, remote_proc_global_id, local_decomp_id, global_comm_group);
+    	    MPI_Recv(&num_cells_each_remote_proc[i], 1, MPI_INT, remote_proc_global_id, 0, global_comm_group, &status);    
+	        MPI_Send(&num_local_cells, 1, MPI_INT, remote_proc_global_id, 0, global_comm_group);
         }
     }
 
@@ -229,12 +228,12 @@ void Routing_info::build_2D_remote_router()
             cell_indx_each_remote_proc[i] = new int [num_cells_each_remote_proc[i]];
         else cell_indx_each_remote_proc[i] = NULL;
 		if (local_proc_global_id < remote_proc_global_id) {
-	        MPI_Send((void *)local_cell_global_indx, num_local_cells, MPI_INT, remote_proc_global_id, local_decomp_id, global_comm_group);
-    	    MPI_Recv(cell_indx_each_remote_proc[i], num_cells_each_remote_proc[i], MPI_INT, remote_proc_global_id, remote_decomp_id, global_comm_group, &status);    
+	        MPI_Send((void *)local_cell_global_indx, num_local_cells, MPI_INT, remote_proc_global_id, 0, global_comm_group);
+    	    MPI_Recv(cell_indx_each_remote_proc[i], num_cells_each_remote_proc[i], MPI_INT, remote_proc_global_id, 0, global_comm_group, &status);    
 		}
 		else {
-    	    MPI_Recv(cell_indx_each_remote_proc[i], num_cells_each_remote_proc[i], MPI_INT, remote_proc_global_id, remote_decomp_id, global_comm_group, &status);    
-	        MPI_Send((void *)local_cell_global_indx, num_local_cells, MPI_INT, remote_proc_global_id, local_decomp_id, global_comm_group);
+    	    MPI_Recv(cell_indx_each_remote_proc[i], num_cells_each_remote_proc[i], MPI_INT, remote_proc_global_id, 0, global_comm_group, &status);    
+	        MPI_Send((void *)local_cell_global_indx, num_local_cells, MPI_INT, remote_proc_global_id, 0, global_comm_group);
 		}
     }    
 

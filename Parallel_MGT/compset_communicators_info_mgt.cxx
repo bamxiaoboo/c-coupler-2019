@@ -626,6 +626,7 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name, co
 	strcpy(this->executable_name, executable_name+i);
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(MPI_COMM_WORLD, &num_total_global_procs) == MPI_SUCCESS);
 
 	if (words_are_the_same(case_mode, "initial")) {
 		strcpy(this->original_case_name, "none");
