@@ -71,6 +71,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(int num_src_fields, int num_dst
     }
 
     int local_comp_id = fields_routers[0]->get_local_comp_id();
+	comp_id = local_comp_id;
     local_comp_node = comp_comm_group_mgt_mgr->search_global_node(local_comp_id);
     int remote_comp_id = fields_routers[0]->get_remote_comp_id();
     remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_id);
@@ -196,6 +197,7 @@ void Runtime_trans_algorithm::pass_transfer_parameters(std::vector <bool> &trans
 {
 	for (int i = 0; i < transfer_process_on.size(); i ++) {
 		this->transfer_process_on[i] = transfer_process_on[i];
+		printf("current_remote_fields_time[i] 1 is %ld\n", current_remote_fields_time[i]);
 		this->current_remote_fields_time[i] = current_remote_fields_time[i];
 	}
 }
@@ -254,8 +256,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
             MPI_Get(tag_buf+tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, remote_proc_global_id, tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, tag_win);
             MPI_Win_unlock(remote_proc_global_id, tag_win);
 			for (int j = 0; j < num_src_fields; j ++) {
-				printf("remote tag: %d vs %d\n", tag_buf[tag_buf_size-num_src_fields+j], last_remote_fields_time[j]);
-				if (transfer_process_on[i]) {
+				if (transfer_process_on[j]) {
 					EXECUTION_REPORT(REPORT_ERROR, -1, tag_buf[tag_buf_size-num_src_fields+j] <= last_remote_fields_time[j], "Software error Runtime_trans_algorithm::is_remote_data_buf_ready  111");
 					if (tag_buf[tag_buf_size-num_src_fields+j] != last_remote_fields_time[j]) {
 						is_ready = false;
@@ -318,6 +319,7 @@ bool Runtime_trans_algorithm::send(bool is_algorithm_in_kernel_stage)
     while (! is_remote_data_buf_ready());  // to be modified
 
 	printf("before MPI_put send\n");
+
     int offset = 0;
     for (int i = 0; i < num_remote_procs; i ++) {
         if (send_size_with_remote_procs[i] == 0) continue;
@@ -385,8 +387,8 @@ bool Runtime_trans_algorithm::recv(bool is_algorithm_in_kernel_stage)
     MPI_Win_unlock(current_proc_global_id, data_win);
 	for (int j = num_src_fields; j < num_transfered_fields; j ++)
 		if (fields_data_type_sizes[j] == 4)
-			printf("receive field instance with value %f\n", ((float*) fields_data_buffers[j])[0]);
-		else printf("receive field instance with value %lf\n", ((double*) fields_data_buffers[j])[0]);
+			printf("receive field instance with value %f at %d-%05d, %ld\n", ((float*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
+		else printf("receive field instance with value %lf at %d-%05d, %ld\n", ((double*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
 
     set_local_tags();
     

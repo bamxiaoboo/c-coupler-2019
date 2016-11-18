@@ -35,6 +35,7 @@ class Connection_field_time_info
 		int next_timer_second;
 		int time_step_in_second;
 		int inst_or_aver;
+		int lag_seconds;
 		Coupling_timer *timer;
 		Inout_interface *inout_interface;
 
@@ -88,6 +89,7 @@ class Inout_interface
 		std::vector<const char*> fields_name;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
 		int execution_checking_status;
+		long last_execution_time;
 
 	public:
 		Inout_interface(const char*, int&);

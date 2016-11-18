@@ -264,7 +264,7 @@ extern "C" void coupling_advance_timer_()
 
 extern "C" void coupling_check_coupled_run_finished_(bool *is_coupled_run_finished)
 {
-    *is_coupled_run_finished = timer_mgr->check_is_coupled_run_finished();
+    *is_coupled_run_finished = timer_mgr->check_is_model_run_finished();
 }
 
 

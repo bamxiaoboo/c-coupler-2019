@@ -36,7 +36,6 @@ void Coupling_connection::generate_a_coupling_procedure()
 	src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
 	dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
 
-	
 	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
 		return;
 
@@ -252,12 +251,15 @@ void Coupling_connection::exchange_connection_fields_info()
 	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_name.size() == src_fields_info.size() && fields_name.size() == dst_fields_info.size(), "Software error in Coupling_connection::exchange_connection_fields_info");
 
+	for (int i = 0; i < src_fields_info.size(); i ++)
+		src_fields_info[i]->timer->reset_lag_count();
+
 	if (current_proc_id_src_comp == 0) {
 		for (int i = 0; i < fields_name.size(); i ++) {
 			printf("src field info: %s    %s     %s   %s  :  %s (%d  %d) : %d %d\n", fields_name[i], src_fields_info[i]->grid_name, src_fields_info[i]->decomp_name, src_fields_info[i]->data_type, src_fields_info[i]->unit, 
-				src_fields_info[i]->timer->get_frequency_unit(), src_fields_info[i]->timer->get_frequency_count(), src_fields_info[i]->timer->get_delay_count(), src_fields_info[i]->time_step_in_second);
+				src_fields_info[i]->timer->get_frequency_unit(), src_fields_info[i]->timer->get_frequency_count(), src_fields_info[i]->timer->get_lag_count(), src_fields_info[i]->time_step_in_second);
 			printf("dst field info: %s    %s     %s   %s  :  %s (%d  %d) : %d %d  %d\n", fields_name[i], dst_fields_info[i]->grid_name, dst_fields_info[i]->decomp_name, dst_fields_info[i]->data_type, dst_fields_info[i]->unit, 
-				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_delay_count(), dst_fields_info[i]->time_step_in_second, dst_fields_info[i]->inst_or_aver);
+				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_lag_count(), dst_fields_info[i]->time_step_in_second, dst_fields_info[i]->inst_or_aver);
 		}
 	}
 }

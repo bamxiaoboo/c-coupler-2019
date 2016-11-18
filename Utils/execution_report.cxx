@@ -249,6 +249,22 @@ void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *
 }
 
 
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, int value2, int value3, int value4) 
+{
+	char output_string[NAME_STR_SIZE*4];
+	
+
+	report_header(report_type, comp_id, condition, output_string);
+
+	if (!condition)
+		return;
+
+    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2, value3, value4);
+
+	report_ender(report_type, comp_id, output_string);
+}
+
+
 void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2, const char *str2) 
 {
 	char output_string[NAME_STR_SIZE*4];

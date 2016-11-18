@@ -16,6 +16,11 @@
 #define FREQUENCY_UNIT_MONTHS           "months"
 #define FREQUENCY_UNIT_YEARS            "years"
 
+#define SECONDS_PER_DAY                     86400
+#define NUM_MONTH_PER_YEAR                  12
+#define NUM_DAYS_PER_NONLEAP_YEAR           365
+#define NUM_DAYS_PER_LEAP_YEAR              366
+
 
 #include "common_utils.h"
 #include <vector>
@@ -40,7 +45,7 @@ class Coupling_timer
         friend class Time_mgt;
         char frequency_unit[NAME_STR_SIZE];
         int frequency_count;
-        int delay_count;
+        int lag_count;
 		int timer_id;
 		int comp_id;
 		std::vector<Coupling_timer*> children;
@@ -61,10 +66,11 @@ class Coupling_timer
 		int get_timer_id() { return timer_id; }
 		int get_comp_id() { return comp_id; }
 		int get_frequency_count() { return frequency_count; }
-		int get_delay_count() { return delay_count; }
+		int get_lag_count() { return lag_count; }
 		const char *get_frequency_unit() { return frequency_unit; }
 		void write_timer_into_array(char **, int &, int &);
 		void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
+		void reset_lag_count() { lag_count = 0; }
 };
 
 
@@ -111,6 +117,7 @@ class Time_mgt
         int time_step_in_second; 
         int current_num_elapsed_day;
 		int start_num_elapsed_day;
+		int stop_num_elapsed_day;
         int current_step_id;
         long num_total_steps;
         bool leap_year_on;
@@ -149,9 +156,10 @@ class Time_mgt
 		int get_start_day() { return start_day; }
 		int get_start_second() { return start_second; }
 		int get_start_num_elapsed_day() { return start_num_elapsed_day; }
+		int get_stop_num_elapsed_day() { return stop_num_elapsed_day; }
         void set_restart_time(long, long);
         bool is_timer_on(const char *, int, int);
-        bool check_is_coupled_run_finished();
+        bool check_is_model_run_finished();
         bool check_is_coupled_run_restart_time();
         double get_double_current_calendar_time(int);
         float get_float_current_calendar_time(int);
@@ -181,6 +189,7 @@ class Time_mgt
 		int get_current_step_id() { return current_step_id; }
 		void check_consistency_of_current_time(int, int, const char*);
 		int get_current_num_elapsed_day() { return current_num_elapsed_day; }
+		bool is_time_out_of_execution(long);
 };
 
 

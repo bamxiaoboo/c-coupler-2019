@@ -69,7 +69,7 @@ void Runtime_procedure_mgt::execute(const char *procedure_stage)
 			         "when coupling procedure %s of component %s works as a initialize-stage procedure, it must not be executed before\n");
     }
     else if (words_are_the_same(procedure_stage, PROCEDURE_STAGE_FINALIZE))
-        EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_is_coupled_run_finished(),
+        EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_is_model_run_finished(),
                      "coupling procedure %s of component %s is a finalize-stage procedure, which can only execute once and can only execute after kernel loop\n",
                      procedure_name, compset_communicators_info_mgr->get_current_comp_name());
 
