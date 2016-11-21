@@ -100,6 +100,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER:
 			sprintf(API_label, "CCPL_define_complex_timer");
 			break;
+		case API_ID_FIELD_MGT_REG_IO_FIELD:
+			sprintf(API_label, "CCPL_register_IO_field");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;

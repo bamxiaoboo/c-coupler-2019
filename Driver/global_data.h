@@ -36,6 +36,7 @@
 #include "inout_interface_mgt.h"
 #include "coupling_generator.h"
 #include "runtime_trans_algorithm.h"
+#include "IO_field_mgt.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -66,5 +67,6 @@ extern Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr;
 extern Annotation_mgt *annotation_mgr;
 extern Components_time_mgt *components_time_mgrs;
 extern Inout_interface_mgt *inout_interface_mgr;
+extern IO_field_mgt *IO_fields_mgr;
 
 #endif

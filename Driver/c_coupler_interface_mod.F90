@@ -53,6 +53,28 @@
 
 
 
+   interface CCPL_register_IO_field ; module procedure &
+        c_coupler_register_one_IO_field_from_field_instance_new_name, &
+        c_coupler_register_one_IO_field_from_field_instance_no_name, &
+        c_coupler_register_new_IO_field_double_0D_data, &
+        c_coupler_register_new_IO_field_double_1D_data, &
+        c_coupler_register_new_IO_field_double_2D_data, &
+        c_coupler_register_new_IO_field_double_3D_data, &
+        c_coupler_register_new_IO_field_double_4D_data, &
+        c_coupler_register_new_IO_field_float_0D_data, &
+        c_coupler_register_new_IO_field_float_1D_data, &
+        c_coupler_register_new_IO_field_float_2D_data, &
+        c_coupler_register_new_IO_field_float_3D_data, &
+        c_coupler_register_new_IO_field_float_4D_data, &
+        c_coupler_register_new_IO_field_integer_0D_data, &
+        c_coupler_register_new_IO_field_integer_1D_data, &
+        c_coupler_register_new_IO_field_integer_2D_data, &
+        c_coupler_register_new_IO_field_integer_3D_data, &
+        c_coupler_register_new_IO_field_integer_4D_data
+   end interface
+
+
+
    interface CCPL_register_import_interface ; module procedure &
         CCPL_register_import_interface_1, &
         CCPL_register_import_interface_2, &
@@ -743,6 +765,518 @@
    c_coupler_register_model_integer_4D_data = field_instance_id
 
    END FUNCTION c_coupler_register_model_integer_4D_data
+
+
+
+   SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_new_name(field_IO_name, field_inst_id, timer_id, annotation)
+   implicit none
+   character(len=*), intent(in)            :: field_IO_name
+   integer,          intent(in)            :: field_inst_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_an_io_field_from_field_instance(field_inst_id, local_timer_id, trim(field_IO_name)//char(0), trim(annotation)//char(0))
+   else
+       call register_an_io_field_from_field_instance(field_inst_id, local_timer_id, trim(field_IO_name)//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_new_name
+
+
+
+   SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_no_name(field_inst_id,timer_id, annotation)
+   implicit none
+   integer,          intent(in)            :: field_inst_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_an_io_field_from_field_instance(field_inst_id, local_timer_id, trim("")//char(0), trim(annotation)//char(0))
+   else
+       call register_an_io_field_from_field_instance(field_inst_id, local_timer_id, trim("")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_no_name
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_double_0D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R8), INTENT(IN)                    :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, 1, data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, 1, data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_double_0D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_double_1D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:)      :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_double_1D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_double_2D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:)    :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_double_2D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_double_3D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_double_3D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_double_4D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R8), INTENT(IN), DIMENSION(:,:,:,:):: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_double_4D_data 
+
+
+
+   subroutine c_coupler_register_new_IO_field_float_0D_data(data_buf, field_io_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(r4), intent(in)                    :: data_buf
+   character(len=*), intent(in)            :: field_io_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
+   endif
+
+   end subroutine c_coupler_register_new_IO_field_float_0D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_float_1D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:)      :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_float_1D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_float_2D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:)    :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_float_2D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_float_3D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_float_3D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_float_4D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   real(R4), INTENT(IN), DIMENSION(:,:,:,:):: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_float_4D_data 
+
+
+
+   subroutine c_coupler_register_new_IO_field_integer_0D_data(data_buf, field_io_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   integer, intent(in)                     :: data_buf
+   character(len=*), intent(in)            :: field_io_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
+   endif
+
+   end subroutine c_coupler_register_new_IO_field_integer_0D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_integer_1D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   integer, INTENT(IN), DIMENSION(:)       :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_integer_1D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_integer_2D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   integer, INTENT(IN), DIMENSION(:,:)     :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_integer_2D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_integer_3D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   integer, INTENT(IN), DIMENSION(:,:,:)   :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_integer_3D_data 
+
+
+
+   SUBROUTINE c_coupler_register_new_IO_field_integer_4D_data(data_buf, field_IO_name, &
+              field_long_name, field_unit, comp_or_grid_id, decomp_id, timer_id, annotation)
+   implicit none
+   integer, INTENT(IN), DIMENSION(:,:,:,:) :: data_buf
+   character(len=*), intent(in)            :: field_IO_name
+   character(len=*), intent(in)            :: field_long_name
+   character(len=*), intent(in)            :: field_unit
+   integer,          intent(in)            :: comp_or_grid_id
+   integer,          intent(in)            :: decomp_id
+   integer,          intent(in), optional  :: timer_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_timer_id
+
+   if (present(timer_id)) then
+       local_timer_id = timer_id
+   else
+       local_timer_id = -1
+   endif
+
+   if (present(annotation)) then
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
+   else
+       call register_a_new_io_field(local_timer_id, comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+                                     trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE c_coupler_register_new_IO_field_integer_4D_data 
 
 
 

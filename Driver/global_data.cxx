@@ -35,5 +35,7 @@ Datamodel_field_read_handler_mgt *datamodel_field_read_handler_mgr = NULL;
 Annotation_mgt *annotation_mgr = NULL;
 Components_time_mgt *components_time_mgrs = NULL;
 Inout_interface_mgt *inout_interface_mgr = NULL;
+IO_field_mgt *IO_fields_mgr = NULL;
+
 
 

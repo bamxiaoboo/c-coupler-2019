@@ -21,6 +21,7 @@
 #define BUF_MARK_UNIT_TRANS              ((int)(0xFFF00000))
 #define BUF_MARK_DATATYPE_TRANS          ((int)(0xFF700000))
 #define BUF_MARK_DATA_TRANSFER           ((int)(0xFF000000))
+#define BUF_MARK_IO_FIELD                ((int)(0xF7000000))
 
 
 struct Registered_field_info
@@ -52,7 +53,7 @@ class Field_mem_info
         Remap_grid_data_class *grided_field_data;
 
     public:
-		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *);
+		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *, bool);
         Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool, const char*);
         bool match_field_mem(const char*, const char*, const char*, const char*, const int, const char*);
 		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int, const char*);
@@ -107,7 +108,7 @@ class Memory_mgt
         Memory_mgt(const char *);
 		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
-		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*);
+		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*, bool);
  		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
 		void withdraw_model_data_buf(const char*, const char*, const char*);
         Field_mem_info *search_field_via_data_buf(const void*, bool);

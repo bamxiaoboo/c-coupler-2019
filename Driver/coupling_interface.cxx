@@ -568,6 +568,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	timer_mgr2 = new Timer_mgt();
 	execution_phase_number = 2;
 	inout_interface_mgr = new Inout_interface_mgt();
+	IO_fields_mgr = new IO_field_mgt();
 }
 
 
@@ -762,6 +763,19 @@ extern "C" void register_external_field_instance_(int *field_instance_id, const 
 	                                             int *buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
 	*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
+}
+
+
+extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, int *timer_id, const char *field_IO_name, const char *annotation)
+{
+	IO_fields_mgr->register_IO_field(*field_inst_id, *timer_id, field_IO_name, annotation);
+}
+
+
+extern "C" void register_a_new_io_field_(int *timer_id, int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
+	                                    const char *long_name, const char *unit, const char *data_type, const char * annotation)
+{
+	IO_fields_mgr->register_IO_field(*timer_id, *comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
 }
 
 
