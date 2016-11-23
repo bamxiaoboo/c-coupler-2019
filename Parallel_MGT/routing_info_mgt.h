@@ -1,9 +1,11 @@
 /***************************************************************
   *  Copyright (c) 2013, Tsinghua University.
   *  This is a source file of C-Coupler.
-  *  This file was initially finished by Dr. Li Liu. 
+  *  This file was initially finished by Dr. Li Liu and then
+  *  modified by Dr. Cheng Zhang and Dr. Li Liu. 
   *  If you have any problem, 
-  *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn
+  *  please contact Dr. Li Liu via liuli-cess@tsinghua.edu.cn or
+  *  Dr. Cheng Zhang via zhangc-cess@tsinghua.edu.cn
   ***************************************************************/
 
 
@@ -31,19 +33,21 @@ struct Routing_info_with_one_process
 class Routing_info
 {
     private:
-        int local_comp_id;
-        int remote_comp_id;
-        int local_decomp_id;
-        int remote_decomp_id;
-        Comp_comm_group_mgt_node * local_comp_node;
-        Comp_comm_group_mgt_node * remote_comp_node;
+        int src_comp_id;
+        int dst_comp_id;
+        int src_decomp_id;
+        int dst_decomp_id;
+        int src_decomp_size;
+        int dst_decomp_size;
+        Comp_comm_group_mgt_node * src_comp_node;
+        Comp_comm_group_mgt_node * dst_comp_node;
+        bool is_in_src_comp;
+        bool is_in_dst_comp;
 
         char remote_comp_name[NAME_STR_SIZE];
         char local_decomp_name[NAME_STR_SIZE];
         char remote_decomp_name[NAME_STR_SIZE];
         int num_dimensions;
-        //int local_comm_id;
-        //int remote_comm_id;
         int total_num_transferred_cells;
         long local_decomp_size;
 		long remap_decomp_size;
@@ -55,7 +59,7 @@ class Routing_info
         Routing_info(const int, const int, const int, const int);
         ~Routing_info();
         int get_true_routing_info_index(bool, int);
-        int get_num_remote_procs() { return remote_procs_routing_info.size(); }
+        //int get_num_remote_procs() { return remote_procs_routing_info.size(); }
         int get_num_elements_transferred_with_remote_proc(bool, int);
         int *get_local_indx_segment_starts_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->local_indx_segment_starts; }
         int *get_local_indx_segment_lengths_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->local_indx_segment_lengths; }
@@ -65,12 +69,14 @@ class Routing_info
         int get_num_dimensions() { return num_dimensions; }
         long get_local_decomp_size() { return local_decomp_size; }
 		long get_remap_decomp_size() { return remap_decomp_size; }
-        int get_local_comp_id() { return local_comp_id; }
-        int get_remote_comp_id() { return remote_comp_id; }
+        int get_src_comp_id() { return src_comp_id; }
+        int get_dst_comp_id() { return dst_comp_id; }
+        long get_src_decomp_size() { return src_decomp_size; }
+        long get_dst_decomp_size() { return dst_decomp_size; }
         
     private:
         void build_2D_remote_router(const char*);
-        void build_2D_remote_router();
+        void build_2D_router();
         void build_2D_self_router(const char*, const char*);
         void compute_routing_info_between_decomps(int, const int*, int, const int*, int, int, int);
 };

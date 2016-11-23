@@ -27,7 +27,7 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int grid_id, in
 	this->decomp_id = decomp_id;
 	this->grid_id = grid_id;
 	this->comp_id = original_grid_mgr->get_comp_id_of_grid(grid_id);
-	this->num_global_cells = original_grid_mgr->get_CoR_grid(grid_id)->get_grid_size();
+    this->num_global_cells = original_grid_mgr->get_CoR_grid(grid_id)->get_grid_size();
 	this->num_local_cells = num_local_cells;
 	this->local_cell_global_indx = NULL;
 	strcpy(this->decomp_name, decomp_name);

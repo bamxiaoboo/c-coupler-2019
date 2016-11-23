@@ -639,6 +639,8 @@ Comp_comm_group_mgt_mgr::~Comp_comm_group_mgt_mgr()
 {
 	for (int i = 0; i < global_node_array.size(); i ++)
 		delete global_node_array[i];
+
+	delete [] sorted_comp_ids;
 }
 
 
@@ -664,7 +666,7 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all
 		
 	for (i = 0; i < global_node_array.size(); i ++) {
 		for (j = 0; j < num_global_node; j ++)
-			if (words_are_the_same(all_global_nodes[j]->get_comp_name(), global_node_array[i]->get_comp_name()))
+			if (words_are_the_same(all_global_nodes[j]->get_comp_full_name(), global_node_array[i]->get_comp_full_name()))
 				break;
 		if (j == num_global_node)
 			continue;
@@ -780,6 +782,7 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 		definition_finalized = true;
 		write_comp_comm_info_into_XML();
 		read_comp_comm_info_from_XML();
+		generate_sorted_comp_ids();
 	}
 	if (global_node->get_current_proc_local_id() == 0) {
 		printf("dump comps at root comp %s\n", global_node->get_comp_name());
@@ -788,6 +791,30 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 
 	if (true_local_id == 1)
 		merge_comp_comm_info(global_node_array[0]->get_local_node_id(), annotation);
+}
+
+
+void Comp_comm_group_mgt_mgr::generate_sorted_comp_ids()
+{
+	int i, j, k;
+	
+	sorted_comp_ids = new int [global_node_array.size()];
+	sorted_comp_ids[0] = global_node_array.size();
+	for (i = 1; i < global_node_array.size(); i ++)
+		sorted_comp_ids[i] = -1;
+	for (i = 1; i < global_node_array.size(); i ++) {
+		for (k = 0, j = 1; j < global_node_array.size(); j ++) {
+			if (i == j)
+				continue;
+			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(global_node_array[i]->get_full_name(), global_node_array[j]->get_full_name()), "in Comp_comm_group_mgt_mgr::generate_sorted_comp_ids");
+			if (strcmp(global_node_array[i]->get_full_name(), global_node_array[j]->get_full_name()) > 0)
+				k ++;
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, sorted_comp_ids[k+1] == -1, "in Comp_comm_group_mgt_mgr::generate_sorted_comp_ids");		
+		sorted_comp_ids[k+1] = global_node_array[i]->get_comp_id();
+	}
+	for (i = 1; i < global_node_array.size(); i ++)
+		printf("sorted comp %d: \"%s\"\n", i-1, get_global_node_of_local_comp(sorted_comp_ids[i], "")->get_full_name());
 }
 
 
@@ -903,15 +930,14 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(int global
 
 int Comp_comm_group_mgt_mgr::get_current_proc_id_in_comp(int comp_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "The component id specified for getting the id of the current process is wrong. of component is wrong. Please check the model code with the annotation %s.", annotation); 
-	EXECUTION_REPORT(REPORT_ERROR, -1, search_global_node(comp_id)->get_current_proc_local_id() != -1, "The component id specified for getting the id of the current process is wrong. of component is wrong. Please check the model code with the annotation %s.", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "The component id specified for getting the id of the current process is wrong. Please check the model code with the annotation %s.", annotation); 
 	return search_global_node(comp_id)->get_current_proc_local_id();
 }
 
 
 int Comp_comm_group_mgt_mgr::get_num_proc_in_comp(int comp_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "The component id specified for getting the the number of processes is wrong. of component is wrong. Please check the model code with the annotation %s.", annotation); 
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "The component id specified for getting the the number of processes is wrong. Please check the model code with the annotation %s.", annotation); 
 	EXECUTION_REPORT(REPORT_ERROR, -1, search_global_node(comp_id)->get_current_proc_local_id() != -1, "The component id specified for getting the the number of processes is wrong. Please check the model code with the annotation %s.", annotation);
 	return search_global_node(comp_id)->get_num_procs();
 }

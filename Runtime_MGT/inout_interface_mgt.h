@@ -17,6 +17,12 @@
 #include "timer_mgt.h"
 
 
+#define INTERFACE_TYPE_REGISTER             ((int)0)
+#define INTERFACE_TYPE_IO_OUTPUT            ((int)1)
+#define INTERFACE_TYPE_IO_WRITE             ((int)2)
+
+
+
 class Inout_interface;
 class Coupling_connection;
 
@@ -81,6 +87,7 @@ class Inout_interface
 	private:
 		char interface_name[NAME_STR_SIZE];
 		int interface_id;
+		int interface_type;
 		int comp_id;
 		int import_or_export;     // 0: import; 1: export;
 		std::vector<Field_mem_info *> fields_mem_registered;
@@ -93,11 +100,12 @@ class Inout_interface
 
 	public:
 		Inout_interface(const char*, int&);
-		Inout_interface(const char*, int, int, int, int*, int*, int*, const char*, int, int);
+		Inout_interface(const char*, int, int, int, int*, int*, int*, const char*, int, int, int);
 		~Inout_interface() {}
 		const char *get_interface_name() { return interface_name; }
 		int get_comp_id() { return comp_id; }
 		int get_interface_id() { return interface_id; }
+		int get_interface_type() { return interface_type; }
 		int get_import_or_export() { return import_or_export; }
 		void report_common_field_instances(const Inout_interface*);
 		void get_fields_name(std::vector<const char*>*);
@@ -125,7 +133,8 @@ class Inout_interface_mgt
 		Inout_interface_mgt(const char*, int);
 		Inout_interface_mgt();
 		~Inout_interface_mgt();
-		int register_inout_interface(const char*, int, int, int*, int*, int*, const char*, int, int);
+		int register_inout_interface(const char*, int, int, int*, int*, int*, const char*, int, int, int);
+		int get_next_interface_id();
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);
 		Inout_interface *get_interface(const char*, const char*);

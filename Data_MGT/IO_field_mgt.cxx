@@ -11,16 +11,9 @@
 #include "IO_field_mgt.h"
 
 
-IO_field::IO_field(int IO_field_id, int field_instance_id, int timer_id, const char *field_IO_name, const char *annotation)
+IO_field::IO_field(int IO_field_id, int field_instance_id, const char *field_IO_name, const char *annotation)
 {
 	this->IO_field_id = IO_field_id;
-	if (timer_id == -1)
-		this->timer = NULL;
-	else {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr2->check_is_legal_timer_id(timer_id), "The parameter of timer id when calling the CCPL interface \"CCPL_register_IO_field\" is wrong. Please verify the model code with the annotation \"%s\"", annotation);
-		this->timer = new Coupling_timer(timer_mgr2->get_timer(timer_id));
-		this->timer->reset_lag_count();
-	}
 
 	Field_mem_info *field_inst = memory_manager->get_field_instance(field_instance_id);
 	this->comp_id = field_inst->get_comp_id();
@@ -33,7 +26,7 @@ IO_field::IO_field(int IO_field_id, int field_instance_id, int timer_id, const c
 }
 
 
-IO_field::IO_field(int IO_field_id, int timer_id, int comp_or_grid_id, int decomp_id, int field_size, void *data_buffer, const char * field_IO_name, const char *long_name, const char *unit, const char *data_type, const char * annotation)
+IO_field::IO_field(int IO_field_id, int comp_or_grid_id, int decomp_id, int field_size, void *data_buffer, const char * field_IO_name, const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
 	Field_mem_info *field_mem;
 
@@ -56,15 +49,7 @@ IO_field::IO_field(int IO_field_id, int timer_id, int comp_or_grid_id, int decom
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(field_IO_name) > 0, "The parameter of field I/O name when calling the CCPL interface \"CCPL_register_IO_field\" is empty. Please verify the model code with the annotation \"%s\"", annotation);
 
-	if (timer_id == -1)
-		this->timer = NULL;
-	else {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr2->check_is_legal_timer_id(timer_id), "The parameter of timer id when calling the CCPL interface \"CCPL_register_IO_field\" is wrong. Please verify the model code with the annotation \"%s\"", annotation);
-		this->timer = new Coupling_timer(timer_mgr2->get_timer(timer_id));
-		this->timer->reset_lag_count();
-	}
-
-	field_instance_id = memory_manager->register_external_field_instance(field_IO_name, data_buffer, field_size, decomp_id, comp_or_grid_id, BUF_MARK_IO_FIELD, unit, data_type, annotation);
+	field_instance_id = memory_manager->register_external_field_instance(field_IO_name, data_buffer, field_size, decomp_id, comp_or_grid_id, BUF_MARK_IO_FIELD_REG, unit, data_type, annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(field_IO_name) > 0, "The parameter of field I/O name when calling the CCPL interface \"CCPL_register_IO_field\" cannot be an empty string. Please verify the model code with the annotation \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(long_name) > 0, "The parameter of long name of the I/O field \"%s\" when calling the CCPL interface \"CCPL_register_IO_field\" cannot be an empty string. Please verify the model code with the annotation \"%s\"", field_IO_name, annotation);
@@ -94,22 +79,180 @@ void IO_field_mgt::check_for_registering_IO_field(IO_field *new_IO_field, const 
 }
 
 
-int IO_field_mgt::register_IO_field(int field_instance_id, int timer_id, const char *field_IO_name, const char *annotation)
+int IO_field_mgt::register_IO_field(int field_instance_id, const char *field_IO_name, const char *annotation)
 {
 	int IO_field_id = TYPE_IO_FIELD_PREFIX | IO_fields.size();
-	IO_field *new_IO_field = new IO_field(IO_field_id, field_instance_id, timer_id, field_IO_name, annotation);
+	IO_field *new_IO_field = new IO_field(IO_field_id, field_instance_id, field_IO_name, annotation);
 	check_for_registering_IO_field(new_IO_field, annotation);
 	check_API_parameter_field_instance(new_IO_field->get_comp_id(), API_ID_FIELD_MGT_REG_IO_FIELD, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", new_IO_field->get_field_instance_id(), "field instance id", annotation);
 	return IO_field_id;
 }
 
 
-int IO_field_mgt::register_IO_field(int timer_id, int comp_or_grid_id, int decomp_id, int field_size, void *data_buffer, const char * field_IO_name, const char *long_name, const char *unit, const char *data_type, const char * annotation)
+int IO_field_mgt::register_IO_field(int comp_or_grid_id, int decomp_id, int field_size, void *data_buffer, const char * field_IO_name, const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
 	int IO_field_id = TYPE_IO_FIELD_PREFIX | IO_fields.size();
-	IO_field *new_IO_field = new IO_field(IO_field_id, timer_id, comp_or_grid_id, decomp_id, field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
+	IO_field *new_IO_field = new IO_field(IO_field_id, comp_or_grid_id, decomp_id, field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
 	check_for_registering_IO_field(new_IO_field, annotation);
 	return IO_field_id;
+}
+
+
+IO_output_procedure::~IO_output_procedure()
+{
+}
+
+
+IO_output_procedure::IO_output_procedure(int comp_id, Coupling_timer *default_field_timer, Coupling_timer *default_file_timer, bool synchronized_IO)
+{
+	this->comp_id = comp_id;
+	inst_or_aver = USING_AVERAGE_VALUE;
+	import_interface = NULL;
+	export_interface = NULL;
+
+	include_all_component_io_fields();
+
+	if (IO_fields.size() == 0)
+		return;
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in IO_output_procedure::IO_output_procedure: wrong comp id");
+	
+	if (default_field_timer == NULL)
+		field_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 1, 0, "default timer for I/O fields"));
+	else {
+		field_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, default_field_timer));
+		field_timer->reset_lag_count();
+	}
+	
+	if (default_file_timer == NULL)
+		file_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 1, 0, "default timer for I/O fields"));
+	else {
+		file_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, default_file_timer));
+		file_timer->reset_lag_count();
+	}
+
+	int *fields_id = new int [IO_fields.size()];
+	int field_timer_id = field_timer->get_timer_id();
+	for (int i = 0; i < IO_fields.size(); i ++)
+		fields_id[i] = IO_fields[i]->get_field_instance_id();
+
+	export_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_output", 1, IO_fields.size(), fields_id, &field_timer_id, &inst_or_aver, "register default IO field to output for a component", 1, 1, INTERFACE_TYPE_IO_OUTPUT));
+
+	if (synchronized_IO) {
+		for (int i = 0; i < IO_fields.size(); i ++) {
+			Field_mem_info *IO_field_instance, *mirror_field_instance;
+			IO_field_instance = memory_manager->get_field_instance(IO_fields[i]->get_field_instance_id());
+			const char *data_type = IO_field_instance->get_data_type();
+			if (words_are_the_same(data_type, DATA_TYPE_DOUBLE) || words_are_the_same(data_type, DATA_TYPE_FLOAT))
+				mirror_field_instance = memory_manager->alloc_mem(IO_field_instance, BUF_MARK_IO_FIELD_MIRROR, inout_interface_mgr->get_next_interface_id(), DATA_TYPE_FLOAT, false);
+			else mirror_field_instance = memory_manager->alloc_mem(IO_field_instance, BUF_MARK_IO_FIELD_MIRROR, inout_interface_mgr->get_next_interface_id(), DATA_TYPE_INT, false);
+			fields_id[i] = mirror_field_instance->get_field_instance_id();
+		}
+		import_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_write", 0, IO_fields.size(), fields_id, &field_timer_id, &inst_or_aver, "register default IO field to write for a component", 1, 1, INTERFACE_TYPE_IO_WRITE));
+	}
+
+	delete [] fields_id;
+}
+
+
+void IO_output_procedure::execute()
+{
+	if (export_interface != NULL)
+		export_interface->execute(false, "IO output procedure export interface execute");
+
+	if (import_interface != NULL) {
+		import_interface->execute(false, "IO output procedure import interface execute");
+	}
+}
+
+
+Coupling_connection *IO_output_procedure::generate_coupling_connection(int connection_id)
+{
+	Coupling_connection *coupling_connection = NULL;
+	
+	if (import_interface != NULL && export_interface != NULL) {
+		coupling_connection = new Coupling_connection(connection_id<<4);
+		strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in IO_output_procedure::generate_coupling_connection")->get_full_name());
+		strcpy(coupling_connection->dst_interface_name, import_interface->get_interface_name());
+		std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
+		strcpy(src_comp_interface.first, coupling_connection->dst_comp_full_name);
+		strcpy(src_comp_interface.second, export_interface->get_interface_name());
+		coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
+		std::vector<const char*> import_fields_name;
+		import_interface->get_fields_name(&import_fields_name);
+		for (int k = 0; k < import_fields_name.size(); k ++)
+			coupling_connection->fields_name.push_back(strdup(import_fields_name[k]));
+	}
+
+	return coupling_connection;
+}
+
+
+void IO_output_procedure::include_all_component_io_fields()
+{
+	for (int i = 0; i < IO_fields_mgr->IO_fields.size(); i ++)
+		if (IO_fields_mgr->IO_fields[i]->get_comp_id() == comp_id)
+			IO_fields.push_back(IO_fields_mgr->IO_fields[i]);
+}
+
+
+Component_IO_output_procedures::Component_IO_output_procedures(int comp_id, const char *xml_file_name, bool synchronized_IO)
+{
+	this->comp_id = comp_id;
+	
+	if (xml_file_name == NULL)
+		IO_output_procedures.push_back(new IO_output_procedure(comp_id, NULL, NULL, synchronized_IO));
+	else {
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "asynchronized IO is not supported yet");
+	}
+}
+
+
+void Component_IO_output_procedures::generate_coupling_connection(std::vector<Coupling_connection*> &all_IO_connections, int basic_connection_id)
+{
+	for (int i = 0; i < IO_output_procedures.size(); i ++) {
+		Coupling_connection *coupling_connection = IO_output_procedures[i]->generate_coupling_connection(basic_connection_id+IO_output_procedures.size());
+		if (coupling_connection != NULL)
+			all_IO_connections.push_back(coupling_connection);
+	}
+}
+
+
+void Component_IO_output_procedures::execute()
+{
+	for (int i = 0; i < IO_output_procedures.size(); i ++)
+		IO_output_procedures[i]->execute();
+}
+
+
+void Components_IO_output_procedures_mgt::add_component_IO_output_procedures(int comp_id, const char *xml_file_name, bool synchronized_IO)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Component_IO_output_procedures::Component_IO_output_procedures: wrong comp id");
+	// ...
+	int true_comp_id = (comp_id&TYPE_ID_SUFFIX_MASK);
+	for (int i = components_IO_output_procedures.size(); i <= true_comp_id; i ++)
+		components_IO_output_procedures.push_back(NULL);
+	EXECUTION_REPORT(REPORT_ERROR, -1, components_IO_output_procedures[true_comp_id] == NULL, "Software error in Component_IO_output_procedures::Component_IO_output_procedures: wrong");	
+	components_IO_output_procedures[true_comp_id] = new Component_IO_output_procedures(comp_id, xml_file_name, synchronized_IO);
+}
+
+
+void Components_IO_output_procedures_mgt::add_all_components_IO_output_procedures()
+{
+	const int *all_components_ids = comp_comm_group_mgt_mgr->get_all_components_ids();
+	for (int i = 1; i < all_components_ids[0]; i ++) {
+		if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(all_components_ids[i], "in add_all_components_IO_output_procedures") != -1)
+			add_component_IO_output_procedures(all_components_ids[i], NULL, true);
+	}
+}
+
+
+Component_IO_output_procedures *Components_IO_output_procedures_mgt::get_component_IO_output_procedures(int comp_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Components_IO_output_procedures_mgt::get_component_IO_output_procedures");
+	int true_comp_id = comp_id & TYPE_ID_SUFFIX_MASK;
+	EXECUTION_REPORT(REPORT_ERROR, -1, components_IO_output_procedures.size() > true_comp_id && components_IO_output_procedures[true_comp_id] != NULL, "Software error in Components_IO_output_procedures_mgt::get_component_IO_output_procedures");
+	return components_IO_output_procedures[true_comp_id];
 }
 
 

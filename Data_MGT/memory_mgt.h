@@ -21,7 +21,8 @@
 #define BUF_MARK_UNIT_TRANS              ((int)(0xFFF00000))
 #define BUF_MARK_DATATYPE_TRANS          ((int)(0xFF700000))
 #define BUF_MARK_DATA_TRANSFER           ((int)(0xFF000000))
-#define BUF_MARK_IO_FIELD                ((int)(0xF7000000))
+#define BUF_MARK_IO_FIELD_REG            ((int)(0xF7000000))
+#define BUF_MARK_IO_FIELD_MIRROR         ((int)(0xF7100000))
 
 
 struct Registered_field_info
@@ -106,7 +107,7 @@ class Memory_mgt
         
     public: 
         Memory_mgt(const char *);
-		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*);
+		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*, bool);
         Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
 		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*, bool);
  		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);

@@ -68,5 +68,6 @@ extern Annotation_mgt *annotation_mgr;
 extern Components_time_mgt *components_time_mgrs;
 extern Inout_interface_mgt *inout_interface_mgr;
 extern IO_field_mgt *IO_fields_mgr;
+extern Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr;
 
 #endif

@@ -220,7 +220,7 @@ void check_API_parameter_timer(int comp_id, int API_id, MPI_Comm comm, const cha
 void check_API_parameter_field_instance(int comp_id, int API_id, MPI_Comm comm, const char *hint, int field_id, const char *parameter_name, const char *annotation)
 {
 	Field_mem_info *field_instance;
-	int decomp_class;
+	int decomp_class, is_registerred;
 
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(field_id), "Software error in check_API_parameter_field_instance");
@@ -234,7 +234,12 @@ void check_API_parameter_field_instance(int comp_id, int API_id, MPI_Comm comm, 
 		check_API_parameter_string(comp_id, API_id, comm, hint, decomps_info_mgr->get_decomp_info(field_instance->get_decomp_id())->get_decomp_name(), parameter_name, annotation);
 		check_API_parameter_string(comp_id, API_id, comm, hint, original_grid_mgr->get_name_of_grid(field_instance->get_grid_id()), parameter_name, annotation);
 	}
-	check_API_parameter_int(comp_id, API_id, comm, hint, field_instance->get_buf_mark(), parameter_name, annotation);
+	if (field_instance->get_is_registered_model_buf())
+		is_registerred = 1;
+	else is_registerred = 0;
+	check_API_parameter_int(comp_id, API_id, comm, hint, is_registerred, parameter_name, annotation);	
+	if (field_instance->get_is_registered_model_buf())
+		check_API_parameter_int(comp_id, API_id, comm, hint, field_instance->get_buf_mark(), parameter_name, annotation);
 }
 
 

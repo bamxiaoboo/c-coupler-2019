@@ -104,6 +104,7 @@ class Comp_comm_group_mgt_mgr
 		char current_config_time[NAME_STR_SIZE];
 		char original_config_time[NAME_STR_SIZE];
 		char executable_name[NAME_STR_SIZE];
+		int *sorted_comp_ids;
 
 	public:
 		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
@@ -132,6 +133,8 @@ class Comp_comm_group_mgt_mgr
 		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
 		void confirm_coupling_configuration_active(int, int, const char*);
 		const int *get_all_components_ids();
+		void generate_sorted_comp_ids();
+		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 };
 
 

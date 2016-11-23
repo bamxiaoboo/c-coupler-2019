@@ -49,7 +49,11 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
 	    int current_proc_local_id;
-    	int current_proc_global_id;		
+    	int current_proc_global_id;	
+
+        MPI_Comm union_comm;
+        int * remote_proc_ranks_in_union_comm;
+        int current_proc_id_union_comm;
 
         bool send(bool);
         bool recv(bool);
@@ -66,7 +70,7 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         template <class T> void unpack_segment_data(T *, T *, int, int, int, int);
 
     public:
-        Runtime_trans_algorithm(int, int, Field_mem_info **, Routing_info **, Coupling_timer **);
+        Runtime_trans_algorithm(int, int, Field_mem_info **, Routing_info **, Coupling_timer **, MPI_Comm, int *);
         ~Runtime_trans_algorithm();
         bool run(bool);
         void allocate_src_dst_fields(bool);
@@ -78,6 +82,8 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         int get_tag_buf_size() {return tag_buf_size;}
         void create_win();
 		void pass_transfer_parameters(std::vector<bool> &, std::vector<long> &);
+        void set_data_win(MPI_Win win) {data_win = win;}
+        void set_tag_win(MPI_Win win) {tag_win = win;}
 };
 
 

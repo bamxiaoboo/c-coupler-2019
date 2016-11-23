@@ -19,7 +19,6 @@ template <class T> void Runtime_trans_algorithm::pack_segment_data(T *mpi_buf, T
 {
     int i, j, offset;
 
-
     for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
         for (j = 0; j < num_lev; j ++)
             mpi_buf[offset++] = field_data_buf[i+j*field_2D_size];
@@ -37,7 +36,7 @@ template <class T> void Runtime_trans_algorithm::unpack_segment_data(T *mpi_buf,
 }
 
 
-Runtime_trans_algorithm::Runtime_trans_algorithm(int num_src_fields, int num_dst_fields, Field_mem_info ** fields_mem, Routing_info ** routers, Coupling_timer ** timers)
+Runtime_trans_algorithm::Runtime_trans_algorithm(int num_src_fields, int num_dst_fields, Field_mem_info ** fields_mem, Routing_info ** routers, Coupling_timer ** timers, MPI_Comm comm, int * ranks)
 {
     if (num_src_fields != 0 && num_dst_fields != 0)
         EXECUTION_REPORT(REPORT_ERROR,-1, num_src_fields == num_dst_fields, "Remapping has different number of src and dst fields: number of src fields is %d, but number of dst fields is %d", num_src_fields, num_dst_fields);
@@ -51,8 +50,10 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(int num_src_fields, int num_dst
     tag_buf = NULL; 
     data_buf_size = 0;
     tag_buf_size = 0;
+    union_comm = comm;
+    MPI_Comm_rank(union_comm, &current_proc_id_union_comm);
 
-    num_remote_procs = routers[0]->get_num_remote_procs();
+    //num_remote_procs = routers[0]->get_num_remote_procs();
 
     this->fields_mem = new Field_mem_info *[num_transfered_fields];
     fields_data_buffers = new void *[num_transfered_fields];
@@ -70,14 +71,24 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(int num_src_fields, int num_dst
 		last_remote_fields_time[i] = -1;
     }
 
-    int local_comp_id = fields_routers[0]->get_local_comp_id();
-	comp_id = local_comp_id;
+    int local_comp_id, remote_comp_id;
+    if (num_src_fields > 0) {
+        local_comp_id = fields_routers[0]->get_src_comp_id();
+        remote_comp_id = fields_routers[0]->get_dst_comp_id();
+    }
+    else {
+        local_comp_id = fields_routers[0]->get_dst_comp_id();
+        remote_comp_id = fields_routers[0]->get_src_comp_id();
+    }
+    comp_id = local_comp_id;
     local_comp_node = comp_comm_group_mgt_mgr->search_global_node(local_comp_id);
-    int remote_comp_id = fields_routers[0]->get_remote_comp_id();
     remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_id);
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
 	time_mgr = components_time_mgrs->get_time_mgr(local_comp_id);
+    num_remote_procs = remote_comp_node->get_num_procs();
+    remote_proc_ranks_in_union_comm = new int[num_remote_procs];
+    memcpy(remote_proc_ranks_in_union_comm, ranks, num_remote_procs*sizeof(int));
 	
     fields_allocated = false;
     initialize_local_data_structures();
@@ -190,6 +201,7 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
         delete [] send_displs_in_remote_procs;
         delete [] recv_displs_in_current_proc;
     }
+    delete [] remote_proc_ranks_in_union_comm;
 }
 
 
@@ -197,7 +209,6 @@ void Runtime_trans_algorithm::pass_transfer_parameters(std::vector <bool> &trans
 {
 	for (int i = 0; i < transfer_process_on.size(); i ++) {
 		this->transfer_process_on[i] = transfer_process_on[i];
-		printf("current_remote_fields_time[i] 1 is %ld\n", current_remote_fields_time[i]);
 		this->current_remote_fields_time[i] = current_remote_fields_time[i];
 	}
 }
@@ -216,11 +227,11 @@ bool Runtime_trans_algorithm::set_remote_tags()
 
     for (int i = 0; i < num_remote_procs; i ++) {
 		if (send_size_with_remote_procs[i] > 0) {
-        	int remote_proc_global_id = remote_comp_node->get_local_proc_global_id(i);
-	        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_global_id, 0, tag_win);
+        	int remote_proc_id = remote_proc_ranks_in_union_comm[i];
+	        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, tag_win);
 			printf("sender put tag %d\n", i);
-        	MPI_Put(tag_buf+num_src_fields*current_proc_local_id, num_src_fields, MPI_LONG, remote_proc_global_id,  num_src_fields*current_proc_local_id, num_src_fields, MPI_LONG, tag_win);
-        	MPI_Win_unlock(remote_proc_global_id, tag_win);
+        	MPI_Put(tag_buf+num_src_fields*current_proc_local_id, num_src_fields, MPI_LONG, remote_proc_id,  num_src_fields*current_proc_local_id, num_src_fields, MPI_LONG, tag_win);
+        	MPI_Win_unlock(remote_proc_id, tag_win);
 		}
     }
 
@@ -233,12 +244,12 @@ bool Runtime_trans_algorithm::set_local_tags()
 	long current_full_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second();
 	
 
-    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_global_id, 0, tag_win);
+    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
     for (int i = 0; i < num_dst_fields; i ++)
 		if (transfer_process_on[i])
 	        tag_buf[num_remote_procs*num_dst_fields+i] = current_full_time;
 	printf("set local tag %ld\n", current_full_time);
-    MPI_Win_unlock(current_proc_global_id, tag_win);
+    MPI_Win_unlock(current_proc_id_union_comm, tag_win);
     
     return true;
 }
@@ -251,11 +262,13 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
 
     for (int i = 0; i < num_remote_procs; i ++) {
         if (send_size_with_remote_procs[i] > 0) {
-            int remote_proc_global_id = remote_comp_node->get_local_proc_global_id(i);
-            MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_global_id, 0, tag_win);
-            MPI_Get(tag_buf+tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, remote_proc_global_id, tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, tag_win);
-            MPI_Win_unlock(remote_proc_global_id, tag_win);
+            int remote_proc_id = remote_proc_ranks_in_union_comm[i];
+            MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, tag_win);
+//            MPI_Get(tag_buf+tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, remote_proc_id, tag_buf_size-num_src_fields, num_src_fields, MPI_LONG, tag_win);
+            MPI_Get(tag_buf, tag_buf_size, MPI_LONG, remote_proc_id, 0, tag_buf_size, MPI_LONG, tag_win);
+            MPI_Win_unlock(remote_proc_id, tag_win);
 			for (int j = 0; j < num_src_fields; j ++) {
+				printf("remote tag: %d vs %d\n", tag_buf[tag_buf_size-num_src_fields+j], last_remote_fields_time[j]);
 				if (transfer_process_on[j]) {
 					EXECUTION_REPORT(REPORT_ERROR, -1, tag_buf[tag_buf_size-num_src_fields+j] <= last_remote_fields_time[j], "Software error Runtime_trans_algorithm::is_remote_data_buf_ready  111");
 					if (tag_buf[tag_buf_size-num_src_fields+j] != last_remote_fields_time[j]) {
@@ -279,7 +292,7 @@ bool Runtime_trans_algorithm::is_local_data_buf_ready()
 	long current_full_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second();
 
 
-    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_global_id, 0, tag_win);
+    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
 	for (int j = 0; j < num_dst_fields; j ++) {
 		if (!transfer_process_on[j])
 			continue;
@@ -295,7 +308,7 @@ bool Runtime_trans_algorithm::is_local_data_buf_ready()
 		if (!is_ready)
 			break;
 	}
-    MPI_Win_unlock(current_proc_global_id, tag_win);
+    MPI_Win_unlock(current_proc_id_union_comm, tag_win);
 
     return is_ready;
 }
@@ -319,7 +332,6 @@ bool Runtime_trans_algorithm::send(bool is_algorithm_in_kernel_stage)
     while (! is_remote_data_buf_ready());  // to be modified
 
 	printf("before MPI_put send\n");
-
     int offset = 0;
     for (int i = 0; i < num_remote_procs; i ++) {
         if (send_size_with_remote_procs[i] == 0) continue;
@@ -331,17 +343,17 @@ bool Runtime_trans_algorithm::send(bool is_algorithm_in_kernel_stage)
             {
                 if (fields_routers[j]->get_num_dimensions() == 0) {
                     if (fields_routers[j]->get_num_elements_transferred_with_remote_proc(true, i) > 0)
-                        MPI_Pack((char *)fields_data_buffers[j], fields_data_type_sizes[j], MPI_CHAR, data_buf, data_buf_size, &offset, MPI_COMM_WORLD);
+                        MPI_Pack((char *)fields_data_buffers[j], fields_data_type_sizes[j], MPI_CHAR, data_buf, data_buf_size, &offset, union_comm);
                 }
                 else
                     pack_MD_data(i, j, &offset);
             }
 
-        int remote_proc_global_id = remote_comp_node->get_local_proc_global_id(i);
-        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_global_id, 0, data_win);
-        MPI_Put((char *)data_buf + old_offset, send_size_with_remote_procs[i], MPI_CHAR, remote_proc_global_id,
+        int remote_proc_id = remote_proc_ranks_in_union_comm[i];
+        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
+        MPI_Put((char *)data_buf + old_offset, send_size_with_remote_procs[i], MPI_CHAR, remote_proc_id,
                 send_displs_in_remote_procs[i], send_size_with_remote_procs[i], MPI_CHAR, data_win);
-        MPI_Win_unlock(remote_proc_global_id, data_win);
+        MPI_Win_unlock(remote_proc_id, data_win);
 
         EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == send_size_with_remote_procs[i], "C-Coupler software error in send of runtime_trans_algorithm: %d  %d", offset, old_offset == send_size_with_remote_procs[i]);
     }
@@ -366,7 +378,7 @@ bool Runtime_trans_algorithm::recv(bool is_algorithm_in_kernel_stage)
 
     int offset = 0;
 
-    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_global_id, 0, data_win);
+    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
     for (int i = 0; i < num_remote_procs; i ++) {
         if (recv_size_with_remote_procs[i] == 0) 
 			continue;
@@ -376,7 +388,7 @@ bool Runtime_trans_algorithm::recv(bool is_algorithm_in_kernel_stage)
             {
                 if (fields_routers[j]->get_num_dimensions() == 0) {
                     if (fields_routers[j]->get_num_elements_transferred_with_remote_proc(false, i) > 0)
-                        MPI_Unpack((char *) data_buf, data_buf_size, &offset, (char *) fields_data_buffers[j], fields_data_type_sizes[j], MPI_CHAR, MPI_COMM_WORLD);
+                        MPI_Unpack((char *) data_buf, data_buf_size, &offset, (char *) fields_data_buffers[j], fields_data_type_sizes[j], MPI_CHAR, union_comm);
                 }
                 else unpack_MD_data(i, j, &offset);
 				fields_mem[j]->define_field_values(false);
@@ -384,11 +396,13 @@ bool Runtime_trans_algorithm::recv(bool is_algorithm_in_kernel_stage)
 
         EXECUTION_REPORT(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == recv_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
     }
-    MPI_Win_unlock(current_proc_global_id, data_win);
+    MPI_Win_unlock(current_proc_id_union_comm, data_win);
+    
 	for (int j = num_src_fields; j < num_transfered_fields; j ++)
 		if (fields_data_type_sizes[j] == 4)
 			printf("receive field instance with value %f at %d-%05d, %ld\n", ((float*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
 		else printf("receive field instance with value %lf at %d-%05d, %ld\n", ((double*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
+
 
     set_local_tags();
     
@@ -428,13 +442,18 @@ void Runtime_trans_algorithm::allocate_src_dst_fields(bool is_algorithm_in_kerne
 
 void Runtime_trans_algorithm::create_win()
 {
+    int union_size;
+    MPI_Comm_size(union_comm, &union_size);
+    EXECUTION_REPORT(REPORT_ERROR,-1, union_size == (num_remote_procs + local_comp_node->get_num_procs()), 
+            "The two models have common processes");
+    
     if (num_dst_fields > 0) {
-        MPI_Win_create(data_buf, data_buf_size*sizeof(char), sizeof(char), MPI_INFO_NULL, MPI_COMM_WORLD, &data_win);
-        MPI_Win_create(tag_buf, tag_buf_size*sizeof(long), sizeof(long), MPI_INFO_NULL, MPI_COMM_WORLD, &tag_win);
+        MPI_Win_create(data_buf, data_buf_size*sizeof(char), sizeof(char), MPI_INFO_NULL, union_comm, &data_win);
+        MPI_Win_create(tag_buf, tag_buf_size*sizeof(long), sizeof(long), MPI_INFO_NULL, union_comm, &tag_win);
     }
     else {
-        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &data_win);
-        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &tag_win);
+        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &data_win);
+        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &tag_win);
     }
 }
 
@@ -477,7 +496,7 @@ void Runtime_trans_algorithm::pack_MD_data(int remote_proc_index, int field_inde
     
     segment_starts = fields_routers[field_index]->get_local_indx_segment_starts_with_remote_proc(true, remote_proc_index);
     num_elements_in_segments = fields_routers[field_index]->get_local_indx_segment_lengths_with_remote_proc(true, remote_proc_index);
-    field_2D_size = fields_routers[field_index]->get_local_decomp_size();
+    field_2D_size = fields_routers[field_index]->get_src_decomp_size();
     for (i = 0; i < num_segments; i ++) {
         switch (fields_data_type_sizes[field_index]) {
             case 1:
@@ -515,7 +534,7 @@ void Runtime_trans_algorithm::unpack_MD_data(int remote_proc_index, int field_in
     
     segment_starts = fields_routers[field_index]->get_local_indx_segment_starts_with_remote_proc(false, remote_proc_index);
     num_elements_in_segments = fields_routers[field_index]->get_local_indx_segment_lengths_with_remote_proc(false, remote_proc_index);
-    field_2D_size = fields_routers[field_index]->get_local_decomp_size();
+    field_2D_size = fields_routers[field_index]->get_dst_decomp_size();
     for (i = 0; i < num_segments; i ++) {
         switch (fields_data_type_sizes[field_index]) {
             case 1:

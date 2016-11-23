@@ -569,6 +569,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	execution_phase_number = 2;
 	inout_interface_mgr = new Inout_interface_mgt();
 	IO_fields_mgr = new IO_field_mgt();
+	components_IO_output_procedures_mgr = new Components_IO_output_procedures_mgt();
 }
 
 
@@ -710,15 +711,17 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
 	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration");
 
-	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "ending the registration of a component", annotation);
-
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	inout_interface_mgr->merge_inout_interface_fields_info(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
 		Coupling_generator *coupling_generator = new Coupling_generator();
 		coupling_generator->generate_coupling_procedures();
+		coupling_generator->generate_IO_procedures();
 		delete coupling_generator;
 	}
+
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
 }
 
 
@@ -766,16 +769,16 @@ extern "C" void register_external_field_instance_(int *field_instance_id, const 
 }
 
 
-extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, int *timer_id, const char *field_IO_name, const char *annotation)
+extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, const char *field_IO_name, const char *annotation)
 {
-	IO_fields_mgr->register_IO_field(*field_inst_id, *timer_id, field_IO_name, annotation);
+	IO_fields_mgr->register_IO_field(*field_inst_id, field_IO_name, annotation);
 }
 
 
-extern "C" void register_a_new_io_field_(int *timer_id, int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
+extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
 	                                    const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
-	IO_fields_mgr->register_IO_field(*timer_id, *comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
+	IO_fields_mgr->register_IO_field(*comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
 }
 
 
@@ -813,6 +816,7 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
+	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
 
@@ -849,8 +853,8 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 		EXECUTION_REPORT(REPORT_ERROR, -1, *array_size3 == 1 || *array_size3 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for specifying instantaneous or average value is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
 			             interface_name, annotation);
 	if (*import_or_export == 0)
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, inst_or_aver, annotation, *array_size2, *array_size3);
-	else *interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, NULL, annotation, *array_size2, *array_size3);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, inst_or_aver, annotation, *array_size2, *array_size3, INTERFACE_TYPE_REGISTER);
+	else *interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, NULL, annotation, *array_size2, *array_size3, INTERFACE_TYPE_REGISTER);
 }
 
 

@@ -222,7 +222,7 @@ void Field_mem_info::use_field_values(const char *cfg_name)
 
 	printf("use field instance %lx\n", this);
 
-    EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%d) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
     EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time <= components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time(), "C-Coupler error in set_use_field\n");
     is_restart_field = true;
 }
@@ -496,23 +496,30 @@ void Memory_mgt::add_field_instance(Field_mem_info *field_instance, const char *
 }
 
 
-Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, int special_buf_mark, int object_id, const char *unit_or_datatype)
+Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, int special_buf_mark, int object_id, const char *unit_or_datatype, bool check_field_name)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
+	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || special_buf_mark == BUF_MARK_IO_FIELD_MIRROR, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
 	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
 	printf("buf mark is %d vs %d\n", new_buf_mark, original_field_instance->get_buf_mark());
 	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
 	EXECUTION_REPORT(REPORT_ERROR, -1, existing_field_instance == NULL, "Software error in Field_mem_info *alloc_mem: special field instance exists");
 	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", true));
-	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS) {
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", check_field_name));
+	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER) {
 		get_data_type_size(unit_or_datatype);
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation", true));
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation", check_field_name));
+	}
+	else if (special_buf_mark == BUF_MARK_IO_FIELD_MIRROR) {
+		get_data_type_size(unit_or_datatype);
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation", check_field_name));		
 	}
 	else if (special_buf_mark == BUF_MARK_UNIT_TRANS) {
 		// check unit
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for unit transformation", true));
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for unit transformation", check_field_name));
 	}
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Field_mem_info *alloc_mem");
+
+	fields_mem[fields_mem.size()-1]->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|(fields_mem.size()-1), "in Memory_mgt::alloc_mem");
 
 	return fields_mem[fields_mem.size()-1];
 }
@@ -822,7 +829,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	Field_mem_info *existing_field_instance_instance, *new_field_instance;
 
 
-	if (buf_mark == BUF_MARK_IO_FIELD)
+	if (buf_mark == BUF_MARK_IO_FIELD_REG)
 		API_id = API_ID_FIELD_MGT_REG_IO_FIELD;
 	else API_id = API_ID_FIELD_MGT_REG_FIELD_INST;
 	
@@ -859,7 +866,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", original_grid_mgr->get_name_of_grid(comp_or_grid_id), "the grid name specified by the corresponding ID", annotation);
 	}
 
-	if (buf_mark != BUF_MARK_IO_FIELD)
+	if (buf_mark != BUF_MARK_IO_FIELD_REG)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, buf_mark >= 0, "When registering an instance of coupling field of \"%s\", the parameter of the mark of the field instance cannot be a negative integer. Please check the model code with the annotation \"%s\"",
 				         field_name, annotation);
 
@@ -868,7 +875,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Cannot register an instance of coupling field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
 						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance_instance->get_field_instance_id(), "allocate field instance"));
 
-	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, buf_mark!=BUF_MARK_IO_FIELD);
+	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, buf_mark!=BUF_MARK_IO_FIELD_REG);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register an instance of coupling field of \"%s\" because the size of the model data buffer is different from the size determined by the parallel decomposition and grid. Please check the model code with the annotation \"%s\"",
 					 field_name, annotation);
 	new_field_instance->reset_mem_buf(data_buffer, true);
