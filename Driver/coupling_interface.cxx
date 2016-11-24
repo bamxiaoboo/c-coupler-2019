@@ -570,6 +570,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	inout_interface_mgr = new Inout_interface_mgt();
 	IO_fields_mgr = new IO_field_mgt();
 	components_IO_output_procedures_mgr = new Components_IO_output_procedures_mgt();
+	fields_gather_scatter_mgr = new Fields_gather_scatter_mgt();
 }
 
 

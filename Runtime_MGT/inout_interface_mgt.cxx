@@ -201,6 +201,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 						runtime_datatype_transform_algorithms[i]->run(true);			
 					if (runtime_remap_algorithms[i] != NULL)
 						runtime_remap_algorithms[i]->run(true);					
+					runtime_inter_averaging_algorithm[i]->run(true);
 				}				
 			}
 		}

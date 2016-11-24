@@ -33,12 +33,19 @@ class Gather_scatter_rearrange_info
         int *displs;
         void *mpibuf;
         int *rearrange_indexes;
+
+		int comp_id;
+		int original_decomp_id;
+		int new_decomp_id;
+		int grid_id;
         Field_mem_info *global_field_mem;
+		int current_proc_local_id;
+		MPI_Comm local_comm;
 
     public:
         Gather_scatter_rearrange_info(Field_mem_info*);
         ~Gather_scatter_rearrange_info();
-        bool match(const char*, const char*, const char*);
+        bool match(int, int, int, const char*);
         void copy_in_local_field_info(Field_mem_info*);
         Field_mem_info *gather_field(Field_mem_info*);
         void scatter_field(Field_mem_info*);

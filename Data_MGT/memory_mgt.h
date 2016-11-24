@@ -23,6 +23,7 @@
 #define BUF_MARK_DATA_TRANSFER           ((int)(0xFF000000))
 #define BUF_MARK_IO_FIELD_REG            ((int)(0xF7000000))
 #define BUF_MARK_IO_FIELD_MIRROR         ((int)(0xF7100000))
+#define BUF_MARK_GATHER                  ((int)(0xF1000000))
 
 
 struct Registered_field_info

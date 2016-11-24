@@ -31,7 +31,7 @@ class Decomp_info
 		int decomp_id;
 
     public:
-		Decomp_info(const char *, int, int, int, const int *, const char *);
+		Decomp_info(const char *, int, int, int, const int *, const char *, bool);
         Decomp_info(const char *, const char*, const char*, int, const int *);
         ~Decomp_info();
         int get_num_local_cells() { return num_local_cells; }
@@ -62,7 +62,7 @@ class Decomp_info_mgt
         Decomp_info *search_decomp_info(const char *);
         void add_decomps_from_cfg_file(const char*);
         void add_decomp_from_model_interface(const char*, const char*, const char*, int, int*);
-        Decomp_info *generate_fully_decomp(const char*, const char*);
+        int generate_fully_decomp(int);
         Decomp_info *generate_remap_weights_src_decomp(const char*, const char*, const char*);
 		int search_decomp_info(const char*, int);
 		int register_H2D_parallel_decomposition(const char *, int, int, const int *, const char *);

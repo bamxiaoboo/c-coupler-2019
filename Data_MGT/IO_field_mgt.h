@@ -45,15 +45,20 @@ class IO_output_procedure
 {
 	private:
 		int comp_id;
+		int procedure_id;
 		Inout_interface *export_interface;
 		Inout_interface *import_interface;
 		Coupling_timer *field_timer;
 		Coupling_timer *file_timer;
+		Time_mgt *time_mgr;
 		std::vector<IO_field*> IO_fields;
+		std::vector<Field_mem_info*> data_write_field_insts;
+		IO_netcdf *netcdf_file_object;
+		bool write_grid_name;
 		int inst_or_aver;
 
 	public:
-		IO_output_procedure(int, Coupling_timer *, Coupling_timer *, bool);
+		IO_output_procedure(int, int, Coupling_timer *, Coupling_timer *, bool);
 		void include_all_component_io_fields();
 		Coupling_connection *generate_coupling_connection(int);
 		void execute();

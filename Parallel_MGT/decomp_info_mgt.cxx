@@ -16,7 +16,7 @@
 #include <string.h>
       
 
-Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int grid_id, int num_local_cells, const int *cell_indexes_in_decomp, const char *annotation)
+Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int grid_id, int num_local_cells, const int *cell_indexes_in_decomp, const char *annotation, bool registered)
 {
 	Remap_grid_class *CoR_grid;
 	int i;
@@ -35,7 +35,8 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int grid_id, in
 	is_registered = false;
 	check_and_verify_name_format_of_string_for_API(comp_id, this->decomp_name, API_ID_DECOMP_MGT_REG_DECOMP, "the parallel decomposition", annotation);
 	synchronize_comp_processes_for_API(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, annotation);
+	if (registered)
+		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, annotation);
 	check_API_parameter_string(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", decomp_name, "decomp_name", annotation);
 	check_API_parameter_string(this->comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(this->comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", original_grid_mgr->get_name_of_grid(grid_id), "grid_id (the corresponding grid name)", annotation);	
 
@@ -239,20 +240,30 @@ Decomp_info *Decomp_info_mgt::search_decomp_info(const char *decomp_name)
 }
 
 
-Decomp_info *Decomp_info_mgt::generate_fully_decomp(const char *decomp_name, const char *grid_name)
+int Decomp_info_mgt::generate_fully_decomp(int original_decomp_id)
 {
-    for (int i = 0; i < decomps_info.size(); i ++)
-        if (words_are_the_same(decomps_info[i]->get_decomp_name(), decomp_name)) {
-            EXECUTION_REPORT(REPORT_ERROR,-1, decomps_info[i]->get_is_fully_grid_decomp() && words_are_the_same(decomps_info[i]->get_grid_name(), grid_name), "C-Coupler error1 in generate_fully_decomp\n");
-			EXECUTION_REPORT(REPORT_ERROR,-1, decomps_info[i]->get_num_local_cells() == decomps_info[i]->get_num_global_cells(), "C-Coupler error2 in generate_fully_decomp\n");
-            return decomps_info[i];
-        }
+	char fully_decomp_name[NAME_STR_SIZE];
+	Decomp_info *fully_decomp;
+	int *local_cells_global_indexes, num_global_cells, existing_decomp_id;
 
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "generate fully decomposition (%s %s)", decomp_name, grid_name);
-    Decomp_info *fully_decomp = new Decomp_info(decomp_name, compset_communicators_info_mgr->get_current_comp_name(), grid_name, cpl_get_grid_size(grid_name), NULL);
+
+	sprintf(fully_decomp_name, "fully_decomp_for_%s", get_decomp_info(original_decomp_id)->get_decomp_name());
+	existing_decomp_id = search_decomp_info(fully_decomp_name, get_decomp_info(original_decomp_id)->get_comp_id());
+	if (existing_decomp_id != -1)
+		return get_decomp_info(existing_decomp_id)->get_decomp_id();
+
+	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(get_decomp_info(original_decomp_id)->get_comp_id(), "in Decomp_info_mgt::generate_fully_decomp") == 0) {
+		num_global_cells = get_decomp_info(original_decomp_id)->get_num_global_cells();
+		local_cells_global_indexes = new int [num_global_cells];
+		for (int i = 0; i < num_global_cells; i ++)
+			local_cells_global_indexes[i] = i + 1;
+		fully_decomp = new Decomp_info(fully_decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), get_decomp_info(original_decomp_id)->get_grid_id(), num_global_cells, local_cells_global_indexes, "fully decomp", false);
+		delete [] local_cells_global_indexes;	
+	}
+	else fully_decomp = new Decomp_info(fully_decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), get_decomp_info(original_decomp_id)->get_grid_id(), 0, NULL, "fully decomp", false);
     decomps_info.push_back(fully_decomp);
-    fully_decomp->gen_decomp_grid_data();
-    return fully_decomp;
+
+    return fully_decomp->get_decomp_id();
 }
 
 
@@ -361,11 +372,11 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 }
 
 
-int Decomp_info_mgt::search_decomp_info(const char *decomp_name, int grid_id)
+int Decomp_info_mgt::search_decomp_info(const char *decomp_name, int comp_id)
 {
-	printf("search search %s %x\n", decomp_name, grid_id);
+	printf("search search %s %x\n", decomp_name, comp_id);
 	for (int i = 0; i < decomps_info.size(); i ++)
-		if (words_are_the_same(decomps_info[i]->get_decomp_name(), decomp_name) && decomps_info[i]->get_grid_id() == grid_id) {
+		if (words_are_the_same(decomps_info[i]->get_decomp_name(), decomp_name) && decomps_info[i]->get_comp_id() == comp_id) {
 			return decomps_info[i]->get_decomp_id();
 		}
 
@@ -375,11 +386,11 @@ int Decomp_info_mgt::search_decomp_info(const char *decomp_name, int grid_id)
 
 int Decomp_info_mgt::register_H2D_parallel_decomposition(const char *decomp_name, int grid_id, int num_local_cells, const int *cell_indexes_in_decomp, const char *annotation)
 {
-	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), grid_id, num_local_cells, cell_indexes_in_decomp, annotation);
+	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), grid_id, num_local_cells, cell_indexes_in_decomp, annotation, true);
 
-	if (search_decomp_info(decomp_name,grid_id) != -1)
+	if (search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)) != -1)
 		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, "The parallel decomposition \"%s\" corresponding to grid \"%s\" has been registered before. Please check the model code corresponding to annotations \"%s\" and \"%s\"",
-					     decomp_name, original_grid_mgr->get_name_of_grid(grid_id), annotation_mgr->get_annotation(search_decomp_info(decomp_name,grid_id), "register decomposition"), annotation);
+					     decomp_name, original_grid_mgr->get_name_of_grid(grid_id), annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)), "register decomposition"), annotation);
 
 	decomps_info.push_back(new_decomp);
 

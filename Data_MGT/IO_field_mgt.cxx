@@ -103,12 +103,16 @@ IO_output_procedure::~IO_output_procedure()
 }
 
 
-IO_output_procedure::IO_output_procedure(int comp_id, Coupling_timer *default_field_timer, Coupling_timer *default_file_timer, bool synchronized_IO)
+IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling_timer *default_field_timer, Coupling_timer *default_file_timer, bool synchronized_IO)
 {
 	this->comp_id = comp_id;
+	this->procedure_id = procedure_id;
 	inst_or_aver = USING_AVERAGE_VALUE;
 	import_interface = NULL;
 	export_interface = NULL;
+	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
+	netcdf_file_object = NULL;
+	write_grid_name = false;
 
 	include_all_component_io_fields();
 
@@ -125,7 +129,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, Coupling_timer *default_fi
 	}
 	
 	if (default_file_timer == NULL)
-		file_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 1, 0, "default timer for I/O fields"));
+		file_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 10, 0, "default timer for I/O fields"));
 	else {
 		file_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, default_file_timer));
 		file_timer->reset_lag_count();
@@ -147,6 +151,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, Coupling_timer *default_fi
 				mirror_field_instance = memory_manager->alloc_mem(IO_field_instance, BUF_MARK_IO_FIELD_MIRROR, inout_interface_mgr->get_next_interface_id(), DATA_TYPE_FLOAT, false);
 			else mirror_field_instance = memory_manager->alloc_mem(IO_field_instance, BUF_MARK_IO_FIELD_MIRROR, inout_interface_mgr->get_next_interface_id(), DATA_TYPE_INT, false);
 			fields_id[i] = mirror_field_instance->get_field_instance_id();
+			data_write_field_insts.push_back(mirror_field_instance);
 		}
 		import_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_write", 0, IO_fields.size(), fields_id, &field_timer_id, &inst_or_aver, "register default IO field to write for a component", 1, 1, INTERFACE_TYPE_IO_WRITE));
 	}
@@ -162,6 +167,33 @@ void IO_output_procedure::execute()
 
 	if (import_interface != NULL) {
 		import_interface->execute(false, "IO output procedure import interface execute");
+		if (field_timer->is_timer_on()) {
+			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in IO_output_procedure::execute") == 0) {
+				if (netcdf_file_object == NULL || file_timer->is_timer_on()) {
+					char time_string[NAME_STR_SIZE];
+					char full_file_name[NAME_STR_SIZE];
+					char file_header[NAME_STR_SIZE];
+					if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_SECONDS))
+						sprintf(time_string, "%04d%02d%02d-%05d", time_mgr->get_current_year(), time_mgr->get_current_month(), time_mgr->get_current_day(), time_mgr->get_current_second());
+					else if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_DAYS))
+						sprintf(time_string, "%04d%02d%02d", time_mgr->get_current_year(), time_mgr->get_current_month(), time_mgr->get_current_day());	
+					else if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_MONTHS))
+						sprintf(time_string, "%04d%02d", time_mgr->get_current_year(), time_mgr->get_current_month());	
+					else if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_YEARS))
+						sprintf(time_string, "%04d", time_mgr->get_current_year());
+					comp_comm_group_mgt_mgr->get_output_data_file_header(comp_id, file_header);
+					sprintf(full_file_name, "%s.%s.h%d.nc",file_header, time_string, procedure_id);
+					if (netcdf_file_object != NULL)
+						delete netcdf_file_object;
+	                netcdf_file_object = new IO_netcdf(full_file_name, full_file_name, "w", true);
+					// compset_communicators_info_mgr->write_case_info(netcdf_file_object);   // to be modify shortly
+				}
+			}
+			for (int i = 0; i < data_write_field_insts.size(); i ++) {
+				data_write_field_insts[i]->check_field_sum();
+            	fields_gather_scatter_mgr->gather_write_field(netcdf_file_object, data_write_field_insts[i], write_grid_name, time_mgr->get_current_date(), time_mgr->get_current_second(), false);
+			}
+		}
 	}
 }
 
@@ -201,7 +233,7 @@ Component_IO_output_procedures::Component_IO_output_procedures(int comp_id, cons
 	this->comp_id = comp_id;
 	
 	if (xml_file_name == NULL)
-		IO_output_procedures.push_back(new IO_output_procedure(comp_id, NULL, NULL, synchronized_IO));
+		IO_output_procedures.push_back(new IO_output_procedure(comp_id, IO_output_procedures.size(), NULL, NULL, synchronized_IO));
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "asynchronized IO is not supported yet");
 	}

@@ -71,21 +71,23 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
     mpibuf = NULL;
     rearrange_indexes = NULL;
     global_field_mem = NULL;
-    strcpy(original_decomp_name, local_field->get_decomp_name());
-    sprintf(grid_name, local_field->get_grid_name());
-	if (words_are_the_same(local_field->get_decomp_name(), "NULL"))
-		strcpy(fully_decomp_name, local_field->get_decomp_name());
-	else sprintf(fully_decomp_name, "AUTO_FULL_%s_decomp", decomps_info_mgr->search_decomp_info(local_field->get_decomp_name())->get_grid_name());
+	comp_id = local_field->get_comp_id();
+	original_decomp_id = local_field->get_decomp_id();
+	grid_id = local_field->get_grid_id();
     sprintf(data_type, local_field->get_field_data()->get_grid_data_field()->data_type_in_application);
-    num_local_procs = compset_communicators_info_mgr->get_num_procs_in_comp(compset_communicators_info_mgr->get_current_comp_id());
+    num_local_procs = comp_comm_group_mgt_mgr->get_num_proc_in_comp(comp_id, "in Gather_scatter_rearrange_info");
+	current_proc_local_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in Gather_scatter_rearrange_info");
+	local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Gather_scatter_rearrange_info");
 
-    if (words_are_the_same(local_field->get_decomp_name(), "NULL")) {
+    if (original_decomp_id == -1) {
         has_global_field = false;
         return;
     }
 
+	new_decomp_id = decomps_info_mgr->generate_fully_decomp(original_decomp_id);
+
     has_global_field = true;
-    num_local_cells = decomps_info_mgr->search_decomp_info(original_decomp_name)->get_num_local_cells();
+    num_local_cells = decomps_info_mgr->get_decomp_info(original_decomp_id)->get_num_local_cells();
 	if (num_local_cells > 0) {
 		num_levels = local_field->get_field_data()->get_coord_value_grid()->get_grid_size() / num_local_cells;
 	    num_points_in_each_cell = local_field->get_field_data()->get_grid_data_field()->required_data_size / num_local_cells / num_levels;
@@ -99,60 +101,53 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
 		num_points_in_each_cell = -1;
 	}
 
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+    if (current_proc_local_id == 0) {
         counts = new int [num_local_procs];
         displs = new int [num_local_procs];
     }
 
-	MPI_Gather(&num_levels, 1, MPI_INT, counts, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
-	MPI_Gather(&num_points_in_each_cell, 1, MPI_INT, displs, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Gather(&num_levels, 1, MPI_INT, counts, 1, MPI_INT, 0, local_comm);
+	MPI_Gather(&num_points_in_each_cell, 1, MPI_INT, displs, 1, MPI_INT, 0, local_comm);
 
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+    if (current_proc_local_id == 0) {
 		for (i = 0; i < num_local_procs; i ++) {
 			if (counts[i] != -1)
 				num_levels = counts[i];
 			if (displs[i] != -1)
 				num_points_in_each_cell = displs[i];
 		}
-		EXECUTION_REPORT(REPORT_ERROR,-1, num_levels != -1 && num_points_in_each_cell != -1, "parallel decomposition %s is empty, which is not allowed in C-Coupler");
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_levels != -1 && num_points_in_each_cell != -1, "C-Coupler software error2 in Gather_scatter_rearrange_info: empty parallel decomposition");
 		for (i = 0; i < num_local_procs; i ++)
 			EXECUTION_REPORT(REPORT_ERROR,-1, (counts[i] == -1 || num_levels == counts[i]) && (displs[i] == -1 || num_points_in_each_cell == displs[i]), "C-Coupler software error2 in Gather_scatter_rearrange_info\n");
     }
-	MPI_Bcast(&num_levels, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());	
-	MPI_Bcast(&num_points_in_each_cell, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+	MPI_Bcast(&num_levels, 1, MPI_INT, 0, local_comm);	
+	MPI_Bcast(&num_points_in_each_cell, 1, MPI_INT, 0, local_comm);
 	
-    MPI_Gather(&num_local_cells, 1, MPI_INT, counts, 1, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+    MPI_Gather(&num_local_cells, 1, MPI_INT, counts, 1, MPI_INT, 0, local_comm);
+    if (current_proc_local_id == 0) {
         for (i = 0, num_total_cells = 0; i < num_local_procs; i ++) {
             displs[i] = num_total_cells;
             num_total_cells += counts[i];
         }
         rearrange_indexes = new int [num_total_cells];
     }
-	if (num_local_cells > 0)
-		local_cell_global_indx = new int [num_local_cells];
-	for (i = 0; i < num_local_cells; i ++)
-		local_cell_global_indx[i] = decomps_info_mgr->search_decomp_info(original_decomp_name)->get_local_cell_global_indx()[i];
-    MPI_Gatherv(local_cell_global_indx, num_local_cells, MPI_INT, rearrange_indexes, counts, displs, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+    MPI_Gatherv((int*)decomps_info_mgr->get_decomp_info(original_decomp_id)->get_local_cell_global_indx(), num_local_cells, MPI_INT, rearrange_indexes, counts, displs, MPI_INT, 0, local_comm);
     EXECUTION_REPORT(REPORT_LOG,-1, true, "generate gather scatter info for (%s %s %s)", original_decomp_name, grid_name, data_type);
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
+    if (current_proc_local_id == 0) {
         for (i = 0; i < num_local_procs; i ++) {
             displs[i] *= num_points_in_each_cell*num_levels;
             counts[i] *= num_points_in_each_cell*num_levels;
         }
         mpibuf = new char [num_total_cells*num_points_in_each_cell*num_levels*get_data_type_size(data_type)];
-        decomps_info_mgr->generate_fully_decomp(fully_decomp_name, decomps_info_mgr->search_decomp_info(original_decomp_name)->get_grid_name());
 		EXECUTION_REPORT(REPORT_LOG,-1, true, "allocate global field for gather/scatter");
-		global_field_mem = alloc_full_grid_mem(local_field->get_comp_name(), fully_decomp_name, grid_name, local_field->get_field_name(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application, 0, false, "  C-Coupler error  ");
+		global_field_mem = memory_manager->alloc_mem("IO_gather_field", new_decomp_id, grid_id, BUF_MARK_GATHER, data_type, "no unit", "allocate gather field", false);
     }
-	if (num_local_cells > 0)
-		delete [] local_cell_global_indx;
 }
 
 
-bool Gather_scatter_rearrange_info::match(const char *decomp_name, const char *grid_name, const char *data_type)
+bool Gather_scatter_rearrange_info::match(int comp_id, int decomp_id, int grid_id, const char *data_type)
 {
-    return words_are_the_same(this->original_decomp_name, decomp_name) && words_are_the_same(this->grid_name, grid_name) && words_are_the_same(this->data_type, data_type);
+    return this->comp_id == comp_id && this->original_decomp_id == decomp_id && this->grid_id == grid_id && words_are_the_same(this->data_type, data_type);
 }
 
 
@@ -181,32 +176,32 @@ Field_mem_info *Gather_scatter_rearrange_info::gather_field(Field_mem_info *loca
     if (!has_global_field)
         return local_field_mem;
 
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+    if (current_proc_local_id == 0)
         global_field_mem->get_field_data()->get_grid_data_field()->initialize_to_fill_value();
 
     if (get_data_type_size(data_type) == 1) {
         MPI_Gatherv(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size, MPI_CHAR, 
-                    mpibuf, counts, displs, MPI_CHAR, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
-            rearrange_gather_data((char*) mpibuf, (char*) global_field_mem->get_data_buf(), decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
+                    mpibuf, counts, displs, MPI_CHAR, 0, local_comm);
+        if (current_proc_local_id == 0)
+            rearrange_gather_data((char*) mpibuf, (char*) global_field_mem->get_data_buf(), decomps_info_mgr->get_decomp_info(new_decomp_id)->get_num_local_cells());
     }
     else if (get_data_type_size(data_type) == 2) {
         MPI_Gatherv(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size, MPI_SHORT, 
-                    mpibuf, counts, displs, MPI_SHORT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
-            rearrange_gather_data((short*) mpibuf, (short*) global_field_mem->get_data_buf(), decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
+                    mpibuf, counts, displs, MPI_SHORT, 0, local_comm);
+        if (current_proc_local_id == 0)
+            rearrange_gather_data((short*) mpibuf, (short*) global_field_mem->get_data_buf(), decomps_info_mgr->get_decomp_info(new_decomp_id)->get_num_local_cells());
     }
     else if (get_data_type_size(data_type) == 4) {
         MPI_Gatherv(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size, MPI_INT, 
-                    mpibuf, counts, displs, MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
-            rearrange_gather_data((int*) mpibuf, (int*) global_field_mem->get_data_buf(), decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
+                    mpibuf, counts, displs, MPI_INT, 0, local_comm);
+        if (current_proc_local_id == 0)
+            rearrange_gather_data((int*) mpibuf, (int*) global_field_mem->get_data_buf(), decomps_info_mgr->get_decomp_info(new_decomp_id)->get_num_local_cells());
     }
     else if (get_data_type_size(data_type) == 8) {
         MPI_Gatherv(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size, MPI_DOUBLE, 
-                    mpibuf, counts, displs, MPI_DOUBLE, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
-            rearrange_gather_data((double*) mpibuf, (double*) global_field_mem->get_data_buf(), decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
+                    mpibuf, counts, displs, MPI_DOUBLE, 0, local_comm);
+        if (current_proc_local_id == 0)
+            rearrange_gather_data((double*) mpibuf, (double*) global_field_mem->get_data_buf(), decomps_info_mgr->get_decomp_info(new_decomp_id)->get_num_local_cells());
     }
     else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error in Gather_scatter_rearrange_info::gather_field\n");
 
@@ -227,33 +222,33 @@ void Gather_scatter_rearrange_info::scatter_field(Field_mem_info *local_field_me
 {
     if (!has_global_field) {
         MPI_Bcast(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size*get_data_type_size(data_type),
-                  MPI_CHAR, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+                  MPI_CHAR, 0, local_comm);
         return;
     }
 
     if (get_data_type_size(data_type) == 1) {
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+        if (current_proc_local_id == 0)
             rearrange_scatter_data((char*) global_field_mem->get_data_buf(), (char*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
         MPI_Scatterv(mpibuf, counts, displs, MPI_CHAR, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_CHAR, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+                    MPI_CHAR, 0, local_comm);
     }
     else if (get_data_type_size(data_type) == 2) {
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+        if (current_proc_local_id == 0)
             rearrange_scatter_data((short*) global_field_mem->get_data_buf(), (short*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
         MPI_Scatterv(mpibuf, counts, displs, MPI_SHORT, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_SHORT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+                    MPI_SHORT, 0, local_comm);
     }
     else if (get_data_type_size(data_type) == 4) {
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+        if (current_proc_local_id == 0)
             rearrange_scatter_data((int*) global_field_mem->get_data_buf(), (int*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
         MPI_Scatterv(mpibuf, counts, displs, MPI_INT, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_INT, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+                    MPI_INT, 0, local_comm);
     }
     else if (get_data_type_size(data_type) == 8) {
-        if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+        if (current_proc_local_id == 0)
             rearrange_scatter_data((double*) global_field_mem->get_data_buf(), (double*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
         MPI_Scatterv(mpibuf, counts, displs, MPI_DOUBLE, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_DOUBLE, 0, compset_communicators_info_mgr->get_current_comp_comm_group());
+                    MPI_DOUBLE, 0, local_comm);
     }
     else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error in Gather_scatter_rearrange_info::gather_field\n");
 }
@@ -279,7 +274,7 @@ Gather_scatter_rearrange_info *Fields_gather_scatter_mgt::apply_gather_scatter_r
 
 
     for (i = 0; i < gather_scatter_rearrange_infos.size(); i ++)
-        if (gather_scatter_rearrange_infos[i]->match(local_field->get_decomp_name(), local_field->get_grid_name(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application))
+        if (gather_scatter_rearrange_infos[i]->match(local_field->get_comp_id(), local_field->get_decomp_id(), local_field->get_grid_id(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application))
             break;
 
     if (i == gather_scatter_rearrange_infos.size()) {
@@ -301,8 +296,15 @@ Field_mem_info *Fields_gather_scatter_mgt::gather_field(Field_mem_info *local_fi
 
 void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem_info *local_field, bool write_grid_name, int date, int datesec, bool is_restart_field)
 {
+	if (words_are_the_same(local_field->get_data_type(), DATA_TYPE_FLOAT))
+		printf("value to write is %f\n", ((float*)local_field->get_data_buf())[0]);
+	else printf("value to write is %lf\n", ((double*)local_field->get_data_buf())[0]);
     Field_mem_info *global_field = gather_field(local_field);
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in gather_write_field") == 0)
+	if (words_are_the_same(local_field->get_data_type(), DATA_TYPE_FLOAT))
+		printf("gathered value to write is %f\n", ((float*)global_field->get_data_buf())[0]);
+	else printf("gathered value to write is %lf\n", ((double*)global_field->get_data_buf())[0]);
+    if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in gather_write_field") == 0)
         nc_file->write_grided_data(global_field->get_field_data(), write_grid_name, date, datesec, is_restart_field);
 }
 

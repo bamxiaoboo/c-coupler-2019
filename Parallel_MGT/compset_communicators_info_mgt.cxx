@@ -384,6 +384,8 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, int co
 		create_directory(dir, get_current_proc_local_id() == 0);
 		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);
 		create_directory(dir, get_current_proc_local_id() == 0);
+		sprintf(dir, "%s/data", working_dir, comp_name);
+		create_directory(dir, get_current_proc_local_id() == 0);
 		MPI_Barrier(get_comm_group());
 		char file_name[NAME_STR_SIZE*2];
 		sprintf(file_name, "%s/CCPL_logs/%s.CCPL.log.%d", working_dir, get_comp_name(), get_current_proc_local_id());
@@ -502,6 +504,7 @@ void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 	parent_element->LinkEndChild(current_element);
 	current_element->SetAttribute("name", comp_name);
 	current_element->SetAttribute("full_name", full_name);
+	current_element->SetAttribute("global_id", unified_global_id);
 
 	segments_start = new int [local_processes_global_ids.size()];
 	segments_end = new int [local_processes_global_ids.size()];
@@ -780,9 +783,9 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 		EXECUTION_REPORT(REPORT_ERROR, -1, global_node_array.size() == global_node_id, "software error in Comp_comm_group_mgt_mgr::merge_comp_comm_info");
 		global_node_root = global_node_array[0];
 		definition_finalized = true;
+		generate_sorted_comp_ids();
 		write_comp_comm_info_into_XML();
 		read_comp_comm_info_from_XML();
-		generate_sorted_comp_ids();
 	}
 	if (global_node->get_current_proc_local_id() == 0) {
 		printf("dump comps at root comp %s\n", global_node->get_comp_name());
@@ -813,8 +816,10 @@ void Comp_comm_group_mgt_mgr::generate_sorted_comp_ids()
 		EXECUTION_REPORT(REPORT_ERROR, -1, sorted_comp_ids[k+1] == -1, "in Comp_comm_group_mgt_mgr::generate_sorted_comp_ids");		
 		sorted_comp_ids[k+1] = global_node_array[i]->get_comp_id();
 	}
-	for (i = 1; i < global_node_array.size(); i ++)
+	for (i = 1; i < global_node_array.size(); i ++) {
 		printf("sorted comp %d: \"%s\"\n", i-1, get_global_node_of_local_comp(sorted_comp_ids[i], "")->get_full_name());
+		get_global_node_of_local_comp(sorted_comp_ids[i], "")->set_unified_global_id(i);
+	}
 }
 
 
@@ -829,6 +834,21 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp
 MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_local_comp(int local_comp_id, const char *annotation)
 {
 	get_global_node_of_local_comp(local_comp_id, annotation)->get_comm_group();
+}
+
+
+void Comp_comm_group_mgt_mgr::get_output_data_file_header(int comp_id, char *data_file_header)
+{
+	int true_comp_id;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_data_file_header");
+	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
+	printf("before get log_file_name\n");
+	fflush(NULL);	
+	sprintf(data_file_header, "%s/data/%s", global_node_array[true_comp_id]->get_working_dir(), global_node_array[true_comp_id]->get_comp_name());
+	printf("data_file_header is %s\n", data_file_header);
+	fflush(NULL);
 }
 
 

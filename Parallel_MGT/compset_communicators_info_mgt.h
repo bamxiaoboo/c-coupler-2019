@@ -33,6 +33,7 @@ class Comp_comm_group_mgt_node
 {
 	private:
 		int comp_id;
+		int unified_global_id;
 	    char comp_name[NAME_STR_SIZE];                // The name of component	
 	    char full_name[NAME_STR_SIZE];
 		char annotation_start[NAME_STR_SIZE];
@@ -56,6 +57,8 @@ class Comp_comm_group_mgt_node
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
 		int get_comp_id() const { return comp_id; }
+		int get_unified_global_id() const { return unified_global_id;}
+		void set_unified_global_id(int id) { unified_global_id = id; }
 		int get_current_proc_local_id() const { return current_proc_local_id; }
 		void transform_node_into_array();
 		void merge_comp_comm_info(const char*);
@@ -120,6 +123,7 @@ class Comp_comm_group_mgt_mgr
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
 		void get_log_file_name(int, char*);
+		void get_output_data_file_header(int, char*);
 		Comp_comm_group_mgt_node *search_global_node(int);
 		Comp_comm_group_mgt_node *search_global_node(const char*);
 		void read_global_node_from_XML(const TiXmlElement*);

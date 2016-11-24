@@ -90,6 +90,7 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
     strcpy(remap_data_field->field_name_in_application, field_name);
     strcpy(remap_data_field->field_name_in_IO_file, field_name);
     strcpy(remap_data_field->data_type_in_application, data_type);
+	strcpy(remap_data_field->data_type_in_IO_file, data_type);
     remap_data_field->required_data_size = mem_size / get_data_type_size(data_type);
     remap_data_field->read_data_size = remap_data_field->required_data_size;
     remap_data_field->data_buf = new char [mem_size];
