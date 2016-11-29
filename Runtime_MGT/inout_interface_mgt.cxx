@@ -160,7 +160,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
 			}
 			remote_fields_time_info->get_time_of_next_timer_on(false);
-			printf("qiguaiqiguai %d-%05d with %d-%05d\n", remote_fields_time_info->last_timer_num_elapsed_days, remote_fields_time_info->last_timer_second, local_fields_time_info->current_num_elapsed_days, local_fields_time_info->current_second);
+			printf("qiguaiqiguai %s %d-%05d with %d-%05d\n", inout_interface->get_interface_name(), remote_fields_time_info->last_timer_num_elapsed_days, remote_fields_time_info->last_timer_second, local_fields_time_info->current_num_elapsed_days, local_fields_time_info->current_second);
 		}
 	}
 	
@@ -180,7 +180,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			}
 			printf("current_remote_fields_time[i] 4 is %d  %d\n", (long)fields_time_info_src[i]->last_timer_num_elapsed_days, fields_time_info_src[i]->last_timer_second);
 			current_remote_fields_time[i] = ((long)fields_time_info_src[i]->last_timer_num_elapsed_days) * 100000 + fields_time_info_src[i]->last_timer_second; 
-			if (current_remote_fields_time[i] != last_remote_fields_time[i]) {
+			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) && current_remote_fields_time[i] != last_remote_fields_time[i]) {  // restart related
 				transfer_process_on[i] = true;
 				last_remote_fields_time[i] = current_remote_fields_time[i];
 				printf("receive remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_dst[i]->current_num_elapsed_days)*100000+fields_time_info_dst[i]->current_second);
@@ -193,7 +193,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 		if (transfer_data) {
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)
-				printf("current_remote_fields_time[i] 2 is %ld\n", current_remote_fields_time[i]);
+				printf("check data transfer order: %s receive data of remote time %ld at local time %ld\n", inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
 			printf("receive data at %lx for %lx  %lx %s\n", this, runtime_data_transfer_algorithm, inout_interface, inout_interface->get_interface_name());
 			runtime_data_transfer_algorithm->run(true);
@@ -279,7 +279,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 		for (int i = 0; i < fields_time_info_src.size(); i ++) {
 			if (transfer_process_on[i])
-				printf("send remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_src[i]->current_num_elapsed_days)*100000+fields_time_info_src[i]->current_second);
+				printf("check data transfer order: %s send remote data %ld at %ld\n", inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 		}
 		if (transfer_data) {
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)

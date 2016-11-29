@@ -258,6 +258,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 {	
 	int num_procs, *proc_id, num_children;
 
+
 	int old_iter = buffer_content_iter;
 	read_data_from_array_buffer(annotation_end, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
 	read_data_from_array_buffer(annotation_start, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
@@ -280,6 +281,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->parent = parent;
 	temp_array_buffer = NULL;
 	definition_finalized = true;
+	unified_global_id = 0;
 
 	read_data_from_array_buffer(&num_children, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
 	for (int i = 0; i < num_children; i ++)
@@ -308,6 +310,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, int co
 	this->buffer_max_size = 1024;
 	this->temp_array_buffer = new char [buffer_max_size];
 	this->definition_finalized = false;	
+	this->unified_global_id = 0;
 
 
 	if (comm != -1)
