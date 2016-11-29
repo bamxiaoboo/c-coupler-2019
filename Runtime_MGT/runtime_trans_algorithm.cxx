@@ -393,7 +393,8 @@ bool Runtime_trans_algorithm::send(bool is_algorithm_in_kernel_stage)
 
 	printf("%s before check remote buf for send at %ld %d\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), last_field_remote_recv_count);
 
-    while (! is_remote_data_buf_ready());  // to be modified
+    if (!is_remote_data_buf_ready())
+		return false;
 
 	printf("%s before MPI_put send at %ld %d\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), last_field_remote_recv_count);
     int offset = 0;

@@ -73,12 +73,16 @@ class Connection_coupling_procedure
 		std::vector<Runtime_algorithm_basis*> runtime_unit_transform_algorithms;
 		std::vector<Runtime_algorithm_basis*> runtime_datatype_transform_algorithms;
 		Runtime_algorithm_basis *runtime_data_transfer_algorithm;
+		bool finish_status;
+		bool transfer_data;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
 		void add_data_transfer_algorithm(Runtime_algorithm_basis * runtime_algorithm) { runtime_data_transfer_algorithm = runtime_algorithm; }
 		void execute(bool);
+		void send_fields();
 		Field_mem_info *get_data_transfer_field_instance(int); 
+		bool get_finish_status() { return finish_status; }
 };
 
 

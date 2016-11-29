@@ -86,11 +86,7 @@ void Coupling_connection::generate_a_coupling_procedure()
 		import_interface->add_coupling_procedure(import_procedure);
 	}
 	
-	generate_value_averaging();
-	generate_unit_transformation();
-	generate_datatype_transformation();
 	generate_interpolation();
-	generate_transfer();
 
 	printf("finish generating coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
 }
@@ -309,27 +305,7 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
 }
 
 
-void Coupling_connection::generate_value_averaging()
-{
-}
-
-
-void Coupling_connection::generate_unit_transformation()
-{
-}
-
-
-void Coupling_connection::generate_datatype_transformation()
-{
-}
-
-
 void Coupling_connection::generate_interpolation()
-{
-}
-
-
-void Coupling_connection::generate_transfer()
 {
 }
 

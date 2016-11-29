@@ -121,11 +121,12 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 void Connection_coupling_procedure::execute(bool bypass_timer)
 {
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
-	bool transfer_data = false;
 	Connection_field_time_info *local_fields_time_info, *remote_fields_time_info;
 	int lag_seconds;
 
-
+	finish_status = false;
+	transfer_data = false;
+	
 	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 		if (inout_interface->get_import_or_export() == 0) {
 			local_fields_time_info = fields_time_info_dst[i];
@@ -207,6 +208,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				}				
 			}
 		}
+		finish_status = true;
 		return;
 	}
 	else {
@@ -281,13 +283,22 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			if (transfer_process_on[i])
 				printf("check data transfer order: %s send remote data %ld at %ld\n", inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 		}
+		if (!transfer_data)
+			finish_status = true;
 		if (transfer_data) {
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)
 				printf("current_remote_fields_time[i] 3 is %ld\n", current_remote_fields_time[i]);
 			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
-			runtime_data_transfer_algorithm->run(true); 
+//			runtime_data_transfer_algorithm->run(true); 
 		}
 	}
+}
+
+
+void Connection_coupling_procedure::send_fields()
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface->get_import_or_export() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
+	finish_status = runtime_data_transfer_algorithm->run(true);
 }
 
 
@@ -539,6 +550,18 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	
 	for (int i = 0; i < coupling_procedures.size(); i ++)
 		coupling_procedures[i]->execute(bypass_timer);
+
+	if (import_or_export == 1) {
+		bool all_finish = false;
+		while (!all_finish) {
+			all_finish = true;
+			for (int i = 0; i < coupling_procedures.size(); i ++) {
+				if (!coupling_procedures[i]->get_finish_status())
+					coupling_procedures[i]->send_fields();
+				all_finish = all_finish && coupling_procedures[i]->get_finish_status();
+			}	
+		}
+	}
 }
 
 
