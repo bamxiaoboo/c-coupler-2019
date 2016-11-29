@@ -165,6 +165,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 	}
 	
 	if (inout_interface->get_import_or_export() == 0) { 
+		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->receve_data_in_temp_buffer();
 		for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 			if (bypass_timer) {
 				transfer_process_on[i] = true;
@@ -194,6 +195,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)
 				printf("current_remote_fields_time[i] 2 is %ld\n", current_remote_fields_time[i]);
 			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
+			printf("receive data at %lx for %lx  %lx %s\n", this, runtime_data_transfer_algorithm, inout_interface, inout_interface->get_interface_name());
 			runtime_data_transfer_algorithm->run(true);
 			for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 				if (transfer_process_on[i]) {

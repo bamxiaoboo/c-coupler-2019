@@ -344,7 +344,7 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
         }
     }
     else {
-        if (!words_are_the_same(field_data->get_grid_data_field()->field_name_in_IO_file, "\0"))
+        if (!words_are_the_same(field_data->get_grid_data_field()->field_name_in_IO_file, "\0") && !is_grid_data)
             sprintf(tmp_string, "%s", field_data->get_grid_data_field()->field_name_in_IO_file);
         else sprintf(tmp_string, "%s", field_data->get_grid_data_field()->field_name_in_application);
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "IO field name is %s", tmp_string);

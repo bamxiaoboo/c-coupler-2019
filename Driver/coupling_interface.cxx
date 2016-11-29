@@ -817,7 +817,9 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
+	printf("before IO output\n");
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
+	printf("after IO output\n");
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
 

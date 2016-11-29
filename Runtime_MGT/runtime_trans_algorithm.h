@@ -19,6 +19,7 @@
 #include "timer_mgt.h"
 
 
+
 class Runtime_trans_algorithm: public Runtime_algorithm_basis
 {
     private:
@@ -34,18 +35,30 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         int data_buf_size;
         int tag_buf_size;
         int num_remote_procs;
+		int num_local_procs;
         bool fields_allocated;
         int * send_displs_in_remote_procs;
         int * recv_displs_in_current_proc;
         int * send_size_with_remote_procs;
         int * recv_size_with_remote_procs;
+		std::vector<int> send_index_remote_procs_with_common_data;
+		std::vector<int> recv_index_remote_procs_with_common_data;
         int * fields_data_type_sizes;
         long * field_grids_num_lev;
 		bool *transfer_process_on;
 		long *current_remote_fields_time;
-		long *last_remote_fields_time;
+		long last_field_remote_recv_count;
+		long current_field_local_recv_count;
 		Time_mgt *time_mgr;
-
+		long *last_receive_field_sender_time;
+		long *current_receive_field_sender_time;
+		long *current_receive_field_usage_time;
+		std::vector<bool> history_receive_buffer_status;
+		std::vector<long*> history_receive_sender_time;
+		std::vector<long*> history_receive_usage_time;
+		std::vector<void*> history_receive_data_buffer;
+		int last_history_receive_buffer_index;
+		
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
 	    int current_proc_local_id;
@@ -59,13 +72,13 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         bool recv(bool);
         bool sendrecv(bool);
         void initialize_local_data_structures();
+		long get_receive_data_time();
         bool is_remote_data_buf_ready();
-        bool is_local_data_buf_ready();
         bool set_remote_tags();
         bool set_local_tags();
         void preprocess();
         void pack_MD_data(int, int, int *);
-        void unpack_MD_data(int, int, int *);
+        void unpack_MD_data(void *, int, int, int *);
         template <class T> void pack_segment_data(T *, T *, int, int, int, int);
         template <class T> void unpack_segment_data(T *, T *, int, int, int, int);
 
@@ -84,6 +97,7 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
 		void pass_transfer_parameters(std::vector<bool> &, std::vector<long> &);
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}
+		void receve_data_in_temp_buffer();
 };
 
 

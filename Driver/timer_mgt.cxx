@@ -775,12 +775,11 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
 	                 words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
 	                 "The frequency unit in timer must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "The frquency count in timer must be larger than 0. Please check the model code with the annotation \"%s\"", annotation);
-	    EXECUTION_REPORT(REPORT_ERROR, comp_id, lag_count >= 0, "The lag count in a timer must be positive. Please check the model code with the annotation \"%s\"", annotation);		
 	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, lag_count%time_step_in_second == 0, "The lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
 	    }
-		if (lag_count > 0)
+		if (lag_count != 0)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), "The lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 	}
 }
