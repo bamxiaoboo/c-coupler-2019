@@ -19,10 +19,11 @@
 #include "timer_mgt.h"
 
 
-
-class Runtime_trans_algorithm: public Runtime_algorithm_basis
+class Runtime_trans_algorithm
 {
     private:
+		bool send_or_receive;    // true means send and false means receive
+		int comp_id;
         int num_transfered_fields;
         Field_mem_info **fields_mem;
         void **fields_data_buffers;
@@ -36,13 +37,10 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         int tag_buf_size;
         int num_remote_procs;
 		int num_local_procs;
-        bool fields_allocated;
         int * send_displs_in_remote_procs;
         int * recv_displs_in_current_proc;
-        int * send_size_with_remote_procs;
-        int * recv_size_with_remote_procs;
-		std::vector<int> send_index_remote_procs_with_common_data;
-		std::vector<int> recv_index_remote_procs_with_common_data;
+        int * transfer_size_with_remote_procs;
+		std::vector<int> index_remote_procs_with_common_data;
         int * fields_data_type_sizes;
         long * field_grids_num_lev;
 		bool *transfer_process_on;
@@ -58,23 +56,20 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
 		std::vector<long*> history_receive_usage_time;
 		std::vector<void*> history_receive_data_buffer;
 		int last_history_receive_buffer_index;
-		
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
 	    int current_proc_local_id;
     	int current_proc_global_id;	
-
         MPI_Comm union_comm;
         int * remote_proc_ranks_in_union_comm;
         int current_proc_id_union_comm;
+		bool sender_time_has_matched;
 
         bool send(bool);
         bool recv(bool);
-        bool sendrecv(bool);
-        void initialize_local_data_structures();
 		long get_receive_data_time();
         bool is_remote_data_buf_ready();
-        bool set_remote_tags();
+        bool set_remote_tags(bool);
         bool set_local_tags();
         void preprocess();
         void pack_MD_data(int, int, int *);
@@ -83,17 +78,13 @@ class Runtime_trans_algorithm: public Runtime_algorithm_basis
         template <class T> void unpack_segment_data(T *, T *, int, int, int, int);
 
     public:
-        Runtime_trans_algorithm(int, int, Field_mem_info **, Routing_info **, Coupling_timer **, MPI_Comm, int *);
+        Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, Coupling_timer **, MPI_Comm, int *);
         ~Runtime_trans_algorithm();
         bool run(bool);
-        void allocate_src_dst_fields(bool);
-        MPI_Win * get_data_win() {return &data_win;}
-        MPI_Win * get_tag_win() {return &tag_win;}
         void * get_data_buf() {return data_buf;}
         long * get_tag_buf() {return tag_buf;}
         int get_data_buf_size() {return data_buf_size;}
         int get_tag_buf_size() {return tag_buf_size;}
-        void create_win();
 		void pass_transfer_parameters(std::vector<bool> &, std::vector<long> &);
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}

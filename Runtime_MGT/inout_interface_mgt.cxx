@@ -126,6 +126,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 
 	finish_status = false;
 	transfer_data = false;
+
+	printf("execute connection procedure for dst %s %lx\n", coupling_connection->dst_comp_full_name, inout_interface);
 	
 	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 		if (inout_interface->get_import_or_export() == 0) {
@@ -194,10 +196,11 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 		if (transfer_data) {
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)
-				printf("check data transfer order: %s receive data of remote time %ld at local time %ld\n", inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
+				printf("check data transfer order: %s %s receive data of remote time %ld at local time %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_comp_name(),
+				inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
 			printf("receive data at %lx for %lx  %lx %s\n", this, runtime_data_transfer_algorithm, inout_interface, inout_interface->get_interface_name());
-			runtime_data_transfer_algorithm->run(true);
+			runtime_data_transfer_algorithm->run(bypass_timer);
 			for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 				if (transfer_process_on[i]) {
 					if (runtime_datatype_transform_algorithms[i] != NULL)
@@ -281,7 +284,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 		for (int i = 0; i < fields_time_info_src.size(); i ++) {
 			if (transfer_process_on[i])
-				printf("check data transfer order: %s send remote data %ld at %ld\n", inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
+				printf("check data transfer order: %s %s send remote data %ld at %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_comp_name(),
+				inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 		}
 		if (!transfer_data)
 			finish_status = true;
@@ -289,16 +293,15 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)
 				printf("current_remote_fields_time[i] 3 is %ld\n", current_remote_fields_time[i]);
 			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
-//			runtime_data_transfer_algorithm->run(true); 
 		}
 	}
 }
 
 
-void Connection_coupling_procedure::send_fields()
+void Connection_coupling_procedure::send_fields(bool bypass_timer)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface->get_import_or_export() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
-	finish_status = runtime_data_transfer_algorithm->run(true);
+	finish_status = runtime_data_transfer_algorithm->run(bypass_timer);
 }
 
 
@@ -401,6 +404,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		printf("special timer %d vs %d\n", num_fields, timer_ids_size);
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	strcpy(this->interface_name, interface_name);
+	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	check_and_verify_name_format_of_string_for_API(this->comp_id, this->interface_name, API_id, "the interface", annotation);
 }
 
@@ -512,6 +516,12 @@ void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coup
 
 void Inout_interface::execute(bool bypass_timer, const char *annotation)
 {
+	if (time_mgr->check_is_model_run_finished()) {
+		EXECUTION_REPORT(REPORT_WARNING, comp_id, false, "The import/export interface \"%s\" (corresponding to the model code annotation \"%s\") will not execute at time %08d-%05d because the model run has finished",
+			             interface_name, annotation_mgr->get_annotation(interface_id, "registering interface"), time_mgr->get_current_date(), time_mgr->get_current_second());
+		return;
+	}
+
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Cannot execute the interface \"%s\" corresponding to the model code with the annotation \"%s\" because the coupling procedures of interfaces have not been generated. Please call API \"CCPL_end_coupling_configuration\" of all components before executing an import/export interface", interface_name, annotation);
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
 		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "software error")->get_comm_group(), "executing an import/export interface", annotation);
@@ -522,7 +532,8 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		else bypass_timer_int = 1;
 		check_API_parameter_int(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", bypass_timer_int, "the value for specifying whether bypass timers", annotation);
 		if (bypass_timer) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x1) == 0, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "bypassing timer"));
+			if ((execution_checking_status & 0x1) != 0)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x1) == 0, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "bypassing timer"));
 			execution_checking_status = execution_checking_status | 0x1;
 			annotation_mgr->add_annotation(interface_id, "bypassing timer", annotation);
 		}
@@ -533,11 +544,12 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	}
 
 	if (bypass_timer) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x2) == 0, "Cannot bypass the timers when executing import/export interface \"%s\" (the corrsponding code annotation is \"%s\") because this interface has been executed without bypassing timers before (the corrsponding code annotation is \"%s\")",
-		                 interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
+		if ((execution_checking_status & 0x2) != 0)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x2) == 0, "Cannot bypass the timers when executing import/export interface \"%s\" (the corrsponding code annotation is \"%s\") because this interface has been executed without bypassing timers before (the corrsponding code annotation is \"%s\")",
+			                 interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	}
 
-	long current_execution_time = ((long)components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day())*100000 + components_time_mgrs->get_time_mgr(comp_id)->get_current_second();
+	long current_execution_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + components_time_mgrs->get_time_mgr(comp_id)->get_current_second();
 	if (current_execution_time == last_execution_time) {
 		int current_year, current_month, current_day, current_second;
 		components_time_mgrs->get_time_mgr(comp_id)->get_current_time(current_year, current_month, current_day, current_second, 0);
@@ -557,7 +569,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 			all_finish = true;
 			for (int i = 0; i < coupling_procedures.size(); i ++) {
 				if (!coupling_procedures[i]->get_finish_status())
-					coupling_procedures[i]->send_fields();
+					coupling_procedures[i]->send_fields(bypass_timer);
 				all_finish = all_finish && coupling_procedures[i]->get_finish_status();
 			}	
 		}

@@ -40,7 +40,6 @@ void Coupling_connection::generate_a_coupling_procedure()
 	current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
 	src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
 	dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
-
 	
 	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
 		return;
@@ -56,7 +55,6 @@ void Coupling_connection::generate_a_coupling_procedure()
 	if (current_proc_id_dst_comp == 0) {
 		MPI_Irecv(&msg_tag, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &recv_req);	 		
 	}
-
 
 	if (current_proc_id_src_comp == 0) {
 		MPI_Wait(&send_req, &status);
@@ -80,6 +78,7 @@ void Coupling_connection::generate_a_coupling_procedure()
 	if (current_proc_id_src_comp != -1) {
 		export_procedure = new Connection_coupling_procedure(export_interface, this);
 		export_interface->add_coupling_procedure(export_procedure);
+		printf("add coupling procedure of data to comp %s into interface %s\n", dst_comp_full_name, export_interface->get_interface_name());
 	}
 	if (current_proc_id_dst_comp != -1) {
 		import_procedure = new Connection_coupling_procedure(import_interface, this);
@@ -190,8 +189,8 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
 	Field_mem_info ** fields_mem = new Field_mem_info *[num_fields];
 	Coupling_timer **fields_timer = new Coupling_timer *[num_fields];
 	Routing_info **fields_router = new Routing_info *[num_fields];
-	Runtime_algorithm_basis * send_algorithm_object = NULL;
-	Runtime_algorithm_basis * recv_algorithm_object = NULL;
+	Runtime_trans_algorithm * send_algorithm_object = NULL;
+	Runtime_trans_algorithm * recv_algorithm_object = NULL;
 
 	int msg_tag;
 	MPI_Request send_req, recv_req;
@@ -237,11 +236,12 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, src_decomp_id, dst_decomp_id);
             fields_router[i + num_src_fields] = fields_router[i];
         }
-        send_algorithm_object = new Runtime_trans_algorithm(num_src_fields, 0, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
+        send_algorithm_object = new Runtime_trans_algorithm(true, num_src_fields, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
         coupling_connection->export_procedure->add_data_transfer_algorithm(send_algorithm_object);
-        recv_algorithm_object = new Runtime_trans_algorithm(0, num_fields/2, &fields_mem[num_src_fields], &fields_router[num_src_fields], 
+        recv_algorithm_object = new Runtime_trans_algorithm(false, num_src_fields, &fields_mem[num_src_fields], &fields_router[num_src_fields], 
                 &fields_timer[num_src_fields], union_comm, src_proc_ranks_in_union_comm);
 		coupling_connection->import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
+		printf("self communication %d vs %d\n", num_src_fields, num_fields/2);
     }
     else if (current_proc_id_src_comp != -1) {
         for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
@@ -256,7 +256,7 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_timer[i] = coupling_connection->src_fields_info[i]->timer;
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, decomp_id, remote_decomp_id);
         }
-        send_algorithm_object = new Runtime_trans_algorithm(num_fields, 0, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
+        send_algorithm_object = new Runtime_trans_algorithm(true, num_fields, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
         coupling_connection->export_procedure->add_data_transfer_algorithm(send_algorithm_object);
     }
     else {
@@ -272,7 +272,7 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             fields_timer[i] = coupling_connection->dst_fields_info[i]->timer;
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, remote_decomp_id, decomp_id);
         }
-        recv_algorithm_object = new Runtime_trans_algorithm(0, num_fields, fields_mem, fields_router, fields_timer, union_comm, src_proc_ranks_in_union_comm);
+        recv_algorithm_object = new Runtime_trans_algorithm(false, num_fields, fields_mem, fields_router, fields_timer, union_comm, src_proc_ranks_in_union_comm);
 		coupling_connection->import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
     }
 
