@@ -571,6 +571,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	IO_fields_mgr = new IO_field_mgt();
 	components_IO_output_procedures_mgr = new Components_IO_output_procedures_mgt();
 	fields_gather_scatter_mgr = new Fields_gather_scatter_mgt();
+	remapping_configuration_mgr = new Remapping_configuration_mgt();
 }
 
 
@@ -644,6 +645,8 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	sprintf(file_name, "%s/CCPL_configs/env_run.xml", comp_comm_group_mgt_mgr->get_root_working_dir());
 	components_time_mgrs->define_root_comp_time_mgr(*comp_id, file_name);
+	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
+	remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 }
 
 
@@ -670,6 +673,7 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 
 	*comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, *comm, *parent_comp_id, annotation);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
+	remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 }
 
 

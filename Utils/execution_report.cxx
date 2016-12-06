@@ -33,6 +33,9 @@ void wtime(double *t)
 
 void report_header(int report_type, int comp_id, bool &condition, char *output_string)
 {
+	if (comp_id != -1 && comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
+		comp_id = -1;
+	
 	output_string[0] = '\0';
 	
 	switch (report_type) {
@@ -117,6 +120,9 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 void report_ender(int report_type, int comp_id, char *output_string)
 {
 #ifndef ONLY_CoR
+	if (comp_id != -1 && comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
+		comp_id = -1;
+
 	if (comp_id == -1 || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id)) {
 		printf("%s\n\n", output_string);
 		fflush(NULL);

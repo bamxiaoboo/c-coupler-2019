@@ -37,5 +37,7 @@ Components_time_mgt *components_time_mgrs = NULL;
 Inout_interface_mgt *inout_interface_mgr = NULL;
 IO_field_mgt *IO_fields_mgr = NULL;
 Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr = NULL;
+Remapping_configuration_mgt *remapping_configuration_mgr = NULL;
+
 
 

@@ -385,7 +385,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, int co
 		}
 		sprintf(dir, "%s/CCPL_logs", working_dir, comp_name);
 		create_directory(dir, get_current_proc_local_id() == 0);
-		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);
+		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);   // to be modified: should be linked
 		create_directory(dir, get_current_proc_local_id() == 0);
 		sprintf(dir, "%s/data", working_dir, comp_name);
 		create_directory(dir, get_current_proc_local_id() == 0);

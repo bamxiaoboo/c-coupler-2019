@@ -12,6 +12,7 @@
 
 
 #include <mpi.h>
+#include "tinyxml.h"
 
 
 #define API_ID_FINALIZE                                 ((int)(0x00100001))
@@ -57,6 +58,8 @@ extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, 
 extern void get_API_hint(int, int, char*);
 extern void check_and_verify_name_format_of_string_for_API(int, char*, int, const char*, const char*);
 extern void check_and_verify_name_format_of_string_for_XML(int, char*, const char*, const char*, int);
+extern const char *get_XML_attribute(int, TiXmlElement*, const char*, const char*, int&, const char*, const char*);
+extern bool is_XML_setting_on(int, TiXmlElement*, const char*, const char*, const char*);
 
 #endif
 

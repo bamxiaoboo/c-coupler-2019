@@ -37,6 +37,7 @@
 #include "coupling_generator.h"
 #include "runtime_trans_algorithm.h"
 #include "IO_field_mgt.h"
+#include "remapping_configuration_mgt.h"
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"
@@ -69,5 +70,7 @@ extern Components_time_mgt *components_time_mgrs;
 extern Inout_interface_mgt *inout_interface_mgr;
 extern IO_field_mgt *IO_fields_mgr;
 extern Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr;
+extern Remapping_configuration_mgt *remapping_configuration_mgr;
+
 
 #endif

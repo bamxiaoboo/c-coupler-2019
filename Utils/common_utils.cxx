@@ -70,7 +70,7 @@ bool get_next_line(char *line, FILE *fp)
 
 bool get_next_attr(char *attr, char **line)
 {
-	EXECUTION_REPORT(REPORT_ERROR, *line != NULL, "Can not get next attribute from the configuration file. There may be problem in the configuration file");
+	EXECUTION_REPORT(REPORT_ERROR, -1, *line != NULL, "Can not get next attribute from the configuration file. There may be problem in the configuration file");
 	
     if ((*line)[0] == '\0') {
         (*line) = NULL;
@@ -174,7 +174,7 @@ FILE *open_config_file(const char *config_file_name, const char *config_file_dir
     sprintf(config_file_full_name, "%s/%s\0", C_COUPLER_CONFIG_DIR, config_file_dir);
     strcat(config_file_full_name, config_file_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, (cfg_fp = fopen(config_file_full_name, "rb")) != NULL, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, (cfg_fp = fopen(config_file_full_name, "rb")) != NULL, 
 		         "Config file %s under dir %s can not be opened\n", config_file_name, config_file_dir);
 
     return cfg_fp;
@@ -190,7 +190,7 @@ FILE *open_config_file(const char *config_file_name)
     sprintf(config_file_full_name, "%s/\0", C_COUPLER_CONFIG_DIR);
     strcat(config_file_full_name, config_file_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, (cfg_fp = fopen(config_file_full_name, "rb")) != NULL, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, (cfg_fp = fopen(config_file_full_name, "rb")) != NULL, 
 		         "Config file %s can not be opened\n", config_file_name);	    
 
     return cfg_fp;
@@ -226,7 +226,7 @@ void create_directory(const char *path, bool is_root_proc)
 		if (dir == NULL) {
 			printf("path2 is %s\n", path);
 			int is_create = mkdir(path, 0777);
-			EXECUTION_REPORT(REPORT_ERROR, is_create == 0, "directory \"%s\" cannot be created. Please check why.", path);
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_create == 0, "directory \"%s\" cannot be created. Please check why.", path);
 		}
 	}	
 }

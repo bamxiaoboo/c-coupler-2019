@@ -13,7 +13,6 @@
 #include "coupling_generator.h"
 
 
-
 Coupling_connection::Coupling_connection(int id)
 {
 	import_interface = NULL;
