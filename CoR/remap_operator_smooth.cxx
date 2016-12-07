@@ -27,6 +27,13 @@ void Remap_operator_smooth::set_parameter(const char *parameter_name, const char
 }
 
 
+int Remap_operator_smooth::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
+{
+    EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Remap_operator_smooth::check_parameter");
+	return 0;
+}
+
+
 void Remap_operator_smooth::compute_remap_weights_of_one_dst_cell(long index_dst_cell)
 {
 }

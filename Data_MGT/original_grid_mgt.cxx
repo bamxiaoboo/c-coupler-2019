@@ -29,6 +29,8 @@ const char *Original_grid_info::get_annotation()
 
 Original_grid_mgt::Original_grid_mgt(const char *script)
 {
+	CoR_grids = new Remap_mgt(NULL);
+	delete CoR_grids;
 	original_grids.clear();
 	strcpy(CoR_script_name, script);
 	if (strlen(CoR_script_name) != 0)

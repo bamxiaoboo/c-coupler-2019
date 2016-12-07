@@ -29,12 +29,42 @@ void Remap_operator_distwgt::set_parameter(const char *parameter_name, const cha
 	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
 		if (words_are_the_same(parameter_value, "true"))
 	        enable_extrapolate = true;
+		else if (words_are_the_same(parameter_value, "false"))
+			enable_extrapolate = false;
 		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "value of the parameter \"enable_extrapolate\" must be \"true\"\n");
 	}
     else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "\"%s\" is a illegal parameter of remap operator \"%s\"\n",
                       parameter_name,
                       operator_name);
+}
+
+
+int Remap_operator_distwgt::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
+{
+	int check_result = 0;
+    if (words_are_the_same(parameter_name, "num_power")) {
+		check_result = 1;
+        sscanf(parameter_value, "%lf", &num_power);
+		if (num_power > 0) 
+			check_result = 3;
+		else sprintf(error_string, "The parameter value must be larger than 0");
+    }
+    else if (words_are_the_same(parameter_name, "num_nearest_points")) {
+		check_result = 1;
+        sscanf(parameter_value, "%d", &num_nearest_points);
+		if (num_nearest_points> 0) 
+			check_result = 3;
+		else sprintf(error_string, "The parameter value must be larger than 0");
+    }
+	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
+		check_result = 1;
+		if (words_are_the_same(parameter_value, "true") || words_are_the_same(parameter_value, "false"))
+			check_result = 3;
+		else sprintf(error_string, "The parameter value must be \"true\" or \"false\"");
+	}
+
+	return check_result;
 }
 
 

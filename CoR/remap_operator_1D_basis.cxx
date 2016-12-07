@@ -129,6 +129,38 @@ void Remap_operator_1D_basis::set_common_parameter(const char *parameter_name, c
 }
 
 
+int Remap_operator_1D_basis::check_common_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
+{
+	int check_result = 0;
+
+	
+    if (words_are_the_same(parameter_name, "periodic") || words_are_the_same(parameter_name, "use_logarithmic_field_value") || 
+		words_are_the_same(parameter_name, "use_logarithmic_coordinate") || words_are_the_same(parameter_name, "enable_extrapolate")) {
+		check_result = 1;
+		if (words_are_the_same(parameter_value, "true") || words_are_the_same(parameter_value, "false"))
+	        check_result = 3;
+		else sprintf(error_string, "The parameter value must be \"true\" or \"false\""); 
+    }
+	else if (words_are_the_same(parameter_name, "period")) {
+		check_result = 1;
+		sscanf(parameter_value, "%lf", &period);
+		if (period > 0)
+			check_result = 3;
+		else sprintf(error_string, "The parameter value must be a positive value"); 
+		
+	}
+	else if (words_are_the_same(parameter_name, "extrapolation_approach")) {
+		check_result = 1;
+		if (words_are_the_same(parameter_name, "with_boundary"))
+			check_result = 3;
+		else sprintf(error_string, "The parameter value must be \"with_boundary\""); 
+	}
+
+	return check_result;
+}
+
+
+
 void Remap_operator_1D_basis::allocate_1D_remap_operator_common_arrays_space()
 {
 	int required_size = (src_grid->get_grid_size()+2)*12+(dst_grid->get_grid_size()+2)*12;

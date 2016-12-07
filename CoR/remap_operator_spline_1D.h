@@ -38,12 +38,13 @@ class Remap_operator_spline_1D: public Remap_operator_1D_basis
 		void solve_periodic_tridiagonal_system(double*, double*, double*, double*, int);
 		void compute_remap_weights_of_one_dst_cell(long);
 		void allocate_local_arrays();
-		Remap_operator_spline_1D() {}
 
     public:
+		Remap_operator_spline_1D() {}
         Remap_operator_spline_1D(const char*, int, Remap_grid_class **);
         ~Remap_operator_spline_1D();
         void set_parameter(const char *, const char *);
+		int check_parameter(const char *, const char *, char *);
 		void calculate_remap_weights();
 		void do_remap_values_caculation(double*, double*);
         void do_src_decomp_caculation(long*, const long*);

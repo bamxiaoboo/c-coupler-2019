@@ -25,7 +25,6 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(const Remap
 
 Remapping_algorithm_specification::Remapping_algorithm_specification(const char *algorithm_name, int algorithm_type)
 {
-	// check the algorithm exists and its type is the same as the given
 	strcpy(this->algorithm_name, algorithm_name);
 	this->type_id = algorithm_type;
 }
@@ -39,14 +38,24 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 	this->type_id = algorithm_type;
 	this->comp_id = comp_id;
 	const char *algorithm_name = get_XML_attribute(comp_id, XML_element, "name", XML_file_name, line_number, "the name of a remapping algorithm", "remapping configuration");
-	// check the algorithm exists and its type is the same as the given
+	if (algorithm_type == REMAP_ALGORITHM_TYPE_H2D)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, remap_operator_manager->get_remap_operator_num_dim(algorithm_name) == 2, "\"%s\" is not a legal remapping operator or not a 2D remapping operator. Please verify the XML file \"%s\" around the line number %d", algorithm_name, XML_file_name, line_number);
+	else if (algorithm_type == REMAP_ALGORITHM_TYPE_V1D || algorithm_type == REMAP_ALGORITHM_TYPE_T1D)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, remap_operator_manager->get_remap_operator_num_dim(algorithm_name) == 1, "\"%s\" is not a legal remapping operator or not a 1D remapping operator. Please verify the XML file \"%s\" around the line number %d", algorithm_name, XML_file_name, line_number);
+	else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Remapping_algorithm_specification::Remapping_algorithm_specification");
+
 	strcpy(this->algorithm_name, algorithm_name);
 	for (TiXmlNode *detailed_element_node = XML_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(detailed_element->Value(), "parameter"), "When setting the remapping configuration in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", XML_file_name, detailed_element->Value(), detailed_element->Row());
 		const char *parameter_name = get_XML_attribute(comp_id, detailed_element, "name", XML_file_name, line_number, "the name of a parameter of the corresponding remapping algorithm",  "remapping configuration");
 		const char *parameter_value = get_XML_attribute(comp_id, detailed_element, "value", XML_file_name, line_number, "the value of a parameter of the corresponding remapping algorithm",  "remapping configuration");
-		// check whether the paramter name and value are legal
+		char error_string[NAME_STR_SIZE];
+		int parameter_check_result = remap_operator_manager->check_operator_parameter(algorithm_name, parameter_name, parameter_value, error_string);
+		if (parameter_check_result == 0)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The remapping algorithm \"%s\" does not have a parameter named \"%s\". Please verify the XML file \"%s\" around the line number %d", algorithm_name, parameter_name, XML_file_name, line_number);
+		else if (parameter_check_result == 1)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The value of the parameter \"%s\" of the remapping algorithm \"%s\" is wrong. %s. Please verify the XML file \"%s\" around the line number %d", parameter_name, algorithm_name, error_string, XML_file_name, line_number);
 		parameters_name.push_back(strdup(parameter_name));
 		parameters_value.push_back(strdup(parameter_value));
 	}

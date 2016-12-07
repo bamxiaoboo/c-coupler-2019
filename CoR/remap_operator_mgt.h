@@ -26,6 +26,8 @@ class Remap_operator_mgt
         Remap_operator_basis *search_remap_operator(const char*);
 		Remap_operator_basis *search_remap_operator(Remap_grid_class*, Remap_grid_class*, const char*);
 		void add_remap_operator(Remap_operator_basis *);
+		int get_remap_operator_num_dim(const char*);
+		int check_operator_parameter(const char*, const char*, const char*, char*);
 };
 
 

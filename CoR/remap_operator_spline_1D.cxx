@@ -102,6 +102,20 @@ void Remap_operator_spline_1D::set_parameter(const char *parameter_name, const c
 }
 
 
+int Remap_operator_spline_1D::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
+{
+    int check_result = 0;
+
+	if (words_are_the_same(parameter_name, "keep_monotonicity")) {
+		if (words_are_the_same(parameter_value, "true") || words_are_the_same(parameter_value, "false"))
+	        check_result = 3;
+		else sprintf(error_string, "The parameter value must be \"true\" or \"false\"");
+		return check_result;
+	}
+    else return check_common_parameter(parameter_name, parameter_value, error_string);
+}
+
+
 void Remap_operator_spline_1D::allocate_local_arrays()
 {
 	array_alpha = common_buffer_for_1D_remap_operator + 3*(src_grid->get_grid_size()+2);

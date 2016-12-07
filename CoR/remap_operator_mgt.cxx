@@ -117,3 +117,39 @@ Remap_operator_mgt::~Remap_operator_mgt()
         delete remap_operators[i];
 }
 
+
+int Remap_operator_mgt::get_remap_operator_num_dim(const char *operator_name)
+{
+	if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_BILINEAR) || words_are_the_same(operator_name, REMAP_OPERATOR_NAME_DISTWGT) ||
+		words_are_the_same(operator_name, REMAP_OPERATOR_NAME_CONSERV_2D))
+		return 2;
+
+	if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_LINEAR) || words_are_the_same(operator_name, REMAP_OPERATOR_NAME_SPLINE_1D))
+		return 1;
+
+	return -1;
+}
+
+
+int Remap_operator_mgt::check_operator_parameter(const char *operator_name, const char *parameter_name, const char *parameter_value, char *error_string)
+{
+	Remap_operator_basis *remap_operator;
+    if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_BILINEAR))
+        remap_operator = new Remap_operator_bilinear();
+    else if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_CONSERV_2D))
+        remap_operator = new Remap_operator_conserv_2D();
+    else if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_DISTWGT))
+        remap_operator = new Remap_operator_distwgt();
+    else if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_LINEAR)) 
+        remap_operator = new Remap_operator_linear();
+    else if (words_are_the_same(operator_name, REMAP_OPERATOR_NAME_SPLINE_1D))
+        remap_operator = new Remap_operator_spline_1D();
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Remap_operator_mgt::check_operator_parameter");
+
+	int check_result = remap_operator->check_parameter(parameter_name, parameter_value, error_string);
+	delete remap_operator;
+
+	return check_result;
+}
+
+

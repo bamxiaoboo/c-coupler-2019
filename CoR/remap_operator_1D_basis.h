@@ -48,6 +48,7 @@ class Remap_operator_1D_basis: public Remap_operator_basis
 		void search_src_cells_around_dst_cell(double, int, int, int&, int&);
 		void search_src_cells_around_dst_cell_recursively(double, int, int,  int&, int&);
 		void set_common_parameter(const char*, const char*);
+		int check_common_parameter(const char*, const char*, char*);
 		void calculate_dst_src_mapping_info();
 		void preprocess_field_value(double*);
 		void postprocess_field_value(double*);
@@ -57,6 +58,7 @@ class Remap_operator_1D_basis: public Remap_operator_basis
         Remap_operator_1D_basis(const char*, const char*, int, Remap_grid_class **);
         virtual ~Remap_operator_1D_basis();
         virtual void set_parameter(const char*, const char*) = 0;
+		virtual int check_parameter(const char*, const char*, char*) = 0;
         virtual void do_remap_values_caculation(double*, double*) = 0;
         virtual void do_src_decomp_caculation(long*, const long*) = 0;
         virtual void calculate_remap_weights() = 0;

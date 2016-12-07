@@ -76,12 +76,11 @@ Remap_mgt::Remap_mgt(const char *cfg_file_name)
     int num_words_in_statement;
     int i;
     char **words_in_statement;
-    Remap_parser *remap_parser;
+    Remap_parser *remap_parser = NULL;
 
 
     /* Initialize parser for morphology checking and managers for managing data objects, 
         and push back funcion words and reserved words for semantic  analysis */
-    remap_parser = new Remap_parser(cfg_file_name);
     io_manager = new IO_mgt();
     remap_strategy_manager = new Remap_strategy_mgt();
     remap_grid_manager = new Remap_grid_mgt();
@@ -93,23 +92,25 @@ Remap_mgt::Remap_mgt(const char *cfg_file_name)
     push_back_all_words();
 
     /* Initialize the data structure to keep each word in a statement */
-    words_in_statement = new char *[256];
-    for (i = 0; i < 256; i ++)
-        words_in_statement[i] = new char [256];
+	if (cfg_file_name != NULL) {
+	    remap_parser = new Remap_parser(cfg_file_name);
+	    words_in_statement = new char *[256];
+	    for (i = 0; i < 256; i ++)
+	        words_in_statement[i] = new char [256];
 
-    /* For each statement, check its syntax, analyze its semantic, execute it and then release it */
-    line_number = 1;
-    while (remap_parser->get_next_parsed_statement(&num_words_in_statement, words_in_statement)) { 
-        parse_statement(num_words_in_statement, words_in_statement);
-        process_statement();
-        release_statement();
-        line_number ++;
-    }
-
-    delete remap_parser;
-    for (i = 0; i < 256; i ++)
-        delete [] words_in_statement[i];
-    delete [] words_in_statement;
+	    /* For each statement, check its syntax, analyze its semantic, execute it and then release it */
+	    line_number = 1;
+	    while (remap_parser->get_next_parsed_statement(&num_words_in_statement, words_in_statement)) { 
+	        parse_statement(num_words_in_statement, words_in_statement);
+	        process_statement();
+	        release_statement();
+	        line_number ++;
+	    }
+	    delete remap_parser;
+	    for (i = 0; i < 256; i ++)
+	        delete [] words_in_statement[i];
+	    delete [] words_in_statement;
+	}
 }
 
 

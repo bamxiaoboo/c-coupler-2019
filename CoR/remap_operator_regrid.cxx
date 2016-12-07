@@ -19,6 +19,13 @@ void Remap_operator_regrid::set_parameter(const char *parameter_name, const char
 }
 
 
+int Remap_operator_regrid::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
+{
+    EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error in set_parameter of Remap_operator_regrid\n");
+	return 0;
+}
+
+
 void Remap_operator_regrid::calculate_remap_weights()
 {
     EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error in calculate_remap_weights of Remap_operator_regrid\n");

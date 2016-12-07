@@ -30,7 +30,8 @@ class Remap_operator_distwgt: public Remap_operator_basis
         Remap_operator_distwgt(const char*, int, Remap_grid_class **);
         Remap_operator_distwgt();
         ~Remap_operator_distwgt();
-        void set_parameter(const char *, const char *);
+        void set_parameter(const char*, const char*);
+		int check_parameter(const char*, const char*, char*);
         void calculate_remap_weights();
         void do_remap_values_caculation(double*, double*);
         void do_src_decomp_caculation(long*, const long*);

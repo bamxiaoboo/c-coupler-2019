@@ -24,6 +24,7 @@ class Remap_operator_smooth: public Remap_operator_basis
         Remap_operator_smooth() {}
         ~Remap_operator_smooth() {}
         void set_parameter(const char *, const char *);
+		int check_parameter(const char *, const char *, char*);
         void calculate_remap_weights();
         void do_remap_values_caculation(double*, double*);
         void do_src_decomp_caculation(long*, const long*);

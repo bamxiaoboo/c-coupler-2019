@@ -23,6 +23,12 @@ void Remap_operator_linear::set_parameter(const char *parameter_name, const char
 }
 
 
+int Remap_operator_linear::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
+{
+	return check_common_parameter(parameter_name, parameter_value, error_string);
+}
+
+
 void Remap_operator_linear::compute_remap_weights_of_one_dst_cell(long dst_cell_index)
 {
 }
