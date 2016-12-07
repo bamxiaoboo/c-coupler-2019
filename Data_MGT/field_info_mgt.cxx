@@ -49,7 +49,7 @@ const field_attr *Field_info_mgt::search_field_info(const char *field_name)
 }
 
 
-void Field_info_mgt::add_field_info(const char *field_name, const char *field_long_name, const char *field_unit, const char *field_dim)
+void Field_info_mgt::add_field_info(const char *field_name, const char *field_long_name, const char *field_unit, const char *field_dim, const char *field_type)
 {
 	field_attr local_attr;
 
@@ -58,6 +58,7 @@ void Field_info_mgt::add_field_info(const char *field_name, const char *field_lo
 	strcpy(local_attr.field_long_name, field_long_name);
 	strcpy(local_attr.field_unit, field_unit);
 	strcpy(local_attr.field_dim, field_dim);
+	strcpy(local_attr.field_type, field_type);
 	fields_attr.push_back(local_attr);
 	EXECUTION_REPORT(REPORT_WARNING, -1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined more than once\n", local_attr.field_name);
 }
@@ -72,23 +73,23 @@ Field_info_mgt::Field_info_mgt(const char *shared_fname, const char *private_fna
 	int i;
     
 
-	add_field_info("lat", "center latitude of grid cells", "degrees north", "vector");
-	add_field_info("lon", "center longitude of grid cells", "degrees east", "vector");
-	add_field_info("mask", "mask of a domain grid", "unitless", "vector");
-	add_field_info("n_grid_lats", "number of different latitudes of a 2D grid", "unitless", "scalar");
-	add_field_info("n_grid_lons", "number of different longitudes of a 2D grid", "unitless", "scalar");
-	add_field_info("n_grid_levels", "number of levels of a 3D grid", "unitless", "scalar");
-	add_field_info("surface_field", "surface field in a 3D sigma grid for calculating vertical coordinates", "unitless", "scalar");
-	add_field_info("index", "global index after decomposition of component grid", "unitless", "vector");
-	add_field_info("scalar_int", "scalar integer", "unitless", "scalar");
-	add_field_info("scalar_double", "scalar double", "unitless", "scalar");
-	add_field_info("input_orbYear", "year (AD) wrt orbital parameters", "unitless", "scalar");
-	add_field_info("input_orbEccen", "eccen of earth orbit", "unitless", "scalar");
-	add_field_info("input_orbObliq", "earth's obliquity", "degree", "scalar");
-	add_field_info("input_orbObliqr", "earth's obliquity", "rad", "scalar");
-	add_field_info("input_orbMvelp", "mv_ocn_srfing vernel equinox of orbit (degrees)", "degrees", "scalar");
-	add_field_info("input_orbMvelpp", "mv_ocn_srfing vernal equinox longitude of perihelion plus pi", "rad", "scalar");
-	add_field_info("input_orbLambm0", "mean lon perihelion @ vernal eq", "rad", "scalar");
+	add_field_info("lat", "center latitude of grid cells", "degrees north", "vector", "state");
+	add_field_info("lon", "center longitude of grid cells", "degrees east", "vector", "state");
+	add_field_info("mask", "mask of a domain grid", "unitless", "vector", "state");
+	add_field_info("n_grid_lats", "number of different latitudes of a 2D grid", "unitless", "scalar", "state");
+	add_field_info("n_grid_lons", "number of different longitudes of a 2D grid", "unitless", "scalar", "state");
+	add_field_info("n_grid_levels", "number of levels of a 3D grid", "unitless", "scalar", "state");
+	add_field_info("surface_field", "surface field in a 3D sigma grid for calculating vertical coordinates", "unitless", "scalar", "state");
+	add_field_info("index", "global index after decomposition of component grid", "unitless", "vector", "state");
+	add_field_info("scalar_int", "scalar integer", "unitless", "scalar", "state");
+	add_field_info("scalar_double", "scalar double", "unitless", "scalar", "state");
+	add_field_info("input_orbYear", "year (AD) wrt orbital parameters", "unitless", "scalar", "state");
+	add_field_info("input_orbEccen", "eccen of earth orbit", "unitless", "scalar", "state");
+	add_field_info("input_orbObliq", "earth's obliquity", "degree", "scalar", "state");
+	add_field_info("input_orbObliqr", "earth's obliquity", "rad", "scalar", "state");
+	add_field_info("input_orbMvelp", "mv_ocn_srfing vernel equinox of orbit (degrees)", "degrees", "scalar", "state");
+	add_field_info("input_orbMvelpp", "mv_ocn_srfing vernal equinox longitude of perihelion plus pi", "rad", "scalar", "state");
+	add_field_info("input_orbLambm0", "mean lon perihelion @ vernal eq", "rad", "scalar", "state");
 
 	if (!words_are_the_same(shared_fname, "NULL")) {
 		i = 0;
@@ -100,6 +101,7 @@ Field_info_mgt::Field_info_mgt(const char *shared_fname, const char *private_fna
 	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_long_name, &local_line), "Please specify the long name (description) of the %dth field in the configuration file %s.", i, shared_fname);
 	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_unit, &local_line), "Please specify the unit of the %dth field in the configuration file %s.", i, shared_fname);
 	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_dim, &local_line), "Please specify the number of dimensions of the %dth field in the configuration file %s.", i, shared_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_type, &local_line), "Please specify the type (\"state\" or \"flux\") of the %dth field in the configuration file %s.", i, shared_fname);
 	        fields_attr.push_back(local_attr);
 			EXECUTION_REPORT(REPORT_WARNING, -1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined has been defined more than once\n", local_attr.field_name);
 			get_field_num_dims(local_attr.field_dim, shared_fname);
@@ -117,6 +119,7 @@ Field_info_mgt::Field_info_mgt(const char *shared_fname, const char *private_fna
 	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_long_name, &local_line), "Please specify the long name (description) of the %dth field in the configuration file %s.", i, private_fname);
 	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_unit, &local_line), "Please specify the unit of the %dth field in the configuration file %s.", i, private_fname);
 	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_dim, &local_line), "Please specify the number of dimensions of the %dth field in the configuration file %s.", i, private_fname);
+	        EXECUTION_REPORT(REPORT_ERROR,-1, get_next_attr(local_attr.field_type, &local_line), "Please specify the type (\"state\" or \"flux\") of the %dth field in the configuration file %s.", i, shared_fname);
 	        fields_attr.push_back(local_attr);
 			EXECUTION_REPORT(REPORT_ERROR,-1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined twice in field table\n", local_attr.field_name);
 			get_field_num_dims(local_attr.field_dim, private_fname);

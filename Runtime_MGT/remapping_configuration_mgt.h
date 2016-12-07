@@ -31,9 +31,11 @@ class Remapping_algorithm_specification
 		std::vector<const char *> parameters_value;
 
 	public:
+		Remapping_algorithm_specification(const Remapping_algorithm_specification*);
 		Remapping_algorithm_specification(const char*, int);
 		Remapping_algorithm_specification(int, TiXmlElement*, const char*, int);
 		~Remapping_algorithm_specification();
+		void print();
 };
 
 
@@ -49,10 +51,17 @@ class Remapping_setting
 		std::vector<const char *> fields_specification;
 
 	public:
+		Remapping_setting() {}
 		Remapping_setting(const char*, const char*);
 		Remapping_setting(int, TiXmlElement*, const char*);
 		~Remapping_setting();
 		void detect_conflict(Remapping_setting*, const char*);
+		void reset_remapping_setting();
+		int get_field_specification_manner() { return field_specification_manner; }
+		void get_field_remapping_setting(Remapping_setting&, const char*);
+		const Remapping_algorithm_specification *get_H2D_remapping_algorithm() { return H2D_remapping_algorithm; }
+		const Remapping_algorithm_specification *get_V1D_remapping_algorithm() { return V1D_remapping_algorithm; }
+		void print();
 };
 
 
@@ -67,6 +76,7 @@ class Remapping_configuration
 		Remapping_configuration(int, const char*);
 		~Remapping_configuration();
 		int get_comp_id() { return comp_id; }
+		bool get_field_remapping_setting(Remapping_setting&, const char*);
 };
 
 
@@ -80,6 +90,7 @@ class Remapping_configuration_mgt
 		~Remapping_configuration_mgt();
 		void add_remapping_configuration(int);
 		Remapping_configuration *search_remapping_configuration(int);
+		void get_field_remapping_setting(Remapping_setting &, int, const char*);
 };
 
 

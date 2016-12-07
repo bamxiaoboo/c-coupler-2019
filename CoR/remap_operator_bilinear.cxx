@@ -91,6 +91,7 @@ int Remap_operator_bilinear::search_at_least_16_nearnest_src_points_for_bilinear
                                                                                  double &near_optimal_threshold_distance)
 {
     int num_points_within_threshold_distance = 0;
+    double eps = 2.0e-9;
 
 
     while (num_points_within_threshold_distance < 16) {
@@ -102,6 +103,9 @@ int Remap_operator_bilinear::search_at_least_16_nearnest_src_points_for_bilinear
         if (num_points_within_threshold_distance == 0)
             current_threshold_distance *= 2;
         else current_threshold_distance *= 1.1;     
+	if (num_points_within_threshold_distance > 0 && found_nearest_points_distance[0] <= eps)
+		break;
+
     }
 
     return num_points_within_threshold_distance;
@@ -156,7 +160,7 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box_recursively(double *
     bool have_points_on_the_same_line;
     int index_of_quadrant_id_for_distance_sorting[4];
     int new_iter_num_src_points_in_each_quadrant[4];
-	double eps = 2.0e-7;
+	double eps = 2.0e-9;
 
 
     for (i = 0; i < 4; i ++) {

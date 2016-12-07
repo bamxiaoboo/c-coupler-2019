@@ -20,6 +20,7 @@ struct field_attr
     char field_long_name[NAME_STR_SIZE];
     char field_unit[NAME_STR_SIZE];
     char field_dim[NAME_STR_SIZE];           // dimension info: scalar, 1D, 2D, 3D, etc
+    char field_type[NAME_STR_SIZE];          // state or flux
 };
 
 
@@ -35,7 +36,7 @@ public:
 	int get_field_num_dims(const char*, const char*);
 	const char *get_field_long_name(const char*);
 	const char *get_field_unit(const char*);
-	void add_field_info(const char*, const char*, const char*, const char*);
+	void add_field_info(const char*, const char*, const char*, const char*, const char *field_type);
 };
 
 #endif

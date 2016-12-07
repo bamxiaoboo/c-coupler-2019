@@ -530,7 +530,7 @@ extern "C" void coupling_check_sum_for_all_fields_()
 extern "C" void coupling_add_field_info_(const char *field_name, const char *field_unit, const char *field_long_name)
 {
 	EXECUTION_REPORT(REPORT_ERROR,-1, fields_info != NULL, "the C-Coupler manager for the information of fields is not initialized");
-	fields_info->add_field_info(field_name, field_long_name, field_unit, "none");
+	fields_info->add_field_info(field_name, field_long_name, field_unit, "none", "state");
 }
 
 

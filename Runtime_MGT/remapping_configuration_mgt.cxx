@@ -12,6 +12,17 @@
 #include "CCPL_api_mgt.h"
 
 
+Remapping_algorithm_specification::Remapping_algorithm_specification(const Remapping_algorithm_specification *src_specification)
+{
+	this->type_id = src_specification->type_id;
+	strcpy(this->algorithm_name, src_specification->algorithm_name);
+	for (int i = 0; i < src_specification->parameters_name.size(); i ++) {
+		this->parameters_name.push_back(strdup(src_specification->parameters_name[i]));
+		this->parameters_value.push_back(strdup(src_specification->parameters_value[i]));
+	}
+}
+
+
 Remapping_algorithm_specification::Remapping_algorithm_specification(const char *algorithm_name, int algorithm_type)
 {
 	// check the algorithm exists and its type is the same as the given
@@ -48,6 +59,16 @@ Remapping_algorithm_specification::~Remapping_algorithm_specification()
 		delete [] parameters_name[i];
 		delete [] parameters_value[i];
 	}
+}
+
+
+void Remapping_algorithm_specification::print()
+{
+	if (type_id == REMAP_ALGORITHM_TYPE_H2D)
+		printf("   H2D remapping algorithm \"%s\" ", algorithm_name);
+	for (int i = 0; i < parameters_name.size(); i ++)
+		printf(": \"%s\"(\"%s\") ", parameters_name[i], parameters_value[i]);
+	printf("\n");
 }
 
 
@@ -142,6 +163,25 @@ Remapping_setting::~Remapping_setting()
 {
 	for (int i = 0; i < fields_specification.size(); i ++)
 		delete [] fields_specification[i];
+
+	if (H2D_remapping_algorithm != NULL)
+		delete H2D_remapping_algorithm;
+	if (V1D_remapping_algorithm != NULL)
+		delete V1D_remapping_algorithm;
+	if (T1D_remapping_algorithm != NULL)
+		delete T1D_remapping_algorithm;
+}
+
+
+void Remapping_setting::reset_remapping_setting()
+{
+	for (int i = 0; i < fields_specification.size(); i ++)
+		delete [] fields_specification[i];
+	fields_specification.clear();
+	field_specification_manner = -1;
+	H2D_remapping_algorithm = NULL;
+	V1D_remapping_algorithm = NULL;
+	T1D_remapping_algorithm = NULL;
 }
 
 
@@ -158,6 +198,51 @@ void Remapping_setting::detect_conflict(Remapping_setting *another_setting, cons
 			for (int j = 0; j < another_setting->fields_specification.size(); j ++)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(this->fields_specification[i], another_setting->fields_specification[j]), "In the XML file \%s\" that is for remapping configuration, there is conflict (the same field name: \"%s\") between the remapping settings starting from line %d and %d respectively. Please verify. ", XML_file_name, this->fields_specification[i], another_setting->XML_start_line_number, this->XML_start_line_number); 
 	}
+}
+
+
+void Remapping_setting::get_field_remapping_setting(Remapping_setting &field_remapping_configuration, const char *field_name)
+{
+	bool transfer_remapping_algorithms = false;
+
+		
+	if (!(field_remapping_configuration.H2D_remapping_algorithm == NULL && this->H2D_remapping_algorithm != NULL ||
+		  field_remapping_configuration.V1D_remapping_algorithm == NULL && this->V1D_remapping_algorithm != NULL))
+		return;
+
+	if (field_specification_manner == 0)
+		transfer_remapping_algorithms = true;
+	else if (field_specification_manner == 1) {
+		if (fields_info->search_field_info(field_name) == NULL)
+			transfer_remapping_algorithms = true;
+		else if (words_are_the_same(fields_info->search_field_info(field_name)->field_type, fields_specification[0]))
+			transfer_remapping_algorithms = true;
+	}
+	else {
+		for (int i = 0; i < fields_specification.size(); i ++)
+			if (words_are_the_same(fields_specification[i], field_name)) {
+				transfer_remapping_algorithms = true;
+				break;
+			}
+	}
+
+	if (transfer_remapping_algorithms) {
+		if (field_remapping_configuration.H2D_remapping_algorithm == NULL && this->H2D_remapping_algorithm != NULL)
+			field_remapping_configuration.H2D_remapping_algorithm = new Remapping_algorithm_specification(this->H2D_remapping_algorithm);
+		if (field_remapping_configuration.V1D_remapping_algorithm == NULL && this->V1D_remapping_algorithm != NULL)
+			field_remapping_configuration.V1D_remapping_algorithm = new Remapping_algorithm_specification(this->V1D_remapping_algorithm);
+	}
+}
+
+
+void Remapping_setting::print()
+{
+	printf("\n\nprint a remapping setting:\n");
+	if (H2D_remapping_algorithm != NULL)
+		H2D_remapping_algorithm->print();
+	if (V1D_remapping_algorithm != NULL)
+		V1D_remapping_algorithm->print();
+	printf("\n\n");
 }
 
 
@@ -184,6 +269,23 @@ Remapping_configuration::Remapping_configuration(int comp_id, const char *XML_fi
 	for (int i = 0; i < remapping_settings.size(); i ++)
 		for (int j = i+1; j < remapping_settings.size(); j ++)
 			remapping_settings[i]->detect_conflict(remapping_settings[j], XML_file_name);
+
+	std::vector<Remapping_setting*> temp_remapping_settings;
+	for (int i = 0; i < remapping_settings.size(); i ++)
+		if (remapping_settings[i]->get_field_specification_manner() == 2)
+			temp_remapping_settings.push_back(remapping_settings[i]);
+	for (int i = 0; i < remapping_settings.size(); i ++)
+		if (remapping_settings[i]->get_field_specification_manner() == 1)
+			temp_remapping_settings.push_back(remapping_settings[i]);
+	for (int i = 0; i < remapping_settings.size(); i ++)
+		if (remapping_settings[i]->get_field_specification_manner() == 0)
+			temp_remapping_settings.push_back(remapping_settings[i]);
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, temp_remapping_settings.size() == remapping_settings.size(), "Software error in Remapping_configuration::Remapping_configuration");
+
+	remapping_settings.clear();
+	for (int i = 0; i < temp_remapping_settings.size(); i ++)
+		remapping_settings.push_back(temp_remapping_settings[i]);
 }
 
 
@@ -191,6 +293,19 @@ Remapping_configuration::~Remapping_configuration()
 {
 	for (int i = 0; i < remapping_settings.size(); i ++)
 		delete remapping_settings[i];
+}
+
+
+bool Remapping_configuration::get_field_remapping_setting(Remapping_setting &field_remapping_configuration, const char *field_name)
+{
+	printf("get field remapping_setting at comp %s\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name());
+
+	for (int i = 0; i < remapping_settings.size(); i ++) {
+		remapping_settings[i]->get_field_remapping_setting(field_remapping_configuration, field_name);
+		if (remapping_settings[i]->get_H2D_remapping_algorithm() != NULL && remapping_settings[i]->get_V1D_remapping_algorithm() != NULL)
+			return true;
+	}
+	return false;
 }
 
 
@@ -226,5 +341,20 @@ Remapping_configuration *Remapping_configuration_mgt::search_remapping_configura
 			return remapping_configurations[i];
 
 	return NULL;
+}
+
+
+void Remapping_configuration_mgt::get_field_remapping_setting(Remapping_setting &field_remapping_setting, int comp_id, const char *field_name)
+{
+	field_remapping_setting.reset_remapping_setting();
+	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Remapping_configuration_mgt::get_current_remapping_setting");
+	for (; current_comp_node != NULL; current_comp_node = current_comp_node->get_parent()) {
+		Remapping_configuration *current_remapping_configuration = search_remapping_configuration(current_comp_node->get_comp_id());
+		if (current_remapping_configuration != NULL)
+			if (current_remapping_configuration->get_field_remapping_setting(field_remapping_setting, field_name)) {
+				field_remapping_setting.print();
+				return;
+			}
+	}
 }
 

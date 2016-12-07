@@ -43,26 +43,14 @@ void Coupling_connection::generate_a_coupling_procedure()
 	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
 		return;
 
-	if (current_proc_id_src_comp != -1)
-		MPI_Barrier(src_comp_node->get_comm_group());
-	if (current_proc_id_dst_comp != -1)
-		MPI_Barrier(dst_comp_node->get_comm_group());
-
-	if (current_proc_id_src_comp == 0) {		
-		MPI_Isend(&msg_tag, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &send_req);
-	}
-	if (current_proc_id_dst_comp == 0) {
-		MPI_Irecv(&msg_tag, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &recv_req);	 		
-	}
-
-	if (current_proc_id_src_comp == 0) {
-		MPI_Wait(&send_req, &status);
-	}
-	
-	if (current_proc_id_dst_comp == 0) {
-		MPI_Wait(&recv_req, &status);
-	}
 	printf("start to generate coupling connection %d at process %d\n", connection_id, comp_comm_group_mgt_mgr->get_current_proc_global_id());
+
+	if (current_proc_id_src_comp != -1) {
+		Remapping_setting field_remapping_setting;
+		for (int i = 0; i < fields_name.size(); i ++) {
+			remapping_configuration_mgr->get_field_remapping_setting(field_remapping_setting, src_comp_node->get_comp_id(), fields_name[i]);
+		}
+	}
 
 	if (current_proc_id_src_comp != -1) {
 		export_interface = inout_interface_mgr->get_interface(src_comp_interfaces[0].first, src_comp_interfaces[0].second);

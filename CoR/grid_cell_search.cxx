@@ -31,18 +31,18 @@ void seperate_cells_in_children_tiles(int num_cells, H2D_grid_cell_search_cell *
 	for (i = 0; i < TILE_DIVIDE_FACTOR*TILE_DIVIDE_FACTOR; i ++) 
 		num_cells_in_children[i] = 0;
 	for (i = 0; i < num_cells; i ++) {
-		diff_lon = cells[i]->get_center_lon() - min_lon;
+		diff_lon = cells[i]->get_bounding_circle_center_lon() - min_lon;
 		if (diff_lon < 0)
 			diff_lon += 360;
-		diff_lat = cells[i]->get_center_lat() - min_lat;
+		diff_lat = cells[i]->get_bounding_circle_center_lat() - min_lat;
 		indx_at_lon = (int)(diff_lon / new_dlon);
 		indx_at_lat = (int)(diff_lat / new_dlat);
 		if (indx_at_lon == TILE_DIVIDE_FACTOR)
 			indx_at_lon = TILE_DIVIDE_FACTOR - 1;
 		if (indx_at_lat == TILE_DIVIDE_FACTOR)
 			indx_at_lat = TILE_DIVIDE_FACTOR - 1;
-		printf("%d and %d: %lf %lf %lf %lf %lf\n", indx_at_lon, indx_at_lat, diff_lon, new_dlon, dlon, new_dlat, dlat);
-		EXECUTION_REPORT(REPORT_ERROR, -1, indx_at_lon < TILE_DIVIDE_FACTOR && indx_at_lat < TILE_DIVIDE_FACTOR, "Software error1 in H2D_grid_cell_search_tile::seperate_cells_in_children_tiles");
+		printf("%d and %d: %lf %lf %lf %lf %lf : %lf %lf vs %lf %lf \n", indx_at_lon, indx_at_lat, diff_lon, new_dlon, dlon, new_dlat, dlat, cells[i]->get_bounding_circle_center_lon(), cells[i]->get_bounding_circle_center_lat(), cells[i]->get_center_lon(), cells[i]->get_center_lat());
+		EXECUTION_REPORT(REPORT_ERROR, indx_at_lon < TILE_DIVIDE_FACTOR && indx_at_lat < TILE_DIVIDE_FACTOR, "Software error1 in H2D_grid_cell_search_tile::seperate_cells_in_children_tiles");
 		child_indx = indx_at_lat*TILE_DIVIDE_FACTOR+indx_at_lon;
 		num_cells_in_children[child_indx] ++;
 		index_buffer[i] = child_indx;
@@ -72,12 +72,12 @@ H2D_grid_cell_cartesian_coord::~H2D_grid_cell_cartesian_coord()
 
 
 H2D_grid_cell_search_cell::H2D_grid_cell_search_cell(int cell_index, double center_lon, double center_lat, bool mask, 
-                                                       int num_vertex, const double *vertex_lons, const double *vertex_lats, double *buffer, int edge_type)
+                                                       int num_vertex, const double *vertex_lons, const double *vertex_lats, int edge_type)
 {
 	int i, j;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, edge_type == EDGE_TYPE_LATLON || edge_type == EDGE_TYPE_GREAT_ARC, "Software error1 in H2D_grid_cell_search_cell::H2D_grid_cell_search_cell");
+	EXECUTION_REPORT(REPORT_ERROR, edge_type == EDGE_TYPE_LATLON || edge_type == EDGE_TYPE_GREAT_ARC, "Software error1 in H2D_grid_cell_search_cell::H2D_grid_cell_search_cell");
 	
 	this->cell_index = cell_index;
 	this->center_lon = center_lon;
@@ -87,14 +87,16 @@ H2D_grid_cell_search_cell::H2D_grid_cell_search_cell(int cell_index, double cent
 	this->vertex_lats = NULL;
 	this->num_vertex = 0;
 	this->bounding_circle_radius = 0.0;
+	this->bounding_circle_center_lon = center_lon;
+	this->bounding_circle_center_lat = center_lat;
 	this->edge_type = edge_type;
 	this->cartesian_coord = NULL;
 	
 	if (num_vertex > 0) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, vertex_lons != NULL && vertex_lats != NULL, "Software error2 in H2D_grid_cell_search_cell::H2D_grid_cell_search_cell");
+		EXECUTION_REPORT(REPORT_ERROR, vertex_lons != NULL && vertex_lats != NULL, "Software error2 in H2D_grid_cell_search_cell::H2D_grid_cell_search_cell");
 		for (i = 0; i < num_vertex; i ++)
 			if (vertex_lons[i] == NULL_COORD_VALUE || vertex_lats[i] == NULL_COORD_VALUE) 
-				EXECUTION_REPORT(REPORT_ERROR, -1, vertex_lons[i] == NULL_COORD_VALUE && vertex_lats[i] == NULL_COORD_VALUE, "Software error3 in H2D_grid_cell_search_cell::H2D_grid_cell_search_cell");
+				EXECUTION_REPORT(REPORT_ERROR, vertex_lons[i] == NULL_COORD_VALUE && vertex_lats[i] == NULL_COORD_VALUE, "Software error3 in H2D_grid_cell_search_cell::H2D_grid_cell_search_cell");
 			else this->num_vertex ++;
 		if (this->num_vertex > 0) {
 			this->vertex_lons = new double [this->num_vertex];
@@ -106,14 +108,34 @@ H2D_grid_cell_search_cell::H2D_grid_cell_search_cell(int cell_index, double cent
 				this->vertex_lats[j] = vertex_lats[i];
 				j ++;
 			}
-			this->bounding_circle_radius = 0;
+			double min_lon, max_lon;
+			min_lon = this->vertex_lons[0];
+			max_lon = min_lon;
+			for (i = 1; i < this->num_vertex; i ++) {
+				if (min_lon > this->vertex_lons[i])
+					min_lon = this->vertex_lons[i];
+				if (max_lon < this->vertex_lons[i])
+					max_lon = this->vertex_lons[i];
+			}
+			double sum_lon = 0.0, sum_lat = 0.0;
 			for (i = 0; i < this->num_vertex; i ++) {
-				double dist = calculate_distance_of_two_points_2D(center_lon, center_lat, this->vertex_lons[i], this->vertex_lats[i],true);
+				sum_lat += this->vertex_lats[i];
+				if (max_lon - min_lon > 180 && min_lon < 180 && this->vertex_lons[i] < 180)
+					sum_lon += this->vertex_lons[i] + 360;
+				else sum_lon += this->vertex_lons[i];
+			}
+			bounding_circle_center_lon = sum_lon / this->num_vertex;
+			bounding_circle_center_lat = sum_lat / this->num_vertex;
+			if (bounding_circle_center_lon >= 360)
+				bounding_circle_center_lon -= 360;
+			bounding_circle_radius = 0;
+			for (i = 0; i < this->num_vertex; i ++) {
+				double dist = calculate_distance_of_two_points_2D(bounding_circle_center_lon, bounding_circle_center_lat, this->vertex_lons[i], this->vertex_lats[i],true);
 				if (bounding_circle_radius < dist)
 					bounding_circle_radius = dist;
 			}
+			bounding_circle_radius *= 1.00001;
 		}
-		
 	}
 
 	if (edge_type == EDGE_TYPE_GREAT_ARC) {
@@ -145,23 +167,34 @@ H2D_grid_cell_search_cell::~H2D_grid_cell_search_cell()
 bool H2D_grid_cell_search_cell::is_point_in_latlon_coord_cell(double point_lon,double point_lat) const
 {
 	int last_pos = -100, i, next_i, pos;
-	double det;
+	double det, distance1, distance2, distance3, lon_diff1, lon_diff2;
 	bool in_cell = true;
-	double e = 1.0e-12;
+	double e1 = 1.0e-12, e2 = 1.0e-7;
 	
 
 	for (i = 0; i < num_vertex; i ++) {
 		next_i = (i+1) % num_vertex;
-		det = (vertex_lons[i]-point_lon) * (vertex_lats[next_i]-point_lat) - (vertex_lats[i]-point_lat)*(vertex_lons[next_i]-point_lon);
-		if (fabs(det) <= e)
-			pos = 0;
+		lon_diff1 = vertex_lons[i]-point_lon;
+		lon_diff2 = vertex_lons[next_i]-point_lon;
+		if (lon_diff1 < -180)
+			lon_diff1 += 360;
+		if (lon_diff1 > 180)
+			lon_diff1 -= 360;
+		if (lon_diff2 < -180)
+			lon_diff2 += 360;
+		if (lon_diff2 > 180)
+			lon_diff2 -= 360;
+		det = lon_diff1 * (vertex_lats[next_i]-point_lat) - (vertex_lats[i]-point_lat) * lon_diff2;
+		if (fabs(det) <= e1) {
+            distance1 = calculate_distance_of_two_points_2D(point_lon, point_lat, vertex_lons[i], vertex_lats[i], true);
+            distance2 = calculate_distance_of_two_points_2D(point_lon, point_lat, vertex_lons[next_i], vertex_lats[next_i], true);
+            distance3 = calculate_distance_of_two_points_2D(vertex_lons[i], vertex_lats[i], vertex_lons[next_i], vertex_lats[next_i], true);
+			in_cell = distance1 <= distance3 && distance2 <= distance3;
+			break;
+		}
 		else if (det > 0)
 			pos = 1;
 		else pos = -1;
-		if (pos == 0) {
-			in_cell = true;
-			break;
-		}
 		if (last_pos == -100)
 			last_pos = pos;
 		else if (last_pos != pos) {
@@ -185,7 +218,7 @@ bool H2D_grid_cell_search_cell::is_point_in_cartesian_coord_cell(double point_lo
     int i, next_i;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertex <= 1024, "Software error1 in H2D_grid_cell_search_cell::is_point_in_cartesian_coord_cell");
+    EXECUTION_REPORT(REPORT_ERROR, num_vertex <= 1024, "Software error1 in H2D_grid_cell_search_cell::is_point_in_cartesian_coord_cell");
     
     get_3D_cartesian_coord_of_sphere_coord(point_cartesian_coord_x, point_cartesian_coord_y, point_cartesian_coord_z, point_lon, point_lat);
 
@@ -233,33 +266,31 @@ bool H2D_grid_cell_search_cell::check_possible_overlapping(const H2D_grid_cell_s
 	bool possible_overlapping = false;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, src_cell->get_bounding_circle_radius() > 0, "Software error in H2D_grid_cell_search_cell::check_possible_overlapping");
-	dist = calculate_distance_of_two_points_2D(center_lon, center_lat, src_cell->get_center_lon(), src_cell->get_center_lat(), true);
-
+	EXECUTION_REPORT(REPORT_ERROR, src_cell->get_bounding_circle_radius() > 0, "Software error in H2D_grid_cell_search_cell::check_possible_overlapping");
+	dist = calculate_distance_of_two_points_2D(bounding_circle_center_lon, bounding_circle_center_lat, src_cell->get_bounding_circle_center_lon(), src_cell->get_bounding_circle_center_lat(), true);
 	if (dist > bounding_circle_radius + src_cell->get_bounding_circle_radius())
 		return false;
 	
 	if (num_vertex == 0)
 		return true;
-	
+
 	for (i = 0; i < num_vertex; i ++) {
-		dist = calculate_distance_of_two_points_2D(vertex_lons[i], vertex_lats[i], src_cell->get_center_lon(), src_cell->get_center_lat(), true);
+		dist = calculate_distance_of_two_points_2D(vertex_lons[i], vertex_lats[i], src_cell->get_bounding_circle_center_lon(), src_cell->get_bounding_circle_center_lat(), true);
 		if (dist <= src_cell->get_bounding_circle_radius()) {
 			possible_overlapping = true;
 			break;
 		}
 	}
 
-	if (possible_overlapping)
-		return true;
-
 	for (i = 0; i < src_cell->get_num_vertex(); i ++) {
-		dist = calculate_distance_of_two_points_2D(src_cell->get_vertex_lon(i), src_cell->get_vertex_lat(i), center_lon, center_lat, true);
-		if (dist <= bounding_circle_radius)
-			return true;
+		dist = calculate_distance_of_two_points_2D(src_cell->get_vertex_lon(i), src_cell->get_vertex_lat(i), bounding_circle_center_lon, bounding_circle_center_lat, true);
+		if (dist <= bounding_circle_radius) {
+			possible_overlapping = true;
+			break;
+		}
 	}
 
-	return false;
+	return possible_overlapping;
 }
 
 
@@ -269,51 +300,36 @@ bool H2D_grid_cell_search_cell::check_overlapping(const H2D_grid_cell_search_cel
 	int i;
 
 
-	if (!src_cell->get_mask()) {
-		printf("falsefalse mask\n");
+	if (!src_cell->get_mask())
 		return false;
-	}
 
 	possible_overlapping = check_possible_overlapping(src_cell);
 
 	if (!accurately_match || !possible_overlapping)
 		return possible_overlapping;
 
-	
 	if (num_vertex > 0) {
-		printf("check vertex\n");
 		for (i = 0; i < num_vertex; i ++) {
 			if (src_cell->get_edge_type() == EDGE_TYPE_LATLON)
 				is_overlapping = src_cell->is_point_in_latlon_coord_cell(vertex_lons[i], vertex_lats[i]);
 			else is_overlapping = src_cell->is_point_in_cartesian_coord_cell(vertex_lons[i], vertex_lats[i]); 
-			if (is_overlapping) {
-				printf("cell1: ");
-				for (int k = 0; k < num_vertex; k ++)
-					printf("(%lf %lf)  ", vertex_lons[k], vertex_lats[k]);
-				printf("\n");
-				printf("cell2: ");
-				for (int k = 0; k < src_cell->get_num_vertex(); k ++)
-					printf("(%lf %lf)  ", src_cell->get_vertex_lon(k), src_cell->get_vertex_lat(k));
-				printf("\n");
+			if (is_overlapping)
 				return true;
-			}
 		}
 		for (i = 0; i < src_cell->get_num_vertex(); i ++) {
 			if (edge_type == EDGE_TYPE_LATLON)
 				is_overlapping = is_point_in_latlon_coord_cell(src_cell->get_vertex_lon(i), src_cell->get_vertex_lat(i));
 			else is_overlapping = is_point_in_cartesian_coord_cell(src_cell->get_vertex_lon(i), src_cell->get_vertex_lat(i));
-			if (is_overlapping) {
-				printf("cell1: ");
-				for (int k = 0; k < num_vertex; k ++)
-					printf("(%lf %lf)  ", vertex_lons[k], vertex_lats[k]);
-				printf("\n");
-				printf("cell2: ");
-				for (int k = 0; k < src_cell->get_num_vertex(); k ++)
-					printf("(%lf %lf)  ", src_cell->get_vertex_lon(k), src_cell->get_vertex_lat(k));
-				printf("\n");
+			if (is_overlapping)
 				return true;
-			}
 		}
+	}
+	else {
+		if (edge_type == EDGE_TYPE_LATLON)
+			is_overlapping = src_cell->is_point_in_latlon_coord_cell(center_lon, center_lat);
+		else is_overlapping = src_cell->is_point_in_cartesian_coord_cell(center_lon, center_lat);
+		if (is_overlapping)
+			return true;
 	}
 
 	return false;
@@ -322,14 +338,14 @@ bool H2D_grid_cell_search_cell::check_overlapping(const H2D_grid_cell_search_cel
 
 double H2D_grid_cell_search_cell::get_vertex_lon(int indx) const 
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, indx < num_vertex && indx >= 0, "Software error in H2D_grid_cell_search_cell::get_vertex_lon");
+	EXECUTION_REPORT(REPORT_ERROR, indx < num_vertex && indx >= 0, "Software error in H2D_grid_cell_search_cell::get_vertex_lon");
 	return vertex_lons[indx];
 }
 
 
 double H2D_grid_cell_search_cell::get_vertex_lat(int indx) const 
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, indx < num_vertex && indx >= 0, "Software error in H2D_grid_cell_search_cell::get_vertex_lat");
+	EXECUTION_REPORT(REPORT_ERROR, indx < num_vertex && indx >= 0, "Software error in H2D_grid_cell_search_cell::get_vertex_lat");
 	return vertex_lats[indx];
 }
 
@@ -374,19 +390,12 @@ void H2D_grid_cell_search_tile::compute_bounding_circle()
 	circle_radius = calculate_distance_of_two_points_2D(center_lon, center_lat, point_lon, point_lat, true);
 
 	for (i = 0; i < num_cells; i ++) {
-		dist = calculate_distance_of_two_points_2D(center_lon, center_lat, cells[i]->get_center_lon(), cells[i]->get_center_lat(), true);
-		if (circle_radius < dist) {
-			circle_radius = dist;
-			printf("change1 %lf %lf\n", cells[i]->get_center_lon(), cells[i]->get_center_lat());
-		}
-		for (j = 0; j < cells[i]->get_num_vertex(); j ++) {
-			dist = calculate_distance_of_two_points_2D(center_lon, center_lat, cells[i]->get_vertex_lon(j), cells[i]->get_vertex_lat(j), true);
-			if (circle_radius < dist) {
-				circle_radius = dist;
-				printf("change2 (%lf %lf)  (%lf %lf)\n", cells[i]->get_vertex_lon(j), cells[i]->get_vertex_lat(j), cells[i]->get_center_lon(), cells[i]->get_center_lat());
-			}
+		dist = calculate_distance_of_two_points_2D(center_lon, center_lat, cells[i]->get_bounding_circle_center_lon(), cells[i]->get_bounding_circle_center_lat(), true);
+		if (circle_radius < dist + cells[i]->get_bounding_circle_radius()) {
+			circle_radius = dist + cells[i]->get_bounding_circle_radius();
 		}
 	}
+	circle_radius *= 1.00001;
 }
 
 
@@ -422,7 +431,7 @@ void H2D_grid_cell_search_tile::divide_tile()
 	for (i = 0; i < num_cells; i ++)
 		cells[i] = cells_buffer[i];
 	for (i = 0, displ = 0; i < TILE_DIVIDE_FACTOR*TILE_DIVIDE_FACTOR; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, displ_of_children_in_cells[i] == displ+num_cells_in_children[i], "Software error2 in H2D_grid_cell_search_tile::divide_tile");
+		EXECUTION_REPORT(REPORT_ERROR, displ_of_children_in_cells[i] == displ+num_cells_in_children[i], "Software error2 in H2D_grid_cell_search_tile::divide_tile");
 		displ_of_children_in_cells[i] = displ;
 		displ += num_cells_in_children[i];
 	}	
@@ -476,11 +485,10 @@ bool H2D_grid_cell_search_tile::search_points_within_distance(double dist_thresh
 				distance = 0;
 			}
 			else distance = calculate_distance_of_two_points_2D(cells[i]->get_center_lon(), cells[i]->get_center_lat(), dst_point_lon, dst_point_lat, true);
+			printf("in tile check: %lf (%lf %lf) (%lf %lf) %d\n", distance, cells[i]->get_center_lon(), cells[i]->get_center_lat(), dst_point_lon, dst_point_lat, num_found_points);
 			if (distance <= dist_threshold) {
 				found_points_indx[num_found_points] = cells[i]->get_cell_index();
 				found_points_dist[num_found_points] = distance;
-				if (cells[i]->get_cell_index() == 69321)
-					printf("qiguai (%lf %lf)->(%lf %lf): %lf %lf\n", cells[i]->get_center_lon(), cells[i]->get_center_lat(), dst_point_lon, dst_point_lat, distance, dist_threshold);
 				num_found_points ++;
 			}
 			if (early_quit && have_the_same_point) {
@@ -496,9 +504,30 @@ bool H2D_grid_cell_search_tile::search_points_within_distance(double dist_thresh
 }
 
 
+bool H2D_grid_cell_search_tile::has_cell_index(int cell_index)
+{
+	if (cells == NULL) {
+		for (int i = 0; i < TILE_DIVIDE_FACTOR*TILE_DIVIDE_FACTOR; i ++) {
+			if (children[i] == NULL) 
+				break;
+			if (children[i]->has_cell_index(cell_index))
+				return true;
+		}
+	}
+	else {
+		for (int i = 0; i < num_cells; i ++)
+			if (cells[i]->get_cell_index() == cell_index)
+				return true;
+	}
+
+	return false;
+}
+
+
 void H2D_grid_cell_search_tile::search_overlapping_cells(int &num_overlapping_cells, long *overlapping_cells_index, const H2D_grid_cell_search_cell *dst_cell, bool accurately_match, bool early_quit)
 {
-	double dist = calculate_distance_of_two_points_2D(dst_cell->get_center_lon(), dst_cell->get_center_lat(), center_lon, center_lat, true);
+	double dist = calculate_distance_of_two_points_2D(dst_cell->get_bounding_circle_center_lon(), dst_cell->get_bounding_circle_center_lat(), center_lon, center_lat, true);
+
 	if (dist > dst_cell->get_bounding_circle_radius() + circle_radius)
 		return;
 
@@ -532,7 +561,7 @@ H2D_grid_cell_search_engine::H2D_grid_cell_search_engine(const Remap_grid_class 
 	int i;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, remap_grid->get_is_sphere_grid(), "Software error1 in H2D_grid_cell_search_engine::H2D_grid_cell_search_engine");
+	EXECUTION_REPORT(REPORT_ERROR, remap_grid->get_is_sphere_grid(), "Software error1 in H2D_grid_cell_search_engine::H2D_grid_cell_search_engine");
 	
 	this->remap_grid = remap_grid;
 	if (redundant_mask == NULL)
@@ -553,26 +582,21 @@ H2D_grid_cell_search_engine::H2D_grid_cell_search_engine(const Remap_grid_class 
 	for (int i = 0, num_cells = 0; i < remap_grid->get_grid_size(); i ++) {
 		if (masks != NULL)
 			mask = masks[i];
-		cells[i] = new H2D_grid_cell_search_cell(i, center_lons[i], center_lats[i], mask, num_vertex, vertex_lons+num_vertex*i, vertex_lats+num_vertex*i, dist_buffer, edge_type);
+		cells[i] = new H2D_grid_cell_search_cell(i, center_lons[i], center_lats[i], mask, num_vertex, vertex_lons+num_vertex*i, vertex_lats+num_vertex*i, edge_type);
 		if (redundant_mask != NULL && redundant_mask[i])
 			continue;
 		cells_ptr[num_cells] = cells[i];
 		num_cells++;
 	}
 
-	num_active_cells = 0;
-	for (int i = 0; i < num_cells; i ++)
-		if (cells_ptr[i]->get_mask())
-			num_active_cells ++;
-
 	center_lon = NULL_COORD_VALUE;
 	center_lat = NULL_COORD_VALUE;
 	dlon = NULL_COORD_VALUE;
 	dlat = NULL_COORD_VALUE;
 	recursively_search_initial_boundary(180, 0, 360, 180, center_lon, center_lat, dlon, dlat);
-	EXECUTION_REPORT(REPORT_ERROR, -1, center_lon != NULL_COORD_VALUE && center_lat != NULL_COORD_VALUE && dlon != NULL_COORD_VALUE && dlat != NULL_COORD_VALUE, 
+	EXECUTION_REPORT(REPORT_ERROR, center_lon != NULL_COORD_VALUE && center_lat != NULL_COORD_VALUE && dlon != NULL_COORD_VALUE && dlat != NULL_COORD_VALUE, 
 		             "Software error2 in in H2D_grid_cell_search_engine::H2D_grid_cell_search_engine");
-
+	
 	if (build_search_structure)
 		root_tile = new H2D_grid_cell_search_tile(num_cells, cells_ptr, cells_buffer, index_buffer, NULL, center_lon, center_lat, dlon, dlat);
 	else root_tile = NULL;
@@ -588,8 +612,7 @@ H2D_grid_cell_search_engine::~H2D_grid_cell_search_engine()
 	delete [] cells_buffer;
 	delete [] index_buffer;
 	delete [] dist_buffer;
-	if (root_tile != NULL)
-		delete root_tile;
+	delete root_tile;
 }
 
 
@@ -633,64 +656,30 @@ void H2D_grid_cell_search_engine::recursively_search_initial_boundary(double cen
 }
 
 
-void H2D_grid_cell_search_engine::search_nearest_points_var_distance(double dist_threshold, double dst_point_lon, double dst_point_lat, int &num_found_points, long *found_points_indx, double *found_points_dist, bool early_quit)
-{
-	bool have_the_same_point;
-
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, root_tile != NULL, "Software error1 in H2D_grid_cell_search_engine::search_nearest_points_var_distance");
-	
-	this->dist_threshold = dist_threshold;
-
-	printf("dist threshold is %lf\n", dist_threshold);
-	num_found_points = 0;
-	have_the_same_point = root_tile->search_points_within_distance(dist_threshold, dst_point_lon, dst_point_lat, num_found_points, index_buffer, dist_buffer, early_quit);
-
-	do_quick_sort(dist_buffer, index_buffer, 0, num_found_points-1);
-	
-	if (have_the_same_point && early_quit) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, num_found_points == 1, "Software error2 in H2D_grid_cell_search_engine::search_nearest_points_var_distance");
-		found_points_indx[0] = index_buffer[0];
-		found_points_dist[0] = dist_buffer[0];
-		return;
-	}
-
-	for (int i = 0; i < num_found_points; i ++) {
-		found_points_indx[i] = index_buffer[i];
-		found_points_dist[i] = dist_buffer[i];
-	}
-}
-
-
 void H2D_grid_cell_search_engine::search_nearest_points_var_number(int num_required_points, double dst_point_lon, double dst_point_lat, int &num_found_points, long *found_points_indx, double *found_points_dist, bool early_quit)
 {
 	bool have_the_same_point = false;
-
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, root_tile != NULL, "Software error1 in H2D_grid_cell_search_engine::search_nearest_points_var_number");
+	double old_dist_threshold;
 
 
 	if (num_required_points > remap_grid->get_grid_size())
 		num_required_points = remap_grid->get_grid_size();
 	
 	num_found_points = 0;
-
-	if (num_required_points > num_active_cells)
-		num_required_points = num_active_cells;
 	
 	while (num_found_points < num_required_points) {
 		num_found_points = 0;
-		printf("dist threshold2 is %lf\n", dist_threshold);
 		have_the_same_point = root_tile->search_points_within_distance(dist_threshold, dst_point_lon, dst_point_lat, num_found_points, index_buffer, dist_buffer, early_quit);
+		if (num_found_points== 0)
+			dist_threshold *= 2;
 		if (have_the_same_point && early_quit)
 			break;
-		if (num_found_points == 0)
-			dist_threshold *= 2;
-		else dist_threshold *= sqrt(((double)num_required_points)/((double)num_found_points))*1.1;
+		old_dist_threshold = dist_threshold;
+		dist_threshold *= sqrt(((double)num_required_points)/((double)num_found_points))*1.1;
 	}
 
 	if (have_the_same_point && early_quit) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, num_found_points == 1, "Software error2 in H2D_grid_cell_search_engine::search_nearest_points_var_number");
+		EXECUTION_REPORT(REPORT_ERROR, num_found_points == 1, "Software error in H2D_grid_cell_search_engine::search_nearest_points_var_number");
 		found_points_indx[0] = index_buffer[0];
 		found_points_dist[0] = dist_buffer[0];
 		return;
@@ -706,23 +695,35 @@ void H2D_grid_cell_search_engine::search_nearest_points_var_number(int num_requi
 }
 
 
-void H2D_grid_cell_search_engine::search_nearest_points_var_number_and_distance(int num_required_points, double dist_threshold, double dst_point_lon, double dst_point_lat, int &num_found_points, long *found_points_indx, double *found_points_dist, bool early_quit)
+void H2D_grid_cell_search_engine::search_nearest_points_var_distance(double dist_threshold, double dst_point_lon, double dst_point_lat, int &num_found_points, long *found_points_indx, double *found_points_dist, bool early_quit)
 {
-	search_nearest_points_var_distance(dist_threshold, dst_point_lon, dst_point_lat, num_found_points, found_points_indx, found_points_dist, early_quit);
-	if (num_required_points <= num_found_points)
+	bool have_the_same_point;
+
+
+	EXECUTION_REPORT(REPORT_ERROR, root_tile != NULL, "Software error1 in H2D_grid_cell_search_engine::search_nearest_points_var_distance");
+	
+	this->dist_threshold = dist_threshold;
+	num_found_points = 0;
+	have_the_same_point = root_tile->search_points_within_distance(dist_threshold, dst_point_lon, dst_point_lat, num_found_points, index_buffer, dist_buffer, early_quit);
+
+	printf("dist threshold for (%lf %lf) is %lf: %d\n", dst_point_lon, dst_point_lat, dist_threshold, num_found_points);
+
+	do_quick_sort(dist_buffer, index_buffer, 0, num_found_points-1);
+	
+	if (have_the_same_point && early_quit) {
+		EXECUTION_REPORT(REPORT_ERROR, num_found_points == 1, "Software error2 in H2D_grid_cell_search_engine::search_nearest_points_var_distance");
+		found_points_indx[0] = index_buffer[0];
+		found_points_dist[0] = dist_buffer[0];
 		return;
+	}
 
-	search_nearest_points_var_number(num_required_points, dst_point_lon, dst_point_lat, num_found_points, found_points_indx, found_points_dist, early_quit);
+	for (int i = 0; i < num_found_points; i ++) {
+		found_points_indx[i] = index_buffer[i];
+		found_points_dist[i] = dist_buffer[i];
+	}
 }
 
 
-void H2D_grid_cell_search_engine::search_nearest_points_var_number_or_distance(int num_required_points, double dist_threshold, double dst_point_lon, double dst_point_lat, int &num_found_points, long *found_points_indx, double *found_points_dist, bool early_quit)
-{
-	search_nearest_points_var_distance(dist_threshold, dst_point_lon, dst_point_lat, num_found_points, found_points_indx, found_points_dist, early_quit);
-
-	if (num_required_points < num_found_points)
-		num_found_points = num_required_points;
-}
 
 
 void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_cells, long *overlapping_cells_index, const H2D_grid_cell_search_cell *dst_cell, bool accurately_match, bool early_quit) const
@@ -734,8 +735,11 @@ void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_
 	for (int i = 0; i < num_overlapping_cells; i ++)
 		overlapping_cells_index[i] = index_buffer[i];
 
-	if (early_quit)
+	if (early_quit && num_overlapping_cells > 0)
 		return;
+	
+	if (num_overlapping_cells == 0)
+		printf("qiguai %d\n no overlap\n", dst_cell->get_cell_index());
 	
 	do_quick_sort(overlapping_cells_index, (long*) NULL, 0, num_overlapping_cells-1);
 
@@ -772,6 +776,7 @@ void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_
 		for (int i = 0; i < num_overlapping_cells; i ++)
 			printf("%d ", overlapping_cells_index[i]);
 		printf("\n");
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "error");
 	}
 }
 
@@ -782,7 +787,7 @@ int H2D_grid_cell_search_engine::search_cell_of_locating_point(double point_lon,
 	H2D_grid_cell_search_cell *temp_cell;
 
 
-	temp_cell = new H2D_grid_cell_search_cell(0, point_lon, point_lat, true, 0, NULL, NULL, dist_buffer, EDGE_TYPE_LATLON);
+	temp_cell = new H2D_grid_cell_search_cell(0, point_lon, point_lat, true, 0, NULL, NULL, EDGE_TYPE_LATLON);
 
 	search_overlapping_cells(num_overlapping_cells, index_buffer, temp_cell, accurately_match, true);
 
@@ -796,27 +801,20 @@ int H2D_grid_cell_search_engine::search_cell_of_locating_point(double point_lon,
 
 void H2D_grid_cell_search_engine::update(const bool *new_masks)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, root_tile != NULL, "Software error1 in H2D_grid_cell_search_engine::update");
-
 	if (new_masks == NULL)
 		return;
 
 	for (int i = 0; i < remap_grid->get_grid_size(); i ++)
 		cells[i]->set_mask(new_masks[i]);
-
-	num_active_cells = 0;
-	for (int i = 0; i < num_cells; i ++)
-		if (cells_ptr[i]->get_mask())
-			num_active_cells ++;
 }
 
 
 const H2D_grid_cell_search_cell* H2D_grid_cell_search_engine::get_cell(int cell_index) const
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, root_tile == NULL, "Software error1 in H2D_grid_cell_search_engine::get_cell");
-	EXECUTION_REPORT(REPORT_ERROR, -1, cell_index >= 0 && cell_index < remap_grid->get_grid_size(), "Software error2 in H2D_grid_cell_search_engine::get_cell");
-	EXECUTION_REPORT(REPORT_ERROR, -1, cells[cell_index]->get_mask(), "Software error3 in H2D_grid_cell_search_engine::get_cell");
-	
-	return cells[cell_index];
+        EXECUTION_REPORT(REPORT_ERROR, -1, root_tile == NULL, "Software error1 in H2D_grid_cell_search_engine::get_cell");
+        EXECUTION_REPORT(REPORT_ERROR, -1, cell_index >= 0 && cell_index < remap_grid->get_grid_size(), "Software error2 in H2D_grid_cell_search_engine::get_cell");
+        EXECUTION_REPORT(REPORT_ERROR, -1, cells[cell_index]->get_mask(), "Software error3 in H2D_grid_cell_search_engine::get_cell");
+
+        return cells[cell_index];
 }
 

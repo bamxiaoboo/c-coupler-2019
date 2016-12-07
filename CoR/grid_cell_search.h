@@ -48,14 +48,12 @@ class H2D_grid_cell_search_cell
 		int num_vertex;
 		double *vertex_lons;
 		double *vertex_lats;
+		double bounding_circle_center_lon;
+		double bounding_circle_center_lat;
 		double bounding_circle_radius;
 		bool mask;
 		int edge_type;   // 1: latlon edge; 2: great arc edge
 		H2D_grid_cell_cartesian_coord *cartesian_coord;
-		double bounding_min_lat;
-		double bounding_max_lat;
-		double bounding_min_lon;
-		double bounding_max_lon;
 
 		bool check_overlapping_for_latlon_grid(const H2D_grid_cell_search_cell*) const;
 		bool check_overlapping_for_cartesian_grid(const H2D_grid_cell_search_cell*) const;
@@ -64,7 +62,7 @@ class H2D_grid_cell_search_cell
 		bool is_point_in_cartesian_coord_cell(double, double) const;
 
 	public:
-		H2D_grid_cell_search_cell(int, double, double, bool, int, const double*, const double*, double *, int);
+		H2D_grid_cell_search_cell(int, double, double, bool, int, const double*, const double*, int);
 		H2D_grid_cell_search_cell() {}
 		~H2D_grid_cell_search_cell();
 		double get_center_lon() const { return center_lon; }
@@ -78,6 +76,8 @@ class H2D_grid_cell_search_cell
 		int get_edge_type() const { return edge_type; }
 		bool check_overlapping(const H2D_grid_cell_search_cell*, bool) const;
 		double get_bounding_circle_radius() const { return bounding_circle_radius; }
+		double get_bounding_circle_center_lon() const { return bounding_circle_center_lon; }
+		double get_bounding_circle_center_lat() const { return bounding_circle_center_lat; }
 };
 
 
@@ -97,6 +97,7 @@ class H2D_grid_cell_search_tile
 		double dlat;
 
 	public:
+		bool has_cell_index(int);
 		H2D_grid_cell_search_tile(int, H2D_grid_cell_search_cell**, H2D_grid_cell_search_cell**, long*, H2D_grid_cell_search_tile*, double, double, double, double);
 		~H2D_grid_cell_search_tile();
 		void divide_tile();
@@ -118,16 +119,13 @@ class H2D_grid_cell_search_engine
 		H2D_grid_cell_search_tile *root_tile;
 		double dist_threshold;
 		int num_cells;
-		int num_active_cells;
 		
 	public:
 		H2D_grid_cell_search_engine(const Remap_grid_class*, const double*, const double*, const bool*, const bool*, int, const double*, const double*, int, bool);
 		~H2D_grid_cell_search_engine();
 		void recursively_search_initial_boundary(double, double, double, double, double&, double&, double&, double&);
-		void search_nearest_points_var_number(int, double, double, int&, long*, double*, bool);
+		void search_nearest_points_var_number(int, double, double, int&, long*, double *, bool);
 		void search_nearest_points_var_distance(double, double, double, int&, long*, double*, bool);
-		void search_nearest_points_var_number_and_distance(int, double, double, double, int&, long*, double*, bool);
-		void search_nearest_points_var_number_or_distance(int, double, double, double, int&, long*, double*, bool);
 		void search_overlapping_cells(int&, long*, const H2D_grid_cell_search_cell*, bool, bool) const;
 		int search_cell_of_locating_point(double, double, bool) const;
 		const H2D_grid_cell_search_cell* get_cell(int) const;
