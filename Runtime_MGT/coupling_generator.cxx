@@ -45,12 +45,7 @@ void Coupling_connection::generate_a_coupling_procedure()
 
 	printf("start to generate coupling connection %d at process %d\n", connection_id, comp_comm_group_mgt_mgr->get_current_proc_global_id());
 
-	if (current_proc_id_src_comp != -1) {
-		Remapping_setting field_remapping_setting;
-		for (int i = 0; i < fields_name.size(); i ++) {
-			remapping_configuration_mgr->get_field_remapping_setting(field_remapping_setting, src_comp_node->get_comp_id(), fields_name[i]);
-		}
-	}
+    create_union_comm();
 
 	if (current_proc_id_src_comp != -1) {
 		export_interface = inout_interface_mgr->get_interface(src_comp_interfaces[0].first, src_comp_interfaces[0].second);
@@ -62,6 +57,16 @@ void Coupling_connection::generate_a_coupling_procedure()
 	}
 	
 	exchange_connection_fields_info();
+
+	if (current_proc_id_src_comp != -1) {
+		Remapping_setting field_remapping_setting;
+		for (int i = 0; i < fields_name.size(); i ++) {
+			remapping_configuration_mgr->get_field_remapping_setting(field_remapping_setting, src_comp_node->get_comp_id(), fields_name[i]);
+		}
+	}
+
+	generate_interpolation();
+
 	if (current_proc_id_src_comp != -1) {
 		export_procedure = new Connection_coupling_procedure(export_interface, this);
 		export_interface->add_coupling_procedure(export_procedure);
@@ -71,8 +76,8 @@ void Coupling_connection::generate_a_coupling_procedure()
 		import_procedure = new Connection_coupling_procedure(import_interface, this);
 		import_interface->add_coupling_procedure(import_procedure);
 	}
-	
-	generate_interpolation();
+
+	generate_data_transfer();
 
 	printf("finish generating coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
 }
@@ -159,48 +164,30 @@ void Coupling_connection::create_union_comm()
 }
 
 
-void Coupling_generator::generate_coupling_connection(Coupling_connection *coupling_connection)
+void Coupling_connection::generate_data_transfer()
 {
-	Comp_comm_group_mgt_node *src_comp_node = comp_comm_group_mgt_mgr->search_global_node(coupling_connection->src_comp_interfaces[0].first);
-	Comp_comm_group_mgt_node *dst_comp_node =comp_comm_group_mgt_mgr->search_global_node(coupling_connection->dst_comp_full_name);
-	int current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
-	int	current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
-	int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
-	int dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
     int src_comp_num_procs = src_comp_node->get_num_procs();
     int dst_comp_num_procs = dst_comp_node->get_num_procs();
     int src_comp_id = src_comp_node->get_comp_id();
     int dst_comp_id = dst_comp_node->get_comp_id();
-	int num_fields = coupling_connection->fields_name.size();
+	int num_fields = fields_name.size();
     if (current_proc_id_src_comp != -1 && current_proc_id_dst_comp != -1) num_fields *= 2;
 	Field_mem_info ** fields_mem = new Field_mem_info *[num_fields];
 	Coupling_timer **fields_timer = new Coupling_timer *[num_fields];
 	Routing_info **fields_router = new Routing_info *[num_fields];
 	Runtime_trans_algorithm * send_algorithm_object = NULL;
 	Runtime_trans_algorithm * recv_algorithm_object = NULL;
-
 	int msg_tag;
 	MPI_Request send_req, recv_req;
 	MPI_Status status;
-    MPI_Comm union_comm;
-    int * src_proc_ranks_in_union_comm, * dst_proc_ranks_in_union_comm;
     MPI_Win data_win, tag_win;
-	
-	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
-		return;
 
-    coupling_connection->create_union_comm();
-    union_comm = coupling_connection->union_comm;
-    src_proc_ranks_in_union_comm = coupling_connection->src_proc_ranks_in_union_comm;
-    dst_proc_ranks_in_union_comm = coupling_connection->dst_proc_ranks_in_union_comm;
-
-    if (routing_info_mgr == NULL) routing_info_mgr = new Routing_info_mgt();
 
     if (current_proc_id_src_comp != -1 && current_proc_id_dst_comp != -1) {
-        int num_src_fields = coupling_connection->fields_name.size();
-        for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
-            fields_mem[i] = coupling_connection->export_procedure->get_data_transfer_field_instance(i);
-            fields_mem[i + num_src_fields] = coupling_connection->import_procedure->get_data_transfer_field_instance(i);
+        int num_src_fields = fields_name.size();
+        for (int i = 0; i < fields_name.size(); i ++){
+            fields_mem[i] = export_procedure->get_data_transfer_field_instance(i);
+            fields_mem[i + num_src_fields] = import_procedure->get_data_transfer_field_instance(i);
             int src_decomp_id = fields_mem[i]->get_decomp_id();
             int dst_decomp_id = fields_mem[i + num_src_fields]->get_decomp_id();
 
@@ -218,21 +205,21 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
             MPI_Bcast(&tmp_decomp_id, 1, MPI_INT, 0, src_comp_node->get_comm_group());
             tmp_decomp_id = dst_decomp_id;
             MPI_Bcast(&tmp_decomp_id, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
-            fields_timer[i] = coupling_connection->src_fields_info[i]->timer;
-            fields_timer[i + num_src_fields] = coupling_connection->dst_fields_info[i]->timer;
+            fields_timer[i] = src_fields_info[i]->timer;
+            fields_timer[i + num_src_fields] = dst_fields_info[i]->timer;
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, src_decomp_id, dst_decomp_id);
             fields_router[i + num_src_fields] = fields_router[i];
         }
         send_algorithm_object = new Runtime_trans_algorithm(true, num_src_fields, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
-        coupling_connection->export_procedure->add_data_transfer_algorithm(send_algorithm_object);
+        export_procedure->add_data_transfer_algorithm(send_algorithm_object);
         recv_algorithm_object = new Runtime_trans_algorithm(false, num_src_fields, &fields_mem[num_src_fields], &fields_router[num_src_fields], 
                 &fields_timer[num_src_fields], union_comm, src_proc_ranks_in_union_comm);
-		coupling_connection->import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
+		import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
 		printf("self communication %d vs %d\n", num_src_fields, num_fields/2);
     }
     else if (current_proc_id_src_comp != -1) {
-        for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
-            fields_mem[i] = coupling_connection->export_procedure->get_data_transfer_field_instance(i);
+        for (int i = 0; i < fields_name.size(); i ++){
+            fields_mem[i] = export_procedure->get_data_transfer_field_instance(i);
             int decomp_id = fields_mem[i]->get_decomp_id();
             int remote_decomp_id = -1;
             if (current_proc_id_src_comp == 0){
@@ -240,15 +227,15 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
                 MPI_Recv(&remote_decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
             }
             MPI_Bcast(&remote_decomp_id, 1, MPI_INT, 0, src_comp_node->get_comm_group());
-            fields_timer[i] = coupling_connection->src_fields_info[i]->timer;
+            fields_timer[i] = src_fields_info[i]->timer;
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, decomp_id, remote_decomp_id);
         }
         send_algorithm_object = new Runtime_trans_algorithm(true, num_fields, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
-        coupling_connection->export_procedure->add_data_transfer_algorithm(send_algorithm_object);
+        export_procedure->add_data_transfer_algorithm(send_algorithm_object);
     }
     else {
-        for (int i = 0; i < coupling_connection->fields_name.size(); i ++){
-            fields_mem[i] = coupling_connection->import_procedure->get_data_transfer_field_instance(i);
+        for (int i = 0; i < fields_name.size(); i ++){
+            fields_mem[i] = import_procedure->get_data_transfer_field_instance(i);
             int decomp_id = fields_mem[i]->get_decomp_id();
             int remote_decomp_id = -1;
             if (current_proc_id_dst_comp == 0){
@@ -256,44 +243,121 @@ void Coupling_generator::generate_coupling_connection(Coupling_connection *coupl
                 MPI_Send(&decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
             }
             MPI_Bcast(&remote_decomp_id, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
-            fields_timer[i] = coupling_connection->dst_fields_info[i]->timer;
+            fields_timer[i] = dst_fields_info[i]->timer;
             fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, remote_decomp_id, decomp_id);
         }
         recv_algorithm_object = new Runtime_trans_algorithm(false, num_fields, fields_mem, fields_router, fields_timer, union_comm, src_proc_ranks_in_union_comm);
-		coupling_connection->import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
+		import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
     }
-
 
     if (current_proc_id_dst_comp != -1) {
-        Runtime_trans_algorithm * runtime_trans_object = (Runtime_trans_algorithm *) recv_algorithm_object;
-        void * data_buf = runtime_trans_object->get_data_buf();
-        int data_buf_size = runtime_trans_object->get_data_buf_size();
-        MPI_Win_create(data_buf, data_buf_size*sizeof(char), sizeof(char), MPI_INFO_NULL, union_comm, &data_win);
-        long * tag_buf = runtime_trans_object->get_tag_buf();
-        int tag_buf_size = runtime_trans_object->get_tag_buf_size();
-        MPI_Win_create(tag_buf, tag_buf_size*sizeof(long), sizeof(long), MPI_INFO_NULL, union_comm, &tag_win);
-        runtime_trans_object->set_data_win(data_win);
-        runtime_trans_object->set_tag_win(tag_win);
-        if (current_proc_id_src_comp != -1) {
-            runtime_trans_object = (Runtime_trans_algorithm *) send_algorithm_object;
-            runtime_trans_object->set_data_win(data_win);
-            runtime_trans_object->set_tag_win(tag_win);
-        }
+        MPI_Win_create(recv_algorithm_object->get_data_buf(), recv_algorithm_object->get_data_buf_size()*sizeof(char), sizeof(char), MPI_INFO_NULL, union_comm, &data_win);
+        MPI_Win_create(recv_algorithm_object->get_tag_buf(), recv_algorithm_object->get_tag_buf_size()*sizeof(long), sizeof(long), MPI_INFO_NULL, union_comm, &tag_win);
+        recv_algorithm_object->set_data_win(data_win);
+        recv_algorithm_object->set_tag_win(tag_win);
     }
-    else {
-        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &data_win);
-        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &tag_win);
-        Runtime_trans_algorithm * runtime_trans_object = (Runtime_trans_algorithm *) send_algorithm_object;
-        runtime_trans_object->set_data_win(data_win);
-        runtime_trans_object->set_tag_win(tag_win);
+    if (current_proc_id_src_comp != -1) {
+		if (current_proc_id_dst_comp == -1) {
+	        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &data_win);
+	        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &tag_win);
+		}
+        send_algorithm_object->set_data_win(data_win);
+        send_algorithm_object->set_tag_win(tag_win);
     }
 
 	printf("generate coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
 }
 
 
+void Coupling_connection::exchange_grid(const char *comp_full_name, const char *grid_name, bool does_src_send)
+{
+	char *temp_array_buffer = NULL;
+	int grid_comp_id, buffer_max_size, buffer_content_size, original_grid_status, *all_original_grid_status, num_processes;
+	bool should_exchange_grid = false;
+	MPI_Status status;
+	int send_proc_global_id, recv_proc_global_id;
+	Comp_comm_group_mgt_node *recv_comp_node;
+
+
+	if (words_are_the_same(grid_name, "NULL"))
+		return;
+
+	grid_comp_id = comp_comm_group_mgt_mgr->search_global_node(comp_full_name)->get_comp_id();
+	Original_grid_info *original_grid = original_grid_mgr->search_grid_info(grid_name, grid_comp_id);
+	original_grid_status = original_grid == NULL? 0 : 1;
+	MPI_Comm_size(union_comm, &num_processes);
+	all_original_grid_status = new int [num_processes];
+	MPI_Allgather(&original_grid_status, 1, MPI_INT, all_original_grid_status, 1, MPI_INT, union_comm);
+	for (int i = 0; i < num_processes; i ++)
+		if (all_original_grid_status[i] == 0) {
+			should_exchange_grid = true;
+			break;
+		}
+
+	delete [] all_original_grid_status;
+	if (!should_exchange_grid)
+		return;
+
+	if (does_src_send) {
+		send_proc_global_id = src_comp_root_proc_global_id;
+		recv_proc_global_id = dst_comp_root_proc_global_id;
+		recv_comp_node = dst_comp_node;
+	}
+	else {
+		send_proc_global_id = dst_comp_root_proc_global_id;
+		recv_proc_global_id = src_comp_root_proc_global_id;
+		recv_comp_node = src_comp_node;
+	}
+
+	if (current_proc_id_src_comp == 0)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "src Exchange grid (full name of the component is \"%s\", grid name is \"%s\")", comp_full_name, grid_name);
+	if (current_proc_id_dst_comp == 0)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "dst Exchange grid (full name of the component is \"%s\", grid name is \"%s\")", comp_full_name, grid_name);
+
+	if (does_src_send && current_proc_id_src_comp == 0) {
+		original_grid->get_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
+		printf("src temp grid array size is %d\n", buffer_content_size);
+	}
+	if (!does_src_send && current_proc_id_dst_comp == 0) {
+		original_grid->get_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
+		printf("dst temp grid array size is %d\n", buffer_content_size);
+	}
+	if (current_proc_id_src_comp == 0 || current_proc_id_dst_comp == 0 && current_proc_id_src_comp != current_proc_id_dst_comp) {
+		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == send_proc_global_id) {
+			MPI_Send(&buffer_content_size, 1, MPI_INT, recv_proc_global_id, 0, MPI_COMM_WORLD);
+			MPI_Send(temp_array_buffer, buffer_content_size, MPI_CHAR, recv_proc_global_id, 0, MPI_COMM_WORLD);
+		}
+		else {		
+			MPI_Recv(&buffer_content_size, 1, MPI_INT, send_proc_global_id, 0, MPI_COMM_WORLD, &status);
+			temp_array_buffer = new char [buffer_content_size];
+			MPI_Recv(temp_array_buffer, buffer_content_size, MPI_CHAR, send_proc_global_id, 0, MPI_COMM_WORLD, &status);
+		}
+	}
+
+	if (recv_comp_node->get_current_proc_local_id() != -1) {
+		MPI_Bcast(&buffer_content_size, 1, MPI_INT, 0, recv_comp_node->get_comm_group());
+		if (recv_comp_node->get_current_proc_local_id() != 0)
+			temp_array_buffer = new char [buffer_content_size];
+		MPI_Bcast(temp_array_buffer, buffer_content_size, MPI_CHAR, 0, recv_comp_node->get_comm_group());
+	}
+
+	if (original_grid_status == 0) {
+		Remap_grid_class *mirror_grid = new Remap_grid_class(comp_full_name, temp_array_buffer, buffer_content_size);
+		printf("build mirror grid %s\n", mirror_grid->get_grid_name());
+		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
+	}
+
+	if (temp_array_buffer != NULL)
+		delete [] temp_array_buffer;
+}
+
+
 void Coupling_connection::generate_interpolation()
 {
+	for (int i = 0; i < fields_name.size(); i ++) {
+		exchange_grid(dst_comp_full_name, dst_fields_info[i]->grid_name, false);
+		exchange_grid(src_comp_interfaces[0].first, src_fields_info[i]->grid_name, true);
+	}
 }
 
 
@@ -821,7 +885,6 @@ void Coupling_generator::generate_coupling_procedures()
 
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure();
-		generate_coupling_connection(all_coupling_connections[i]);
 	}
 }
 
@@ -840,7 +903,6 @@ void Coupling_generator::generate_IO_procedures()
 
 	for (int i = 0; i < all_IO_connections.size(); i ++) {
 		all_IO_connections[i]->generate_a_coupling_procedure();
-		generate_coupling_connection(all_IO_connections[i]);
 	}
 
 	printf("there are %d IO connections\n", all_IO_connections.size());

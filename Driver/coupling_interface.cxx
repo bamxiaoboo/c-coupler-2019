@@ -572,6 +572,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 	components_IO_output_procedures_mgr = new Components_IO_output_procedures_mgt();
 	fields_gather_scatter_mgr = new Fields_gather_scatter_mgt();
 	remapping_configuration_mgr = new Remapping_configuration_mgt();
+	routing_info_mgr = new Routing_info_mgt();
 }
 
 

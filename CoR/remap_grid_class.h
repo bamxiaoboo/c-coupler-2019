@@ -11,6 +11,7 @@
 #define REMAP_GRID_CLASS
 
 #include "remap_statement_operand.h"
+#include "common_utils.h"
 #include <vector>
 #include <stdio.h>
 #include <string.h>
@@ -65,10 +66,10 @@ class Remap_grid_class
     private:
         friend class Runtime_remap_function;
         friend class Remap_operator_grid;
-		char decomp_name[256];
-        char grid_name[512];
-        char coord_label[256];
-        char coord_unit[256];
+		char decomp_name[NAME_STR_SIZE];
+        char grid_name[NAME_STR_SIZE];
+        char coord_label[NAME_STR_SIZE];
+        char coord_unit[NAME_STR_SIZE];
         long grid_size;
         int num_dimensions;
         int num_vertexes;
@@ -239,7 +240,11 @@ class Remap_grid_class
 		Remap_grid_data_class *get_unique_center_field();
 		Remap_grid_data_class *get_unique_vertex_field();
 
-        void set_coord_vertex_values_in_default();
+        void set_coord_vertex_values_in_default();		
+		void write_grid_field_into_array(Remap_grid_data_class *, char **, int&, int&);
+		void read_grid_field_from_array(Remap_grid_data_class **, const char *, int &);
+		void write_grid_into_array(char **, int &, int &);
+		Remap_grid_class(const char *, const char *, int &);
 };
 
 #endif

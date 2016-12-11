@@ -72,11 +72,13 @@ class Coupling_connection
 		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int);
 		void exchange_connection_fields_info();
 		void generate_interpolation();
+		void exchange_grid(const char*, const char*, bool);
 
 	public:
 		Coupling_connection(int);
 		void generate_a_coupling_procedure();
         void create_union_comm();
+		void generate_data_transfer();
 };
 
 
@@ -146,7 +148,6 @@ class Coupling_generator
 		Coupling_generator() {};
 		~Coupling_generator() {}
 		void generate_coupling_procedures();
-		void generate_coupling_connection(Coupling_connection *);
                 void generate_IO_procedures();
 };
 

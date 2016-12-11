@@ -10,6 +10,8 @@
 #ifndef REMAP_STATEMENT_OPERAND
 #define REMAP_STATEMENT_OPERAND
 
+
+#include "common_utils.h"
 #include <vector>
 
 
@@ -45,10 +47,10 @@ class Remap_data_field
 {
     public:
         void *data_buf;
-        char field_name_in_application[256];
-        char field_name_in_IO_file[256];
-        char data_type_in_application[256];
-        char data_type_in_IO_file[256];
+        char field_name_in_application[NAME_STR_SIZE];
+        char field_name_in_IO_file[NAME_STR_SIZE];
+        char data_type_in_application[NAME_STR_SIZE];
+        char data_type_in_IO_file[NAME_STR_SIZE];
         long required_data_size;
         long read_data_size;
         std::vector<Remap_field_attribute> field_attributes;

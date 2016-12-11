@@ -12,6 +12,7 @@
 
 
 #include "remap_statement_operand.h"
+#include "common_utils.h"
 
 
 class Remap_grid_class;
@@ -53,6 +54,8 @@ class Remap_grid_data_class
         void generate_analytic_values(const char*);
         void evaluate_error(Remap_grid_data_class*, Remap_grid_data_class*);
         void change_datatype_in_application(const char*);
+		void write_grid_data_into_array(char **, int &, int &);
+		Remap_grid_data_class(Remap_grid_class *, const char *, int&);
 };
 
 
