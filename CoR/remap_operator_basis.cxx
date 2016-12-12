@@ -13,6 +13,14 @@
 #include <string.h>
 
 
+
+Remap_operator_basis::Remap_operator_basis()
+{
+    this->displ_src_cells_overlap_with_dst_cells = NULL;
+    this->index_src_cells_overlap_with_dst_cells = NULL;
+}
+
+
 Remap_operator_basis::Remap_operator_basis(const char *object_name, 
                                           const char *operator_name, 
                                           int num_dimensions,

@@ -51,7 +51,7 @@ class Remap_operator_basis
 
     public:
         Remap_operator_basis(const char*, const char*, int, bool, bool, bool, int, Remap_grid_class **);
-        Remap_operator_basis() {}
+        Remap_operator_basis();
         virtual ~Remap_operator_basis();
         virtual void set_parameter(const char*, const char*) = 0;
 		virtual int check_parameter(const char*, const char*, char*) = 0;

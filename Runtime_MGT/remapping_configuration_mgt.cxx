@@ -339,6 +339,7 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);
 		return;
 	}
+	fclose(fp);
 	remapping_configurations.push_back(new Remapping_configuration(comp_id, XML_file_name));
 }
 

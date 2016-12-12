@@ -54,6 +54,7 @@ class Original_grid_mgt
 		int get_comp_id_of_grid(int) const;
 		const char *get_name_of_grid(int) const;
 		int get_grid_size(int, const char*) const;
+		int add_original_grid(int, const char*, Remap_grid_class*);
 };
 
 
