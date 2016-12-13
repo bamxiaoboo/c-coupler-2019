@@ -33,10 +33,11 @@ distribution.
 #endif
 
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <mpi.h>
+#include <stdio.h>
 
 // Help out windows:
 #if defined( _DEBUG ) && !defined( DEBUG )
@@ -1420,11 +1421,11 @@ public:
 		Returns true if successful. Will delete any existing
 		document data before loading.
 	*/
-	bool LoadFile( TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
+	bool LoadFile( MPI_Comm comm = -1, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING);
 	/// Save a file using the current document value. Returns true if successful.
 	bool SaveFile() const;
 	/// Load a file using the given filename. Returns true if successful.
-	bool LoadFile( const char * filename, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
+	bool LoadFile( const char * filename, MPI_Comm comm = -1, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING);
 	/// Save a file using the given filename. Returns true if successful.
 	bool SaveFile( const char * filename ) const;
 	/** Load a file using the given FILE*. Returns true if successful. Note that this method
@@ -1432,14 +1433,14 @@ public:
 		will be interpreted as an XML file. TinyXML doesn't stream in XML from the current
 		file location. Streaming may be added in the future.
 	*/
-	bool LoadFile( FILE*, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
+	bool LoadFile( FILE*, MPI_Comm comm = -1, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING );
 	/// Save a file using the given FILE*. Returns true if successful.
 	bool SaveFile( FILE* ) const;
 
 	#ifdef TIXML_USE_STL
-	bool LoadFile( const std::string& filename, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING )			///< STL std::string version.
+	bool LoadFile( const std::string& filename, MPI_Comm comm = -1, TiXmlEncoding encoding = TIXML_DEFAULT_ENCODING )			///< STL std::string version.
 	{
-		return LoadFile( filename.c_str(), encoding );
+		return LoadFile( filename.c_str(), comm, encoding );
 	}
 	bool SaveFile( const std::string& filename ) const		///< STL std::string version.
 	{

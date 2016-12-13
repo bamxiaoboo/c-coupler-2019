@@ -267,7 +267,7 @@ Remapping_configuration::Remapping_configuration(int comp_id, const char *XML_fi
 {
 	this->comp_id = comp_id;
 	TiXmlDocument XML_file(XML_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file.LoadFile(), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file.LoadFile(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration")), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
 	for (TiXmlNode *XML_element_node = XML_file.FirstChildElement(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
 		TiXmlElement *XML_element = XML_element_node->ToElement();
 		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status of a remapping setting", "remapping configuration"))
