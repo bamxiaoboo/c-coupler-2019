@@ -16,16 +16,16 @@
 #include <stdio.h>
 #include <string.h>
 
-Routing_info *Routing_info_mgt::search_or_add_router(const int src_comp_id, const int dst_comp_id, const int src_decomp_id, const int dst_decomp_id)
+Routing_info *Routing_info_mgt::search_or_add_router(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
     Routing_info *router;
 
-    router = search_router(src_comp_id, dst_comp_id, src_decomp_id, dst_decomp_id);
+    router = search_router(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name);
 
     if (router != NULL)
         return router;
 
-    router = new Routing_info(src_comp_id, dst_comp_id, src_decomp_id, dst_decomp_id);
+    router = new Routing_info(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name);
     routers.push_back(router);
 
     return router;
@@ -55,10 +55,10 @@ Routing_info_mgt::~Routing_info_mgt()
 }
 
 
-Routing_info *Routing_info_mgt::search_router(const int src_comp_id, const int dst_comp_id, const int src_decomp_id, const int dst_decomp_id)
+Routing_info *Routing_info_mgt::search_router(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
     for (int i = 0; i < routers.size(); i ++)
-        if (routers[i]->match_router(src_comp_id, dst_comp_id, src_decomp_id, dst_decomp_id))
+        if (routers[i]->match_router(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name))
             return routers[i];
 
     return NULL;
@@ -76,7 +76,7 @@ Routing_info *Routing_info_mgt::search_router(const char *remote_comp_name, cons
 }
 
 
-Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const int src_decomp_id, const int dst_decomp_id)
+Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
     src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
     dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
@@ -85,8 +85,8 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const i
 
     this->src_comp_id = src_comp_id;
     this->dst_comp_id = dst_comp_id;
-    this->src_decomp_id = src_decomp_id;
-    this->dst_decomp_id = dst_decomp_id;
+    strcpy(this->src_decomp_name, src_decomp_name);
+    strcpy(this->dst_decomp_name, dst_decomp_name);
     src_decomp_size = 0;
     dst_decomp_size = 0;
     is_in_src_comp = false;
@@ -94,8 +94,8 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const i
     if (current_proc_id_src_comp != -1) is_in_src_comp = true;
     if (current_proc_id_dst_comp != -1) is_in_dst_comp = true;
 
-    if (src_decomp_id < 0) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, dst_decomp_id < 0, 
+    if (words_are_the_same(src_decomp_name, "NULL")) {
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(dst_decomp_name, "NULL"), 
                      "for router of scalar variables, the local and remote decompositions must be \"NULL\"\n");
         num_dimensions = 0;
         if (current_proc_id_src_comp != -1) src_decomp_size = 1;
@@ -104,8 +104,10 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const i
     else {
         num_dimensions = 2;
         build_2D_router();
-        if (current_proc_id_src_comp != -1) src_decomp_size = decomps_info_mgr->get_decomp_info(src_decomp_id)->get_num_local_cells();
-        if (current_proc_id_dst_comp != -1) dst_decomp_size = decomps_info_mgr->get_decomp_info(dst_decomp_id)->get_num_local_cells();
+        if (current_proc_id_src_comp != -1) 
+			src_decomp_size = decomps_info_mgr->search_decomp_info(src_decomp_name, src_comp_id)->get_num_local_cells();
+        if (current_proc_id_dst_comp != -1) 
+			dst_decomp_size = decomps_info_mgr->search_decomp_info(dst_decomp_name, dst_comp_id)->get_num_local_cells();
     }
 }
 
@@ -168,12 +170,12 @@ Routing_info::~Routing_info()
 }
 
 
-bool Routing_info::match_router(const int src_comp_id, const int dst_comp_id, const int src_decomp_id, const int dst_decomp_id)
+bool Routing_info::match_router(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
     return (this->src_comp_id == src_comp_id && 
             this->dst_comp_id == dst_comp_id &&
-            this->src_decomp_id == src_decomp_id &&
-            this->dst_decomp_id == dst_decomp_id);
+            words_are_the_same(this->src_decomp_name, src_decomp_name) &&
+            words_are_the_same(this->dst_decomp_name, dst_decomp_name));
 }
 
 
@@ -203,7 +205,7 @@ void Routing_info::build_2D_router()
 
     if (current_proc_id_src_comp != -1) {
         int * src_cells_displs = new int[num_src_procs];
-        Decomp_info *decomp_info = decomps_info_mgr->get_decomp_info(src_decomp_id);
+        Decomp_info *decomp_info = decomps_info_mgr->search_decomp_info(src_decomp_name, src_comp_id);
         num_local_src_cells = decomp_info->get_num_local_cells();
         num_global_src_cells = decomp_info->get_num_global_cells();
         local_src_cells_global_indx = decomp_info->get_local_cell_global_indx();
@@ -226,7 +228,7 @@ void Routing_info::build_2D_router()
 
     if (current_proc_id_dst_comp != -1) {
         int * dst_cells_displs = new int[num_dst_procs];
-        Decomp_info *decomp_info = decomps_info_mgr->get_decomp_info(dst_decomp_id);
+        Decomp_info *decomp_info = decomps_info_mgr->search_decomp_info(dst_decomp_name, dst_comp_id);
         num_local_dst_cells = decomp_info->get_num_local_cells();
         num_global_dst_cells = decomp_info->get_num_global_cells();
         local_dst_cells_global_indx = decomp_info->get_local_cell_global_indx();

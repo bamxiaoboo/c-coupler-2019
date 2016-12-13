@@ -347,8 +347,8 @@ void transfer_array_from_one_comp_to_another(int current_proc_local_id_src_comp,
 	}
 	if (current_proc_local_id_src_comp != 0 && current_proc_local_id_dst_comp == 0) {
 		MPI_Recv(&array_size, 1, MPI_INT, root_proc_global_id_src_comp, 0, MPI_COMM_WORLD, &status);
-		EXECUTION_REPORT(REPORT_ERROR, -1, *array == NULL, "software error in transfer_array_from_one_comp_to_another");
-		*array = new char [array_size];
+		if (*array == NULL)
+			*array = new char [array_size];
 		MPI_Recv(*array, array_size, MPI_CHAR, root_proc_global_id_src_comp, 0, MPI_COMM_WORLD, &status);
 	}
 

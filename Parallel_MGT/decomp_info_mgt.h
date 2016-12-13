@@ -64,7 +64,7 @@ class Decomp_info_mgt
         void add_decomp_from_model_interface(const char*, const char*, const char*, int, int*);
         int generate_fully_decomp(int);
         Decomp_info *generate_remap_weights_src_decomp(const char*, const char*, const char*);
-		int search_decomp_info(const char*, int);
+		Decomp_info *search_decomp_info(const char*, int);
 		int register_H2D_parallel_decomposition(const char *, int, int, const int *, const char *);
 		bool is_decomp_id_legal(int) const;
 		int get_comp_id_of_decomp(int) const;

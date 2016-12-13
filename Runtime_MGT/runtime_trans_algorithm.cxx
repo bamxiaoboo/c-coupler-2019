@@ -379,7 +379,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
                 send_displs_in_remote_procs[i], transfer_size_with_remote_procs[i], MPI_CHAR, data_win);
         MPI_Win_unlock(remote_proc_id, data_win);
 
-        EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in send of runtime_trans_algorithm: %d  %d", offset, old_offset == transfer_size_with_remote_procs[i]);
+        EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in send of runtime_trans_algorithm: %d  %d", offset, old_offset);
     }
 
     set_remote_tags(bypass_timer);

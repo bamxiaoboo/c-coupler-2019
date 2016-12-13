@@ -209,26 +209,25 @@ void Coupling_connection::generate_data_transfer()
         for (int i = 0; i < fields_name.size(); i ++){
             fields_mem[i] = export_procedure->get_data_transfer_field_instance(i);
             fields_mem[i + num_src_fields] = import_procedure->get_data_transfer_field_instance(i);
-            int src_decomp_id = fields_mem[i]->get_decomp_id();
-            int dst_decomp_id = fields_mem[i + num_src_fields]->get_decomp_id();
+            char src_decomp_name[NAME_STR_SIZE]; 
+            strcpy(src_decomp_name, src_fields_info[i]->decomp_name);
+            char dst_decomp_name[NAME_STR_SIZE];
+            strcpy(dst_decomp_name, dst_fields_info[i]->decomp_name);
 
-            int tmp_decomp_id;
             if (current_proc_id_src_comp == 0 && current_proc_id_dst_comp != 0){
-                MPI_Send(&src_decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
-                MPI_Recv(&tmp_decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+                MPI_Send(src_decomp_name, NAME_STR_SIZE, MPI_CHAR, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
+                MPI_Recv(dst_decomp_name, NAME_STR_SIZE, MPI_CHAR, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
             }
             else if (current_proc_id_src_comp != 0 && current_proc_id_dst_comp == 0){
-                MPI_Recv(&tmp_decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
-                MPI_Send(&dst_decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
+                MPI_Recv(src_decomp_name, NAME_STR_SIZE, MPI_CHAR, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+                MPI_Send(dst_decomp_name, NAME_STR_SIZE, MPI_CHAR, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
             }
 
-            tmp_decomp_id = src_decomp_id;
-            MPI_Bcast(&tmp_decomp_id, 1, MPI_INT, 0, src_comp_node->get_comm_group());
-            tmp_decomp_id = dst_decomp_id;
-            MPI_Bcast(&tmp_decomp_id, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
+            MPI_Bcast(src_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, src_comp_node->get_comm_group());
+            MPI_Bcast(dst_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, dst_comp_node->get_comm_group());
             fields_timer[i] = src_fields_info[i]->timer;
             fields_timer[i + num_src_fields] = dst_fields_info[i]->timer;
-            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, src_decomp_id, dst_decomp_id);
+            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name);
             fields_router[i + num_src_fields] = fields_router[i];
         }
         send_algorithm_object = new Runtime_trans_algorithm(true, num_src_fields, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
@@ -241,15 +240,16 @@ void Coupling_connection::generate_data_transfer()
     else if (current_proc_id_src_comp != -1) {
         for (int i = 0; i < fields_name.size(); i ++){
             fields_mem[i] = export_procedure->get_data_transfer_field_instance(i);
-            int decomp_id = fields_mem[i]->get_decomp_id();
-            int remote_decomp_id = -1;
+            char src_decomp_name[NAME_STR_SIZE];
+            strcpy(src_decomp_name, src_fields_info[i]->decomp_name);
+            char dst_decomp_name[NAME_STR_SIZE];
             if (current_proc_id_src_comp == 0){
-                MPI_Send(&decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
-                MPI_Recv(&remote_decomp_id, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+                MPI_Send(src_decomp_name, NAME_STR_SIZE, MPI_CHAR, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
+                MPI_Recv(dst_decomp_name, NAME_STR_SIZE, MPI_CHAR, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
             }
-            MPI_Bcast(&remote_decomp_id, 1, MPI_INT, 0, src_comp_node->get_comm_group());
+            MPI_Bcast(dst_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, src_comp_node->get_comm_group());
             fields_timer[i] = src_fields_info[i]->timer;
-            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, decomp_id, remote_decomp_id);
+            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name);
         }
         send_algorithm_object = new Runtime_trans_algorithm(true, num_fields, fields_mem, fields_router, fields_timer, union_comm, dst_proc_ranks_in_union_comm);
         export_procedure->add_data_transfer_algorithm(send_algorithm_object);
@@ -257,15 +257,16 @@ void Coupling_connection::generate_data_transfer()
     else {
         for (int i = 0; i < fields_name.size(); i ++){
             fields_mem[i] = import_procedure->get_data_transfer_field_instance(i);
-            int decomp_id = fields_mem[i]->get_decomp_id();
-            int remote_decomp_id = -1;
+            char dst_decomp_name[NAME_STR_SIZE];
+            strcpy(dst_decomp_name, dst_fields_info[i]->decomp_name);
+            char src_decomp_name[NAME_STR_SIZE];
             if (current_proc_id_dst_comp == 0){
-                MPI_Recv(&remote_decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
-                MPI_Send(&decomp_id, 1, MPI_INT, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
+                MPI_Recv(src_decomp_name, NAME_STR_SIZE, MPI_CHAR, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
+                MPI_Send(dst_decomp_name, NAME_STR_SIZE, MPI_CHAR, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
             }
-            MPI_Bcast(&remote_decomp_id, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
+            MPI_Bcast(src_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, dst_comp_node->get_comm_group());
             fields_timer[i] = dst_fields_info[i]->timer;
-            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, remote_decomp_id, decomp_id);
+            fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name);
         }
         recv_algorithm_object = new Runtime_trans_algorithm(false, num_fields, fields_mem, fields_router, fields_timer, union_comm, src_proc_ranks_in_union_comm);
 		import_procedure->add_data_transfer_algorithm(recv_algorithm_object);

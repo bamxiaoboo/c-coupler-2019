@@ -35,8 +35,8 @@ class Routing_info
     private:
         int src_comp_id;
         int dst_comp_id;
-        int src_decomp_id;
-        int dst_decomp_id;
+        char src_decomp_name[NAME_STR_SIZE];
+        char dst_decomp_name[NAME_STR_SIZE];
         int src_decomp_size;
         int dst_decomp_size;
         Comp_comm_group_mgt_node * src_comp_node;
@@ -56,7 +56,7 @@ class Routing_info
 
     public:
         Routing_info(const char*, const char *, const char *, const char*);
-        Routing_info(const int, const int, const int, const int);
+        Routing_info(const int, const int, const char*, const char*);
         ~Routing_info();
         int get_true_routing_info_index(bool, int);
         //int get_num_remote_procs() { return remote_procs_routing_info.size(); }
@@ -65,7 +65,7 @@ class Routing_info
         int *get_local_indx_segment_lengths_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->local_indx_segment_lengths; }
         int get_num_local_indx_segments_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->num_local_indx_segments; }
         bool match_router(const char*, const char*, const char*);
-        bool match_router(const int, const int, const int, const int);
+        bool match_router(const int, const int, const char*, const char*);
         int get_num_dimensions() { return num_dimensions; }
         long get_local_decomp_size() { return local_decomp_size; }
 		long get_remap_decomp_size() { return remap_decomp_size; }
@@ -91,9 +91,9 @@ class Routing_info_mgt
         Routing_info_mgt() {}
         ~Routing_info_mgt();
         Routing_info *search_router(const char*, const char*, const char*);
-        Routing_info *search_router(const int, const int, const int, const int);
+        Routing_info *search_router(const int, const int, const char*, const char*);
         Routing_info *search_or_add_router(const char*, const char*, const char*, const char*);
-        Routing_info *search_or_add_router(const int, const int, const int, const int);
+        Routing_info *search_or_add_router(const int, const int, const char*, const char*);
 };
 
 #endif

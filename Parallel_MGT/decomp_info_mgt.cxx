@@ -244,13 +244,13 @@ int Decomp_info_mgt::generate_fully_decomp(int original_decomp_id)
 {
 	char fully_decomp_name[NAME_STR_SIZE];
 	Decomp_info *fully_decomp;
-	int *local_cells_global_indexes, num_global_cells, existing_decomp_id;
+	int *local_cells_global_indexes, num_global_cells;
 
 
 	sprintf(fully_decomp_name, "fully_decomp_for_%s", get_decomp_info(original_decomp_id)->get_decomp_name());
-	existing_decomp_id = search_decomp_info(fully_decomp_name, get_decomp_info(original_decomp_id)->get_comp_id());
-	if (existing_decomp_id != -1)
-		return get_decomp_info(existing_decomp_id)->get_decomp_id();
+	fully_decomp = search_decomp_info(fully_decomp_name, get_decomp_info(original_decomp_id)->get_comp_id());
+	if (fully_decomp != NULL)
+		return fully_decomp->get_decomp_id();
 
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(get_decomp_info(original_decomp_id)->get_comp_id(), "in Decomp_info_mgt::generate_fully_decomp") == 0) {
 		num_global_cells = get_decomp_info(original_decomp_id)->get_num_global_cells();
@@ -372,15 +372,15 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(const char *deco
 }
 
 
-int Decomp_info_mgt::search_decomp_info(const char *decomp_name, int comp_id)
+Decomp_info *Decomp_info_mgt::search_decomp_info(const char *decomp_name, int comp_id)
 {
 	printf("search search %s %x\n", decomp_name, comp_id);
 	for (int i = 0; i < decomps_info.size(); i ++)
 		if (words_are_the_same(decomps_info[i]->get_decomp_name(), decomp_name) && decomps_info[i]->get_comp_id() == comp_id) {
-			return decomps_info[i]->get_decomp_id();
+			return decomps_info[i];
 		}
 
-	return -1;
+	return NULL;
 }
 
 
@@ -388,9 +388,9 @@ int Decomp_info_mgt::register_H2D_parallel_decomposition(const char *decomp_name
 {
 	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), grid_id, num_local_cells, cell_indexes_in_decomp, annotation, true);
 
-	if (search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)) != -1)
+	if (search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)) != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, "The parallel decomposition \"%s\" corresponding to grid \"%s\" has been registered before. Please check the model code corresponding to annotations \"%s\" and \"%s\"",
-					     decomp_name, original_grid_mgr->get_name_of_grid(grid_id), annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)), "register decomposition"), annotation);
+					     decomp_name, original_grid_mgr->get_name_of_grid(grid_id), annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id))->get_decomp_id(), "register decomposition"), annotation);
 
 	decomps_info.push_back(new_decomp);
 
