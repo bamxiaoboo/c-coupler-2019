@@ -102,7 +102,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 	            field_grids_num_lev[i] = 1;
 	        else {
 	            int grid_id = fields_mem[i]->get_grid_id();
-	            if (original_grid_mgr->get_CoR_grid(grid_id)->get_num_dimensions() < 3) 
+	            if (original_grid_mgr->get_original_CoR_grid(grid_id)->get_num_dimensions() < 3) 
 	                field_grids_num_lev[i] = 1;
 	            else field_grids_num_lev[i] = cpl_get_num_levs_in_grid(grid_id);
 	        }

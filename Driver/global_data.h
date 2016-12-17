@@ -38,6 +38,8 @@
 #include "runtime_trans_algorithm.h"
 #include "IO_field_mgt.h"
 #include "remapping_configuration_mgt.h"
+#include "runtime_remapping_weights_mgt.h"
+
 
 
 #define C_COUPLER_CONFIG_DIR             "CCPL_configs"

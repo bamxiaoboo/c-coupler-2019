@@ -18,6 +18,7 @@
 #include <map>
 #include "inout_interface_mgt.h"
 #include "dictionary.h"
+#include "remapping_configuration_mgt.h"
 
 
 #define USING_INSTANTANEOUS_VALUE            0
@@ -73,6 +74,7 @@ class Coupling_connection
 		void exchange_connection_fields_info();
 		void generate_interpolation();
 		void exchange_grid(const char*, const char*, bool);
+		void exchange_remapping_setting(int, Remapping_setting &);
 
 	public:
 		Coupling_connection(int);

@@ -27,15 +27,20 @@ class Remapping_algorithm_specification
 		int comp_id;		
 		int type_id;
 		char algorithm_name[NAME_STR_SIZE];
-		std::vector<const char *> parameters_name;
-		std::vector<const char *> parameters_value;
+		std::vector<char *> parameters_name;
+		std::vector<char *> parameters_value;
 
 	public:
 		Remapping_algorithm_specification(const Remapping_algorithm_specification*);
 		Remapping_algorithm_specification(const char*, int);
+		Remapping_algorithm_specification(const char *, int*);
 		Remapping_algorithm_specification(int, TiXmlElement*, const char*, int);
 		~Remapping_algorithm_specification();
 		void print();
+		void write_remapping_algorithm_specification_into_array(char **, int &, int &);
+		const char *get_algorithm_name() { return algorithm_name; }
+		int get_num_parameters() { return parameters_name.size(); }
+		void get_parameter(int, char *, char *);
 };
 
 
@@ -51,7 +56,7 @@ class Remapping_setting
 		std::vector<const char *> fields_specification;
 
 	public:
-		Remapping_setting() {}
+		Remapping_setting();
 		Remapping_setting(const char*, const char*);
 		Remapping_setting(int, TiXmlElement*, const char*);
 		~Remapping_setting();
@@ -59,8 +64,11 @@ class Remapping_setting
 		void reset_remapping_setting();
 		int get_field_specification_manner() { return field_specification_manner; }
 		void get_field_remapping_setting(Remapping_setting&, const char*);
-		const Remapping_algorithm_specification *get_H2D_remapping_algorithm() { return H2D_remapping_algorithm; }
-		const Remapping_algorithm_specification *get_V1D_remapping_algorithm() { return V1D_remapping_algorithm; }
+		Remapping_algorithm_specification *get_H2D_remapping_algorithm() { return H2D_remapping_algorithm; }
+		Remapping_algorithm_specification *get_V1D_remapping_algorithm() { return V1D_remapping_algorithm; }
+		Remapping_algorithm_specification *get_T1D_remapping_algorithm() { return T1D_remapping_algorithm; }
+		void write_remapping_setting_into_array(char **, int &, int &);
+		void read_remapping_setting_from_array(const char *, int &);
 		void print();
 };
 

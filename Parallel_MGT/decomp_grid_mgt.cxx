@@ -24,7 +24,7 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "Software error in Decomp_grid_info::Decomp_grid_info(int decomp_id)");
 	decomp = decomps_info_mgr->get_decomp_info(decomp_id);
-	decomp_info_grid = original_grid_mgr->search_grid_info(decomp->get_grid_id())->get_CoR_grid();
+	decomp_info_grid = original_grid_mgr->search_grid_info(decomp->get_grid_id())->get_original_CoR_grid();
 	comp_id = decomp->get_comp_id();
 	this->decomp_id = decomp_id;
 	strcpy(this->decomp_name, decomp->get_decomp_name());

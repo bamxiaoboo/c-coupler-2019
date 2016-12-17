@@ -58,13 +58,6 @@ void Coupling_connection::generate_a_coupling_procedure()
 
 	exchange_connection_fields_info();
 
-	if (current_proc_id_src_comp != -1) {
-		Remapping_setting field_remapping_setting;
-		for (int i = 0; i < fields_name.size(); i ++) {
-			remapping_configuration_mgr->get_field_remapping_setting(field_remapping_setting, src_comp_node->get_comp_id(), fields_name[i]);
-		}
-	}
-
 	generate_interpolation();
 
 	if (current_proc_id_src_comp != -1) {
@@ -346,18 +339,18 @@ void Coupling_connection::exchange_grid(const char *comp_full_name, const char *
 		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "dst Exchange grid (full name of the component is \"%s\", grid name is \"%s\")", comp_full_name, grid_name);
 
 	if (does_src_send && current_proc_id_src_comp == 0) {
-		original_grid->get_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
+		original_grid->get_original_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
 		printf("src temp grid array size is %d\n", buffer_content_size);
 	}
 	if (!does_src_send && current_proc_id_dst_comp == 0) {
-		original_grid->get_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
+		original_grid->get_original_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
 		printf("dst temp grid array size is %d\n", buffer_content_size);
 	}
 
 	transfer_array_from_one_comp_to_another(send_proc_local_id, send_root_proc_global_id, recv_proc_local_id, recv_root_proc_global_id, recv_comp_node->get_comm_group(), &temp_array_buffer, buffer_content_size);
 
 	if (original_grid_status == 0) {
-		Remap_grid_class *mirror_grid = new Remap_grid_class(comp_full_name, temp_array_buffer, buffer_content_size);
+		Remap_grid_class *mirror_grid = new Remap_grid_class(NULL, comp_full_name, temp_array_buffer, buffer_content_size);
 		printf("build mirror grid %s\n", mirror_grid->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
 		original_grid_mgr->add_original_grid(grid_comp_id, grid_name, mirror_grid);
@@ -368,11 +361,36 @@ void Coupling_connection::exchange_grid(const char *comp_full_name, const char *
 }
 
 
+void Coupling_connection::exchange_remapping_setting(int i, Remapping_setting &field_remapping_setting)
+{
+	char *array = NULL;
+	int buffer_max_size, buffer_content_size;
+	
+	if (current_proc_id_src_comp != -1) {
+		remapping_configuration_mgr->get_field_remapping_setting(field_remapping_setting, src_comp_node->get_comp_id(), fields_name[i]);
+		field_remapping_setting.write_remapping_setting_into_array(&array, buffer_max_size, buffer_content_size);
+	}
+	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), &array, buffer_content_size);	
+	if (current_proc_id_dst_comp != -1)
+		field_remapping_setting.read_remapping_setting_from_array(array, buffer_content_size);
+
+	delete [] array;
+}
+
+
 void Coupling_connection::generate_interpolation()
 {
 	for (int i = 0; i < fields_name.size(); i ++) {
+		Runtime_remapping_weights *runtime_remapping_weights = NULL;
+		Remapping_setting *field_remapping_setting = new Remapping_setting;
+		exchange_remapping_setting(i, *field_remapping_setting);
 		exchange_grid(dst_comp_full_name, dst_fields_info[i]->grid_name, false);
 		exchange_grid(src_comp_interfaces[0].first, src_fields_info[i]->grid_name, true);
+		if (!words_are_the_same(src_fields_info[i]->grid_name, "NULL")) {
+			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
+			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
+			runtime_remapping_weights = new Runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, field_remapping_setting);
+		}
 	}
 }
 
@@ -391,36 +409,6 @@ void Coupling_connection::exchange_connection_fields_info()
 		write_connection_fields_info_into_array(export_interface, &src_fields_info_array, buffer_max_size, src_fields_info_array_size);
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), &src_fields_info_array, src_fields_info_array_size);
 	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), &dst_fields_info_array, dst_fields_info_array_size);
-/*	
-	if (current_proc_id_src_comp == 0 && current_proc_id_dst_comp != 0) {
-		MPI_Send(&src_fields_info_array_size, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
-		MPI_Send(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, dst_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD);
-		MPI_Recv(&dst_fields_info_array_size, 1, MPI_INT, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
-		dst_fields_info_array = new char [dst_fields_info_array_size];
-		MPI_Recv(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, dst_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
-	}
-	if (current_proc_id_src_comp != 0 && current_proc_id_dst_comp == 0) {
-		MPI_Recv(&src_fields_info_array_size, 1, MPI_INT, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
-		src_fields_info_array = new char [src_fields_info_array_size];
-		MPI_Recv(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, src_comp_root_proc_global_id, 1000+src_comp_root_proc_global_id, MPI_COMM_WORLD, &status);
-		MPI_Send(&dst_fields_info_array_size, 1, MPI_INT, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
-		MPI_Send(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, src_comp_root_proc_global_id, 1000+dst_comp_root_proc_global_id, MPI_COMM_WORLD);
-	}
-
-	if (current_proc_id_src_comp != -1) {
-		MPI_Bcast(&dst_fields_info_array_size, 1, MPI_INT, 0, src_comp_node->get_comm_group());
-		if (dst_fields_info_array == NULL)
-			dst_fields_info_array = new char [dst_fields_info_array_size];
-		MPI_Bcast(dst_fields_info_array, dst_fields_info_array_size, MPI_CHAR, 0, src_comp_node->get_comm_group());
-	}
-
-	if (current_proc_id_dst_comp != -1) {
-		MPI_Bcast(&src_fields_info_array_size, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
-		if (src_fields_info_array == NULL)
-			src_fields_info_array = new char [src_fields_info_array_size];
-		MPI_Bcast(src_fields_info_array, src_fields_info_array_size, MPI_CHAR, 0, dst_comp_node->get_comm_group());
-	}	
-*/
 	comp_id = export_interface != NULL? export_interface->get_comp_id() : import_interface->get_comp_id();
 	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size, comp_id);
 	comp_id = import_interface != NULL? import_interface->get_comp_id() : export_interface->get_comp_id();
@@ -438,6 +426,9 @@ void Coupling_connection::exchange_connection_fields_info()
 				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_lag_count(), dst_fields_info[i]->time_step_in_second, dst_fields_info[i]->inst_or_aver);
 		}
 	}
+	
+	delete [] src_fields_info_array;
+	delete [] dst_fields_info_array;
 }
 
 

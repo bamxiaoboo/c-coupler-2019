@@ -243,8 +243,12 @@ class Remap_grid_class
         void set_coord_vertex_values_in_default();		
 		void write_grid_field_into_array(Remap_grid_data_class *, char **, int&, int&);
 		void read_grid_field_from_array(Remap_grid_data_class **, const char *, int &);
+		Remap_grid_class *get_linked_grid_from_array(Remap_grid_class *, const char *, const char *, int &);
+		void write_grid_name_into_array(Remap_grid_class *, char **, int &, int &);
 		void write_grid_into_array(char **, int &, int &);
-		Remap_grid_class(const char *, const char *, int &);
+		Remap_grid_class *search_sub_grid(const char*);
+		Remap_grid_class *get_sphere_sub_grid();
+		Remap_grid_class(Remap_grid_class*, const char *, const char *, int &);
 };
 
 #endif

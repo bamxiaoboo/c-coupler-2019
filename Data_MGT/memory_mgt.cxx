@@ -59,7 +59,7 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 			             "Software error4 in new Field_mem_info");
 		
 		remap_grid_decomp = decomps_info_mgr->get_CoR_grid_of_decomp(decomp_id);
-		remap_grid_grid = original_grid_mgr->get_CoR_grid(comp_or_grid_id);
+		remap_grid_grid = original_grid_mgr->get_original_CoR_grid(comp_or_grid_id);
 		grid_match = remap_grid_decomp->is_subset_of_grid(remap_grid_grid);
 		mem_size = decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells() * get_data_type_size(data_type) * remap_grid_grid->get_grid_size()/remap_grid_decomp->get_grid_size();
 	}

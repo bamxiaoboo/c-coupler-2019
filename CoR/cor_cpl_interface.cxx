@@ -113,7 +113,7 @@ long cpl_get_num_levs_in_grid(int grid_id)
 	if (grid_id == -1)
 		return 1;
 
-	grid = original_grid_mgr->get_CoR_grid(grid_id);
+	grid = original_grid_mgr->get_original_CoR_grid(grid_id);
     EXECUTION_REPORT(REPORT_ERROR, -1, grid->get_num_dimensions() == 3, "C-Coupler software error1 in cpl_get_num_levs_in_grid\n");
     
     grid->get_leaf_grids(&num_leaf_grids, leaf_grids, grid);

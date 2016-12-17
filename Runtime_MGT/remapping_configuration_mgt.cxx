@@ -17,8 +17,10 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(const Remap
 	this->type_id = src_specification->type_id;
 	strcpy(this->algorithm_name, src_specification->algorithm_name);
 	for (int i = 0; i < src_specification->parameters_name.size(); i ++) {
-		this->parameters_name.push_back(strdup(src_specification->parameters_name[i]));
-		this->parameters_value.push_back(strdup(src_specification->parameters_value[i]));
+		this->parameters_name.push_back(new char [NAME_STR_SIZE]);
+		strcpy(this->parameters_name[this->parameters_name.size()-1], src_specification->parameters_name[i]);
+		this->parameters_value.push_back(new char [NAME_STR_SIZE]);
+		strcpy(this->parameters_value[this->parameters_value.size()-1], src_specification->parameters_value[i]);
 	}
 }
 
@@ -62,6 +64,21 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 }
 
 
+Remapping_algorithm_specification::Remapping_algorithm_specification(const char *array, int *buffer_content_iter)
+{
+	read_data_from_array_buffer(&type_id, sizeof(int), array, *buffer_content_iter);
+	read_data_from_array_buffer(algorithm_name, NAME_STR_SIZE, array, *buffer_content_iter);
+	int temp_int;
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter);
+	for (int i = 0; i < temp_int; i ++) {
+		this->parameters_name.push_back(new char [NAME_STR_SIZE]);
+		read_data_from_array_buffer(this->parameters_name[this->parameters_name.size()-1], NAME_STR_SIZE, array, *buffer_content_iter);
+		this->parameters_value.push_back(new char [NAME_STR_SIZE]);
+		read_data_from_array_buffer(this->parameters_value[this->parameters_value.size()-1], NAME_STR_SIZE, array, *buffer_content_iter);		
+	}
+}
+
+
 Remapping_algorithm_specification::~Remapping_algorithm_specification()
 {
 	for (int i = 0; i < parameters_name.size(); i ++) {
@@ -75,9 +92,42 @@ void Remapping_algorithm_specification::print()
 {
 	if (type_id == REMAP_ALGORITHM_TYPE_H2D)
 		printf("   H2D remapping algorithm \"%s\" ", algorithm_name);
+	if (type_id == REMAP_ALGORITHM_TYPE_V1D)
+		printf("   V1D remapping algorithm \"%s\" ", algorithm_name);
+	if (type_id == REMAP_ALGORITHM_TYPE_T1D)
+		printf("   T1D remapping algorithm \"%s\" ", algorithm_name);
 	for (int i = 0; i < parameters_name.size(); i ++)
 		printf(": \"%s\"(\"%s\") ", parameters_name[i], parameters_value[i]);
 	printf("\n");
+}
+
+
+void Remapping_algorithm_specification::write_remapping_algorithm_specification_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+{
+	for (int i = parameters_name.size()-1; i >= 0; i --) {
+		write_data_into_array_buffer(parameters_value[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		write_data_into_array_buffer(parameters_name[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	}
+	int temp_int = parameters_name.size();
+	write_data_into_array_buffer(&temp_int, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(algorithm_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&type_id, sizeof(int), array, buffer_max_size, buffer_content_size);
+}
+
+
+void Remapping_algorithm_specification::get_parameter(int i, char *parameter_name, char *parameter_value)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, i >= 0 && i < parameters_name.size(), "Software error in Remapping_algorithm_specification::get_parameter");
+	strcpy(parameter_name, parameters_name[i]);
+	strcpy(parameter_value, parameters_value[i]);
+}
+
+
+Remapping_setting::Remapping_setting()
+{
+	H2D_remapping_algorithm = NULL;
+	V1D_remapping_algorithm = NULL;
+	T1D_remapping_algorithm = NULL;
 }
 
 
@@ -216,7 +266,8 @@ void Remapping_setting::get_field_remapping_setting(Remapping_setting &field_rem
 
 		
 	if (!(field_remapping_configuration.H2D_remapping_algorithm == NULL && this->H2D_remapping_algorithm != NULL ||
-		  field_remapping_configuration.V1D_remapping_algorithm == NULL && this->V1D_remapping_algorithm != NULL))
+		  field_remapping_configuration.V1D_remapping_algorithm == NULL && this->V1D_remapping_algorithm != NULL ||
+		  field_remapping_configuration.T1D_remapping_algorithm == NULL && this->T1D_remapping_algorithm != NULL))
 		return;
 
 	if (field_specification_manner == 0)
@@ -240,6 +291,8 @@ void Remapping_setting::get_field_remapping_setting(Remapping_setting &field_rem
 			field_remapping_configuration.H2D_remapping_algorithm = new Remapping_algorithm_specification(this->H2D_remapping_algorithm);
 		if (field_remapping_configuration.V1D_remapping_algorithm == NULL && this->V1D_remapping_algorithm != NULL)
 			field_remapping_configuration.V1D_remapping_algorithm = new Remapping_algorithm_specification(this->V1D_remapping_algorithm);
+		if (field_remapping_configuration.T1D_remapping_algorithm == NULL && this->T1D_remapping_algorithm != NULL)
+			field_remapping_configuration.T1D_remapping_algorithm = new Remapping_algorithm_specification(this->T1D_remapping_algorithm);
 	}
 }
 
@@ -251,7 +304,28 @@ void Remapping_setting::print()
 		H2D_remapping_algorithm->print();
 	if (V1D_remapping_algorithm != NULL)
 		V1D_remapping_algorithm->print();
+	if (T1D_remapping_algorithm != NULL)
+		T1D_remapping_algorithm->print();
 	printf("\n\n");
+}
+
+
+void Remapping_setting::write_remapping_setting_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+{
+	printf("%lx %lx %lx\n", H2D_remapping_algorithm, V1D_remapping_algorithm, T1D_remapping_algorithm);
+	EXECUTION_REPORT(REPORT_ERROR, -1, H2D_remapping_algorithm != NULL && V1D_remapping_algorithm != NULL && T1D_remapping_algorithm != NULL, "software error in Remapping_setting::write_remapping_setting_into_array");
+	T1D_remapping_algorithm->write_remapping_algorithm_specification_into_array(array, buffer_max_size, buffer_content_size);
+	V1D_remapping_algorithm->write_remapping_algorithm_specification_into_array(array, buffer_max_size, buffer_content_size);
+	H2D_remapping_algorithm->write_remapping_algorithm_specification_into_array(array, buffer_max_size, buffer_content_size);		
+}
+
+
+void Remapping_setting::read_remapping_setting_from_array(const char *array, int &buffer_content_iter)
+{	
+	H2D_remapping_algorithm = new Remapping_algorithm_specification(array, &buffer_content_iter);
+	V1D_remapping_algorithm = new Remapping_algorithm_specification(array, &buffer_content_iter);
+	T1D_remapping_algorithm = new Remapping_algorithm_specification(array, &buffer_content_iter);
+	EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_iter == 0, "Software error in Remapping_setting::read_remapping_setting_from_array");
 }
 
 
@@ -311,7 +385,7 @@ bool Remapping_configuration::get_field_remapping_setting(Remapping_setting &fie
 
 	for (int i = 0; i < remapping_settings.size(); i ++) {
 		remapping_settings[i]->get_field_remapping_setting(field_remapping_configuration, field_name);
-		if (remapping_settings[i]->get_H2D_remapping_algorithm() != NULL && remapping_settings[i]->get_V1D_remapping_algorithm() != NULL)
+		if (field_remapping_configuration.get_H2D_remapping_algorithm() != NULL && field_remapping_configuration.get_V1D_remapping_algorithm() != NULL && field_remapping_configuration.get_T1D_remapping_algorithm() != NULL)
 			return true;
 	}
 	return false;
@@ -358,6 +432,7 @@ void Remapping_configuration_mgt::get_field_remapping_setting(Remapping_setting 
 {
 	field_remapping_setting.reset_remapping_setting();
 	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Remapping_configuration_mgt::get_current_remapping_setting");
+	EXECUTION_REPORT(REPORT_ERROR, -1, current_comp_node != NULL, "Software error in Remapping_configuration_mgt::get_field_remapping_setting1");
 	for (; current_comp_node != NULL; current_comp_node = current_comp_node->get_parent()) {
 		Remapping_configuration *current_remapping_configuration = search_remapping_configuration(current_comp_node->get_comp_id());
 		if (current_remapping_configuration != NULL)
@@ -366,5 +441,6 @@ void Remapping_configuration_mgt::get_field_remapping_setting(Remapping_setting 
 				return;
 			}
 	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Remapping_configuration_mgt::get_field_remapping_setting");
 }
 

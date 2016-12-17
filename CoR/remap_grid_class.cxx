@@ -3134,6 +3134,38 @@ void Remap_grid_class::read_grid_field_from_array(Remap_grid_data_class **grid_f
 }
 
 
+void Remap_grid_class::write_grid_name_into_array(Remap_grid_class *grid, char **array, int &buffer_max_size, int &buffer_content_size)
+{
+	char temp_grid_name[NAME_STR_SIZE];
+
+
+	if (grid == NULL)
+		sprintf(temp_grid_name, "NULL");
+	else strcpy(temp_grid_name, grid->get_grid_name());
+	write_data_into_array_buffer(temp_grid_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+}
+
+
+Remap_grid_class *Remap_grid_class::get_linked_grid_from_array(Remap_grid_class *top_grid, const char *grid_name_suffix, const char *array, int &buffer_content_iter)
+{
+	char temp_grid_name[NAME_STR_SIZE];
+
+
+	read_data_from_array_buffer(temp_grid_name, NAME_STR_SIZE, array, buffer_content_iter);
+	if (!words_are_the_same(temp_grid_name, "NULL")) {
+		strcat(temp_grid_name, grid_name_suffix);
+		if (words_are_the_same(this->grid_name, temp_grid_name))
+			return this;
+		Remap_grid_class *linked_grid = top_grid->search_sub_grid(temp_grid_name);
+		EXECUTION_REPORT(REPORT_ERROR, -1, linked_grid != NULL, "Software error in Remap_grid_class::Remap_grid_class: wrong linked grid");
+		return linked_grid;
+	}
+	
+	return NULL;
+}
+
+
+
 void Remap_grid_class::write_grid_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
 {
 	int temp_int;
@@ -3149,6 +3181,8 @@ void Remap_grid_class::write_grid_into_array(char **array, int &buffer_max_size,
 		sub_grids[i]->write_grid_into_array(array, buffer_max_size, buffer_content_size);
 	temp_int = sub_grids.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_grid_name_into_array(first_super_grid_of_enable_setting_coord_value, array, buffer_max_size, buffer_content_size);
+	write_grid_name_into_array(super_grid_of_setting_coord_values, array, buffer_max_size, buffer_content_size);
 	write_grid_field_into_array(sigma_grid_dynamic_surface_value_field, array, buffer_max_size, buffer_content_size);
 	write_grid_field_into_array(hybrid_grid_coefficient_field, array, buffer_max_size, buffer_content_size);
 	write_grid_field_into_array(sigma_grid_sigma_value_field, array, buffer_max_size, buffer_content_size);
@@ -3179,10 +3213,16 @@ void Remap_grid_class::write_grid_into_array(char **array, int &buffer_max_size,
 }
 
 
-Remap_grid_class::Remap_grid_class(const char *grid_name_suffix, const char *array, int &buffer_content_iter)
+Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_name_suffix, const char *array, int &buffer_content_iter)
 {
 	int temp_int;
+	char temp_grid_name[NAME_STR_SIZE];
 
+
+	remap_grid_manager->add_remap_grid(this);
+	
+	if (top_grid == NULL)
+		top_grid = this;
 	
 	initialize_grid_class_data();
 
@@ -3212,11 +3252,45 @@ Remap_grid_class::Remap_grid_class(const char *grid_name_suffix, const char *arr
 	read_grid_field_from_array(&sigma_grid_sigma_value_field, array, buffer_content_iter);
 	read_grid_field_from_array(&hybrid_grid_coefficient_field, array, buffer_content_iter);
 	read_grid_field_from_array(&sigma_grid_dynamic_surface_value_field, array, buffer_content_iter);
+	super_grid_of_setting_coord_values = get_linked_grid_from_array(top_grid, grid_name_suffix, array, buffer_content_iter);
+	first_super_grid_of_enable_setting_coord_value = get_linked_grid_from_array(top_grid, grid_name_suffix, array, buffer_content_iter);
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
 	for (int i = 0; i < temp_int; i ++)
-		sub_grids.push_back(new Remap_grid_class(grid_name_suffix, array, buffer_content_iter));
+		sub_grids.push_back(new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter));
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
 	if (temp_int != 0)
-		edge_grid = new Remap_grid_class(grid_name_suffix, array, buffer_content_iter);
+		edge_grid = new Remap_grid_class(NULL, grid_name_suffix, array, buffer_content_iter);
+}
+
+
+Remap_grid_class *Remap_grid_class::search_sub_grid(const char *grid_name)
+{
+	printf("qiguai %s vs %s: %d vs %d\n", this->grid_name, grid_name, strlen(this->grid_name), strlen(grid_name));
+	if (words_are_the_same(this->grid_name, grid_name)) {
+		printf("the same\n");
+		return this;
+	}
+	printf("why why %s vs %s\n", this->grid_name, grid_name);
+
+	for (int i = 0; i < sub_grids.size(); i ++) {
+		Remap_grid_class *required_grid = sub_grids[i]->search_sub_grid(grid_name);
+		if (required_grid != NULL)
+			return required_grid;
+	}
+
+	return NULL;
+}
+
+
+Remap_grid_class *Remap_grid_class::get_sphere_sub_grid()
+{
+	if (get_is_sphere_grid())
+		return this;
+
+	for (int i = 0; i < sub_grids.size(); i ++)
+		if (sub_grids[i]->get_sphere_sub_grid() != NULL)
+			return sub_grids[i]->get_sphere_sub_grid();
+
+	return NULL;
 }
 

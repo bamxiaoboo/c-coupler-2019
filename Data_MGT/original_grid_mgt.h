@@ -13,6 +13,7 @@
 
 #include "original_grid_mgt.h"
 #include "remap_grid_class.h"
+#include "remap_mgt.h"
 #include <vector>
 
 
@@ -22,7 +23,12 @@ class Original_grid_info
 		int comp_id;
 		int grid_id;
 		char grid_name[NAME_STR_SIZE];
-		Remap_grid_class *CoR_grid;
+		Remap_grid_class *original_CoR_grid;
+		Remap_grid_class *H2D_sub_CoR_grid;
+		Remap_grid_class *V1D_sub_CoR_grid;
+		Remap_grid_class *T1D_sub_CoR_grid;
+
+		void generate_remapping_grids();
 		
 	public:
 		Original_grid_info(int, int, const char*, const char*, Remap_grid_class*);
@@ -31,7 +37,10 @@ class Original_grid_info
 		int get_local_grid_id() const { return grid_id; }
 		~Original_grid_info() {}
 		int get_comp_id() const { return comp_id; }
-		Remap_grid_class *get_CoR_grid() const { return CoR_grid; }
+		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
+		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
+		Remap_grid_class *get_V1D_sub_CoR_grid() { return V1D_sub_CoR_grid; }
+		Remap_grid_class *get_T1D_sub_CoR_grid() { return T1D_sub_CoR_grid; }
 };
 
 
@@ -49,7 +58,7 @@ class Original_grid_mgt
 		int get_CoR_defined_grid(int, const char*, const char*, const char*);
 		Original_grid_info *search_grid_info(const char*, int);
 		Original_grid_info *search_grid_info(int);
-		Remap_grid_class *get_CoR_grid(int) const;
+		Remap_grid_class *get_original_CoR_grid(int) const;
 		bool is_grid_id_legal(int) const;		
 		int get_comp_id_of_grid(int) const;
 		const char *get_name_of_grid(int) const;

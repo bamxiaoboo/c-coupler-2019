@@ -23,7 +23,8 @@ void Remap_operator_distwgt::set_parameter(const char *parameter_name, const cha
         sscanf(parameter_value, "%lf", &num_power);
     else if (words_are_the_same(parameter_name, "num_nearest_points")) {
         sscanf(parameter_value, "%d", &num_nearest_points);
-        delete [] weigt_values_of_one_dst_cell;
+		if (weigt_values_of_one_dst_cell != NULL)
+	        delete [] weigt_values_of_one_dst_cell;
         weigt_values_of_one_dst_cell = new double [num_nearest_points];
     }
 	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
