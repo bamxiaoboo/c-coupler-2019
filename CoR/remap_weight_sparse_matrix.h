@@ -49,6 +49,7 @@ class Remap_weight_sparse_matrix
         long *get_remaped_dst_cells_indexes() { return remaped_dst_cells_indexes; }
         double *get_weight_values() { return weight_values; }
 		void compare_to_another_sparse_matrix(Remap_weight_sparse_matrix*);
+		void print();
 };
 
 

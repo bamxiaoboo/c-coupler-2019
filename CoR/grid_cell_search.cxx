@@ -742,7 +742,7 @@ void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_
 		printf("qiguai %d\n no overlap\n", dst_cell->get_cell_index());
 	
 	do_quick_sort(overlapping_cells_index, (long*) NULL, 0, num_overlapping_cells-1);
-
+/*
 	int temp_num_overlapping_cells = 0;
 	for (int i = 0; i < num_cells; i ++) {
 		if (!cells[i]->get_mask())
@@ -778,6 +778,7 @@ void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_
 		printf("\n");
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "error");
 	}
+	*/
 }
 
 

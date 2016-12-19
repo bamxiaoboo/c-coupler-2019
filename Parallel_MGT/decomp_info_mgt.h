@@ -12,6 +12,8 @@
 
 #include "common_utils.h"
 #include "remap_grid_class.h"
+#include "remap_weight_of_strategy_class.h"
+#include "original_grid_mgt.h"
 #include <vector>
 
 
@@ -27,11 +29,12 @@ class Decomp_info
 
 		char decomp_name[NAME_STR_SIZE];
 		int comp_id;
+		int host_comp_id;
 		int grid_id;
 		int decomp_id;
 
     public:
-		Decomp_info(const char *, int, int, int, const int *, const char *, bool);
+		Decomp_info(const char *, int, int, int, int, const int *, const char *, bool);
         Decomp_info(const char *, const char*, const char*, int, const int *);
         ~Decomp_info();
         int get_num_local_cells() { return num_local_cells; }
@@ -40,6 +43,7 @@ class Decomp_info
         const char *get_decomp_name() { return decomp_name; }
 		int get_grid_id() { return grid_id; }
 		int get_comp_id() { return comp_id; }
+		int get_host_comp_id() { return host_comp_id; }
 		int get_decomp_id() { return decomp_id; }
         void gen_decomp_grid_data();
         int get_num_global_cells() { return num_global_cells; }
@@ -64,6 +68,7 @@ class Decomp_info_mgt
         void add_decomp_from_model_interface(const char*, const char*, const char*, int, int*);
         int generate_fully_decomp(int);
         Decomp_info *generate_remap_weights_src_decomp(const char*, const char*, const char*);
+		Decomp_info *generate_remap_weights_src_decomp(Decomp_info*, Original_grid_info*, Original_grid_info*, Remap_weight_of_strategy_class*);
 		Decomp_info *search_decomp_info(const char*, int);
 		int register_H2D_parallel_decomposition(const char *, int, int, const int *, const char *);
 		bool is_decomp_id_legal(int) const;

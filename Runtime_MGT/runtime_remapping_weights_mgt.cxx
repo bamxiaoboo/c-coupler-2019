@@ -16,7 +16,7 @@
 #include "global_data.h"
 
 
-Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting)
+Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
 {
 	Remap_operator_basis *remap_operator_H2D = NULL;
 	Remap_operator_basis *remap_operator_V1D = NULL;
@@ -32,6 +32,13 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	this->src_original_grid = src_original_grid;
 	this->dst_original_grid = dst_original_grid;
 	this->remapping_setting = remapping_setting;
+	this->dst_decomp_info = dst_decomp_info;
+	this->src_decomp_info = NULL;
+	this->sequential_remapping_weights = NULL;
+	this->parallel_remapping_weights = NULL;
+
+	if (src_original_grid == dst_original_grid)
+		return;
 
 	if (src_original_grid->get_H2D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
@@ -78,9 +85,79 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 		remap_operators[num_remap_operators++] = remap_operator_T1D;
 	}
 
+	execution_phase_number = 1;
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
 	printf("number of remap operators is %d\n", num_remap_operators);
 	Remap_strategy_class *remap_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
 	sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remap_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid());
+	execution_phase_number = 2;
+
+	if (dst_original_grid->get_H2D_sub_CoR_grid() == NULL || dst_decomp_info == NULL) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, dst_original_grid->get_H2D_sub_CoR_grid() == NULL && dst_decomp_info == NULL, "Software error in Coupling_connection::generate_interpolation: conflict between grid and decomp");
+		parallel_remapping_weights = sequential_remapping_weights;
+	}	
+	else generate_parallel_remapping_weights();
+}
+
+
+void Runtime_remapping_weights::generate_parallel_remapping_weights()
+{
+    Remap_grid_class **remap_related_grids, **remap_related_decomp_grids;
+    Remap_grid_class *decomp_original_grids[256];
+    int num_remap_related_grids;
+    int *global_cells_local_indexes_in_decomps[256];
+    int i, j;
+
+
+    EXECUTION_REPORT(REPORT_ERROR,-1, sequential_remapping_weights != NULL, "C-Coupler software error remap weights is not found\n");
+    cpl_check_remap_weights_format(sequential_remapping_weights);
+	EXECUTION_REPORT(REPORT_ERROR,-1, src_original_grid->get_H2D_sub_CoR_grid()->is_subset_of_grid(sequential_remapping_weights->get_data_grid_src()) && dst_original_grid->get_H2D_sub_CoR_grid()->is_subset_of_grid(sequential_remapping_weights->get_data_grid_dst()),
+	                 "Software error in Runtime_remapping_weights::generate_parallel_remapping_weights: grid inconsistency");
+
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before generating remap_weights_src_decomp");
+	src_decomp_info = decomps_info_mgr->generate_remap_weights_src_decomp(dst_decomp_info, src_original_grid, dst_original_grid, sequential_remapping_weights);
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after generating remap_weights_src_decomp");
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before generating parallel remap weights for runtime_remap_algorithm");
+
+    decomp_original_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
+    decomp_original_grids[1] = dst_original_grid->get_H2D_sub_CoR_grid();
+    remap_related_grids = sequential_remapping_weights->get_remap_related_grids(num_remap_related_grids);
+    remap_related_decomp_grids = new Remap_grid_class *[num_remap_related_grids];
+
+    for (i = 0; i < num_remap_related_grids; i ++) {
+        j = 0;
+		remap_related_decomp_grids[i] = remap_related_grids[i];
+		printf("check grid %s (%lx) vs %s (%lx) vs %s\n", decomp_original_grids[0]->get_grid_name(), decomp_original_grids[0], decomp_original_grids[1]->get_grid_name(), decomp_original_grids[1], remap_related_grids[i]->get_grid_name());
+        if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
+            remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(src_decomp_info->get_decomp_id(), remap_related_grids[i], false)->get_decomp_grid();
+            j ++;
+        }
+        if (decomp_original_grids[1]->is_subset_of_grid(remap_related_grids[i])) {
+			remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(dst_decomp_info->get_decomp_id(), remap_related_grids[i], false)->get_decomp_grid();
+            j ++;
+        }
+        EXECUTION_REPORT(REPORT_ERROR, -1, j <= 1, "Software error in Runtime_remapping_weights::generate_parallel_remapping_weights: j");
+    }
+
+    global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];
+    global_cells_local_indexes_in_decomps[1] = new int [decomp_original_grids[1]->get_grid_size()];
+	for (j = 0; j < decomp_original_grids[0]->get_grid_size(); j ++)
+		global_cells_local_indexes_in_decomps[0][j] = -1;
+	for (j = 0; j < src_decomp_info->get_num_local_cells(); j ++)
+		if (src_decomp_info->get_local_cell_global_indx()[j] >= 0)
+			global_cells_local_indexes_in_decomps[0][src_decomp_info->get_local_cell_global_indx()[j]] = j;
+	for (j = 0; j < decomp_original_grids[1]->get_grid_size(); j ++)
+		global_cells_local_indexes_in_decomps[1][j] = -1;
+	for (j = 0; j < dst_decomp_info->get_num_local_cells(); j ++)
+		if (dst_decomp_info->get_local_cell_global_indx()[j] >= 0)
+			global_cells_local_indexes_in_decomps[1][dst_decomp_info->get_local_cell_global_indx()[j]] = j;  
+	parallel_remapping_weights = sequential_remapping_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, global_cells_local_indexes_in_decomps);
+	
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after generating parallel remap weights for runtime_remap_algorithm");
+
+	delete [] remap_related_decomp_grids;
+	delete [] remap_related_grids;
+	delete [] global_cells_local_indexes_in_decomps[0];
+	delete [] global_cells_local_indexes_in_decomps[1];
 }
 

@@ -146,11 +146,6 @@ void Remap_weight_sparse_matrix::remap_values(double *data_values_src, double *d
 
     for (long i = 0; i < num_weights; i ++)
         data_values_dst[cells_indexes_dst[i]] += data_values_src[cells_indexes_src[i]] * weight_values[i];
-
-        for (long i = 0; i < num_weights; i ++)
-    if (83414==cells_indexes_dst[i]) 
-            printf("qiguai %d: %lf %lf\n", cells_indexes_src[i], data_values_src[cells_indexes_src[i]], weight_values[i]);
-
 }
 
 
@@ -244,6 +239,8 @@ Remap_weight_sparse_matrix *Remap_weight_sparse_matrix::generate_parallel_remap_
         EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error3 in generate_parallel_remap_weight_of_sparse_matrix\n");
     }
 
+	printf("parallel_remap_weight_of_sparse_matrix has %d remapping weights\n", parallel_remap_weight_of_sparse_matrix->get_num_weights());
+
     return parallel_remap_weight_of_sparse_matrix;
 }
 
@@ -263,3 +260,9 @@ void Remap_weight_sparse_matrix::compare_to_another_sparse_matrix(Remap_weight_s
 		EXECUTION_REPORT(REPORT_ERROR, -1, this->remaped_dst_cells_indexes[i] == another_sparse_matrix->remaped_dst_cells_indexes[i], "C-Coupler error6 in compare_to_another_sparse_matrix");
 }
 
+
+void Remap_weight_sparse_matrix::print()
+{
+	for (int i = 0; i < num_weights; i ++)
+		printf("remapping weight (%d): src_index=%d, dst_index=%d, weight_value=%lf\n", i, cells_indexes_src[i], cells_indexes_dst[i], weight_values[i]);
+}

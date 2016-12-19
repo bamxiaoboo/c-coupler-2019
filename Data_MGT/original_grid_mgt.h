@@ -11,7 +11,6 @@
 #define ORIGINAL_GRID_MGT
 
 
-#include "original_grid_mgt.h"
 #include "remap_grid_class.h"
 #include "remap_mgt.h"
 #include <vector>
@@ -37,6 +36,7 @@ class Original_grid_info
 		int get_local_grid_id() const { return grid_id; }
 		~Original_grid_info() {}
 		int get_comp_id() const { return comp_id; }
+		int get_grid_id() const { return grid_id; }
 		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
 		Remap_grid_class *get_V1D_sub_CoR_grid() { return V1D_sub_CoR_grid; }

@@ -389,7 +389,9 @@ void Coupling_connection::generate_interpolation()
 		if (!words_are_the_same(src_fields_info[i]->grid_name, "NULL")) {
 			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
 			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
-			runtime_remapping_weights = new Runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, field_remapping_setting);
+			if (current_proc_id_dst_comp != -1) {
+				runtime_remapping_weights = new Runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
+			}	
 		}
 	}
 }
