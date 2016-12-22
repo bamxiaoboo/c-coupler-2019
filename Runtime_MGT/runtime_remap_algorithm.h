@@ -16,6 +16,7 @@
 #include "remap_weight_of_strategy_class.h"
 #include "timer_mgt.h"
 #include "routing_info_mgt.h"
+#include "runtime_remapping_weights_mgt.h"
 #include <vector>
 
 
@@ -51,7 +52,6 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
 		Field_mem_info *dst_area_field;
         Field_mem_info *dst_frac_field;
 		Field_mem_info *temp_src_field;
-        Remap_weight_of_strategy_class *parallel_remap_weights;
         Remap_weight_of_strategy_class *sequential_remap_weights;
         Coupling_timer *timer;
 
@@ -66,6 +66,15 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
 		Remap_grid_class *runtime_remap_grid_for_vertical_1D_src;
 		Remap_grid_class *runtime_remap_grid_for_vertical_1D_dst;
 
+		int comp_id;
+		Field_mem_info *specified_src_field_instance;
+		Field_mem_info *specified_dst_field_instance;
+		Field_mem_info *true_src_field_instance;
+		Field_mem_info *true_dst_field_instance;
+        Remap_weight_of_strategy_class *parallel_remap_weights;
+		bool transform_data_type;
+		
+
         void do_remap(bool);
 		void update_vertical_remap_weights_for_dynamic_sigma_grid(bool);
 		void generate_parallel_interpolation_and_decomposition(const char*);
@@ -74,7 +83,8 @@ class Runtime_remap_algorithm: public Runtime_algorithm_basis
 
     public:
         Runtime_remap_algorithm(const char *);
-		Runtime_remap_algorithm(Runtime_remap_algorithm*, Field_mem_info*, Field_mem_info*, Remap_weight_of_strategy_class*);
+		Runtime_remap_algorithm(Runtime_remap_algorithm*, Field_mem_info*, Field_mem_info*, Remap_weight_of_strategy_class*);		
+		Runtime_remap_algorithm(Runtime_remapping_weights *, Field_mem_info *, Field_mem_info *, int);
         bool run(bool);
 		void allocate_src_dst_fields(bool);
         ~Runtime_remap_algorithm();

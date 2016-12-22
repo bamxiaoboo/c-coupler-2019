@@ -165,6 +165,12 @@ Remap_grid_class *Original_grid_mgt::get_original_CoR_grid(int grid_id) const
 }
 
 
+Original_grid_info *Original_grid_mgt::get_original_grid(int grid_id) const
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_original_CoR_grid");
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK];
+}
+
 int Original_grid_mgt::get_grid_size(int grid_id, const char *annotation) const
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "The grid id used for getting grid size is wrong. Please verify the model code corresponding to the annotation \"%s\"", annotation);		

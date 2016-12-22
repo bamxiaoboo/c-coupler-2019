@@ -37,9 +37,6 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	this->sequential_remapping_weights = NULL;
 	this->parallel_remapping_weights = NULL;
 
-	if (src_original_grid == dst_original_grid)
-		return;
-
 	if (src_original_grid->get_H2D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
 		remap_grids[1] = dst_original_grid->get_H2D_sub_CoR_grid();
@@ -127,16 +124,17 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
     for (i = 0; i < num_remap_related_grids; i ++) {
         j = 0;
 		remap_related_decomp_grids[i] = remap_related_grids[i];
-		printf("check grid %s (%lx) vs %s (%lx) vs %s\n", decomp_original_grids[0]->get_grid_name(), decomp_original_grids[0], decomp_original_grids[1]->get_grid_name(), decomp_original_grids[1], remap_related_grids[i]->get_grid_name());
+		printf("check grid %s (%lx) vs %s (%lx) vs %s : %d\n", decomp_original_grids[0]->get_grid_name(), decomp_original_grids[0], decomp_original_grids[1]->get_grid_name(), decomp_original_grids[1], remap_related_grids[i]->get_grid_name(), num_remap_related_grids);
         if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
             remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(src_decomp_info->get_decomp_id(), remap_related_grids[i], false)->get_decomp_grid();
+			printf("generate decomp_grid %s (%s): %d vs %d : %d\n", remap_related_decomp_grids[i]->get_grid_name(), remap_related_grids[i]->get_grid_name(), remap_related_decomp_grids[i]->get_grid_size(), remap_related_grids[i]->get_grid_size(), src_decomp_info->get_num_local_cells());
             j ++;
         }
         if (decomp_original_grids[1]->is_subset_of_grid(remap_related_grids[i])) {
 			remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(dst_decomp_info->get_decomp_id(), remap_related_grids[i], false)->get_decomp_grid();
             j ++;
         }
-        EXECUTION_REPORT(REPORT_ERROR, -1, j <= 1, "Software error in Runtime_remapping_weights::generate_parallel_remapping_weights: j");
+		EXECUTION_REPORT(REPORT_ERROR, -1, j <= 1, "Software error in Runtime_remapping_weights::generate_parallel_remapping_weights: wrong j");
     }
 
     global_cells_local_indexes_in_decomps[0] = new int [decomp_original_grids[0]->get_grid_size()];

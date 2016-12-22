@@ -33,7 +33,7 @@ void wtime(double *t)
 
 void report_header(int report_type, int comp_id, bool &condition, char *output_string)
 {
-	if (comp_id != -1 && comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
+	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
 	
 	output_string[0] = '\0';
@@ -103,7 +103,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 	}
 #ifndef ONLY_CoR
 	if (!(line_number > 0 && execution_phase_number < 2) && comp_comm_group_mgt_mgr != NULL) {
-		if (comp_id == -1 || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id))
+		if (comp_id == -1)
 			sprintf(output_string+strlen(output_string)-2, " in the root component model corresponding to the executable named \"%s\": ", comp_comm_group_mgt_mgr->get_executable_name());
 		else {
 			int current_date = components_time_mgrs->get_time_mgr(comp_id)->get_current_date();
@@ -120,7 +120,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 void report_ender(int report_type, int comp_id, char *output_string)
 {
 #ifndef ONLY_CoR
-	if (comp_id != -1 && comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
+	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
 
 	if (comp_id == -1 || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id)) {

@@ -19,6 +19,7 @@
 #include "inout_interface_mgt.h"
 #include "dictionary.h"
 #include "remapping_configuration_mgt.h"
+#include "runtime_remapping_weights_mgt.h"
 
 
 #define USING_INSTANTANEOUS_VALUE            0
@@ -34,11 +35,12 @@ struct Interface_field_info
 {
 	char grid_name[NAME_STR_SIZE];
 	char data_type[NAME_STR_SIZE];
-        char decomp_name[NAME_STR_SIZE];
+    char decomp_name[NAME_STR_SIZE];
 	char unit[NAME_STR_SIZE];
 	Coupling_timer *timer;
 	int time_step_in_second;
-        int inst_or_aver;
+    int inst_or_aver;
+	Runtime_remapping_weights *runtime_remapping_weights;
 };
 
 
@@ -73,7 +75,7 @@ class Coupling_connection
 		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int);
 		void exchange_connection_fields_info();
 		void generate_interpolation();
-		void exchange_grid(const char*, const char*, bool);
+		bool exchange_grid(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *, const char *);
 		void exchange_remapping_setting(int, Remapping_setting &);
 
 	public:

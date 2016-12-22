@@ -24,7 +24,6 @@ void seperate_cells_in_children_tiles(int num_cells, H2D_grid_cell_search_cell *
 	min_lon = center_lon - dlon/2;
 	min_lat = center_lat - dlat/2;
 
-	printf("in seperate_cells_in_children_tiles: %lf %lf %lf %lf\n", new_dlon, dlon, new_dlat, dlat);
 
 	if (min_lon < 0)
 		min_lon += 360;
@@ -41,7 +40,6 @@ void seperate_cells_in_children_tiles(int num_cells, H2D_grid_cell_search_cell *
 			indx_at_lon = TILE_DIVIDE_FACTOR - 1;
 		if (indx_at_lat == TILE_DIVIDE_FACTOR)
 			indx_at_lat = TILE_DIVIDE_FACTOR - 1;
-		printf("%d and %d: %lf %lf %lf %lf %lf : %lf %lf vs %lf %lf \n", indx_at_lon, indx_at_lat, diff_lon, new_dlon, dlon, new_dlat, dlat, cells[i]->get_bounding_circle_center_lon(), cells[i]->get_bounding_circle_center_lat(), cells[i]->get_center_lon(), cells[i]->get_center_lat());
 		EXECUTION_REPORT(REPORT_ERROR, indx_at_lon < TILE_DIVIDE_FACTOR && indx_at_lat < TILE_DIVIDE_FACTOR, "Software error1 in H2D_grid_cell_search_tile::seperate_cells_in_children_tiles");
 		child_indx = indx_at_lat*TILE_DIVIDE_FACTOR+indx_at_lon;
 		num_cells_in_children[child_indx] ++;
@@ -364,7 +362,6 @@ H2D_grid_cell_search_tile::H2D_grid_cell_search_tile(int num_cells, H2D_grid_cel
 	this->dlat = dlat;
 
 	compute_bounding_circle();
-	printf("tile at (%lf %lf) (%lf %lf) with %lf\n", center_lon, center_lat, dlon, dlat, circle_radius);
 	divide_tile();
 }
 
@@ -485,7 +482,6 @@ bool H2D_grid_cell_search_tile::search_points_within_distance(double dist_thresh
 				distance = 0;
 			}
 			else distance = calculate_distance_of_two_points_2D(cells[i]->get_center_lon(), cells[i]->get_center_lat(), dst_point_lon, dst_point_lat, true);
-			printf("in tile check: %lf (%lf %lf) (%lf %lf) %d\n", distance, cells[i]->get_center_lon(), cells[i]->get_center_lat(), dst_point_lon, dst_point_lat, num_found_points);
 			if (distance <= dist_threshold) {
 				found_points_indx[num_found_points] = cells[i]->get_cell_index();
 				found_points_dist[num_found_points] = distance;
@@ -706,8 +702,6 @@ void H2D_grid_cell_search_engine::search_nearest_points_var_distance(double dist
 	num_found_points = 0;
 	have_the_same_point = root_tile->search_points_within_distance(dist_threshold, dst_point_lon, dst_point_lat, num_found_points, index_buffer, dist_buffer, early_quit);
 
-	printf("dist threshold for (%lf %lf) is %lf: %d\n", dst_point_lon, dst_point_lat, dist_threshold, num_found_points);
-
 	do_quick_sort(dist_buffer, index_buffer, 0, num_found_points-1);
 	
 	if (have_the_same_point && early_quit) {
@@ -737,9 +731,6 @@ void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_
 
 	if (early_quit && num_overlapping_cells > 0)
 		return;
-	
-	if (num_overlapping_cells == 0)
-		printf("qiguai %d\n no overlap\n", dst_cell->get_cell_index());
 	
 	do_quick_sort(overlapping_cells_index, (long*) NULL, 0, num_overlapping_cells-1);
 /*

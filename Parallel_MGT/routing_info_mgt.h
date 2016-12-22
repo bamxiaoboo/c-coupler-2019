@@ -39,11 +39,14 @@ class Routing_info
         char dst_decomp_name[NAME_STR_SIZE];
         int src_decomp_size;
         int dst_decomp_size;
+		Decomp_info *src_decomp_info;
+		Decomp_info *dst_decomp_info;
         Comp_comm_group_mgt_node * src_comp_node;
         Comp_comm_group_mgt_node * dst_comp_node;
         bool is_in_src_comp;
         bool is_in_dst_comp;
-
+		int current_proc_id_src_comp;
+		int current_proc_id_dst_comp;
         char remote_comp_name[NAME_STR_SIZE];
         char local_decomp_name[NAME_STR_SIZE];
         char remote_decomp_name[NAME_STR_SIZE];
@@ -69,8 +72,8 @@ class Routing_info
         int get_num_dimensions() { return num_dimensions; }
         long get_local_decomp_size() { return local_decomp_size; }
 		long get_remap_decomp_size() { return remap_decomp_size; }
-        int get_src_comp_id() { return src_comp_id; }
-        int get_dst_comp_id() { return dst_comp_id; }
+        Comp_comm_group_mgt_node *get_src_comp_node() { return src_comp_node; }
+        Comp_comm_group_mgt_node *get_dst_comp_node() { return dst_comp_node; }
         long get_src_decomp_size() { return src_decomp_size; }
         long get_dst_decomp_size() { return dst_decomp_size; }
         

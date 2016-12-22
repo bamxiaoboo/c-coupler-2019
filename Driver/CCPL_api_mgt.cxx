@@ -360,3 +360,27 @@ void transfer_array_from_one_comp_to_another(int current_proc_local_id_src_comp,
 	}		
 }
 
+
+void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_id, void *local_array, int local_array_size, 
+	                          int data_type_size, int *all_array_size, void **global_array, MPI_Comm comm)
+{
+    int *displs = new int [num_total_local_proc];
+	int *counts = new int [num_total_local_proc];
+
+	
+    MPI_Gather(&local_array_size, 1, MPI_INT, all_array_size, 1, MPI_INT, 0, comm);
+    if (current_proc_local_id == 0) {
+        displs[0] = 0;
+		counts[0] = all_array_size[0] * data_type_size;
+        for (int i = 1; i < num_total_local_proc; i ++) {
+			counts[i] = all_array_size[i] * data_type_size;
+            displs[i] = displs[i-1] + counts[i-1];
+        }
+        *global_array = new char [displs[num_total_local_proc-1]+counts[num_total_local_proc-1]];
+    }
+    MPI_Gatherv(local_array, local_array_size*data_type_size, MPI_CHAR, *global_array, counts, displs, MPI_CHAR, 0, comm);
+
+    delete [] displs;
+    delete [] counts;
+}
+

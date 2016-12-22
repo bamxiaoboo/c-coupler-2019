@@ -15,15 +15,18 @@
 #include "remap_grid_data_class.h"
 
 
-#define BUF_MARK_GRID_FIELD              (-100)
-#define BUF_MARK_AVERAGED_INNER          ((int)(0xFFFF0000))
-#define BUF_MARK_AVERAGED_INTER          ((int)(0xFFF70000))
-#define BUF_MARK_UNIT_TRANS              ((int)(0xFFF00000))
-#define BUF_MARK_DATATYPE_TRANS          ((int)(0xFF700000))
-#define BUF_MARK_DATA_TRANSFER           ((int)(0xFF000000))
-#define BUF_MARK_IO_FIELD_REG            ((int)(0xF7000000))
-#define BUF_MARK_IO_FIELD_MIRROR         ((int)(0xF7100000))
-#define BUF_MARK_GATHER                  ((int)(0xF1000000))
+#define BUF_MARK_GRID_FIELD                      (-100)
+#define BUF_MARK_AVERAGED_INNER                  ((int)(0xFFFF0000))
+#define BUF_MARK_AVERAGED_INTER                  ((int)(0xFFF70000))
+#define BUF_MARK_UNIT_TRANS                      ((int)(0xFFF00000))
+#define BUF_MARK_DATATYPE_TRANS                  ((int)(0xFF700000))
+#define BUF_MARK_DATA_TRANSFER                   ((int)(0xFF000000))
+#define BUF_MARK_IO_FIELD_REG                    ((int)(0xF7000000))
+#define BUF_MARK_IO_FIELD_MIRROR                 ((int)(0xF7100000))
+#define BUF_MARK_GATHER                          ((int)(0xF1000000))
+#define BUF_MARK_REMAP_NORMAL                    ((int)(0xF0000000))
+#define BUF_MARK_REMAP_DATATYPE_TRANS_SRC        ((int)(0xF0200000))
+#define BUF_MARK_REMAP_DATATYPE_TRANS_DST        ((int)(0xF0200000))
 
 
 struct Registered_field_info
@@ -46,6 +49,8 @@ class Field_mem_info
 		int field_instance_id;
 		int decomp_id;
 		int comp_or_grid_id;
+		int comp_id;
+		int host_comp_id;
 		int buf_mark;
         bool is_registered_model_buf;
 		bool is_restart_field;
@@ -83,7 +88,7 @@ class Field_mem_info
 		void set_define_order_count(long count) { define_order_count = count; }
 		long get_define_order_count() const { return define_order_count; }
 		int get_field_instance_id() const { return field_instance_id; }
-		int get_comp_id();
+		int get_comp_id() { return comp_id; }
 		int get_grid_id();
         const char *get_grid_name();
 		const char *get_unit() const { return field_unit; }

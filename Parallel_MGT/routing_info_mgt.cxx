@@ -13,6 +13,7 @@
 #include "routing_info_mgt.h"
 #include "global_data.h"
 #include "cor_global_data.h"
+#include "CCPL_api_mgt.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -78,36 +79,42 @@ Routing_info *Routing_info_mgt::search_router(const char *remote_comp_name, cons
 
 Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
-    src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
-    dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
-    int current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
-    int current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
-
+	src_decomp_info = decomps_info_mgr->search_decomp_info(src_decomp_name, src_comp_id);
+	dst_decomp_info = decomps_info_mgr->search_decomp_info(dst_decomp_name, dst_comp_id);
     this->src_comp_id = src_comp_id;
     this->dst_comp_id = dst_comp_id;
+    src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
+    dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
+	if (dst_decomp_info != NULL)
+		dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_decomp_info->get_host_comp_id());
     strcpy(this->src_decomp_name, src_decomp_name);
     strcpy(this->dst_decomp_name, dst_decomp_name);
     src_decomp_size = 0;
     dst_decomp_size = 0;
     is_in_src_comp = false;
     is_in_dst_comp = false;
-    if (current_proc_id_src_comp != -1) is_in_src_comp = true;
-    if (current_proc_id_dst_comp != -1) is_in_dst_comp = true;
+    current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
+    current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
+    if (current_proc_id_src_comp != -1) 
+		is_in_src_comp = true;
+    if (current_proc_id_dst_comp != -1) 
+		is_in_dst_comp = true;
 
     if (words_are_the_same(src_decomp_name, "NULL")) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(dst_decomp_name, "NULL"), 
-                     "for router of scalar variables, the local and remote decompositions must be \"NULL\"\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(dst_decomp_name, "NULL"), "for router of scalar variables, the local and remote decompositions must be \"NULL\"\n");
         num_dimensions = 0;
-        if (current_proc_id_src_comp != -1) src_decomp_size = 1;
-        if (current_proc_id_dst_comp != -1) dst_decomp_size = 1;
+        if (current_proc_id_src_comp != -1) 
+			src_decomp_size = 1;
+        if (current_proc_id_dst_comp != -1) 
+			dst_decomp_size = 1;
     }
     else {
         num_dimensions = 2;
         build_2D_router();
         if (current_proc_id_src_comp != -1) 
-			src_decomp_size = decomps_info_mgr->search_decomp_info(src_decomp_name, src_comp_id)->get_num_local_cells();
+			src_decomp_size = src_decomp_info->get_num_local_cells();
         if (current_proc_id_dst_comp != -1) 
-			dst_decomp_size = decomps_info_mgr->search_decomp_info(dst_decomp_name, dst_comp_id)->get_num_local_cells();
+			dst_decomp_size = dst_decomp_info->get_num_local_cells();
     }
 }
 
@@ -190,149 +197,70 @@ bool Routing_info::match_router(const char *remote_comp_name, const char *local_
 void Routing_info::build_2D_router()
 {
     int num_src_procs = src_comp_node->get_num_procs();
-    int * num_cells_each_src_proc = new int[num_src_procs];
+    int *num_cells_each_src_proc = new int [num_src_procs];
     int num_dst_procs = dst_comp_node->get_num_procs();
-    int * num_cells_each_dst_proc = new int[num_dst_procs];
-    int current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
-    int current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
-    int num_global_src_cells, num_global_dst_cells;
+    int * num_cells_each_dst_proc = new int [num_dst_procs];
     int num_local_src_cells, num_local_dst_cells;
-    const int * local_src_cells_global_indx, * local_dst_cells_global_indx;
-    int * cells_indx_each_src_proc = NULL;
-    int * cells_indx_each_dst_proc = NULL;
+    const int * local_dst_cells_global_indx;
+    int *cells_indx_each_src_proc = NULL;
+    int *cells_indx_each_dst_proc = NULL;
     int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
     int dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
 
+
     if (current_proc_id_src_comp != -1) {
-        int * src_cells_displs = new int[num_src_procs];
-        Decomp_info *decomp_info = decomps_info_mgr->search_decomp_info(src_decomp_name, src_comp_id);
-        num_local_src_cells = decomp_info->get_num_local_cells();
-        num_global_src_cells = decomp_info->get_num_global_cells();
-        local_src_cells_global_indx = decomp_info->get_local_cell_global_indx();
-
-        MPI_Gather(&num_local_src_cells, 1, MPI_INT, num_cells_each_src_proc, 1, MPI_INT, 0, src_comp_node->get_comm_group());
-        
-        if (current_proc_id_src_comp == 0){
-            src_cells_displs[0] = 0;
-            for (int i = 1; i < num_src_procs; i ++) 
-                src_cells_displs[i] = src_cells_displs[i-1] + num_cells_each_src_proc[i-1];
-            int total_src_cells = src_cells_displs[num_src_procs-1] + num_cells_each_src_proc[num_src_procs-1];
-            cells_indx_each_src_proc = new int[total_src_cells];
-        }
-
-        MPI_Gatherv((void *)local_src_cells_global_indx, num_local_src_cells, MPI_INT, 
-            cells_indx_each_src_proc, num_cells_each_src_proc, src_cells_displs, MPI_INT, 0, src_comp_node->get_comm_group());
-
-        delete [] src_cells_displs;
+		EXECUTION_REPORT(REPORT_ERROR, -1, src_decomp_info != NULL, "Software error in Routing_info::build_2D_router: NULL src decomp info");
+        num_local_src_cells = src_decomp_info->get_num_local_cells();
+		gather_array_in_one_comp(num_src_procs, current_proc_id_src_comp, (void*)src_decomp_info->get_local_cell_global_indx(), num_local_src_cells, 
+			                     sizeof(int), num_cells_each_src_proc, (void**)(&cells_indx_each_src_proc), src_comp_node->get_comm_group());
     }
-
     if (current_proc_id_dst_comp != -1) {
-        int * dst_cells_displs = new int[num_dst_procs];
-        Decomp_info *decomp_info = decomps_info_mgr->search_decomp_info(dst_decomp_name, dst_comp_id);
-        num_local_dst_cells = decomp_info->get_num_local_cells();
-        num_global_dst_cells = decomp_info->get_num_global_cells();
-        local_dst_cells_global_indx = decomp_info->get_local_cell_global_indx();
-
-        MPI_Gather(&num_local_dst_cells, 1, MPI_INT, num_cells_each_dst_proc, 1, MPI_INT, 0, dst_comp_node->get_comm_group());
-        
-        if (current_proc_id_dst_comp == 0){
-            dst_cells_displs[0] = 0;
-            for (int i = 1; i < num_dst_procs; i ++) 
-                dst_cells_displs[i] = dst_cells_displs[i-1] + num_cells_each_dst_proc[i-1];
-            int total_dst_cells = dst_cells_displs[num_dst_procs-1] + num_cells_each_dst_proc[num_dst_procs-1];
-            cells_indx_each_dst_proc = new int[total_dst_cells];
-        }
-
-        MPI_Gatherv((void *)local_dst_cells_global_indx, num_local_dst_cells, MPI_INT, 
-            cells_indx_each_dst_proc, num_cells_each_dst_proc, dst_cells_displs, MPI_INT, 0, dst_comp_node->get_comm_group());
-
-        delete [] dst_cells_displs;
+		EXECUTION_REPORT(REPORT_ERROR, -1, dst_decomp_info != NULL, "Software error in Routing_info::build_2D_router: NULL dst decomp info");
+        num_local_dst_cells = dst_decomp_info->get_num_local_cells();
+        local_dst_cells_global_indx = dst_decomp_info->get_local_cell_global_indx();
+		gather_array_in_one_comp(num_dst_procs, current_proc_id_dst_comp, (void*)dst_decomp_info->get_local_cell_global_indx(), num_local_dst_cells, 
+								 sizeof(int), num_cells_each_dst_proc, (void**)(&cells_indx_each_dst_proc), dst_comp_node->get_comm_group());
     }
 
-    if (current_proc_id_src_comp == 0 && current_proc_id_dst_comp != 0) {
-        MPI_Request send_req, recv_req;
-        MPI_Status status;
-        MPI_Isend(num_cells_each_src_proc, num_src_procs, MPI_INT, dst_comp_root_proc_global_id, 1000, MPI_COMM_WORLD, &send_req);
-        MPI_Irecv(num_cells_each_dst_proc, num_dst_procs, MPI_INT, dst_comp_root_proc_global_id, 2000, MPI_COMM_WORLD, &recv_req);
-        MPI_Wait(&send_req, &status);
-        MPI_Wait(&recv_req, &status);
-        int total_src_cells = 0;
-        for (int i = 0; i < num_src_procs; i ++) 
-            total_src_cells += num_cells_each_src_proc[i];
-        int total_dst_cells = 0;
-        for (int i = 0; i < num_dst_procs; i ++) 
-            total_dst_cells += num_cells_each_dst_proc[i];
-        
-        cells_indx_each_dst_proc = new int[total_dst_cells];
-        MPI_Isend(cells_indx_each_src_proc, total_src_cells, MPI_INT, dst_comp_root_proc_global_id, 1000, MPI_COMM_WORLD, &send_req);
-        MPI_Irecv(cells_indx_each_dst_proc, total_dst_cells, MPI_INT, dst_comp_root_proc_global_id, 2000, MPI_COMM_WORLD, &recv_req);
-        MPI_Wait(&send_req, &status);
-        MPI_Wait(&recv_req, &status);
-    }
-
-    if (current_proc_id_src_comp != 0 && current_proc_id_dst_comp == 0) {
-        MPI_Request send_req, recv_req;
-        MPI_Status status;
-        MPI_Isend(num_cells_each_dst_proc, num_dst_procs, MPI_INT, src_comp_root_proc_global_id, 2000, MPI_COMM_WORLD, &send_req);
-        MPI_Irecv(num_cells_each_src_proc, num_src_procs, MPI_INT, src_comp_root_proc_global_id, 1000, MPI_COMM_WORLD, &recv_req);
-        MPI_Wait(&send_req, &status);
-        MPI_Wait(&recv_req, &status);
-        int total_src_cells = 0;
-        for (int i = 0; i < num_src_procs; i ++) 
-            total_src_cells += num_cells_each_src_proc[i];
-        int total_dst_cells = 0;
-        for (int i = 0; i < num_dst_procs; i ++) 
-            total_dst_cells += num_cells_each_dst_proc[i];
-        
-        cells_indx_each_src_proc = new int[total_src_cells];
-        MPI_Isend(cells_indx_each_dst_proc, total_dst_cells, MPI_INT, src_comp_root_proc_global_id, 2000, MPI_COMM_WORLD, &send_req);
-        MPI_Irecv(cells_indx_each_src_proc, total_src_cells, MPI_INT, src_comp_root_proc_global_id, 1000, MPI_COMM_WORLD, &recv_req);
-        MPI_Wait(&send_req, &status);
-        MPI_Wait(&recv_req, &status);
-    }
-
+	int temp_size = num_src_procs*sizeof(int);
+	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&num_cells_each_src_proc), temp_size);
+	temp_size = num_dst_procs*sizeof(int);
+	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), (char**)(&num_cells_each_dst_proc), temp_size);
+	int total_src_cells = 0;
+	for (int i = 0; i < num_src_procs; i ++) 
+		total_src_cells += num_cells_each_src_proc[i] * sizeof(int);
+	int total_dst_cells = 0;
+	for (int i = 0; i < num_dst_procs; i ++) 
+		total_dst_cells += num_cells_each_dst_proc[i] * sizeof(int);
+	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&cells_indx_each_src_proc), total_src_cells);
+	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), (char**)(&cells_indx_each_dst_proc), total_dst_cells);
+	
     if (current_proc_id_src_comp != -1) {
-        MPI_Bcast(num_cells_each_dst_proc, num_dst_procs, MPI_INT, 0, src_comp_node->get_comm_group());
-        int total_dst_cells = 0;
-        for (int i = 0; i < num_dst_procs; i ++)
-            total_dst_cells += num_cells_each_dst_proc[i];
-
-        if (cells_indx_each_dst_proc == NULL) cells_indx_each_dst_proc = new int[total_dst_cells];
-
-        MPI_Bcast(cells_indx_each_dst_proc, total_dst_cells, MPI_INT, 0, src_comp_node->get_comm_group());
-
         int tmp_displs = 0;
         if (num_local_src_cells > 0)
             for (int i = 0; i < num_dst_procs; i ++) {
-                compute_routing_info_between_decomps(num_local_src_cells, local_src_cells_global_indx, num_cells_each_dst_proc[i], cells_indx_each_dst_proc+tmp_displs, 
-                    num_global_src_cells, comp_comm_group_mgt_mgr->get_current_proc_global_id(), dst_comp_node->get_local_proc_global_id(i));        
+                compute_routing_info_between_decomps(num_local_src_cells, src_decomp_info->get_local_cell_global_indx(), num_cells_each_dst_proc[i], cells_indx_each_dst_proc+tmp_displs, 
+                    src_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), dst_comp_node->get_local_proc_global_id(i));        
                 remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = true;
                 tmp_displs += num_cells_each_dst_proc[i];
             }
     }
 
     if (current_proc_id_dst_comp != -1) {
-        MPI_Bcast(num_cells_each_src_proc, num_src_procs, MPI_INT, 0, dst_comp_node->get_comm_group());
-        int total_src_cells = 0;
-        for (int i = 0; i < num_src_procs; i ++)
-            total_src_cells += num_cells_each_src_proc[i];
-
-        if (cells_indx_each_src_proc == NULL) cells_indx_each_src_proc = new int[total_src_cells];
-
-        MPI_Bcast(cells_indx_each_src_proc, total_src_cells, MPI_INT, 0, dst_comp_node->get_comm_group());
-
         int tmp_displs = 0;
         if (num_local_dst_cells > 0)
             for (int i = 0; i < num_src_procs; i ++) {
                 compute_routing_info_between_decomps(num_local_dst_cells, local_dst_cells_global_indx, num_cells_each_src_proc[i], cells_indx_each_src_proc+tmp_displs, 
-                    num_global_dst_cells, comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i));        
+                    dst_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i));        
                 remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = false;
                 tmp_displs += num_cells_each_src_proc[i];
             }
     }
     
-    if (cells_indx_each_src_proc != NULL) delete [] cells_indx_each_src_proc;
-    if (cells_indx_each_dst_proc != NULL) delete [] cells_indx_each_dst_proc;
+    if (cells_indx_each_src_proc != NULL) 
+		delete [] cells_indx_each_src_proc;
+    if (cells_indx_each_dst_proc != NULL) 
+		delete [] cells_indx_each_dst_proc;
     delete [] num_cells_each_src_proc; 
     delete [] num_cells_each_dst_proc;
 }
@@ -437,7 +365,7 @@ void Routing_info::compute_routing_info_between_decomps(int num_local_cells_loca
     
     /* Determine the reference cell index table according to the table size */
     if (num_local_cells_remote < num_local_cells_local ||
-        (num_local_cells_remote == num_local_cells_local && (src_comp_id < dst_comp_id))) {
+        (num_local_cells_remote == num_local_cells_local && (src_comp_node->get_unified_global_id() < dst_comp_node->get_unified_global_id()))) {
         reference_cell_indx = local_cells_global_indexes_remote;
         num_reference_cells = num_local_cells_remote;  
         //EXECUTION_REPORT(REPORT_LOG,-1, true, "use remote index array in router (%s %s %s)", remote_comp_name, remote_decomp_name, local_decomp_name);

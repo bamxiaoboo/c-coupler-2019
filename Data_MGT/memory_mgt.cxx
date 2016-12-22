@@ -39,7 +39,7 @@ Field_mem_info *alloc_full_grid_mem(const char *comp_name, const char *decomp_na
 Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_or_grid_id, 
 	                           int buf_mark, const char *unit, const char *data_type, const char *annotation, bool check_field_name)
 {
-	int comp_id = -1, mem_size;
+	int mem_size;
 	Remap_grid_class *remap_grid_grid = NULL, *remap_grid_decomp = NULL;
 	bool grid_match;
     Remap_data_field *remap_data_field;
@@ -48,26 +48,31 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 	if (decomp_id == -1) {
 		grid_match = true;
 		comp_id = comp_or_grid_id;
+		host_comp_id = comp_id;
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id), "Software error1 in new Field_mem_info");
 		mem_size = get_data_type_size(data_type);
+		strcpy(decomp_name, "NULL");
+		strcpy(grid_name, "NULL");
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "Software error2 in new Field_mem_info");
 		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "Software error3 in new Field_mem_info");
 		comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
+		host_comp_id = decomps_info_mgr->get_decomp_info(decomp_id)->get_host_comp_id();
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == decomps_info_mgr->get_comp_id_of_decomp(decomp_id), 
 			             "Software error4 in new Field_mem_info");
-		
 		remap_grid_decomp = decomps_info_mgr->get_CoR_grid_of_decomp(decomp_id);
 		remap_grid_grid = original_grid_mgr->get_original_CoR_grid(comp_or_grid_id);
 		grid_match = remap_grid_decomp->is_subset_of_grid(remap_grid_grid);
 		mem_size = decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells() * get_data_type_size(data_type) * remap_grid_grid->get_grid_size()/remap_grid_decomp->get_grid_size();
+		strcpy(decomp_name, remap_grid_decomp->get_decomp_name());
+		strcpy(grid_name, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_grid_name());
 	}
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"",
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"",
 		             field_name, annotation);
 
 	if (check_field_name)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_info->search_field_info(field_name) != NULL,
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL,
 			             "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered). Please check the model code with the annotation \"%s\"",
 			             field_name, annotation);
 
@@ -208,7 +213,7 @@ void Field_mem_info::define_field_values(bool is_restarting)
 {
 	if (!is_restarting)
 		is_field_active = true;
-    last_define_time = components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time();
+    last_define_time = components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time();
 	printf("define field instance %lx\n", this);
 }
 
@@ -218,13 +223,13 @@ void Field_mem_info::use_field_values(const char *cfg_name)
     if (is_registered_model_buf) 
         return;
     
-    if (last_define_time == components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time())
+    if (last_define_time == components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time())
         return;
 
 	printf("use field instance %lx\n", this);
 
-    EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), last_define_time <= components_time_mgrs->get_time_mgr(get_comp_id())->get_current_full_time(), "C-Coupler error in set_use_field\n");
+    EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
+    EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time <= components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time(), "C-Coupler error in set_use_field\n");
     is_restart_field = true;
 }
 
@@ -353,8 +358,8 @@ void Field_mem_info::check_field_sum()
     partial_sum = 0;
     for (long j = 0; j < size; j ++)
         partial_sum += (((int*) get_data_buf())[j]);
-    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(get_comp_id(), "Field_mem_info::check_field_sum"));
-    EXECUTION_REPORT(REPORT_LOG, get_comp_id(), true, "check sum of field \"%s\" is %x vs %x", get_field_name(), total_sum, partial_sum);
+    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
+    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" is %x vs %x", get_field_name(), total_sum, partial_sum);
 #endif
 }
 
@@ -367,15 +372,7 @@ bool Field_mem_info::field_has_been_defined()
 
 long Field_mem_info::get_size_of_field()
 {
-	return grided_field_data->get_grid_data_field()->read_data_size;
-}
-
-
-int Field_mem_info::get_comp_id()
-{
-	if (decomp_id == -1)
-		return comp_or_grid_id;
-	return original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
+	return grided_field_data->get_grid_data_field()->required_data_size;
 }
 
 
@@ -499,14 +496,15 @@ void Memory_mgt::add_field_instance(Field_mem_info *field_instance, const char *
 
 Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, int special_buf_mark, int object_id, const char *unit_or_datatype, bool check_field_name)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || special_buf_mark == BUF_MARK_IO_FIELD_MIRROR, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
+	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || 
+		             special_buf_mark == BUF_MARK_IO_FIELD_MIRROR || special_buf_mark == BUF_MARK_REMAP_NORMAL || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
 	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
 	printf("buf mark is %d vs %d\n", new_buf_mark, original_field_instance->get_buf_mark());
 	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
 	EXECUTION_REPORT(REPORT_ERROR, -1, existing_field_instance == NULL, "Software error in Field_mem_info *alloc_mem: special field instance exists");
 	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", check_field_name));
-	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER) {
+	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST) {
 		get_data_type_size(unit_or_datatype);
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation", check_field_name));
 	}
@@ -517,6 +515,18 @@ Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, i
 	else if (special_buf_mark == BUF_MARK_UNIT_TRANS) {
 		// check unit
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for unit transformation", check_field_name));
+	}
+	else if (special_buf_mark == BUF_MARK_REMAP_NORMAL) {
+		// check unit
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for remapping", check_field_name));
+	}
+	else if (special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC) {
+		// check unit
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for data type transformation in remapping", check_field_name));
+	}
+	else if (special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST) {
+		// check unit
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for data type transformation in remapping", check_field_name));
 	}
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Field_mem_info *alloc_mem");
 

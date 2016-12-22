@@ -27,7 +27,6 @@ class Runtime_trans_algorithm
         int num_transfered_fields;
         Field_mem_info **fields_mem;
         void **fields_data_buffers;
-        Coupling_timer **fields_timers;
         Routing_info **fields_routers;
         void * data_buf;
         long * tag_buf;
@@ -78,7 +77,7 @@ class Runtime_trans_algorithm
         template <class T> void unpack_segment_data(T *, T *, int, int, int, int);
 
     public:
-        Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, Coupling_timer **, MPI_Comm, int *);
+        Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *);
         ~Runtime_trans_algorithm();
         bool run(bool);
         void * get_data_buf() {return data_buf;}
@@ -89,6 +88,7 @@ class Runtime_trans_algorithm
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}
 		void receve_data_in_temp_buffer();
+		long get_history_receive_sender_time(int);
 };
 
 

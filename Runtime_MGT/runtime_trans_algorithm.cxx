@@ -35,7 +35,7 @@ template <class T> void Runtime_trans_algorithm::unpack_segment_data(T *mpi_buf,
 }
 
 
-Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_transfered_fields, Field_mem_info ** fields_mem, Routing_info ** routers, Coupling_timer ** timers, MPI_Comm comm, int * ranks)
+Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_transfered_fields, Field_mem_info ** fields_mem, Routing_info ** routers, MPI_Comm comm, int * ranks)
 {
 	this->send_or_receive = send_or_receive;
     this->num_transfered_fields = num_transfered_fields;
@@ -47,7 +47,6 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     this->fields_mem = new Field_mem_info *[num_transfered_fields];
     fields_data_buffers = new void *[num_transfered_fields];
     fields_routers = new Routing_info *[num_transfered_fields];
-    fields_timers = new Coupling_timer *[num_transfered_fields];
 	transfer_process_on = new bool [num_transfered_fields];
 	current_remote_fields_time = new long [num_transfered_fields];
 	last_history_receive_buffer_index = -1;
@@ -58,24 +57,20 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         this->fields_mem[i] = fields_mem[i];
         fields_data_buffers[i] = fields_mem[i]->get_data_buf();
         fields_routers[i] = routers[i];
-        fields_timers[i] = timers[i];
     }
 
-    int local_comp_id, remote_comp_id;
     if (send_or_receive) {
-        local_comp_id = fields_routers[0]->get_src_comp_id();
-        remote_comp_id = fields_routers[0]->get_dst_comp_id();
+		local_comp_node = fields_routers[0]->get_src_comp_node();
+		remote_comp_node = fields_routers[0]->get_dst_comp_node();
     }
     else {
-        local_comp_id = fields_routers[0]->get_dst_comp_id();
-        remote_comp_id = fields_routers[0]->get_src_comp_id();
+		local_comp_node = fields_routers[0]->get_dst_comp_node();
+		remote_comp_node = fields_routers[0]->get_src_comp_node();
     }
-    comp_id = local_comp_id;
-    local_comp_node = comp_comm_group_mgt_mgr->search_global_node(local_comp_id);
-    remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_id);
+    comp_id = local_comp_node->get_comp_id();
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
-	time_mgr = components_time_mgrs->get_time_mgr(local_comp_id);
+	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
     num_remote_procs = remote_comp_node->get_num_procs();
 	num_local_procs = local_comp_node->get_num_procs();
     remote_proc_ranks_in_union_comm = new int [num_remote_procs];
@@ -150,7 +145,6 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] fields_mem;
     delete [] fields_data_buffers;
     delete [] fields_routers;
-    delete [] fields_timers;
     delete [] field_grids_num_lev;
     delete [] fields_data_type_sizes;
 	delete [] transfer_process_on;
@@ -351,12 +345,9 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 {
     preprocess();
 
-	printf("%s before check remote buf for send at %ld %d\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), last_field_remote_recv_count);
-
     if (!is_remote_data_buf_ready())
 		return false;
 
-	printf("%s before MPI_put send at %ld %d\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), last_field_remote_recv_count);
     int offset = 0;
     for (int i = 0; i < num_remote_procs; i ++) {
         if (transfer_size_with_remote_procs[i] == 0) continue;
@@ -388,7 +379,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 		printf("%s check send buffer %f %f vs %f\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((float*)data_buf)[0], ((float*)data_buf)[10], ((float*)fields_data_buffers[0])[0]);
 	else printf("%s check send buffer %lf %lf vs %lf\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((double*)data_buf)[0], ((float*)data_buf)[10], ((double*)fields_data_buffers[0])[0]); 
 
-	printf("After MPI_put send\n");
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", fields_routers[0]->get_dst_comp_node()->get_comp_full_name());
 
     return true;
 }
@@ -398,7 +389,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 {
 	bool received_data_ready = false;
 
-
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Begin to receive data from component \"%s\"", fields_routers[0]->get_src_comp_node()->get_comp_full_name());
     preprocess();
 
 	while (!received_data_ready) {
@@ -449,15 +440,23 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     
 	for (int j = 0; j < num_transfered_fields; j ++)
 		if (fields_data_type_sizes[j] == 4)
-			printf("%s receive field instance with value %f at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((float*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
-		else printf("%s receive field instance with value %lf at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((double*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
+			printf("%s receive field instance (%s) with value %f at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), fields_mem[j]->get_field_name(), ((float*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
+		else printf("%s receive field instance (%s) with value %lf at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), fields_mem[j]->get_field_name(), ((double*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
 
 	if (!bypass_timer) {
 		history_receive_buffer_status[last_history_receive_buffer_index] = false;
 		last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
 	}
 
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", fields_routers[0]->get_src_comp_node()->get_comp_full_name());
+	
     return true;
+}
+
+
+long Runtime_trans_algorithm::get_history_receive_sender_time(int j)
+{
+	return history_receive_sender_time[last_history_receive_buffer_index][j];
 }
 
 

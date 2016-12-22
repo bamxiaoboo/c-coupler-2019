@@ -77,21 +77,28 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
 			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
 		}
-		if (!words_are_the_same(coupling_connection->src_fields_info[i]->data_type, coupling_connection->dst_fields_info[i]->data_type)) {
-			if (get_data_type_size(coupling_connection->src_fields_info[i]->data_type) > get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)) {
-				if (inout_interface->get_import_or_export() == 1) {
-					printf("for field %s, add data type transformation at src from %s to %s\n", coupling_connection->fields_name[i], coupling_connection->src_fields_info[i]->data_type, coupling_connection->dst_fields_info[i]->data_type);
-					fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
-					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
-				}
-			}
+		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
+		if (inout_interface->get_import_or_export() == 1) {
+			if (!words_are_the_same(transfer_data_type, coupling_connection->src_fields_info[i]->data_type)) {
+				printf("for field %s, add data type transformation at src from %s to %s\n", coupling_connection->fields_name[i], coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
+				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
+				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
+			}	
+		}	
+		if (inout_interface->get_import_or_export() == 0) {
+			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
 			else {
-				if (inout_interface->get_import_or_export() == 0) {
-					printf("for field %s, add data type transformation at dst from %s to %s\n", coupling_connection->fields_name[i], coupling_connection->src_fields_info[i]->data_type, coupling_connection->dst_fields_info[i]->data_type);
-					fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, coupling_connection->src_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
-					fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->src_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
+				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
+				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
+			}
+			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
+				printf("for field %s, add data type transformation at dst from %s to %s\n", coupling_connection->fields_name[i], transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
+				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
+				if (fields_mem_remapped[i] == NULL)
 					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
-				}
+				else runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_remapped[i], fields_mem_datatype_transformed[i]);
 			}
 		}
 		if (inout_interface->get_import_or_export() == 1) {
@@ -104,13 +111,11 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			else fields_mem_transfer[i] = fields_mem_inter_step_averaged[i];
 		}
 		else {
-			Field_mem_info *last_field_instance;
-			if (fields_mem_transfer[i] == NULL)
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
-			if (fields_mem_remapped[i] != NULL)
-				last_field_instance = fields_mem_remapped[i];
-			else if (fields_mem_datatype_transformed[i] != NULL)
+			Field_mem_info *last_field_instance = fields_mem_transfer[i];
+			if (fields_mem_datatype_transformed[i] != NULL)
 				last_field_instance = fields_mem_datatype_transformed[i];
+			else if (fields_mem_remapped[i] != NULL)
+				last_field_instance = fields_mem_remapped[i];
 			else last_field_instance = fields_mem_transfer[i];
 			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(last_field_instance, fields_mem_registered[i]);
 		}
@@ -198,20 +203,24 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			for (int i = 0; i < current_remote_fields_time.size(); i ++)
 				printf("check data transfer order: %s %s receive data of remote time %ld at local time %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_comp_name(),
 				inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
-			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
+			runtime_data_transfer_algorithm->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
 			printf("receive data at %lx for %lx  %lx %s\n", this, runtime_data_transfer_algorithm, inout_interface, inout_interface->get_interface_name());
 			runtime_data_transfer_algorithm->run(bypass_timer);
 			for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 				if (transfer_process_on[i]) {
-					if (runtime_datatype_transform_algorithms[i] != NULL)
-						runtime_datatype_transform_algorithms[i]->run(true);			
 					if (runtime_remap_algorithms[i] != NULL)
-						runtime_remap_algorithms[i]->run(true);					
+						runtime_remap_algorithms[i]->run(true);
+					if (runtime_datatype_transform_algorithms[i] != NULL)
+						runtime_datatype_transform_algorithms[i]->run(true);								
 					runtime_inter_averaging_algorithm[i]->run(true);
 				}				
 			}
 		}
 		finish_status = true;
+		if (bypass_timer) {
+			for (int i = 0; i < fields_time_info_dst.size(); i ++)
+				last_remote_fields_time[i] = runtime_data_transfer_algorithm->get_history_receive_sender_time(i);
+		}
 		return;
 	}
 	else {
@@ -753,7 +762,9 @@ void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer,
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_interface_id_legal(interface_id), "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
 	inout_interface = get_interface(interface_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface != NULL, "0x%x should be the ID of import/export interface. However, it is wrong as the corresponding interface is not found. Please check the model code with the annotation \"%s\"", interface_id, annotation);
+	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\"", inout_interface->get_interface_name());	
 	inout_interface->execute(bypass_timer, annotation);
+	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\"", inout_interface->get_interface_name());	
 }
 
 
@@ -765,6 +776,8 @@ void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_n
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "0x%x is not an legal ID of a component. Please check the model code with the annotation \"%s\"", comp_id, annotation);
 	inout_interface = get_interface(comp_id, interface_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, inout_interface != NULL, "Registered interface of this component does not contain an import/export interface named \"%s\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
+	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, annotation);
+	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 
