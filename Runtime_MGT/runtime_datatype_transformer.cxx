@@ -22,43 +22,6 @@ Runtime_datatype_transformer::Runtime_datatype_transformer(Field_mem_info *src_f
 {
 	src_fields.push_back(src_field);
 	dst_fields.push_back(dst_field);
-	timers.push_back(NULL);
-}
-
-
-void Runtime_datatype_transformer::add_pair_fields(Field_mem_info *src_field, Field_mem_info *dst_field, Coupling_timer *timer)
-{
-	char *data_type_src, *data_type_dst;
-	bool data_types_matched = false;
-
-
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "Add data type transformation for field %s from data type %s to %s", src_field->get_field_name(), src_field->get_field_data()->get_grid_data_field()->data_type_in_application, dst_field->get_field_data()->get_grid_data_field()->data_type_in_application);
-	EXECUTION_REPORT(REPORT_ERROR,-1, src_field != NULL && dst_field != NULL, "C-Coupler software error1 in add_pair_fields of Runtime_datatype_transformer");
-	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(src_field->get_grid_name(), dst_field->get_grid_name()) && words_are_the_same(src_field->get_field_name(), dst_field->get_field_name()) 
-		             && words_are_the_same(src_field->get_decomp_name(), dst_field->get_decomp_name()) && src_field->get_buf_mark() == dst_field->get_buf_mark(), 
-		             "C-Coupler software error2 in add_pair_fields of Runtime_datatype_transformer");
-	if (src_field == dst_field)
-		return;
-
-	data_type_src = src_field->get_field_data()->get_grid_data_field()->data_type_in_application;
-	data_type_dst = dst_field->get_field_data()->get_grid_data_field()->data_type_in_application;
-	EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(data_type_src, data_type_dst), "C-Coupler software error3 in add_pair_fields of Runtime_datatype_transformer");
-	
-    if (words_are_the_same(data_type_src, DATA_TYPE_DOUBLE) || words_are_the_same(data_type_src, DATA_TYPE_FLOAT)) 
-        data_types_matched = words_are_the_same(data_type_dst, DATA_TYPE_DOUBLE) || words_are_the_same(data_type_dst, DATA_TYPE_FLOAT);
-    else if (words_are_the_same(data_type_src, DATA_TYPE_LONG) || words_are_the_same(data_type_src, DATA_TYPE_INT) || words_are_the_same(data_type_src, DATA_TYPE_SHORT) || words_are_the_same(data_type_src, DATA_TYPE_BOOL)) 
-        data_types_matched = words_are_the_same(data_type_dst, DATA_TYPE_LONG) || words_are_the_same(data_type_dst, DATA_TYPE_INT) || words_are_the_same(data_type_dst, DATA_TYPE_SHORT) || words_are_the_same(data_type_dst, DATA_TYPE_BOOL)
-                             || words_are_the_same(data_type_dst, DATA_TYPE_FLOAT) || words_are_the_same(data_type_dst, DATA_TYPE_DOUBLE);
-
-	EXECUTION_REPORT(REPORT_ERROR,-1, data_types_matched, "data types %s and %s for field %s does not match each other", data_type_src, data_type_dst, src_field->get_field_name());
-
-	for (int i = 0; i < src_fields.size(); i ++)
-		if (src_fields[i] == src_field && dst_fields[i] == dst_field)
-			return;
-
-	src_fields.push_back(src_field);
-	dst_fields.push_back(dst_field);
-	timers.push_back(timer);
 }
 
 
@@ -77,8 +40,6 @@ void Runtime_datatype_transformer::transform_fields_datatype()
 
 
 	for (int i = 0; i < src_fields.size(); i ++) {
-		if (timers[i] != NULL && !timers[i]->is_timer_on())
-			return;
 		src_fields[i]->use_field_values("");
 		dst_fields[i]->define_field_values(false);
 		data_type_src = src_fields[i]->get_field_data()->get_grid_data_field()->data_type_in_application;

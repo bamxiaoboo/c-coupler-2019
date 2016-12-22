@@ -220,37 +220,7 @@ Field_mem_info *Gather_scatter_rearrange_info::get_global_field(Field_mem_info *
 
 void Gather_scatter_rearrange_info::scatter_field(Field_mem_info *local_field_mem)
 {
-    if (!has_global_field) {
-        MPI_Bcast(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size*get_data_type_size(data_type),
-                  MPI_CHAR, 0, local_comm);
-        return;
-    }
-
-    if (get_data_type_size(data_type) == 1) {
-        if (current_proc_local_id == 0)
-            rearrange_scatter_data((char*) global_field_mem->get_data_buf(), (char*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
-        MPI_Scatterv(mpibuf, counts, displs, MPI_CHAR, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_CHAR, 0, local_comm);
-    }
-    else if (get_data_type_size(data_type) == 2) {
-        if (current_proc_local_id == 0)
-            rearrange_scatter_data((short*) global_field_mem->get_data_buf(), (short*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
-        MPI_Scatterv(mpibuf, counts, displs, MPI_SHORT, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_SHORT, 0, local_comm);
-    }
-    else if (get_data_type_size(data_type) == 4) {
-        if (current_proc_local_id == 0)
-            rearrange_scatter_data((int*) global_field_mem->get_data_buf(), (int*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
-        MPI_Scatterv(mpibuf, counts, displs, MPI_INT, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_INT, 0, local_comm);
-    }
-    else if (get_data_type_size(data_type) == 8) {
-        if (current_proc_local_id == 0)
-            rearrange_scatter_data((double*) global_field_mem->get_data_buf(), (double*) mpibuf, decomps_info_mgr->search_decomp_info(fully_decomp_name)->get_num_local_cells());
-        MPI_Scatterv(mpibuf, counts, displs, MPI_DOUBLE, local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size,  
-                    MPI_DOUBLE, 0, local_comm);
-    }
-    else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler error in Gather_scatter_rearrange_info::gather_field\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, false, "to be rewritten: Gather_scatter_rearrange_info::scatter_field\n");
 }
 
 
@@ -312,7 +282,7 @@ void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem
 void Fields_gather_scatter_mgt::read_scatter_field(IO_netcdf *nc_file, Field_mem_info *local_field, int time_pos)
 {
     Gather_scatter_rearrange_info *rearrage_info = apply_gather_scatter_rearrange_info(local_field);
-    if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0)
+    if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in Fields_gather_scatter_mgt::read_scatter_field"))
         nc_file->read_data(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field(), time_pos);
     rearrage_info->scatter_field(local_field);
 }

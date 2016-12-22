@@ -136,7 +136,6 @@ class Time_mgt
     public:
 		Time_mgt() {}
 		Time_mgt(int, const char *);
-        Time_mgt(int, int, int, int, int, int, bool, int, const char*, int, int);
         ~Time_mgt();
         void advance_model_time(const char*, bool);
 		void advance_time(int &, int &, int &, int &, int &, int);

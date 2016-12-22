@@ -20,14 +20,12 @@
 class Decomp_info
 {
     private:
+		char decomp_name[NAME_STR_SIZE];
         char grid_name[NAME_STR_SIZE];
-        char model_name[NAME_STR_SIZE];
         int num_global_cells;
         int num_local_cells;
         int *local_cell_global_indx;
 		bool is_registered;
-
-		char decomp_name[NAME_STR_SIZE];
 		int comp_id;
 		int host_comp_id;
 		int grid_id;
@@ -35,7 +33,6 @@ class Decomp_info
 
     public:
 		Decomp_info(const char *, int, int, int, int, const int *, const char *, bool);
-        Decomp_info(const char *, const char*, const char*, int, const int *);
         ~Decomp_info();
         int get_num_local_cells() { return num_local_cells; }
         const int *get_local_cell_global_indx() { return local_cell_global_indx; }
@@ -45,12 +42,9 @@ class Decomp_info
 		int get_comp_id() { return comp_id; }
 		int get_host_comp_id() { return host_comp_id; }
 		int get_decomp_id() { return decomp_id; }
-        void gen_decomp_grid_data();
         int get_num_global_cells() { return num_global_cells; }
-        const char *get_model_name() { return model_name; }
         bool get_is_fully_grid_decomp() { return num_local_cells == num_global_cells; }
 		bool is_registered_decomp() { return is_registered; }
-		void set_decomp_registered() { is_registered = true; };
 		void check_local_cell_global_indx();
 };
 
@@ -63,11 +57,7 @@ class Decomp_info_mgt
     public:
         Decomp_info_mgt() {}
         ~Decomp_info_mgt();
-        Decomp_info *search_decomp_info(const char *);
-        void add_decomps_from_cfg_file(const char*);
-        void add_decomp_from_model_interface(const char*, const char*, const char*, int, int*);
         int generate_fully_decomp(int);
-        Decomp_info *generate_remap_weights_src_decomp(const char*, const char*, const char*);
 		Decomp_info *generate_remap_weights_src_decomp(Decomp_info*, Original_grid_info*, Original_grid_info*, Remap_weight_of_strategy_class*);
 		Decomp_info *search_decomp_info(const char*, int);
 		int register_H2D_parallel_decomposition(const char *, int, int, const int *, const char *);

@@ -11,10 +11,6 @@
 #define COUPLING_INTERFACE_H
 
 
-#include "external_algorithm_mgt.h"
-
-
-extern void C_Coupler_interface_register_model_algorithm(const char*, Model_algorithm);
 
 #endif
 

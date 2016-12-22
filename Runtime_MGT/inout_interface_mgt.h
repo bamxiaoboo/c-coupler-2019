@@ -16,12 +16,15 @@
 #include "memory_mgt.h"
 #include "timer_mgt.h"
 #include "runtime_trans_algorithm.h"
+#include "runtime_datatype_transformer.h"
+#include "runtime_cumulate_average_algorithm.h"
+#include "runtime_remap_algorithm.h"
+#include "Runtime_Algorithm_Basis.h"
 
 
 #define INTERFACE_TYPE_REGISTER             ((int)0)
 #define INTERFACE_TYPE_IO_OUTPUT            ((int)1)
 #define INTERFACE_TYPE_IO_WRITE             ((int)2)
-
 
 
 class Inout_interface;
@@ -68,11 +71,11 @@ class Connection_coupling_procedure
 		std::vector<long> current_remote_fields_time;
 		Coupling_connection *coupling_connection;
 		Inout_interface *inout_interface;
-		std::vector<Runtime_algorithm_basis*> runtime_inner_averaging_algorithm;
-		std::vector<Runtime_algorithm_basis*> runtime_inter_averaging_algorithm;
-		std::vector<Runtime_algorithm_basis*> runtime_remap_algorithms;
+		std::vector<Runtime_cumulate_average_algorithm*> runtime_inner_averaging_algorithm;
+		std::vector<Runtime_cumulate_average_algorithm*> runtime_inter_averaging_algorithm;
+		std::vector<Runtime_remap_algorithm*> runtime_remap_algorithms;
 		std::vector<Runtime_algorithm_basis*> runtime_unit_transform_algorithms;
-		std::vector<Runtime_algorithm_basis*> runtime_datatype_transform_algorithms;
+		std::vector<Runtime_datatype_transformer*> runtime_datatype_transform_algorithms;
 		Runtime_trans_algorithm *runtime_data_transfer_algorithm;
 		bool finish_status;
 		bool transfer_data;

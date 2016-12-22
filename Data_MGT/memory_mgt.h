@@ -61,9 +61,6 @@ class Field_mem_info
 
     public:
 		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *, bool);
-        Field_mem_info(const char *, const char *, const char *, const char*, const char*, const int, bool, const char*);
-        bool match_field_mem(const char*, const char*, const char*, const char*, const int, const char*);
-		bool match_field_mem(const char*, const char*, const char*, const char*, const char*, const int, const char*);
 		bool match_field_instance(const char *, int, int, int);
 		bool match_field_mem(void*);
         bool get_is_restart_field() { return is_restart_field; }
@@ -112,24 +109,15 @@ class Memory_mgt
 		void add_registered_field_info(const char*, const char*, const char*);
         
     public: 
-        Memory_mgt(const char *);
+        Memory_mgt() {}
 		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*, bool);
-        Field_mem_info *alloc_mem(const char *, const char *, const char *, const char*, const char*, const int, bool, bool, const char*);
 		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*, bool);
  		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
-		void withdraw_model_data_buf(const char*, const char*, const char*);
         Field_mem_info *search_field_via_data_buf(const void*, bool);
-		void write_restart_fields();
 		void check_all_restart_fields_have_been_read();
-		bool is_model_data_renewed_in_current_time_step(void*);
-		bool is_model_data_active_in_coupling(void*);
 		void check_sum_of_all_fields();
-		void add_field_instance(Field_mem_info *, const char*);
-		Field_mem_info *search_last_define_field(const char*, const char*, const char*, const char*, int, bool, const char*);
-		Field_mem_info *search_registerred_field(const char*, const char*, const char*, const char*, int);
 		int get_num_fields() { return fields_mem.size(); }
         ~Memory_mgt();
-		void export_field_data(void*, const char*, const char*, const char*, const char *, int);
 		int get_field_size(void*, const char*);
 		Field_mem_info *search_field_instance(const char *, int, int, int);
 		bool check_is_legal_field_instance_id(int);
@@ -137,8 +125,6 @@ class Memory_mgt
 };
 
 
-extern Field_mem_info *alloc_mem(const char *, const char *, const char *, const char *, const char *, const int,  bool, const char*);
-extern Field_mem_info *alloc_full_grid_mem(const char *, const char *, const char *, const char *, const char*, const int, bool, const char*);
 extern Field_mem_info *alloc_mem(const char *, int, int, int, const char *, const char *, const char *);
 
 #endif

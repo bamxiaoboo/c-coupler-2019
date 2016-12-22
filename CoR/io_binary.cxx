@@ -108,7 +108,6 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 	long array_size;
 	
 
-    EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(open_format, "r"), "can not read binary file %s: %s, whose open format is not read\n", object_name, file_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights != NULL, "remap software error1 in read_remap_weights binary\n");
 	if (read_weight_values)
 		EXECUTION_REPORT(REPORT_ERROR, -1, true, "remapping weight values will be read into %s", remap_weights->get_object_name());
@@ -120,23 +119,13 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 		long array_size = ftell(fp_binary);
 		int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group = 0;
 #ifndef ONLY_CoR
-		MPI_Status status;
-		int temp_int;
-		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(compset_communicators_info_mgr->get_computing_node_comp_group(), &num_proc_computing_node_comp_group) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(compset_communicators_info_mgr->get_computing_node_comp_group(), &current_proc_id_computing_node_comp_group) == MPI_SUCCESS);
-		if (current_proc_id_computing_node_comp_group > 0)
-			MPI_Recv(&temp_int, 1, MPI_INT, current_proc_id_computing_node_comp_group-1, current_proc_id_computing_node_comp_group-1, compset_communicators_info_mgr->get_computing_node_comp_group(), &status);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "to be rewritten: IO_binary::read_remap_weights");
 #endif
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "begin reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
 		fseek(fp_binary, 0, SEEK_SET);
 		remap_weights->read_remap_weights_from_array(NULL, fp_binary, array_size, true, NULL, read_weight_values);
 		fclose(fp_binary);
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
-#ifndef ONLY_CoR
-		if (current_proc_id_computing_node_comp_group < num_proc_computing_node_comp_group-1)
-			MPI_Send(&temp_int, 1, MPI_INT, current_proc_id_computing_node_comp_group+1, current_proc_id_computing_node_comp_group, compset_communicators_info_mgr->get_computing_node_comp_group());
-		MPI_Barrier(compset_communicators_info_mgr->get_computing_node_comp_group());
-#endif		
     }
 }
 

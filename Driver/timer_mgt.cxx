@@ -280,67 +280,6 @@ bool Time_mgt::check_is_time_legal(int year, int month, int day, int second, con
 }
 
 
-Time_mgt::Time_mgt(int comp_id, int start_date, int start_second, int stop_date, int stop_second, int reference_date, bool leap_year_on, int cpl_step, const char *rest_freq_unit, int rest_freq_count, int stop_latency_seconds)
-{
-    int steps_per_day;
-    long rest_freq_seconds;
-
-
-    start_year = start_date / 10000;
-    start_month = (start_date%10000) / 100;
-    start_day = start_date % 100;
-    this->start_second = start_second;
-    stop_year = stop_date / 10000;
-    stop_month = (stop_date%10000) / 100;
-    stop_day = stop_date % 100;
-    this->stop_second = stop_second;
-    reference_year = reference_date / 10000;
-    reference_month = (reference_date%10000) / 100;
-    reference_day = reference_date % 100;
-    time_step_in_second = cpl_step;
-    previous_year = start_year;
-    previous_month = start_month;
-    previous_day = start_day;
-    previous_second = start_second;
-    current_year = start_year;
-    current_month = start_month;
-    current_day = start_day;
-    current_second = start_second;
-    current_step_id = 0;
-    this->stop_latency_seconds = stop_latency_seconds;
-    this->leap_year_on = leap_year_on;
-	this->comp_id = comp_id;
-	this->advance_time_synchronized = false;
-
-    EXECUTION_REPORT(REPORT_ERROR,-1, time_step_in_second>0 && (SECONDS_PER_DAY%time_step_in_second)==0, "The number of seconds per day is not a multiple of the number of seconds per step\n");
-    EXECUTION_REPORT(REPORT_ERROR,-1, stop_latency_seconds%time_step_in_second == 0, "the latency seconds of stopping must be integer multiple of the number of seconds per step\n");
-	check_is_time_legal(start_year, start_month, start_day, start_second, "start");
-	check_is_time_legal(stop_year, stop_month, stop_day, stop_second, "stop");
-//	check_is_time_legal(reference_year, reference_month, reference_day, 0, "feference");  This check is disabled due to MASNUM2
-
-    steps_per_day = SECONDS_PER_DAY / time_step_in_second;
-    current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
-	start_num_elapsed_day = current_num_elapsed_day;
-	stop_num_elapsed_day = calculate_elapsed_day(stop_year,stop_month,stop_day);
-    num_total_steps = (stop_num_elapsed_day-current_num_elapsed_day)*steps_per_day + (stop_second-start_second)/time_step_in_second;
-    EXECUTION_REPORT(REPORT_ERROR,-1, num_total_steps > 0, "the end simulation time must be after the start simulation time\n");
-
-    timer_mgr = this;
-    restart_timer = NULL;
-    restart_timer = new Coupling_timer(rest_freq_unit, rest_freq_count, 0, "C-Coupler error");
-    if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS))
-        rest_freq_seconds = NUM_DAYS_PER_NONLEAP_YEAR*SECONDS_PER_DAY*rest_freq_count;
-    else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_MONTHS))
-        rest_freq_seconds = 28*SECONDS_PER_DAY*rest_freq_count;
-    else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_DAYS))
-        rest_freq_seconds = SECONDS_PER_DAY*rest_freq_count;
-    else rest_freq_seconds = rest_freq_count;
-    EXECUTION_REPORT(REPORT_ERROR,-1, rest_freq_seconds > stop_latency_seconds,  "the time interval of restart writing must be larger than the delay of ending component\n");
-
-	EXECUTION_REPORT(REPORT_ERROR,-1, check_time_consistency_between_components(get_start_full_time()), "the start date of all components are not consistent\n");
-}
-
-
 Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 {
 	int line_number;
@@ -558,8 +497,8 @@ Time_mgt::~Time_mgt()
 
 void Time_mgt::reset_timer()
 {
-	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), 
-		             "the model timer cannot be reset when run type is not initial\n");
+//	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), 
+//		             "the model timer cannot be reset when run type is not initial\n");
 
 	current_year = start_year;
 	current_month = start_month;
@@ -696,8 +635,8 @@ void Time_mgt::set_restart_time(long start_full_time, long restart_full_time)
     long tmp_date_value;
 
 
-	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
-	    EXECUTION_REPORT(REPORT_ERROR,-1, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
+//	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
+//	    EXECUTION_REPORT(REPORT_ERROR,-1, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
 	EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
 	EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
     current_second = restart_full_time % 100000;
@@ -782,26 +721,8 @@ Comps_transfer_time_info *Time_mgt::allocate_comp_transfer_time_info(int remote_
 
 bool Time_mgt::check_time_consistency_between_components(long full_time)
 {
-    int i, num_global_procs;
-	bool consistent;
-	long *full_time_arrays;
-
-
-	if (compset_communicators_info_mgr->get_num_components() == 1)
-		return true;
+	EXECUTION_REPORT(REPORT_ERROR,-1, false, "to be implemented: Time_mgt::check_time_consistency_between_components");
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(compset_communicators_info_mgr->get_global_comm_group(), &num_global_procs) == MPI_SUCCESS);
-	
-	consistent = true;
-	full_time_arrays = new long [num_global_procs];
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&full_time, 1, MPI_LONG, full_time_arrays, 1, MPI_LONG, compset_communicators_info_mgr->get_global_comm_group()) == MPI_SUCCESS);
-	for (i = 1; i < num_global_procs; i ++)
-		if (full_time_arrays[i] != full_time_arrays[i-1])
-			consistent = false;
-
-    delete [] full_time_arrays;
-
-	return consistent;
 }
 
 
@@ -859,8 +780,8 @@ void Time_mgt::get_current_time(int &year, int &month, int &day, int &second, in
 
 int Time_mgt::get_current_num_time_step()
 {
-	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid") && current_step_id < SECONDS_PER_DAY/time_step_in_second)
-		return current_step_id + SECONDS_PER_DAY/time_step_in_second;
+//	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "hybrid") && current_step_id < SECONDS_PER_DAY/time_step_in_second)
+//		return current_step_id + SECONDS_PER_DAY/time_step_in_second;
     return current_step_id; 
 }
 

@@ -63,28 +63,6 @@ void Runtime_algorithm_basis::runtime_algorithm_common_initialize(const int num_
 }
 
 
-void Runtime_algorithm_basis::add_runtime_datatype_transformation(Field_mem_info *current_field, bool is_input_field, Coupling_timer *timer, const char *cfg_name)
-{
-	Field_mem_info *pair_field;
-
-
-	if (is_input_field) {
-		pair_field = memory_manager->search_last_define_field(current_field->get_comp_name(), current_field->get_decomp_name(), current_field->get_grid_name(), current_field->get_field_name(), current_field->get_buf_mark(), true, cfg_name);
-	}
-	else {
-		pair_field = memory_manager->search_registerred_field(current_field->get_comp_name(), current_field->get_decomp_name(), current_field->get_grid_name(), current_field->get_field_name(), current_field->get_buf_mark());
-	}
-}
-
-
-Field_mem_info *Runtime_algorithm_basis::add_one_field_for_cumulate_average(Field_mem_info *input_field, Coupling_timer *timer)
-{
-	if (cumulate_average_algorithm_before_run == NULL)
-		cumulate_average_algorithm_before_run = new Runtime_cumulate_average_algorithm();
-	return cumulate_average_algorithm_before_run->add_one_field(input_field, timer);
-}
-
-
 void Runtime_algorithm_basis::cumulate_average_before_run(bool is_algorithm_in_kernel_stage)
 {
 	if (cumulate_average_algorithm_before_run != NULL) {

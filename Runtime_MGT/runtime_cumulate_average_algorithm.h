@@ -10,8 +10,7 @@
 #ifndef RUNTIME_CUMULATE_AVERAGE_ALGORITHM
 #define RUNTIME_CUMULATE_AVERAGE_ALGORITHM
 
-#include "Runtime_Algorithm_Basis.h"
-#include "timer_mgt.h"
+
 #include "memory_mgt.h"
 #include "common_utils.h"
 #include <vector>
@@ -28,23 +27,18 @@ struct cumulate_average_field_info
 };
 
 
-class Runtime_cumulate_average_algorithm : public Runtime_algorithm_basis
+class Runtime_cumulate_average_algorithm
 {
     private:
+		int comp_id;
         std::vector<cumulate_average_field_info*> cumulate_average_fields;
         void cumulate_or_average(bool);
         
     public:
-		Runtime_cumulate_average_algorithm() {}
-        Runtime_cumulate_average_algorithm(const char * cfg);
 		Runtime_cumulate_average_algorithm(Field_mem_info*, Field_mem_info*);
 		
         ~Runtime_cumulate_average_algorithm();
-        void write_restart_fields();
-		void read_restart_computing_count();
         bool run(bool);
-		void allocate_src_dst_fields(bool);
-		Field_mem_info *add_one_field(Field_mem_info*, Coupling_timer *);
 };
 
 

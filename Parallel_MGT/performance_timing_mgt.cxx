@@ -77,34 +77,7 @@ void Performance_timing_unit::timing_stop()
 
 void Performance_timing_unit::timing_output()
 {
-	double all_process_sum_time;
-	int num_procs = compset_communicators_info_mgr->get_num_procs_in_comp(compset_communicators_info_mgr->get_current_comp_id());
-
-	
-    MPI_Allreduce(&total_time, &all_process_sum_time, 1, MPI_DOUBLE, MPI_SUM, compset_communicators_info_mgr->get_current_comp_comm_group());
-	if (compset_communicators_info_mgr->get_current_proc_id_in_comp_comm_group() == 0) {
-		if (unit_type == TIMING_TYPE_IO) {
-			if (unit_behavior == TIMING_IO_INPUT) 
-				printf("%s spends %lf seconds for reading input data file in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), all_process_sum_time/num_procs);
-			if (unit_behavior == TIMING_IO_OUTPUT) 
-				printf("%s spends %lf seconds for writing output data file in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), all_process_sum_time/num_procs);
-			if (unit_behavior == TIMING_IO_RESTART)
-				printf("%s spends %lf seconds for writing restart file in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), all_process_sum_time/num_procs);
-		}
-		if (unit_type == TIMING_TYPE_COMMUNICATION) {
-			if (unit_behavior == TIMING_COMMUNICATION_RECV)
-				printf("%s spends %lf seconds for waiting for receiving data from %s in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), 
-				       all_process_sum_time/num_procs, compset_communicators_info_mgr->get_comp_name_by_id(unit_int_keyword));
-			if (unit_behavior == TIMING_COMMUNICATION_SEND)
-				printf("%s spends %lf seconds for waiting for sending data to %s in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), 
-				       all_process_sum_time/num_procs, compset_communicators_info_mgr->get_comp_name_by_id(unit_int_keyword));
-			if (unit_behavior == TIMING_COMMUNICATION_SENDRECV)
-				printf("%s spends %lf seconds for data communication for data remapping in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), all_process_sum_time/num_procs);
-		}
-		if (unit_type == TIMING_TYPE_COMPUTATION)
-			printf("%s spends %lf seconds for numerical algorithm %s in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), 
-			        all_process_sum_time/num_procs, unit_char_keyword);
-	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, false, "To be rewritten: Performance_timing_unit::timing_output");
 }
 
 

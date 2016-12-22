@@ -33,22 +33,6 @@ Routing_info *Routing_info_mgt::search_or_add_router(const int src_comp_id, cons
 }
 
 
-Routing_info *Routing_info_mgt::search_or_add_router(const char *local_comp_name, const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
-{
-    Routing_info *router;
-
-
-    router = search_router(remote_comp_name, local_decomp_name, remote_decomp_name);
-    if (router != NULL)
-        return router;
-
-    router = new Routing_info(local_comp_name, remote_comp_name, local_decomp_name, remote_decomp_name);
-    routers.push_back(router);
-
-    return router;
-}
-
-
 Routing_info_mgt::~Routing_info_mgt()
 {
     for (int i = 0; i < routers.size(); i ++)
@@ -61,17 +45,6 @@ Routing_info *Routing_info_mgt::search_router(const int src_comp_id, const int d
     for (int i = 0; i < routers.size(); i ++)
         if (routers[i]->match_router(src_comp_id, dst_comp_id, src_decomp_name, dst_decomp_name))
             return routers[i];
-
-    return NULL;
-}
-
-
-Routing_info *Routing_info_mgt::search_router(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
-{
-    for (int i = 0; i < routers.size(); i ++) {
-        if (routers[i]->match_router(remote_comp_name, local_decomp_name, remote_decomp_name))
-            return routers[i];
-    }
 
     return NULL;
 }
@@ -113,53 +86,6 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const c
 }
 
 
-Routing_info::Routing_info(const char *local_comp_name, const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
-{
-	char tmp_remote_decomp_name[NAME_STR_SIZE];
-	int remote_root_proc_global_id;
-	MPI_Comm global_comm_group;
-	MPI_Request send_req, recv_req;
-	MPI_Status status;
-
-
-    strcpy(this->remote_comp_name, remote_comp_name);
-    strcpy(this->local_decomp_name, local_decomp_name);
-    strcpy(this->remote_decomp_name, remote_decomp_name);
-	local_communicator_info = compset_communicators_info_mgr->get_communicator_info_by_name(local_comp_name);
-    src_comp_id = local_communicator_info->comp_id;
-    dst_comp_id = compset_communicators_info_mgr->get_comp_id_by_comp_name(remote_comp_name);
-	
-    if (words_are_the_same(local_decomp_name, "NULL")) {
-        EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(remote_decomp_name, "NULL"), 
-                     "for router of scalar variables, the local and remote decompositions must be \"NULL\"\n");
-        num_dimensions = 0;
-        local_decomp_size = 1;
-    }
-    else if (src_comp_id != dst_comp_id) {
-        num_dimensions = 2;
-		if (local_communicator_info->current_proc_local_id == 0) {
-			remote_root_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(dst_comp_id, 0);
-			global_comm_group = compset_communicators_info_mgr->get_global_comm_group();
-			MPI_Isend((char*)local_decomp_name, NAME_STR_SIZE, MPI_CHAR, remote_root_proc_global_id, 1000+src_comp_id, global_comm_group, &send_req);
-			MPI_Irecv(tmp_remote_decomp_name, NAME_STR_SIZE, MPI_CHAR, remote_root_proc_global_id, 1000+dst_comp_id, global_comm_group, &recv_req);	 
-			MPI_Wait(&send_req, &status);
-			MPI_Wait(&recv_req, &status);
-		}
-		MPI_Bcast(tmp_remote_decomp_name, NAME_STR_SIZE, MPI_CHAR, 0, local_communicator_info->comm_group);
-		EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(remote_decomp_name, tmp_remote_decomp_name), "the decompositions' names do not match when building router from %s to (%s, %s)\n",
-					 local_decomp_name, remote_comp_name, remote_decomp_name);
-        build_2D_remote_router(local_decomp_name);
-        local_decomp_size = decomps_info_mgr->search_decomp_info(local_decomp_name)->get_num_local_cells();
-    }
-    else {
-        num_dimensions = 2;
-        build_2D_self_router(remote_decomp_name, local_decomp_name);
-        local_decomp_size = decomps_info_mgr->search_decomp_info(local_decomp_name)->get_num_local_cells();
-		remap_decomp_size = decomps_info_mgr->search_decomp_info(remote_decomp_name)->get_num_local_cells();
-    }
-}
-
-
 Routing_info::~Routing_info()
 {
     for (int i = 0; i < recv_from_remote_procs_routing_info.size(); i ++) {
@@ -183,14 +109,6 @@ bool Routing_info::match_router(const int src_comp_id, const int dst_comp_id, co
             this->dst_comp_id == dst_comp_id &&
             words_are_the_same(this->src_decomp_name, src_decomp_name) &&
             words_are_the_same(this->dst_decomp_name, dst_decomp_name));
-}
-
-
-bool Routing_info::match_router(const char *remote_comp_name, const char *local_decomp_name, const char *remote_decomp_name)
-{
-    return (words_are_the_same(this->remote_comp_name, remote_comp_name) &&
-            words_are_the_same(this->local_decomp_name, local_decomp_name) &&
-            words_are_the_same(this->remote_decomp_name, remote_decomp_name));
 }
 
 
@@ -266,86 +184,6 @@ void Routing_info::build_2D_router()
 		delete [] cells_indx_each_dst_proc;
     delete [] num_cells_each_src_proc; 
     delete [] num_cells_each_dst_proc;
-}
-
-
-void Routing_info::build_2D_remote_router(const char *decomp_name)
-{
-    Decomp_info *decomp_info;
-    Routing_info_with_one_process *routing_info;
-    int i, j;
-    int num_global_cells;
-    int num_local_cells;
-    int *local_cell_global_indx;
-    int num_remote_procs;
-    int remote_proc_global_id;
-    MPI_Comm global_comm_group;
-    int *num_cells_each_remote_proc;
-    int **cell_indx_each_remote_proc; 
-    MPI_Request *send_reqs, *recv_reqs;
-    MPI_Status status;
-    int local_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(src_comp_id, local_communicator_info->current_proc_local_id);
-
-
-    decomp_info = decomps_info_mgr->search_decomp_info(decomp_name);
-    num_local_cells = decomp_info->get_num_local_cells();
-    num_global_cells = decomp_info->get_num_global_cells();
-	if (num_local_cells > 0)
-		local_cell_global_indx = new int [num_local_cells];
-	for (i = 0; i < num_local_cells; i ++)
-		local_cell_global_indx[i] = decomp_info->get_local_cell_global_indx()[i];
-    num_remote_procs = compset_communicators_info_mgr->get_num_procs_in_comp(dst_comp_id);
-    global_comm_group = compset_communicators_info_mgr->get_global_comm_group();
-    num_cells_each_remote_proc = new int [num_remote_procs];
-    cell_indx_each_remote_proc = new int *[num_remote_procs];
-    send_reqs = new MPI_Request [num_remote_procs];
-    recv_reqs = new MPI_Request [num_remote_procs];
-
-	MPI_Barrier(local_communicator_info->comm_group);
-    
-    for (i = 0; i < num_remote_procs; i ++) {
-        remote_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(dst_comp_id, i);
-		if (src_comp_id < dst_comp_id) {
-	        MPI_Send(&num_local_cells, 1, MPI_INT, remote_proc_global_id, src_comp_id, global_comm_group);
-    	    MPI_Recv(&num_cells_each_remote_proc[i], 1, MPI_INT, remote_proc_global_id, dst_comp_id, global_comm_group, &status);    
-		}
-		else {
-    	    MPI_Recv(&num_cells_each_remote_proc[i], 1, MPI_INT, remote_proc_global_id, dst_comp_id, global_comm_group, &status);    
-	        MPI_Send(&num_local_cells, 1, MPI_INT, remote_proc_global_id, src_comp_id, global_comm_group);
-		}
-    }
-    for (i = 0; i < num_remote_procs; i ++) {
-        remote_proc_global_id = compset_communicators_info_mgr->get_proc_id_in_global_comm_group(dst_comp_id, i);
-        if (num_cells_each_remote_proc[i] > 0)
-            cell_indx_each_remote_proc[i] = new int [num_cells_each_remote_proc[i]];
-        else cell_indx_each_remote_proc[i] = NULL;
-		if (src_comp_id < dst_comp_id) {
-	        MPI_Send(local_cell_global_indx, num_local_cells, MPI_INT, remote_proc_global_id, src_comp_id, global_comm_group);
-    	    MPI_Recv(cell_indx_each_remote_proc[i], num_cells_each_remote_proc[i], MPI_INT, remote_proc_global_id, dst_comp_id, global_comm_group, &status);    
-		}
-		else {
-    	    MPI_Recv(cell_indx_each_remote_proc[i], num_cells_each_remote_proc[i], MPI_INT, remote_proc_global_id, dst_comp_id, global_comm_group, &status);    
-	        MPI_Send(local_cell_global_indx, num_local_cells, MPI_INT, remote_proc_global_id, src_comp_id, global_comm_group);
-		}
-    }
-
-    if (num_local_cells > 0) {
-        for (i = 0; i < num_remote_procs; i ++)
-            compute_routing_info_between_decomps(num_local_cells, local_cell_global_indx, num_cells_each_remote_proc[i], cell_indx_each_remote_proc[i], 
-                                                                        num_global_cells, local_proc_global_id, compset_communicators_info_mgr->get_proc_id_in_global_comm_group(dst_comp_id, i));        
-    }
-
-	if (num_local_cells > 0)
-		delete [] local_cell_global_indx;
-    for (i = 0; i < num_remote_procs; i ++)
-        if (cell_indx_each_remote_proc[i] != NULL)
-            delete [] cell_indx_each_remote_proc[i];    
-    delete [] num_cells_each_remote_proc;
-    delete [] cell_indx_each_remote_proc;
-    delete [] send_reqs;
-    delete [] recv_reqs;
-
-	MPI_Barrier(local_communicator_info->comm_group);
 }
 
 
@@ -427,12 +265,6 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
 
 	return routing_info;
 }
-
-
-void Routing_info::build_2D_self_router(const char *decomp_name_remap, const char *decomp_name_local)
-{
-}
-
 
 
 Routing_info_with_one_process *Routing_info::get_routing_info(bool is_send, int i)

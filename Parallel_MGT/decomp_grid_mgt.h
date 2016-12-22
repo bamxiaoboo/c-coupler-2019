@@ -27,14 +27,11 @@ class Decomp_grid_info
 
     public:
 		Decomp_grid_info(int, Remap_grid_class*);
-        Decomp_grid_info(const char*, Remap_grid_class*);
         ~Decomp_grid_info();
         Remap_grid_class *get_decomp_grid() { return decomp_grid; }
 		Remap_grid_class *get_original_grid() { return original_grid; }
 		const char *get_decomp_name() { return decomp_name; }
 		int get_decomp_id() { return decomp_id; }
-        bool match(const char*, Remap_grid_class*);
-        void register_decomp_grid_fields();
 };
 
 
@@ -45,9 +42,7 @@ class Decomp_grid_mgt
 
     public:
         Decomp_grid_mgt() {}
-        Decomp_grid_info *search_decomp_grid_info(const char*, Remap_grid_class*, bool);
 		Decomp_grid_info *search_decomp_grid_info(int, Remap_grid_class*, bool);
-		void check_unique_registered_decomp_for_dynamic_sigma_grid(Remap_grid_class *, const char*);
         ~Decomp_grid_mgt();
 };
 

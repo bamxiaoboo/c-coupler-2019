@@ -13,7 +13,6 @@
 #define RUNTIME_TRANS
 #include <vector>
 #include "mpi.h"
-#include "Runtime_Algorithm_Basis.h"
 #include "routing_info_mgt.h"
 #include "memory_mgt.h"
 #include "timer_mgt.h"

@@ -39,7 +39,6 @@ class Runtime_algorithm_basis
 		Runtime_cumulate_average_algorithm *cumulate_average_algorithm_before_run;
 
         void runtime_algorithm_common_initialize(const int, const int);
-		void add_runtime_datatype_transformation(Field_mem_info*, bool, Coupling_timer*, const char*);
 
     public:
         Runtime_algorithm_basis();
@@ -47,7 +46,6 @@ class Runtime_algorithm_basis
         virtual bool run(bool) = 0;
 		virtual void allocate_src_dst_fields(bool) = 0;
 //		virtual void generate_algorithm_info_from_cfg_file() = 0;
-		Field_mem_info *add_one_field_for_cumulate_average(Field_mem_info*, Coupling_timer*);
 		void allocate_basic_data_structure(int, int);
 		void transfer_fields_data_type_before_run();
 		void transfer_fields_data_type_after_run();
