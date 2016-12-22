@@ -301,7 +301,6 @@ void Remap_weight_of_operator_class::do_remap(Remap_grid_data_class *field_data_
         for (j = remap_beg_iter; j < remap_end_iter; j ++) {
 			field_array_offset = calculate_offset_for_operator_instance(j);
 #ifdef DEBUG_CCPL
-			printf("check temp: %ld %ld %ld: %s : %s\n", field_array_offset, (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size(), field_data_size_src, remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_name(), field_data_src->get_coord_value_grid()->get_grid_name()); 
 	        EXECUTION_REPORT(REPORT_ERROR, -1, field_array_offset >= 0 && (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size() <= field_data_size_src,
 	        				 "remap software error4 in do_remap of Remap_weight_of_strategy_class");
 			EXECUTION_REPORT(REPORT_ERROR, -1, field_array_offset >= 0 && (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size() <= field_data_size_dst,

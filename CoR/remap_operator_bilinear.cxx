@@ -320,7 +320,6 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
 
     initialize_computing_remap_weights_of_one_cell();
 
-	printf("before checking\n");
     /*  When the mask of dst cell is false, it is unnecessary to compute the corresponding weight values
       */
     get_cell_mask_of_dst_grid(dst_cell_index, &dst_cell_mask);
@@ -335,8 +334,6 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;
 
-	printf("vertexes number is %d\n", num_vertexes_dst);
-
     search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
@@ -345,8 +342,6 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
 		return;
 	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;
-
-	printf("okok remapping\n");
 
     if (src_cell_index == -1 || !src_cell_mask) {
         compute_dist_remap_weights_of_one_dst_cell(dst_cell_index, 
@@ -424,7 +419,6 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
         bilinear_wgt_values[2] = wgt_ratio_u * wgt_ratio_v;
         bilinear_wgt_values[3] = (1-wgt_ratio_u) * wgt_ratio_v;
         add_remap_weights_to_sparse_matrix(bilinear_box_vertexes_src_cell_indexes, dst_cell_index, bilinear_wgt_values, 4, 0, true);
-		printf("bilinear weights: %f %f %f %f\n", bilinear_wgt_values[0], bilinear_wgt_values[1], bilinear_wgt_values[2], bilinear_wgt_values[3]);
     }
 }
 

@@ -192,7 +192,6 @@ bool Runtime_trans_algorithm::set_remote_tags(bool bypass_timer)
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
        	int remote_proc_id = remote_proc_ranks_in_union_comm[index_remote_procs_with_common_data[i]];
         MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, tag_win);
-		printf("sender put tag %d\n", index_remote_procs_with_common_data[i]);
        	MPI_Put(tag_buf, num_transfered_fields*2, MPI_LONG, remote_proc_id, num_transfered_fields*current_proc_local_id*2, num_transfered_fields*2, MPI_LONG, tag_win);
        	MPI_Win_unlock(remote_proc_id, tag_win);
     }
@@ -205,7 +204,6 @@ bool Runtime_trans_algorithm::set_local_tags()
 {
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
     tag_buf[tag_buf_size-1] = current_field_local_recv_count;
-	printf("set local tag %ld\n", current_field_local_recv_count);
 	current_field_local_recv_count ++;
     MPI_Win_unlock(current_proc_id_union_comm, tag_win);
     
@@ -287,7 +285,6 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
 			}
 		}
 	}
-	printf("%s empty_history_receive_buffer_index is %d vs %d %d %lx\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), empty_history_receive_buffer_index, history_receive_data_buffer.size(), last_history_receive_buffer_index, this);
 	if (empty_history_receive_buffer_index == -1) {
 		std::vector<bool> temp_history_receive_buffer_status;
 		std::vector<long*> temp_history_receive_sender_time;
@@ -328,7 +325,6 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
 	memcpy(history_receive_data_buffer[empty_history_receive_buffer_index], data_buf, data_buf_size);
 	MPI_Win_unlock(current_proc_id_union_comm, data_win);	
 	
-	printf("%s detect new data in receive buffer %ld vs %ld at %ld: store at %d vs %d\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), last_receive_field_sender_time[0], current_receive_field_sender_time[0], ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), empty_history_receive_buffer_index, history_receive_buffer_status.size()); 
 	set_local_tags();
 }
 
@@ -415,7 +411,6 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 	if (!bypass_timer)
 		for (int j = 0; j < num_transfered_fields; j ++)
 			if (transfer_process_on[j]) {
-				printf("last_history_receive_buffer_index is %d: %ld : %ld vs %ld %lx\n", last_history_receive_buffer_index, history_receive_sender_time[last_history_receive_buffer_index][j], history_receive_usage_time[last_history_receive_buffer_index][j], ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), this);
 				EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_sender_time[last_history_receive_buffer_index][j] == current_remote_fields_time[j], "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_sender_time[last_history_receive_buffer_index][j], current_remote_fields_time[j]);
 				if (history_receive_usage_time[last_history_receive_buffer_index][j] != -999)
 					EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_usage_time[last_history_receive_buffer_index][j] == ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_usage_time[last_history_receive_buffer_index][j], ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second());

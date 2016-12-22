@@ -266,14 +266,7 @@ Field_mem_info *Fields_gather_scatter_mgt::gather_field(Field_mem_info *local_fi
 
 void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem_info *local_field, bool write_grid_name, int date, int datesec, bool is_restart_field)
 {
-	if (words_are_the_same(local_field->get_data_type(), DATA_TYPE_FLOAT))
-		printf("value to write is %f\n", ((float*)local_field->get_data_buf())[0]);
-	else printf("value to write is %lf\n", ((double*)local_field->get_data_buf())[0]);
     Field_mem_info *global_field = gather_field(local_field);
-	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in gather_write_field") == 0)
-	if (words_are_the_same(local_field->get_data_type(), DATA_TYPE_FLOAT))
-		printf("gathered value to write is %f\n", ((float*)global_field->get_data_buf())[0]);
-	else printf("gathered value to write is %lf\n", ((double*)global_field->get_data_buf())[0]);
     if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in gather_write_field") == 0)
         nc_file->write_grided_data(global_field->get_field_data(), write_grid_name, date, datesec, is_restart_field);
 }

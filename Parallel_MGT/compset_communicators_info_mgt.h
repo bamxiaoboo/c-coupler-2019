@@ -74,7 +74,6 @@ class Comp_comm_group_mgt_node
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
 		void reset_working_dir(const char *);
 		bool is_definition_finalized() { return definition_finalized; }
-		void print_global_nodes();
 		const char *get_annotation_start() { return annotation_start; }
 		const char *get_annotation_end() { return annotation_end; }
 		Comp_comm_group_mgt_node *get_parent() const { return parent; }

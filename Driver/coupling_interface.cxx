@@ -234,7 +234,6 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 		if (executable_name[i] == '/')
 			break;
     sprintf(root_cfg_name, "%s_coupling.cfg", executable_name+i+1);
-    EXECUTION_REPORT(REPORT_LOG,-1, true, "root runtime configuration file name is %s", root_cfg_name);
 	root_cfg_fp = open_config_file(root_cfg_name);
 	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
 	sprintf(root_cfg_name, "%s/%s", C_COUPLER_CONFIG_DIR, line);
@@ -504,9 +503,7 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
-	printf("before IO output\n");
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
-	printf("after IO output\n");
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
 

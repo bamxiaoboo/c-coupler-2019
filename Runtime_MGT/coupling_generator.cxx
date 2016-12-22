@@ -20,7 +20,7 @@ Coupling_connection::Coupling_connection(int id)
 	import_procedure = NULL;
 	export_procedure = NULL;
 	connection_id = id;
-    union_comm = MPI_COMM_NULL;
+    union_comm = -1;
     src_proc_ranks_in_union_comm = NULL;
     dst_proc_ranks_in_union_comm = NULL;
 }
@@ -38,15 +38,15 @@ void Coupling_connection::generate_a_coupling_procedure()
 	if (current_proc_id_src_comp == -1 && current_proc_id_dst_comp == -1)
 		return;
 
-	printf("start to generate coupling connection %d at process %d\n", connection_id, comp_comm_group_mgt_mgr->get_current_proc_global_id());
-
 	if (current_proc_id_src_comp != -1) {
 		export_interface = inout_interface_mgr->get_interface(src_comp_interfaces[0].first, src_comp_interfaces[0].second);
 		EXECUTION_REPORT(REPORT_ERROR, -1, export_interface != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: NULL export interface");
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate a coupling connection from \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	}
 	if (current_proc_id_dst_comp != -1) {
 		import_interface = inout_interface_mgr->get_interface(dst_comp_full_name, dst_interface_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: NULL import interface");
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to generate a coupling connection from \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	}
 
     create_union_comm();
@@ -58,7 +58,6 @@ void Coupling_connection::generate_a_coupling_procedure()
 	if (current_proc_id_src_comp != -1) {
 		export_procedure = new Connection_coupling_procedure(export_interface, this);
 		export_interface->add_coupling_procedure(export_procedure);
-		printf("add coupling procedure of data to comp %s into interface %s\n", dst_comp_full_name, export_interface->get_interface_name());
 	}
 	if (current_proc_id_dst_comp != -1) {
 		import_procedure = new Connection_coupling_procedure(import_interface, this);
@@ -67,7 +66,10 @@ void Coupling_connection::generate_a_coupling_procedure()
 
 	generate_data_transfer();
 
-	printf("finish generating coupling connection at process %d\n", comp_comm_group_mgt_mgr->get_current_proc_global_id());
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish generating a coupling connection from \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish generating a coupling connection from \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 void Coupling_connection::create_union_comm()
@@ -80,7 +82,11 @@ void Coupling_connection::create_union_comm()
     int src_comp_num_procs = src_comp_node->get_num_procs();
     int dst_comp_num_procs = dst_comp_node->get_num_procs();
 
-	printf("create union comm between %s %s : %d\n", src_comp_node->get_full_name(), dst_comp_node->get_full_name(), connection_id);
+
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 
     src_comm = src_comp_node->get_comm_group();
     dst_comm = dst_comp_node->get_comm_group();
@@ -154,6 +160,11 @@ void Coupling_connection::create_union_comm()
 
     delete [] src_ranks;
     delete [] dst_ranks;
+
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 
@@ -168,6 +179,11 @@ void Coupling_connection::generate_data_transfer()
 	int dst_comp_id, content_size = NAME_STR_SIZE;
 	char *temp_dst_decomp_name = new char [NAME_STR_SIZE];
 
+
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 
 	for (int i = 0; i < fields_name.size(); i ++) { 
 		if (dst_fields_info[i]->runtime_remapping_weights != NULL && dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info() != NULL) {
@@ -213,6 +229,11 @@ void Coupling_connection::generate_data_transfer()
 	delete [] dst_fields_mem;
 	delete [] fields_router;
 	delete [] temp_dst_decomp_name;
+
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish generating runtime data transfer algorithm from component \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish generating runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 
@@ -262,7 +283,6 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 
 	if (original_grid_status == 0) {
 		Remap_grid_class *mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
-		printf("build mirror grid %s\n", mirror_grid->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
 		original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid);
 	}
@@ -293,6 +313,11 @@ void Coupling_connection::exchange_remapping_setting(int i, Remapping_setting &f
 
 void Coupling_connection::generate_interpolation()
 {
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+
 	for (int i = 0; i < fields_name.size(); i ++) {
 		src_fields_info[i]->runtime_remapping_weights = NULL;
 		dst_fields_info[i]->runtime_remapping_weights = NULL;
@@ -310,6 +335,11 @@ void Coupling_connection::generate_interpolation()
 			dst_fields_info[i]->runtime_remapping_weights = new Runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 		}	
 	}
+
+	if (current_proc_id_src_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	if (current_proc_id_dst_comp != -1)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 
@@ -333,15 +363,6 @@ void Coupling_connection::exchange_connection_fields_info()
 
 	for (int i = 0; i < src_fields_info.size(); i ++)
 		src_fields_info[i]->timer->reset_lag_count();
-
-	if (current_proc_id_src_comp == 0) {
-		for (int i = 0; i < fields_name.size(); i ++) {
-			printf("src field info: %s    %s     %s   %s  :  %s (%d  %d) : %d %d\n", fields_name[i], src_fields_info[i]->grid_name, src_fields_info[i]->decomp_name, src_fields_info[i]->data_type, src_fields_info[i]->unit, 
-				src_fields_info[i]->timer->get_frequency_unit(), src_fields_info[i]->timer->get_frequency_count(), src_fields_info[i]->timer->get_lag_count(), src_fields_info[i]->time_step_in_second);
-			printf("dst field info: %s    %s     %s   %s  :  %s (%d  %d) : %d %d  %d\n", fields_name[i], dst_fields_info[i]->grid_name, dst_fields_info[i]->decomp_name, dst_fields_info[i]->data_type, dst_fields_info[i]->unit, 
-				dst_fields_info[i]->timer->get_frequency_unit(), dst_fields_info[i]->timer->get_frequency_count(), dst_fields_info[i]->timer->get_lag_count(), dst_fields_info[i]->time_step_in_second, dst_fields_info[i]->inst_or_aver);
-		}
-	}
 	
 	delete [] src_fields_info_array;
 	delete [] dst_fields_info_array;
@@ -407,7 +428,7 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 	TiXmlElement *fields_element = NULL, *components_element = NULL, *remapping_element = NULL, *merge_element = NULL;
 	int i, line_number;
 
-	printf("in Import_direction_setting::Import_direction_setting\n");
+
 	strcpy(this->interface_name, interface_name);
 	for (TiXmlNode *detailed_element_node = redirection_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
@@ -439,7 +460,6 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 			}
 			else if (words_are_the_same(default_str, "all")) {
 				fields_default_setting = 1;
-				printf("use all fields in configuration %d\n", interface_fields_name.size());
 				for (i = 0; i < interface_fields_name.size(); i ++) {
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_count[i] == 0, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the configuration information of field \"%s\" has been set more than once. This is not allowed. Please note that the default value \"all\" means all fields. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, interface_fields_name[i], detailed_element->Row()); 
 					fields_count[i] ++;
@@ -489,9 +509,6 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 				}
 			}
 		}
-		else if (words_are_the_same(detailed_element->Value(), "remapping_setting")) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"remapping_setting\" is not supported currently", interface_name, XML_file_name);
-		}
 		else if (words_are_the_same(detailed_element->Value(), "merge_setting")) {
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"merge_setting\" is not supported currently", interface_name, XML_file_name);
 		}
@@ -499,7 +516,6 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 	}		
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about fields is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, components_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about components is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
-	printf("qiguai config %d %d\n", fields_name.size(), components_full_name.size());
 	for (i = 0; i < fields_name.size(); i ++)
 		for (int j = 0; j < components_full_name.size(); j ++)
 			interface_configuration->add_field_src_component(comp_id, fields_name[i], components_full_name[j]);
@@ -519,12 +535,9 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 	Inout_interface *interface_ptr = all_interfaces_mgr->get_interface(comp_full_name, interface_name);
 	std::vector<const char*> components_long_names;
 	
-
-	printf("in Import_interface_configuration::Import_interface_configuration\n");
 	
 	strcpy(this->interface_name, interface_name);
 	interface_ptr->get_fields_name(&fields_name);
-	printf("whywhy %d\n", fields_name.size());
 	fields_count = new int [fields_name.size()];
 	for (int i = 0; i < fields_name.size(); i ++)
 		fields_count[i] = 0;
@@ -542,25 +555,15 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 			continue;
 		import_directions.push_back(new Import_direction_setting(this, comp_full_name, interface_name, redirection_element, XML_file_name, fields_name, fields_count));
 	}
-
-	for (int i = 0; i < fields_name.size(); i ++) {
-		printf("The src components for field \"%s\" according to the coupling configuration are:\n", fields_name[i]);
-		for (int j = 0; j < fields_src_components[i].size(); j ++)
-			printf("        \"%s\"\n", fields_src_components[i][j]);
-	}
 }
 
 
 void Import_interface_configuration::add_field_src_component(int comp_id, const char *field_name, const char *comp_full_name)
 {
 	int i;
-
-	
 	for (i = 0; i < fields_name.size(); i ++)
 		if (words_are_the_same(field_name, fields_name[i]))
 			break;
-
-	printf("add field src component %s %s\n", field_name, comp_full_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_name.size(), "Software error in Import_interface_configuration::add_field_src_component");
 	fields_src_components[i].push_back(comp_full_name);
 }
@@ -598,6 +601,8 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 		return;
 	}
 	fclose(tmp_file);
+	
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Start to load the configuration of import interfaces from the XML file %s", XML_file_name);
 
 	TiXmlDocument XML_file(XML_file_name);
 	sprintf(XML_file_name, "%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
@@ -619,7 +624,6 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 		strcpy(local_interface_name, interface_name);
 		check_and_verify_name_format_of_string_for_XML(-1, local_interface_name, "the import interface", XML_file_name, line_number);
 		Inout_interface *import_interface = interface_mgr->get_interface(comp_full_name, local_interface_name);
-		printf("to get import interface %s  %s: %lx\n", comp_full_name, local_interface_name, import_interface);
 		if (import_interface == NULL) {
 			EXECUTION_REPORT(REPORT_WARNING, -1, false, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" does not register the corresponding import interface. So this redirection configuration information is negleted.\"", 
 				             local_interface_name, XML_file_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
@@ -632,6 +636,8 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 				
 		import_interfaces_configuration.push_back(new Import_interface_configuration(comp_full_name, import_interface->get_interface_name(), interface_XML_element, XML_file_name, interface_mgr));
 	}
+	
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s", XML_file_name);
 }
 
 
@@ -658,8 +664,10 @@ void Coupling_generator::generate_coupling_procedures()
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 	
 
+	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to generate coupling procedure");
 	inout_interface_mgr->merge_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
+	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {		
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
 		all_interfaces_mgr->write_all_interfaces_fields_info();
 		generate_interface_fields_source_dst(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
@@ -788,23 +796,14 @@ void Coupling_generator::generate_coupling_procedures()
 		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_iter == 0, "Software error in Coupling_generator::generate_coupling_procedures: %d", buffer_content_iter);
 	}
 
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 2) {
-		for (int i = 0; i < all_coupling_connections.size(); i ++) {
-			printf("check fields (");
-			for (int j = 0; j < all_coupling_connections[i]->fields_name.size(); j ++)
-				printf("%s ", all_coupling_connections[i]->fields_name[j]);
-			printf(")");
-			printf(" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", all_coupling_connections[i]->dst_interface_name, all_coupling_connections[i]->dst_comp_full_name, all_coupling_connections[i]->src_comp_interfaces.size());
-			for (int j = 0; j < all_coupling_connections[i]->src_comp_interfaces.size(); j ++)
-				printf("		component is \"%s\", interface is \"%s\"\n", all_coupling_connections[i]->src_comp_interfaces[j].first, all_coupling_connections[i]->src_comp_interfaces[j].second);
-		}
-	}
-
 	delete [] temp_array_buffer;
 
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure();
 	}
+	
+	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish generating coupling procedure");
 }
 
 
@@ -814,7 +813,6 @@ void Coupling_generator::generate_IO_procedures()
 
 	components_IO_output_procedures_mgr->add_all_components_IO_output_procedures();
 	for (int i = 1; i < sorted_comp_ids[0]; i ++) {
-		printf("comp id is %x\n", sorted_comp_ids[i]);
 		if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(sorted_comp_ids[i], "in Coupling_generator::generate_IO_procedures") == -1)
 			continue;
 		components_IO_output_procedures_mgr->get_component_IO_output_procedures(sorted_comp_ids[i])->generate_coupling_connection(all_IO_connections, all_coupling_connections.size());
@@ -823,8 +821,6 @@ void Coupling_generator::generate_IO_procedures()
 	for (int i = 0; i < all_IO_connections.size(); i ++) {
 		all_IO_connections[i]->generate_a_coupling_procedure();
 	}
-
-	printf("there are %d IO connections\n", all_IO_connections.size());
 }
 
 

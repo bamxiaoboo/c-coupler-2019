@@ -131,8 +131,6 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 
 	finish_status = false;
 	transfer_data = false;
-
-	printf("execute connection procedure for dst %s %lx\n", coupling_connection->dst_comp_full_name, inout_interface);
 	
 	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 		if (inout_interface->get_import_or_export() == 0) {
@@ -236,21 +234,16 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				if (fields_time_info_src[i]->current_num_elapsed_days != fields_time_info_src[i]->last_timer_num_elapsed_days || fields_time_info_src[i]->current_second != fields_time_info_src[i]->last_timer_second) {
 					if (fields_time_info_dst[i]->inst_or_aver == USING_AVERAGE_VALUE)
 						runtime_inner_averaging_algorithm[i]->run(false);
-					printf("src accum/aver %d: inner accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
 					continue;
 				}
 				runtime_inner_averaging_algorithm[i]->run(true);
-				printf("src accum/aver %d: inner average field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inner_step_averaged[i]->get_data_buf())[0]);
 				if (((long)fields_time_info_src[i]->current_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_src[i]->current_second == ((long)fields_time_info_dst[i]->last_timer_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_dst[i]->last_timer_second+lag_seconds) {
 					current_remote_fields_time[i] = ((long)fields_time_info_dst[i]->last_timer_num_elapsed_days)*100000 + fields_time_info_dst[i]->last_timer_second;
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] != current_remote_fields_time[i], "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time[i] = current_remote_fields_time[i];
 					runtime_inter_averaging_algorithm[i]->run(true);
-					printf("src accum/aver %d: inter average field normal %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
-					if (runtime_datatype_transform_algorithms[i] != NULL) {
+					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
-						printf("after data type transformation %f\n", ((float*)fields_mem_datatype_transformed[i]->get_data_buf())[0]);
-					}
 					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i])) {  // restart related
 						transfer_process_on[i] = true;
 						transfer_data = true;
@@ -262,28 +255,18 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] != current_remote_fields_time[i], "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time[i] = current_remote_fields_time[i];
 					runtime_inter_averaging_algorithm[i]->run(true);
-					printf("src accum/aver %d: inter average field special %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
-					if (runtime_datatype_transform_algorithms[i] != NULL) {
+					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
-						printf("after data type transformation %f\n", ((float*)fields_mem_datatype_transformed[i]->get_data_buf())[0]);
-					}
 					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i])) {  // restart related
 						transfer_process_on[i] = true;
 						transfer_data = true;
 					}
 				}
 				else {
-					if (fields_time_info_dst[i]->inst_or_aver == USING_AVERAGE_VALUE) {
+					if (fields_time_info_dst[i]->inst_or_aver == USING_AVERAGE_VALUE)
 						runtime_inter_averaging_algorithm[i]->run(false);
-						printf("src accum/aver %d: inter accumulate field %s: %f\n", time_mgr->get_current_step_id(), fields_mem_registered[i]->get_field_name(), ((double*)fields_mem_inter_step_averaged[i]->get_data_buf())[0]);
-					}
 				}	
 			}
-		}
-		for (int i = 0; i < fields_time_info_src.size(); i ++) {
-			if (transfer_process_on[i])
-				printf("check data transfer order: %s %s send remote data %ld at %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_comp_name(),
-				inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 		}
 		if (!transfer_data)
 			finish_status = true;

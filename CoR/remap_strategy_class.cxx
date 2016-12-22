@@ -32,7 +32,6 @@ Remap_strategy_class::Remap_strategy_class(const char *strategy_name, int num_re
     for (i = 0; i < num_all_leaf_grids; i ++) {
         src_leaf_grids_mask[i] = true;
         dst_leaf_grids_mask[i] = true;
-		printf("leaf grid %s\n", all_leaf_grids[i]->get_grid_name());
     }
 
     for (i = 0; i < num_remap_operators; i ++) {

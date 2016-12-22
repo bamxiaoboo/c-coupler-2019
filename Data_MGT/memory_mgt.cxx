@@ -118,7 +118,6 @@ void Field_mem_info::reset_mem_buf(void * buf, bool is_restart_field)
     grided_field_data->get_grid_data_field()->data_buf = buf;
     is_registered_model_buf = true;
     this->is_restart_field = is_restart_field;
-	printf("label registered buff %lx\n", this);
 }
 
 
@@ -133,7 +132,6 @@ void Field_mem_info::define_field_values(bool is_restarting)
 	if (!is_restarting)
 		is_field_active = true;
     last_define_time = components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time();
-	printf("define field instance %lx\n", this);
 }
 
 
@@ -144,8 +142,6 @@ void Field_mem_info::use_field_values(const char *cfg_name)
     
     if (last_define_time == components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time())
         return;
-
-	printf("use field instance %lx\n", this);
 
     EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
     EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time <= components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time(), "C-Coupler error in set_use_field\n");
@@ -280,7 +276,6 @@ Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, i
 	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || 
 		             special_buf_mark == BUF_MARK_IO_FIELD_MIRROR || special_buf_mark == BUF_MARK_REMAP_NORMAL || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
 	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
-	printf("buf mark is %d vs %d\n", new_buf_mark, original_field_instance->get_buf_mark());
 	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
 	EXECUTION_REPORT(REPORT_ERROR, -1, existing_field_instance == NULL, "Software error in Field_mem_info *alloc_mem: special field instance exists");
 	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)

@@ -133,8 +133,6 @@ void Remap_mgt::parse_statement(const int num_words_in_statement, char **words_i
     int matched_defined_statement_object_id;
 
 
-	EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "");
-
     /* Allocate and initialize remap_statement */
     remap_statement = new Remap_statement;
     remap_statement->line_number = line_number;

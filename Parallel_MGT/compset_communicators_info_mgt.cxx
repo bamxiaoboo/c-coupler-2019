@@ -308,21 +308,6 @@ void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 }
 
 
-void Comp_comm_group_mgt_node::print_global_nodes()
-{
-	if (parent != NULL)
-		printf("information of global node (%x: %d) (%s) at process %d, parent id is %x, number of children is %d, ", comp_id, current_proc_local_id, comp_name, current_proc_global_id, parent->comp_id, children.size());
-	else printf("information of global node (%x: %d) (%s) at process %d, does not have parent, number of children is %d, ", comp_id, current_proc_local_id, comp_name, current_proc_global_id, children.size()); 
-	printf("processes include: ");
-	for (int i = 0; i < local_processes_global_ids.size(); i ++)
-		printf("%d  ", local_processes_global_ids[i]);
-	printf("\n\n\n");
-
-	for (int i = 0; i < children.size(); i ++)
-		children[i]->print_global_nodes();
-}
-
-
 void Comp_comm_group_mgt_node::update_child(const Comp_comm_group_mgt_node *child_old, Comp_comm_group_mgt_node *child_new)
 {
 	int i;
@@ -559,10 +544,6 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 		write_comp_comm_info_into_XML();
 		read_comp_comm_info_from_XML();
 	}
-	if (global_node->get_current_proc_local_id() == 0) {
-		printf("dump comps at root comp %s\n", global_node->get_comp_name());
-		global_node->print_global_nodes();	
-	}
 
 	if (true_local_id == 1)
 		merge_comp_comm_info(global_node_array[0]->get_local_node_id(), annotation);
@@ -588,10 +569,8 @@ void Comp_comm_group_mgt_mgr::generate_sorted_comp_ids()
 		EXECUTION_REPORT(REPORT_ERROR, -1, sorted_comp_ids[k+1] == -1, "in Comp_comm_group_mgt_mgr::generate_sorted_comp_ids");		
 		sorted_comp_ids[k+1] = global_node_array[i]->get_comp_id();
 	}
-	for (i = 1; i < global_node_array.size(); i ++) {
-		printf("sorted comp %d: \"%s\"\n", i-1, get_global_node_of_local_comp(sorted_comp_ids[i], "")->get_full_name());
+	for (i = 1; i < global_node_array.size(); i ++)
 		get_global_node_of_local_comp(sorted_comp_ids[i], "")->set_unified_global_id(i);
-	}
 }
 
 
@@ -615,12 +594,8 @@ void Comp_comm_group_mgt_mgr::get_output_data_file_header(int comp_id, char *dat
 
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_data_file_header");
-	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
-	printf("before get log_file_name\n");
-	fflush(NULL);	
+	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);	
 	sprintf(data_file_header, "%s/data/%s", global_node_array[true_comp_id]->get_working_dir(), global_node_array[true_comp_id]->get_comp_name());
-	printf("data_file_header is %s\n", data_file_header);
-	fflush(NULL);
 }
 
 
@@ -631,11 +606,7 @@ void Comp_comm_group_mgt_mgr::get_log_file_name(int comp_id, char *log_file_name
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_log_file_name");
 	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
-	printf("before get log_file_name\n");
-	fflush(NULL);	
 	sprintf(log_file_name, "%s/CCPL_logs/%s.CCPL.log.%d", global_node_array[true_comp_id]->get_working_dir(), global_node_array[true_comp_id]->get_comp_name(), global_node_array[true_comp_id]->get_current_proc_local_id());
-	printf("log file name size is %d %d %d\n", strlen(log_file_name), strlen(global_node_array[true_comp_id]->get_working_dir()), strlen(global_node_array[true_comp_id]->get_comp_name()));
-	fflush(NULL);
 }
 
 

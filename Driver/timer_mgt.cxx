@@ -29,8 +29,6 @@ bool common_is_timer_on(const char *frequency_unit, int frequency_count, int lag
 
     EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
 
-	printf("check %d-%d-%d-%d: %s %d %d\n", current_year, current_month, current_day, current_second, frequency_unit, frequency_count, lag_count);
-
     if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
         num_elapsed_time = ((long)(current_num_elapsed_day-start_num_elapsed_day))*SECONDS_PER_DAY + current_second - start_second;
     }
@@ -485,7 +483,6 @@ void Time_mgt::build_restart_timer()
 {
 	if (!words_are_the_same(rest_freq_unit, "none"))
 		restart_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, rest_freq_unit, rest_freq_count, 0, "C-Coupler define restart timer"));
-	printf("information for building restart timer is %s %d\n", rest_freq_unit, rest_freq_count);
 }
 
 
@@ -586,7 +583,6 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
     current_step_id ++;
 
 	advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_day, time_step_in_second);
-	printf("current time is %d   %d   %d   %d   %d  %d\n", current_year, current_month, current_day, current_second, current_num_elapsed_day, current_step_id);
 }
 
 
@@ -839,7 +835,6 @@ void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "get comp name in Time_mgt::set_time_step_in_second")->get_comp_name(), annotation);
 	if (stop_year != -1) {
 		long total_seconds = (stop_num_elapsed_day-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
-		printf("stop time is %d %d %d %d: %d %d %d %d: %ld : %d VS %d %d\n", stop_year, stop_month, stop_day, stop_second, start_year, start_month, start_day, start_second, total_seconds, current_num_elapsed_day, start_num_elapsed_day, stop_num_elapsed_day);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, total_seconds%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the start time and the stop time of the simulation. Please check the model code and the XML file \"env_run.xml\"", annotation);
 		num_total_steps = total_seconds / time_step_in_second;
 	}
@@ -852,7 +847,6 @@ void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 			rest_freq = SECONDS_PER_DAY;
 		else if (words_are_the_same(rest_freq_unit, "seconds"))
 			rest_freq = rest_freq_count;
-		printf("qiguai %d vs %d: %s %d\n", rest_freq, time_step_in_second, rest_freq_unit, rest_freq_count);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
 	}	
 }
