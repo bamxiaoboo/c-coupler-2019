@@ -80,7 +80,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
 		if (inout_interface->get_import_or_export() == 1) {
 			if (!words_are_the_same(transfer_data_type, coupling_connection->src_fields_info[i]->data_type)) {
-				printf("for field %s, add data type transformation at src from %s to %s\n", coupling_connection->fields_name[i], coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "for field %s, add data type transformation at src from %s to %s\n", coupling_connection->fields_name[i], coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
 				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
 			}	
@@ -94,7 +94,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
 			}
 			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
-				printf("for field %s, add data type transformation at dst from %s to %s\n", coupling_connection->fields_name[i], transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "for field %s, add data type transformation at dst from %s to %s\n", coupling_connection->fields_name[i], transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER);
 				if (fields_mem_remapped[i] == NULL)
 					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
@@ -145,7 +145,6 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			remote_fields_time_info = fields_time_info_dst[i];
 			lag_seconds = -remote_fields_time_info->lag_seconds;
 		}
-		printf("lag seconds is %d\n", lag_seconds);
 		time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0);
 		local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();
 		if (local_fields_time_info->last_timer_num_elapsed_days != -1) 
@@ -168,7 +167,6 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
 			}
 			remote_fields_time_info->get_time_of_next_timer_on(false);
-			printf("qiguaiqiguai %s %d-%05d with %d-%05d\n", inout_interface->get_interface_name(), remote_fields_time_info->last_timer_num_elapsed_days, remote_fields_time_info->last_timer_second, local_fields_time_info->current_num_elapsed_days, local_fields_time_info->current_second);
 		}
 	}
 	
@@ -186,25 +184,16 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				transfer_process_on[i] = false;
 				continue;
 			}
-			printf("current_remote_fields_time[i] 4 is %d  %d\n", (long)fields_time_info_src[i]->last_timer_num_elapsed_days, fields_time_info_src[i]->last_timer_second);
 			current_remote_fields_time[i] = ((long)fields_time_info_src[i]->last_timer_num_elapsed_days) * 100000 + fields_time_info_src[i]->last_timer_second; 
 			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) && current_remote_fields_time[i] != last_remote_fields_time[i]) {  // restart related
 				transfer_process_on[i] = true;
 				last_remote_fields_time[i] = current_remote_fields_time[i];
-				printf("receive remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_dst[i]->current_num_elapsed_days)*100000+fields_time_info_dst[i]->current_second);
 				transfer_data = true;
 			}
-			else {
-				transfer_process_on[i] = false;
-				printf("neglecting remote data %ld at %ld\n", current_remote_fields_time[i], ((long)fields_time_info_dst[i]->current_num_elapsed_days)*100000+fields_time_info_dst[i]->current_second);
-			}
+			else transfer_process_on[i] = false;
 		}
 		if (transfer_data) {
-			for (int i = 0; i < current_remote_fields_time.size(); i ++)
-				printf("check data transfer order: %s %s receive data of remote time %ld at local time %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_comp_name(),
-				inout_interface->get_interface_name(), current_remote_fields_time[i], ((long)time_mgr->get_current_num_elapsed_day())*100000+time_mgr->get_current_second());
 			runtime_data_transfer_algorithm->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
-			printf("receive data at %lx for %lx  %lx %s\n", this, runtime_data_transfer_algorithm, inout_interface, inout_interface->get_interface_name());
 			runtime_data_transfer_algorithm->run(bypass_timer);
 			for (int i = 0; i < fields_time_info_dst.size(); i ++) {
 				if (transfer_process_on[i]) {
@@ -298,11 +287,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 		if (!transfer_data)
 			finish_status = true;
-		if (transfer_data) {
-			for (int i = 0; i < current_remote_fields_time.size(); i ++)
-				printf("current_remote_fields_time[i] 3 is %ld\n", current_remote_fields_time[i]);
+		if (transfer_data)
 			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
-		}
 	}
 }
 
@@ -339,7 +325,6 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_cont
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_long_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_node != NULL, "Software error in Inout_interface::Inout_interface");
 	comp_id = comp_node->get_local_node_id();
-	printf("comp full name is %s: %x\n", comp_long_name, comp_id);
 }
 
 
@@ -365,7 +350,6 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	}
 
 	for (int i = 0; i < num_fields; i ++) {
-		printf("field is check is %d\n", field_ids[i]);
 		if (interface_type != INTERFACE_TYPE_IO_WRITE)
 			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Wrong field instance id is detected when registering a import/export interface. Please verify the model code related to the annotation \"%s\"", annotation);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface. All timers and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
@@ -409,8 +393,6 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		else this->inst_or_aver.push_back(inst_or_aver[i]);
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
 	}
-	if (num_fields != timer_ids_size)
-		printf("special timer %d vs %d\n", num_fields, timer_ids_size);
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	strcpy(this->interface_name, interface_name);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
@@ -583,16 +565,25 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 			}	
 		}
 	}
+
+	if (import_or_export == 0) {
+		for (int i = 0; i < fields_mem_registered.size(); i ++) {
+			if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT))
+				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %f : %f\n", interface_name, fields_mem_registered[i]->get_field_name(), ((float*) fields_mem_registered[i]->get_data_buf())[0], ((float*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);
+			else if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE))
+				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %lf : %lf\n", interface_name, fields_mem_registered[i]->get_field_name(), ((double*) fields_mem_registered[i]->get_data_buf())[0], ((double*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);
+			else if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT))
+				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %d : %d\n", interface_name, fields_mem_registered[i]->get_field_name(), ((int*) fields_mem_registered[i]->get_data_buf())[0], ((int*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);		
+		}
+	}
 }
 
 
 Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, int buffer_content_iter)
 {
 	this->temp_array_buffer = NULL;
-	while (buffer_content_iter > 0) {
-		printf("iter is %d\n", buffer_content_iter);
+	while (buffer_content_iter > 0)
 		interfaces.push_back(new Inout_interface(temp_array_buffer, buffer_content_iter));
-	}
 }
 
 
@@ -762,9 +753,9 @@ void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer,
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_interface_id_legal(interface_id), "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
 	inout_interface = get_interface(interface_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface != NULL, "0x%x should be the ID of import/export interface. However, it is wrong as the corresponding interface is not found. Please check the model code with the annotation \"%s\"", interface_id, annotation);
-	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\"", inout_interface->get_interface_name());	
+	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, annotation);
-	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\"", inout_interface->get_interface_name());	
+	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 
 

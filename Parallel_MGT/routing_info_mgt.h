@@ -43,8 +43,6 @@ class Routing_info
 		Decomp_info *dst_decomp_info;
         Comp_comm_group_mgt_node * src_comp_node;
         Comp_comm_group_mgt_node * dst_comp_node;
-        bool is_in_src_comp;
-        bool is_in_dst_comp;
 		int current_proc_id_src_comp;
 		int current_proc_id_dst_comp;
         char remote_comp_name[NAME_STR_SIZE];
@@ -54,19 +52,19 @@ class Routing_info
         int total_num_transferred_cells;
         long local_decomp_size;
 		long remap_decomp_size;
-        std::vector<Routing_info_with_one_process *> remote_procs_routing_info;
+        std::vector<Routing_info_with_one_process *> recv_from_remote_procs_routing_info;
+		std::vector<Routing_info_with_one_process *> send_to_remote_procs_routing_info;
 		Component_communicator_info *local_communicator_info;
 
     public:
         Routing_info(const char*, const char *, const char *, const char*);
         Routing_info(const int, const int, const char*, const char*);
         ~Routing_info();
-        int get_true_routing_info_index(bool, int);
-        //int get_num_remote_procs() { return remote_procs_routing_info.size(); }
-        int get_num_elements_transferred_with_remote_proc(bool, int);
-        int *get_local_indx_segment_starts_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->local_indx_segment_starts; }
-        int *get_local_indx_segment_lengths_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->local_indx_segment_lengths; }
-        int get_num_local_indx_segments_with_remote_proc(bool is_send, int i) { return remote_procs_routing_info[get_true_routing_info_index(is_send,i)]->num_local_indx_segments; }
+        Routing_info_with_one_process *get_routing_info(bool, int);
+        int get_num_elements_transferred_with_remote_proc(bool is_send, int i) { return get_routing_info(is_send,i)->num_elements_transferred; }
+		int *get_local_indx_segment_starts_with_remote_proc(bool is_send, int i) { return get_routing_info(is_send,i)->local_indx_segment_starts; }
+		int *get_local_indx_segment_lengths_with_remote_proc(bool is_send, int i) { return get_routing_info(is_send,i)->local_indx_segment_lengths; }
+		int get_num_local_indx_segments_with_remote_proc(bool is_send, int i) { return get_routing_info(is_send,i)->num_local_indx_segments; }
         bool match_router(const char*, const char*, const char*);
         bool match_router(const int, const int, const char*, const char*);
         int get_num_dimensions() { return num_dimensions; }
@@ -81,7 +79,7 @@ class Routing_info
         void build_2D_remote_router(const char*);
         void build_2D_router();
         void build_2D_self_router(const char*, const char*);
-        void compute_routing_info_between_decomps(int, const int*, int, const int*, int, int, int);
+        Routing_info_with_one_process *compute_routing_info_between_decomps(int, const int*, int, const int*, int, int, int);
 };
 
 

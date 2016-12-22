@@ -91,14 +91,8 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const c
     strcpy(this->dst_decomp_name, dst_decomp_name);
     src_decomp_size = 0;
     dst_decomp_size = 0;
-    is_in_src_comp = false;
-    is_in_dst_comp = false;
     current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
     current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
-    if (current_proc_id_src_comp != -1) 
-		is_in_src_comp = true;
-    if (current_proc_id_dst_comp != -1) 
-		is_in_dst_comp = true;
 
     if (words_are_the_same(src_decomp_name, "NULL")) {
         EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(dst_decomp_name, "NULL"), "for router of scalar variables, the local and remote decompositions must be \"NULL\"\n");
@@ -168,10 +162,16 @@ Routing_info::Routing_info(const char *local_comp_name, const char *remote_comp_
 
 Routing_info::~Routing_info()
 {
-    for (int i = 0; i < remote_procs_routing_info.size(); i ++) {
-        if (remote_procs_routing_info[i]->num_elements_transferred > 0) {
-            delete [] remote_procs_routing_info[i]->local_indx_segment_starts;
-            delete [] remote_procs_routing_info[i]->local_indx_segment_lengths;
+    for (int i = 0; i < recv_from_remote_procs_routing_info.size(); i ++) {
+        if (recv_from_remote_procs_routing_info[i]->num_elements_transferred > 0) {
+            delete [] recv_from_remote_procs_routing_info[i]->local_indx_segment_starts;
+            delete [] recv_from_remote_procs_routing_info[i]->local_indx_segment_lengths;
+        }
+    }
+    for (int i = 0; i < send_to_remote_procs_routing_info.size(); i ++) {
+        if (send_to_remote_procs_routing_info[i]->num_elements_transferred > 0) {
+            delete [] send_to_remote_procs_routing_info[i]->local_indx_segment_starts;
+            delete [] send_to_remote_procs_routing_info[i]->local_indx_segment_lengths;
         }
     }
 }
@@ -206,6 +206,7 @@ void Routing_info::build_2D_router()
     int *cells_indx_each_dst_proc = NULL;
     int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
     int dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
+    Routing_info_with_one_process *routing_info;
 
 
     if (current_proc_id_src_comp != -1) {
@@ -237,23 +238,25 @@ void Routing_info::build_2D_router()
 	
     if (current_proc_id_src_comp != -1) {
         int tmp_displs = 0;
-        if (num_local_src_cells > 0)
+        if (num_local_src_cells > 0) {
             for (int i = 0; i < num_dst_procs; i ++) {
-                compute_routing_info_between_decomps(num_local_src_cells, src_decomp_info->get_local_cell_global_indx(), num_cells_each_dst_proc[i], cells_indx_each_dst_proc+tmp_displs, 
-                    src_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), dst_comp_node->get_local_proc_global_id(i));        
-                remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = true;
+                routing_info = compute_routing_info_between_decomps(num_local_src_cells, src_decomp_info->get_local_cell_global_indx(), num_cells_each_dst_proc[i], cells_indx_each_dst_proc+tmp_displs, 
+                                                                    src_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), dst_comp_node->get_local_proc_global_id(i));
                 tmp_displs += num_cells_each_dst_proc[i];
+				send_to_remote_procs_routing_info.push_back(routing_info);
             }
+        }
+		
     }
 
     if (current_proc_id_dst_comp != -1) {
         int tmp_displs = 0;
         if (num_local_dst_cells > 0)
             for (int i = 0; i < num_src_procs; i ++) {
-                compute_routing_info_between_decomps(num_local_dst_cells, local_dst_cells_global_indx, num_cells_each_src_proc[i], cells_indx_each_src_proc+tmp_displs, 
-                    dst_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i));        
-                remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = false;
+                routing_info = compute_routing_info_between_decomps(num_local_dst_cells, local_dst_cells_global_indx, num_cells_each_src_proc[i], cells_indx_each_src_proc+tmp_displs, 
+                                                                    dst_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i));        
                 tmp_displs += num_cells_each_src_proc[i];
+				recv_from_remote_procs_routing_info.push_back(routing_info);
             }
     }
     
@@ -346,7 +349,7 @@ void Routing_info::build_2D_remote_router(const char *decomp_name)
 }
 
 
-void Routing_info::compute_routing_info_between_decomps(int num_local_cells_local, const int *local_cells_global_indexes_local, 
+Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomps(int num_local_cells_local, const int *local_cells_global_indexes_local, 
                                                   int num_local_cells_remote, const int *local_cells_global_indexes_remote, 
                                                   int num_global_cells, int local_proc_id, int remote_proc_id)
 {
@@ -368,7 +371,6 @@ void Routing_info::compute_routing_info_between_decomps(int num_local_cells_loca
         (num_local_cells_remote == num_local_cells_local && (src_comp_node->get_unified_global_id() < dst_comp_node->get_unified_global_id()))) {
         reference_cell_indx = local_cells_global_indexes_remote;
         num_reference_cells = num_local_cells_remote;  
-        //EXECUTION_REPORT(REPORT_LOG,-1, true, "use remote index array in router (%s %s %s)", remote_comp_name, remote_decomp_name, local_decomp_name);
     }
     else {
         reference_cell_indx = local_cells_global_indexes_local;
@@ -418,112 +420,30 @@ void Routing_info::compute_routing_info_between_decomps(int num_local_cells_loca
                 else routing_info->local_indx_segment_lengths[routing_info->num_local_indx_segments - 1] ++;
                 last_local_logical_indx = logical_indx_lookup_table_local[reference_cell_indx[j]];
             }
-        remote_procs_routing_info.push_back(routing_info);
     }
-    else remote_procs_routing_info.push_back(routing_info);
 
     delete [] logical_indx_lookup_table_remote;
     delete [] logical_indx_lookup_table_local;
+
+	return routing_info;
 }
 
 
 void Routing_info::build_2D_self_router(const char *decomp_name_remap, const char *decomp_name_local)
 {
-    Decomp_info *decomp_remap, *decomp_local;
-    int *num_local_cells_all_remap, *num_local_cells_all_local;
-    int *local_cells_global_index_all_remap, *local_cells_global_index_all_local;
-    int *displ_remap, *displ_local;
-    int num_local_cells_remap, num_local_cells_local, num_total_cells, num_global_cells;
-    int num_comp_procs;
-    int i;
-
-
-	MPI_Barrier(local_communicator_info->comm_group);
-    EXECUTION_REPORT(REPORT_LOG,-1, true, "begin building 2D self router");
-
-    decomp_remap = decomps_info_mgr->search_decomp_info(decomp_name_remap);
-    decomp_local = decomps_info_mgr->search_decomp_info(decomp_name_local);
-    num_global_cells = decomp_remap->get_num_global_cells();
-
-    num_local_cells_remap = decomp_remap->get_num_local_cells();
-    num_local_cells_local = decomp_local->get_num_local_cells();
-    num_comp_procs = local_communicator_info->num_comp_procs;
-    num_local_cells_all_remap = new int [num_comp_procs];
-    num_local_cells_all_local = new int [num_comp_procs];
-    displ_remap = new int [num_comp_procs];
-    displ_local = new int [num_comp_procs];
-
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "in building 2D self router, before allgather");
-
-    MPI_Allgather(&num_local_cells_remap, 1, MPI_INT, num_local_cells_all_remap, 1, MPI_INT, local_communicator_info->comm_group);
-    MPI_Allgather(&num_local_cells_local, 1, MPI_INT, num_local_cells_all_local, 1, MPI_INT, local_communicator_info->comm_group);
-
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "in building 2D self router, after allgather");
-
-    num_total_cells = 0;
-    for (i = 0; i < num_comp_procs; i ++) {
-        displ_remap[i] = num_total_cells;
-        num_total_cells += num_local_cells_all_remap[i];
-    }
-    local_cells_global_index_all_remap = new int [num_total_cells];
-    num_total_cells = 0;
-    for (i = 0; i < num_comp_procs; i ++) {
-        displ_local[i] = num_total_cells;
-        num_total_cells += num_local_cells_all_local[i];
-    }
-    local_cells_global_index_all_local = new int [num_total_cells];
-    MPI_Allgatherv((int*)decomp_remap->get_local_cell_global_indx(), num_local_cells_remap, MPI_INT, local_cells_global_index_all_remap, 
-                   num_local_cells_all_remap, displ_remap, MPI_INT, local_communicator_info->comm_group);
-    MPI_Allgatherv((int*)decomp_local->get_local_cell_global_indx(), num_local_cells_local, MPI_INT, local_cells_global_index_all_local, 
-                   num_local_cells_all_local, displ_local, MPI_INT, local_communicator_info->comm_group);
-
-    EXECUTION_REPORT(REPORT_LOG,-1, true, "before computing routing info for self router");
-
-    for (i = 0; i < num_comp_procs; i ++) {
-        compute_routing_info_between_decomps(num_local_cells_local, decomp_local->get_local_cell_global_indx(), num_local_cells_all_remap[i], local_cells_global_index_all_remap+displ_remap[i], num_global_cells, local_communicator_info->current_proc_local_id, i);
-        remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = true;
-    }
-
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "finish computing routing info for self router for sending");
-	
-    for (i = 0; i < num_comp_procs; i ++) {
-        compute_routing_info_between_decomps(num_local_cells_remap, decomp_remap->get_local_cell_global_indx(), num_local_cells_all_local[i], local_cells_global_index_all_local+displ_local[i], num_global_cells, local_communicator_info->current_proc_local_id, i);
-        remote_procs_routing_info[remote_procs_routing_info.size()-1]->send_or_recv = false;
-    }
-
-	MPI_Barrier(local_communicator_info->comm_group);
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "finish computing routing info for self router for receiving");
 }
 
 
-int Routing_info::get_true_routing_info_index(bool is_send, int i)
+
+Routing_info_with_one_process *Routing_info::get_routing_info(bool is_send, int i)
 {
-    if (is_in_src_comp && is_in_dst_comp && !is_send)
-        return i+remote_procs_routing_info.size()/2;
-
-    return i;
-}
-
-
-int Routing_info::get_num_elements_transferred_with_remote_proc(bool is_send, int i) 
-{
-    if (num_dimensions == 2) {
-        if (remote_procs_routing_info.size() <= get_true_routing_info_index(is_send, i))
-            return 0;
-
-        return remote_procs_routing_info[get_true_routing_info_index(is_send, i)]->num_elements_transferred; 
-    }
-    else {
-        if (is_send) {
-            if (local_communicator_info->current_proc_local_id == 0)
-                return 1;
-            else return 0;
-        }
-        else {
-            if (get_true_routing_info_index(is_send, i) == 0)
-                return 1;
-            else return 0;
-        }
-    }
+	if (is_send) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, i >= 0 && i < send_to_remote_procs_routing_info.size(), "Software error in Routing_info::get_num_elements_transferred_with_remote_proc: wrong i at sender");
+		return send_to_remote_procs_routing_info[i];
+	}
+	else {
+		EXECUTION_REPORT(REPORT_ERROR, -1, i >= 0 && i < recv_from_remote_procs_routing_info.size(), "Software error in Routing_info::get_num_elements_transferred_with_remote_proc: wrong i at receiver");
+		return recv_from_remote_procs_routing_info[i];
+	}
 }
 

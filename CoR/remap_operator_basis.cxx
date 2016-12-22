@@ -167,10 +167,6 @@ void Remap_operator_basis::calculate_grids_overlaping()
         for (i = 0; i < num_overlapping_src_cells; i ++)
             index_src_cells_overlap_with_dst_cells[temp_array_iter++] = overlapping_src_cells_indexes[i];
 		do_quick_sort(overlapping_src_cells_indexes, (long*)NULL, 0, num_overlapping_src_cells-1);
-		printf("overlapping results2 for %d: ", cell_index_dst);
-		for (int k = 0; k < num_overlapping_src_cells; k ++)
-			printf("%d ", overlapping_src_cells_indexes[k]);
-		printf("\n");
     }
     finalize_computing_remap_weights_of_one_cell();
 
