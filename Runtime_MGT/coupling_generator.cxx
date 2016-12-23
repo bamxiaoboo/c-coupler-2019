@@ -50,9 +50,7 @@ void Coupling_connection::generate_a_coupling_procedure()
 	}
 
     create_union_comm();
-
 	exchange_connection_fields_info();
-
 	generate_interpolation();
 
 	if (current_proc_id_src_comp != -1) {

@@ -55,8 +55,6 @@ class Coupling_timer
     public:
 		Coupling_timer(int, int, int*, int, int, const char *);
 		Coupling_timer(int, int, const char*, int, int, const char*);
-        Coupling_timer(const char*, int, int, const char*);
-        Coupling_timer(char**, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
 		Coupling_timer(Coupling_timer*);
 		Coupling_timer(const char*, int &, int);
@@ -71,6 +69,7 @@ class Coupling_timer
 		void write_timer_into_array(char **, int &, int &);
 		void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
 		void reset_lag_count() { lag_count = 0; }
+		void check_timer_format();
 };
 
 
@@ -170,7 +169,7 @@ class Time_mgt
         long get_num_total_step() { return num_total_steps; }
         int get_comp_stop_latency_seconds() { return stop_latency_seconds; }
 		int get_current_num_days_in_year();
-        void check_timer_format(const char*, int, int, const char*);
+        void check_timer_format(const char*, int, int, bool, const char*);
         Comps_transfer_time_info *allocate_comp_transfer_time_info(int);
 		bool check_time_consistency_between_components(long);
         long calculate_elapsed_day(int, int, int);

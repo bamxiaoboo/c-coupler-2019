@@ -257,7 +257,7 @@ extern "C" void initialize_CCPL_mgrs(const char *executable_name)
 }
 
 
-extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *annotation, int *comp_id, 
+extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
 										const char *executable_name, const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
                                 		const char *current_config_time, const char *original_case_name, const char *original_config_time)
 {
@@ -294,7 +294,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		
 	}
 
-	root_comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, local_comm, -1, annotation);
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, local_comp_type, local_comm, -1, annotation);
 
 	if (*comm != -1) {
 		int input_comm_size, new_comm_size;
@@ -332,7 +332,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 }
 
 
-extern "C" void register_component_(int *parent_comp_id, const char *comp_name, MPI_Comm *comm, const char *annotation, int *comp_id)
+extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
 	char local_comp_name[NAME_STR_SIZE];
 
@@ -353,7 +353,7 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 	}
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	*comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, *comm, *parent_comp_id, annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, local_comp_type, *comm, *parent_comp_id, annotation);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
 	remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 }
@@ -402,12 +402,10 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	inout_interface_mgr->merge_inout_interface_fields_info(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
-		Coupling_generator *coupling_generator = new Coupling_generator();
+		coupling_generator = new Coupling_generator();
 		coupling_generator->generate_coupling_procedures();
 		coupling_generator->generate_IO_procedures();
-		delete coupling_generator;
 	}
-
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
 }
 

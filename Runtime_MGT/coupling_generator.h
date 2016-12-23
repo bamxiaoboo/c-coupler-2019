@@ -143,7 +143,7 @@ class Coupling_generator
 		Dictionary<int> *import_field_index_lookup_table;
 		Dictionary<int> *export_field_index_lookup_table;
 		std::vector<Coupling_connection*> all_coupling_connections;
-                std::vector<Coupling_connection*> all_IO_connections;
+        std::vector<Coupling_connection*> all_IO_connections;
 		
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();
@@ -152,7 +152,7 @@ class Coupling_generator
 		Coupling_generator() {};
 		~Coupling_generator() {}
 		void generate_coupling_procedures();
-                void generate_IO_procedures();
+        void generate_IO_procedures();
 };
 
 

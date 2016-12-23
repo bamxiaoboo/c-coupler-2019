@@ -126,9 +126,17 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 
     delete [] total_transfer_size_with_remote_procs;
 
-    data_buf_size = 0;
-    for (int i = 0; i < num_transfered_fields; i ++)
-        data_buf_size += fields_mem[i]->get_size_of_field() * fields_data_type_sizes[i];
+	data_buf_size = 0;
+	if (send_or_receive) {
+		for (int i = 0; i < num_transfered_fields; i ++) 
+			for (int j = 0; j < num_remote_procs; j ++) 
+				data_buf_size += fields_data_type_sizes[i]*fields_routers[i]->get_num_elements_transferred_with_remote_proc(true, j)*field_grids_num_lev[i];
+	}
+	else {
+		for (int i = 0; i < num_transfered_fields; i ++) 
+			for (int j = 0; j < num_remote_procs; j ++) 
+				data_buf_size += fields_data_type_sizes[i]*fields_routers[i]->get_num_elements_transferred_with_remote_proc(false, j)*field_grids_num_lev[i];
+	}	
     data_buf = (void *) new char [data_buf_size];
 
     if (!send_or_receive)
@@ -368,6 +376,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
         EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in send of runtime_trans_algorithm: %d  %d", offset, old_offset);
     }
+	EXECUTION_REPORT(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
 
     set_remote_tags(bypass_timer);
 

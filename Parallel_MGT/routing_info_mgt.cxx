@@ -119,7 +119,7 @@ void Routing_info::build_2D_router()
     int num_dst_procs = dst_comp_node->get_num_procs();
     int * num_cells_each_dst_proc = new int [num_dst_procs];
     int num_local_src_cells, num_local_dst_cells;
-    const int * local_dst_cells_global_indx;
+//	int *num_global_src_cells = new int [1], *num_global_dst_cells = new int [1];
     int *cells_indx_each_src_proc = NULL;
     int *cells_indx_each_dst_proc = NULL;
     int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
@@ -130,13 +130,14 @@ void Routing_info::build_2D_router()
     if (current_proc_id_src_comp != -1) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, src_decomp_info != NULL, "Software error in Routing_info::build_2D_router: NULL src decomp info");
         num_local_src_cells = src_decomp_info->get_num_local_cells();
+//		*num_global_src_cells = src_decomp_info->get_num_global_cells();
 		gather_array_in_one_comp(num_src_procs, current_proc_id_src_comp, (void*)src_decomp_info->get_local_cell_global_indx(), num_local_src_cells, 
 			                     sizeof(int), num_cells_each_src_proc, (void**)(&cells_indx_each_src_proc), src_comp_node->get_comm_group());
     }
     if (current_proc_id_dst_comp != -1) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, dst_decomp_info != NULL, "Software error in Routing_info::build_2D_router: NULL dst decomp info");
         num_local_dst_cells = dst_decomp_info->get_num_local_cells();
-        local_dst_cells_global_indx = dst_decomp_info->get_local_cell_global_indx();
+//		*num_global_dst_cells = dst_decomp_info->get_num_global_cells();
 		gather_array_in_one_comp(num_dst_procs, current_proc_id_dst_comp, (void*)dst_decomp_info->get_local_cell_global_indx(), num_local_dst_cells, 
 								 sizeof(int), num_cells_each_dst_proc, (void**)(&cells_indx_each_dst_proc), dst_comp_node->get_comm_group());
     }
@@ -145,6 +146,10 @@ void Routing_info::build_2D_router()
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&num_cells_each_src_proc), temp_size);
 	temp_size = num_dst_procs*sizeof(int);
 	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), (char**)(&num_cells_each_dst_proc), temp_size);
+//	temp_size = sizeof(int);
+//	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&num_global_src_cells), temp_size);	
+//	if (current_proc_id_dst_comp != -1)
+//		EXECUTION_REPORT(REPORT_ERROR, -1, *num_global_src_cells == *num_global_dst_cells, "Software error in Routing_info::build_2D_router: different global decomp grid size: %d vs %d", *num_global_src_cells, *num_global_dst_cells);
 	int total_src_cells = 0;
 	for (int i = 0; i < num_src_procs; i ++) 
 		total_src_cells += num_cells_each_src_proc[i] * sizeof(int);
@@ -171,7 +176,7 @@ void Routing_info::build_2D_router()
         int tmp_displs = 0;
         if (num_local_dst_cells > 0)
             for (int i = 0; i < num_src_procs; i ++) {
-                routing_info = compute_routing_info_between_decomps(num_local_dst_cells, local_dst_cells_global_indx, num_cells_each_src_proc[i], cells_indx_each_src_proc+tmp_displs, 
+                routing_info = compute_routing_info_between_decomps(num_local_dst_cells, dst_decomp_info->get_local_cell_global_indx(), num_cells_each_src_proc[i], cells_indx_each_src_proc+tmp_displs, 
                                                                     dst_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i));        
                 tmp_displs += num_cells_each_src_proc[i];
 				recv_from_remote_procs_routing_info.push_back(routing_info);
@@ -184,6 +189,8 @@ void Routing_info::build_2D_router()
 		delete [] cells_indx_each_dst_proc;
     delete [] num_cells_each_src_proc; 
     delete [] num_cells_each_dst_proc;
+//	delete [] num_global_src_cells;
+//	delete [] num_global_dst_cells;
 }
 
 

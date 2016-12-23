@@ -81,7 +81,7 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit,
 	this->or_or_and = -1;
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "Software error in Coupling_timer::Coupling_timer, with annotation \"%s\"", annotation);
-	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, annotation);
+	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, true, annotation);
 	annotation_mgr->add_annotation(timer_id, "define timer", annotation);
 	if (words_are_the_same(freq_unit, FREQUENCY_UNIT_STEPS)) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr->get_time_step_in_second() > 0, "Software error in Coupling_timer::Coupling_timer: uninitialized time step");
@@ -89,28 +89,6 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit,
 		frequency_count *= comp_time_mgr->get_time_step_in_second();
 		lag_count *= comp_time_mgr->get_time_step_in_second();
 	}
-}
-
-
-Coupling_timer::Coupling_timer(const char *freq_unit, int freq_count, int del_count, const char *annotation)
-{
-    strcpy(frequency_unit, freq_unit);
-    frequency_count = freq_count;
-    lag_count = del_count;
-	timer_id = -1;
-	comp_id = -1;
-    timer_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, annotation);
-}
-
-
-Coupling_timer::Coupling_timer(char **line, const char *cfg_name)
-{
-    get_next_attr(frequency_unit, line);
-    get_next_integer_attr(line, frequency_count);
-    get_next_integer_attr(line, lag_count);
-		timer_id = -1;
-	comp_id = -1;
-    timer_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, cfg_name);
 }
 
 
@@ -200,6 +178,12 @@ bool Coupling_timer::is_timer_on()
 				return false;
 		return true;	
 	}
+}
+
+
+void Coupling_timer::check_timer_format()
+{ 
+	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, false, NULL); 
 }
 
 
@@ -685,14 +669,14 @@ int Time_mgt::get_current_date()
 }
 
 
-void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int lag_count, const char *annotation)
+void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int lag_count, bool check_value, const char *annotation)
 {
 	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
 	                 words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
 	                 "The frequency unit in timer must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "The frquency count in timer must be larger than 0. Please check the model code with the annotation \"%s\"", annotation);
-	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
+	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, lag_count%time_step_in_second == 0, "The lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
 	    }
