@@ -140,8 +140,10 @@ void report_ender(int report_type, int comp_id, char *output_string)
 	printf("%s\n\n", output_string);
 	fflush(NULL);	
 #endif	
-	if (report_type == REPORT_ERROR)
+	if (report_type == REPORT_ERROR) {
+while(1);
 		assert(false);
+        }
 }
 
 

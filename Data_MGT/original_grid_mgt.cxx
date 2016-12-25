@@ -124,6 +124,7 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 				             grid_name, CoR_script_name, CoR_grid_name, annotation);	
 		else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "cannot register the grid \"%s\" because the CoR script is not specified. Please verify.",
 				              grid_name, CoR_script_name, CoR_grid_name, annotation);	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->format_sub_grids(original_CoR_grid), "Please modify the definition of grid \"%s\" in the CoR script \"%s\". We propose to order the dimensions of the grid into the order such as lon, lat, level and time");
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, original_CoR_grid));
 	return original_grids[original_grids.size()-1]->get_local_grid_id();
 }

@@ -3146,12 +3146,8 @@ void Remap_grid_class::write_grid_name_into_array(Remap_grid_class *grid, char *
 }
 
 
-Remap_grid_class *Remap_grid_class::get_linked_grid_from_array(Remap_grid_class *top_grid, const char *grid_name_suffix, const char *array, int &buffer_content_iter)
+Remap_grid_class *Remap_grid_class::get_linked_grid_from_array(Remap_grid_class *top_grid, const char *grid_name_suffix, char *temp_grid_name)
 {
-	char temp_grid_name[NAME_STR_SIZE];
-
-
-	read_data_from_array_buffer(temp_grid_name, NAME_STR_SIZE, array, buffer_content_iter);
 	if (!words_are_the_same(temp_grid_name, "NULL")) {
 		strcat(temp_grid_name, grid_name_suffix);
 		if (words_are_the_same(this->grid_name, temp_grid_name))
@@ -3252,14 +3248,78 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	read_grid_field_from_array(&sigma_grid_sigma_value_field, array, buffer_content_iter);
 	read_grid_field_from_array(&hybrid_grid_coefficient_field, array, buffer_content_iter);
 	read_grid_field_from_array(&sigma_grid_dynamic_surface_value_field, array, buffer_content_iter);
-	super_grid_of_setting_coord_values = get_linked_grid_from_array(top_grid, grid_name_suffix, array, buffer_content_iter);
-	first_super_grid_of_enable_setting_coord_value = get_linked_grid_from_array(top_grid, grid_name_suffix, array, buffer_content_iter);
+	read_data_from_array_buffer(name_super_grid_of_setting_coord_values, NAME_STR_SIZE, array, buffer_content_iter);
+	read_data_from_array_buffer(name_first_super_grid_of_enable_setting_coord_value, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
 	for (int i = 0; i < temp_int; i ++)
 		sub_grids.push_back(new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter));
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
 	if (temp_int != 0)
 		edge_grid = new Remap_grid_class(NULL, grid_name_suffix, array, buffer_content_iter);
+	
+	if (this == top_grid)
+		link_grids(top_grid, grid_name_suffix);
+}
+
+
+void Remap_grid_class::link_grids(Remap_grid_class *top_grid, const char *grid_name_suffix)
+{
+	super_grid_of_setting_coord_values = get_linked_grid_from_array(top_grid, grid_name_suffix, name_super_grid_of_setting_coord_values);
+	first_super_grid_of_enable_setting_coord_value = get_linked_grid_from_array(top_grid, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value);
+
+	printf("get linked grid of first_super_grid_of_enable_setting_coord_value for %s: %s %s %lx\n", grid_name, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value, first_super_grid_of_enable_setting_coord_value);
+	if (num_dimensions == 1)
+		EXECUTION_REPORT(REPORT_ERROR, -1, first_super_grid_of_enable_setting_coord_value != NULL, "Software error in Remap_grid_class::link_grids");
+
+	for (int i = 0; i < sub_grids.size(); i ++)
+		sub_grids[i]->link_grids(top_grid, grid_name_suffix);	
+}
+
+
+bool Remap_grid_class::is_sub_grid_of_grid(Remap_grid_class *another_grid)
+{
+	if (this == another_grid)
+		return true;
+
+	for (int i = 0; i < another_grid->sub_grids.size(); i ++)
+		if (is_subset_of_grid(another_grid->sub_grids[i]))
+			return true;
+	return false;
+}
+
+
+bool Remap_grid_class::format_sub_grids(Remap_grid_class *top_grid)
+{
+	std::vector<Remap_grid_class *> formated_sub_grids;	
+	std::vector<int> last_grid_ids;
+	int i, j;
+	
+
+	formated_sub_grids.clear();
+	last_grid_ids.clear();
+	for (i = 0; i < sub_grids.size(); i ++) {
+		for (j = 0; j < formated_sub_grids.size(); j ++)
+			if (sub_grids[i]->is_subset_of_grid(formated_sub_grids[j]))
+				break;
+		if (j < formated_sub_grids.size() && last_grid_ids[j]+1 != i)
+			return false;
+		if (j == formated_sub_grids.size()) {
+			if (sub_grids[i]->super_grid_of_setting_coord_values == NULL || sub_grids[i]->super_grid_of_setting_coord_values->is_sub_grid_of_grid(top_grid))
+				formated_sub_grids.push_back(sub_grids[i]);
+			else formated_sub_grids.push_back(sub_grids[i]->super_grid_of_setting_coord_values);
+			last_grid_ids.push_back(i);
+		}
+	}
+
+	sub_grids.clear();
+	for (j = 0; j < formated_sub_grids.size(); j ++)
+		sub_grids.push_back(formated_sub_grids[j]);
+
+	for (int i = 0; i < sub_grids.size(); i ++)
+		if (!sub_grids[i]->format_sub_grids(top_grid))
+			return false;
+
+	return true;
 }
 
 

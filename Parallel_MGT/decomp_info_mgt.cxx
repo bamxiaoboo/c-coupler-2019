@@ -122,7 +122,7 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
     long *decomp_map_src, *decomp_map_dst;
     int *local_cell_global_indexes;
     char decomp_name_remap[NAME_STR_SIZE];
-	int i, j, num_local_cells = 0;
+	int i, j, num_local_cells = 0, src_H2D_original_grid_id;
 
 
     sprintf(decomp_name_remap, "src_decomp_for_%s_%s_%s", remap_weights->get_object_name(), dst_decomp_info->get_decomp_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(dst_decomp_info->get_comp_id(),"in Decomp_info_mgt::generate_remap_weights_src_decomp")->get_comp_full_name());
@@ -134,10 +134,9 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
 	for (j = 0; j < dst_decomp_info->get_num_local_cells(); j ++)
 		if (dst_decomp_info->get_local_cell_global_indx()[j] >= 0)
 			decomp_map_dst[dst_decomp_info->get_local_cell_global_indx()[j]] = 1;
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "before calculate_src_decomp");
-	printf("checkqiguai %d\n", remap_weights->get_num_remap_weights_of_operators());
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
 	remap_weights->calculate_src_decomp(src_original_grid->get_H2D_sub_CoR_grid(), dst_original_grid->get_H2D_sub_CoR_grid(), decomp_map_src, decomp_map_dst);
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "after calculate_src_decomp");
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
 
     for (long i = 0; i < src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(); i ++)
         if (decomp_map_src[i] != 0)
@@ -147,14 +146,20 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
     for (long i = 0; i < src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(); i ++)
         if (decomp_map_src[i] != 0)
             local_cell_global_indexes[num_local_cells++] = i+1;
-	decomp_for_remap = new Decomp_info(decomp_name_remap, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), dst_original_grid->get_comp_id(), src_original_grid->get_grid_id(), num_local_cells, local_cell_global_indexes, "in Decomp_info_mgt::generate_remap_weights_src_decomp", false);
-    decomps_info.push_back(decomp_for_remap);
+
+	Original_grid_info *existing_src_H2D_original_grid = original_grid_mgr->search_grid_info(src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name(), src_original_grid->get_comp_id());
+	if (existing_src_H2D_original_grid != NULL)
+		src_H2D_original_grid_id = existing_src_H2D_original_grid->get_grid_id();
+	else src_H2D_original_grid_id = original_grid_mgr->add_original_grid(src_original_grid->get_comp_id(), src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name(), src_original_grid->get_H2D_sub_CoR_grid());
+	decomp_for_remap = search_decomp_info(decomp_name_remap, src_original_grid->get_comp_id());
+	if (decomp_for_remap == NULL) {
+		decomp_for_remap = new Decomp_info(decomp_name_remap, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), dst_original_grid->get_comp_id(), src_H2D_original_grid_id, num_local_cells, local_cell_global_indexes, "in Decomp_info_mgt::generate_remap_weights_src_decomp", false);
+    	decomps_info.push_back(decomp_for_remap);
+	}
 
     delete [] decomp_map_src;
     delete [] local_cell_global_indexes;
     delete [] decomp_map_dst;
-
-	printf("number of local cells in remap_decomp and dst decomp is %d vs %d\n", decomp_for_remap->get_num_local_cells(), dst_decomp_info->get_num_local_cells());
 
     return decomp_for_remap;
 }
@@ -162,7 +167,6 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
 
 Decomp_info *Decomp_info_mgt::search_decomp_info(const char *decomp_name, int comp_id)
 {
-	printf("search search %s %x\n", decomp_name, comp_id);
 	for (int i = 0; i < decomps_info.size(); i ++)
 		if (words_are_the_same(decomps_info[i]->get_decomp_name(), decomp_name) && decomps_info[i]->get_comp_id() == comp_id) {
 			return decomps_info[i];
