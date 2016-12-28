@@ -190,7 +190,7 @@ void IO_output_procedure::execute()
 				}
 			}
 			for (int i = 0; i < data_write_field_insts.size(); i ++) {
-				data_write_field_insts[i]->check_field_sum();
+				data_write_field_insts[i]->check_field_sum("before writing data into a file");
             	fields_gather_scatter_mgr->gather_write_field(netcdf_file_object, data_write_field_insts[i], write_grid_name, time_mgr->get_current_date(), time_mgr->get_current_second(), false);
 			}
 		}

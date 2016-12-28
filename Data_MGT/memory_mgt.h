@@ -77,7 +77,7 @@ class Field_mem_info
         void reset_field_name(const char*);
 		void change_datatype_to_double();
 		void calculate_field_conservative_sum(Field_mem_info*);
-        void check_field_sum();
+        void check_field_sum(const char *);
 		void define_field_values(bool);
 		void use_field_values(const char*);
 		bool field_has_been_defined();

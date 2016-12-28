@@ -35,11 +35,12 @@ class Runtime_trans_algorithm
         int tag_buf_size;
         int num_remote_procs;
 		int num_local_procs;
-        int * send_displs_in_remote_procs;
-        int * recv_displs_in_current_proc;
-        int * transfer_size_with_remote_procs;
+        int *send_displs_in_remote_procs;
+        int *recv_displs_in_current_proc;
+        int *transfer_size_with_remote_procs;
 		std::vector<int> index_remote_procs_with_common_data;
-        int * fields_data_type_sizes;
+        int *fields_data_type_sizes;
+		bool *is_V1D_sub_grid_after_H2D_sub_grid;
         long * field_grids_num_lev;
 		bool *transfer_process_on;
 		long *current_remote_fields_time;
@@ -72,8 +73,8 @@ class Runtime_trans_algorithm
         void preprocess();
         void pack_MD_data(int, int, int *);
         void unpack_MD_data(void *, int, int, int *);
-        template <class T> void pack_segment_data(T *, T *, int, int, int, int);
-        template <class T> void unpack_segment_data(T *, T *, int, int, int, int);
+        template <class T> void pack_segment_data(T *, T *, int, int, int, int, bool);
+        template <class T> void unpack_segment_data(T *, T *, int, int, int, int, bool);
 
     public:
         Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *);

@@ -64,8 +64,8 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool do_average)
 {
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "before cumulate or average");
 	for (int i = 0; i < cumulate_average_fields.size(); i ++) {
-		cumulate_average_fields[i]->mem_info_src->check_field_sum();
-		cumulate_average_fields[i]->mem_info_dst->check_field_sum();
+		cumulate_average_fields[i]->mem_info_src->check_field_sum("(src value) before cumulate or average");
+		cumulate_average_fields[i]->mem_info_dst->check_field_sum("(dst value) before cumulate or average");
 	}
 	
     for (int i = 0; i < cumulate_average_fields.size(); i ++) {
@@ -93,8 +93,7 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool do_average)
 
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "after cumulate or average");
 	for (int i = 0; i < cumulate_average_fields.size(); i ++) {
-		cumulate_average_fields[i]->mem_info_src->check_field_sum();
-		cumulate_average_fields[i]->mem_info_dst->check_field_sum();
+		cumulate_average_fields[i]->mem_info_dst->check_field_sum("(dst value) after cumulate or average");
 	}
 }
 

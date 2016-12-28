@@ -533,6 +533,11 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	}
 
 	last_execution_time = current_execution_time;
+
+	if (import_or_export == 1) {
+		for (int i = 0; i < fields_mem_registered.size(); i ++)
+			fields_mem_registered[i]->check_field_sum("before executing an export interface");
+	}
 	
 	for (int i = 0; i < coupling_procedures.size(); i ++)
 		coupling_procedures[i]->execute(bypass_timer);
@@ -557,6 +562,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %lf : %lf\n", interface_name, fields_mem_registered[i]->get_field_name(), ((double*) fields_mem_registered[i]->get_data_buf())[0], ((double*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);
 			else if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT))
 				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %d : %d\n", interface_name, fields_mem_registered[i]->get_field_name(), ((int*) fields_mem_registered[i]->get_data_buf())[0], ((int*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);		
+			fields_mem_registered[i]->check_field_sum("after executing an export interface");
 		}
 	}
 }

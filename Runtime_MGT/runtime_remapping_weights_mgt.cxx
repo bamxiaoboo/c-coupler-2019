@@ -84,9 +84,10 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 
 	execution_phase_number = 1;
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
-	printf("number of remap operators is %d\n", num_remap_operators);
 	Remap_strategy_class *remap_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "before generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
 	sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remap_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid());
+	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "after generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
 	execution_phase_number = 2;
 
 	if (dst_original_grid->get_H2D_sub_CoR_grid() == NULL || dst_decomp_info == NULL) {
@@ -124,10 +125,8 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
     for (i = 0; i < num_remap_related_grids; i ++) {
         j = 0;
 		remap_related_decomp_grids[i] = remap_related_grids[i];
-		printf("check grid %s (%lx) vs %s (%lx) vs %s : %d\n", decomp_original_grids[0]->get_grid_name(), decomp_original_grids[0], decomp_original_grids[1]->get_grid_name(), decomp_original_grids[1], remap_related_grids[i]->get_grid_name(), num_remap_related_grids);
         if (decomp_original_grids[0]->is_subset_of_grid(remap_related_grids[i])) {
             remap_related_decomp_grids[i] = decomp_grids_mgr->search_decomp_grid_info(src_decomp_info->get_decomp_id(), remap_related_grids[i], false)->get_decomp_grid();
-			printf("generate decomp_grid %s (%s): %d vs %d : %d\n", remap_related_decomp_grids[i]->get_grid_name(), remap_related_grids[i]->get_grid_name(), remap_related_decomp_grids[i]->get_grid_size(), remap_related_grids[i]->get_grid_size(), src_decomp_info->get_num_local_cells());
             j ++;
         }
         if (decomp_original_grids[1]->is_subset_of_grid(remap_related_grids[i])) {

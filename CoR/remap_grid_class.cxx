@@ -3214,8 +3214,6 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	int temp_int;
 	char temp_grid_name[NAME_STR_SIZE];
 
-
-	remap_grid_manager->add_remap_grid(this);
 	
 	if (top_grid == NULL)
 		top_grid = this;
@@ -3224,6 +3222,8 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 
 	read_data_from_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_content_iter);
 	strcat(grid_name, grid_name_suffix);
+	if (remap_grid_manager->search_remap_grid_with_grid_name(grid_name) == NULL)
+		remap_grid_manager->add_remap_grid(this);
 	read_data_from_array_buffer(coord_label, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(coord_unit, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_content_iter);
@@ -3251,8 +3251,15 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	read_data_from_array_buffer(name_super_grid_of_setting_coord_values, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(name_first_super_grid_of_enable_setting_coord_value, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
-	for (int i = 0; i < temp_int; i ++)
-		sub_grids.push_back(new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter));
+	for (int i = 0; i < temp_int; i ++) {
+		Remap_grid_class *child_grid = new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter);
+		Remap_grid_class *existing_grid = remap_grid_manager->search_remap_grid_with_grid_name(child_grid->get_grid_name());
+		if (existing_grid != child_grid) {
+			printf("duplicated transfered grid %s\n", child_grid->get_grid_name());
+			delete child_grid;
+		}
+		sub_grids.push_back(existing_grid);
+	}
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
 	if (temp_int != 0)
 		edge_grid = new Remap_grid_class(NULL, grid_name_suffix, array, buffer_content_iter);
@@ -3264,8 +3271,10 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 
 void Remap_grid_class::link_grids(Remap_grid_class *top_grid, const char *grid_name_suffix)
 {
-	super_grid_of_setting_coord_values = get_linked_grid_from_array(top_grid, grid_name_suffix, name_super_grid_of_setting_coord_values);
-	first_super_grid_of_enable_setting_coord_value = get_linked_grid_from_array(top_grid, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value);
+	if (super_grid_of_setting_coord_values == NULL)
+		super_grid_of_setting_coord_values = get_linked_grid_from_array(top_grid, grid_name_suffix, name_super_grid_of_setting_coord_values);
+	if (first_super_grid_of_enable_setting_coord_value == NULL)
+		first_super_grid_of_enable_setting_coord_value = get_linked_grid_from_array(top_grid, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value);
 
 	printf("get linked grid of first_super_grid_of_enable_setting_coord_value for %s: %s %s %lx\n", grid_name, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value, first_super_grid_of_enable_setting_coord_value);
 	if (num_dimensions == 1)

@@ -37,6 +37,9 @@ void Original_grid_info::generate_remapping_grids()
 	H2D_sub_CoR_grid = NULL;
 	V1D_sub_CoR_grid = NULL;
 	T1D_sub_CoR_grid = NULL;
+	H2D_sub_grid_order = -1;
+	V1D_sub_grid_order = -1;
+	T1D_sub_grid_order = -1;
 	
 	if (original_CoR_grid->get_num_dimensions() == 2)
 		EXECUTION_REPORT(REPORT_ERROR, -1, original_CoR_grid->get_is_sphere_grid(), "Software error in Original_grid_info::generate_remapping_grids: not a sphere grid");
@@ -46,14 +49,20 @@ void Original_grid_info::generate_remapping_grids()
 	
 	original_CoR_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, original_CoR_grid);
 	for (int i = 0; i < num_leaf_grids; i ++) {
-		if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_LON))
+		if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_LON)) {
 			lon_sub_grid = leaf_grids[i];
+			H2D_sub_grid_order = i;
+		}
 		else if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_LAT))
 			lat_sub_grid = leaf_grids[i];
-		else if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_LEV))
+		else if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_LEV)) {
 			V1D_sub_CoR_grid = leaf_grids[i];
-		else if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_TIME))
+			V1D_sub_grid_order = i;
+		}
+		else if (words_are_the_same(leaf_grids[i]->get_coord_label(), COORD_LABEL_TIME)) {
 			T1D_sub_CoR_grid = leaf_grids[i];
+			T1D_sub_grid_order = i;
+		}
 	}
 
 	if (H2D_sub_CoR_grid == NULL && (lon_sub_grid != NULL || lat_sub_grid != NULL)) {
@@ -66,6 +75,15 @@ void Original_grid_info::generate_remapping_grids()
 	}	
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, H2D_sub_CoR_grid != NULL || V1D_sub_CoR_grid != NULL || T1D_sub_CoR_grid != NULL, "Software error in Original_grid_info::generate_remapping_grids: empty grid");
+}
+
+
+bool Original_grid_info::is_V1D_sub_grid_after_H2D_sub_grid()
+{
+	if (H2D_sub_CoR_grid == NULL || V1D_sub_CoR_grid == NULL)
+		return true;
+
+	return H2D_sub_grid_order < V1D_sub_grid_order;
 }
 
 
@@ -189,5 +207,23 @@ int Original_grid_mgt::add_original_grid(int comp_id, const char *grid_name, Rem
 
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, "Original_grid_mgt::add_original_grid", original_CoR_grid));
 	return original_grids[original_grids.size()-1]->get_local_grid_id();
+}
+
+
+int Original_grid_mgt::get_num_grid_levels(int grid_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_num_grid_levels: wrong grid id");		
+	if (original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_V1D_sub_CoR_grid() == NULL)
+		return 1;
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_V1D_sub_CoR_grid()->get_grid_size() > 0, "Software error in Original_grid_mgt::get_num_grid_levels: wrong size of vertical grid");
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_V1D_sub_CoR_grid()->get_grid_size();
+}
+
+
+bool Original_grid_mgt::is_V1D_sub_grid_after_H2D_sub_grid(int grid_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Original_grid_info::is_V1D_sub_grid_after_H2D_sub_grid: wrong grid id");		
+	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->is_V1D_sub_grid_after_H2D_sub_grid();
 }
 

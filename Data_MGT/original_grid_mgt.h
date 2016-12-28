@@ -26,6 +26,9 @@ class Original_grid_info
 		Remap_grid_class *H2D_sub_CoR_grid;
 		Remap_grid_class *V1D_sub_CoR_grid;
 		Remap_grid_class *T1D_sub_CoR_grid;
+		int H2D_sub_grid_order;
+		int V1D_sub_grid_order;
+		int T1D_sub_grid_order;
 
 		void generate_remapping_grids();
 		
@@ -41,6 +44,7 @@ class Original_grid_info
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
 		Remap_grid_class *get_V1D_sub_CoR_grid() { return V1D_sub_CoR_grid; }
 		Remap_grid_class *get_T1D_sub_CoR_grid() { return T1D_sub_CoR_grid; }
+		bool is_V1D_sub_grid_after_H2D_sub_grid();
 };
 
 
@@ -65,6 +69,8 @@ class Original_grid_mgt
 		const char *get_name_of_grid(int) const;
 		int get_grid_size(int, const char*) const;
 		int add_original_grid(int, const char*, Remap_grid_class*);
+		int get_num_grid_levels(int);
+		bool is_V1D_sub_grid_after_H2D_sub_grid(int);
 };
 
 

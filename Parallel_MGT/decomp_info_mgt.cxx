@@ -34,6 +34,7 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
 	this->num_local_cells = num_local_cells;
 	this->local_cell_global_indx = NULL;
 	strcpy(this->decomp_name, decomp_name);
+	strcpy(this->grid_name, original_grid_mgr->search_grid_info(grid_id)->get_grid_name());
 	annotation_mgr->add_annotation(decomp_id, "register decomposition", annotation);
 	is_registered = registered;
 	if (registered)

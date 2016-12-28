@@ -713,12 +713,15 @@ void Coupling_generator::generate_coupling_procedures()
 						define_use_wrong = true;
 						if (export_fields_dst_components[field_index].size() == 0)
 							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: no component exports this field. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
-						else printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: there are components exporting this field, however, none of which is specified in the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
+						else {
+							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: there are components (as follows) exporting this field, however, none of which is specified in the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);						
+							for (int j = 0; j < export_fields_dst_components[field_index].size(); j ++)
+								printf("		Component is \"%s\", interface is \"%s\"\n", export_fields_dst_components[field_index][j].first, export_fields_dst_components[field_index][j].second);
+						}	
 					}
 					else {
 						printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" have more than 1 (%d) sources as follows. Please add or modify the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
 						define_use_wrong = true;
-						
 					}
 					for (int j = 0; j < coupling_connection->src_comp_interfaces.size(); j ++)
 						printf("		component is \"%s\", interface is \"%s\"\n", coupling_connection->src_comp_interfaces[j].first, coupling_connection->src_comp_interfaces[j].second);
@@ -859,20 +862,6 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 					field_index = export_field_index_lookup_table->search(field_name, false);
 					export_fields_dst_components[field_index].push_back(std::pair<const char*,const char*>(strdup(comp_full_name),strdup(interface_name)));
 				}
-			}
-		}
-		for (int i = 0; i < distinct_import_fields_name.size(); i ++) {
-			int field_index = import_field_index_lookup_table->search(distinct_import_fields_name[i],false);
-			printf("The components that uses field %s include: \n", distinct_import_fields_name[i]);
-			for(int i = 0; i < import_fields_src_components[field_index].size(); i ++) {
-				printf("           \"%s\"    \"%s\"\n", import_fields_src_components[field_index][i].first, import_fields_src_components[field_index][i].second);
-			}
-		}
-		for (int i = 0; i < distinct_export_fields_name.size(); i ++) {
-			int field_index = export_field_index_lookup_table->search(distinct_export_fields_name[i],false);
-			printf("The components that produces field %s include: \n", distinct_export_fields_name[i]);
-			for(int i = 0; i < export_fields_dst_components[field_index].size(); i ++) {
-				printf("           \"%s\"    \"%s\"\n", export_fields_dst_components[field_index][i].first, export_fields_dst_components[field_index][i].second);
 			}
 		}
 	}	

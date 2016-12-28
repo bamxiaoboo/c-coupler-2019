@@ -15,23 +15,37 @@
 #include <string.h>
 
 
-template <class T> void Runtime_trans_algorithm::pack_segment_data(T *mpi_buf, T *field_data_buf, int segment_start, int segment_size, int field_2D_size, int num_lev)
+template <class T> void Runtime_trans_algorithm::pack_segment_data(T *mpi_buf, T *field_data_buf, int segment_start, int segment_size, int field_2D_size, int num_lev, bool is_V1D_sub_grid_after_H2D_sub_grid)
 {
     int i, j, offset;
 
-    for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
-        for (j = 0; j < num_lev; j ++)
-            mpi_buf[offset++] = field_data_buf[i+j*field_2D_size];
+	if (is_V1D_sub_grid_after_H2D_sub_grid) {
+	    for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
+    	    for (j = 0; j < num_lev; j ++)
+        	    mpi_buf[offset++] = field_data_buf[i+j*field_2D_size];
+	}
+	else {
+	    for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
+    	    for (j = 0; j < num_lev; j ++)
+        	    mpi_buf[offset++] = field_data_buf[i*num_lev+j];		
+	}
 }
 
 
-template <class T> void Runtime_trans_algorithm::unpack_segment_data(T *mpi_buf, T *field_data_buf, int segment_start, int segment_size, int field_2D_size, int num_lev)
+template <class T> void Runtime_trans_algorithm::unpack_segment_data(T *mpi_buf, T *field_data_buf, int segment_start, int segment_size, int field_2D_size, int num_lev, bool is_V1D_sub_grid_after_H2D_sub_grid)
 {
     int i, j, offset;
 
-    for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
-        for (j = 0; j < num_lev; j ++)
-            field_data_buf[i+j*field_2D_size] = mpi_buf[offset++];
+	if (is_V1D_sub_grid_after_H2D_sub_grid) {
+	    for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
+	        for (j = 0; j < num_lev; j ++)
+	            field_data_buf[i+j*field_2D_size] = mpi_buf[offset++];
+	}
+	else {
+	    for (i = segment_start, offset = 0; i < segment_size+segment_start; i ++)
+	        for (j = 0; j < num_lev; j ++)
+	            field_data_buf[i*num_lev+j] = mpi_buf[offset++];		
+	}
 }
 
 
@@ -82,6 +96,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     recv_displs_in_current_proc = new int [num_remote_procs];
     field_grids_num_lev = new long [num_transfered_fields];
     fields_data_type_sizes = new int [num_transfered_fields];
+	is_V1D_sub_grid_after_H2D_sub_grid =  new bool [num_transfered_fields];
 	last_receive_field_sender_time = new long [num_transfered_fields];
 	current_receive_field_sender_time = new long [num_transfered_fields];
 	current_receive_field_usage_time = new long [num_transfered_fields];
@@ -95,12 +110,10 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 	        fields_data_type_sizes[i] = get_data_type_size(fields_mem[i]->get_data_type());
 	        if (fields_routers[i]->get_num_dimensions() == 0) 
 	            field_grids_num_lev[i] = 1;
-	        else {
-	            int grid_id = fields_mem[i]->get_grid_id();
-	            if (original_grid_mgr->get_original_CoR_grid(grid_id)->get_num_dimensions() < 3) 
-	                field_grids_num_lev[i] = 1;
-	            else field_grids_num_lev[i] = cpl_get_num_levs_in_grid(grid_id);
-	        }
+	        else field_grids_num_lev[i] = original_grid_mgr->get_num_grid_levels(fields_mem[i]->get_grid_id());
+			is_V1D_sub_grid_after_H2D_sub_grid[i] = original_grid_mgr->is_V1D_sub_grid_after_H2D_sub_grid(fields_mem[i]->get_grid_id());
+			if (!is_V1D_sub_grid_after_H2D_sub_grid[i])
+				printf("reverse order of 3D grid %s in component %s\n",  original_grid_mgr->get_name_of_grid(fields_mem[i]->get_grid_id()), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name());
             transfer_size_with_remote_procs[j] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, j) * fields_data_type_sizes[i] * field_grids_num_lev[i];
         }
 		if (transfer_size_with_remote_procs[j] > 0)
@@ -155,6 +168,7 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] fields_routers;
     delete [] field_grids_num_lev;
     delete [] fields_data_type_sizes;
+	delete [] is_V1D_sub_grid_after_H2D_sub_grid;
 	delete [] transfer_process_on;
 	delete [] current_remote_fields_time;
 	delete [] current_receive_field_sender_time;
@@ -352,6 +366,12 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
     if (!is_remote_data_buf_ready())
 		return false;
 
+    for (int j = 0; j < num_transfered_fields; j ++)
+        if (transfer_process_on[j]) {
+			fields_mem[j]->check_field_sum("before sending data");
+			fields_mem[j]->use_field_values("before sending data");
+        }  
+
     int offset = 0;
     for (int i = 0; i < num_remote_procs; i ++) {
         if (transfer_size_with_remote_procs[i] == 0) continue;
@@ -382,7 +402,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
 	if (fields_data_type_sizes[0] == 4)
 		printf("%s check send buffer %f %f vs %f\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((float*)data_buf)[0], ((float*)data_buf)[10], ((float*)fields_data_buffers[0])[0]);
-	else printf("%s check send buffer %lf %lf vs %lf\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((double*)data_buf)[0], ((float*)data_buf)[10], ((double*)fields_data_buffers[0])[0]); 
+	else printf("%s check send buffer %lf %lf vs %lf\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((double*)data_buf)[0], ((double*)data_buf)[10], ((double*)fields_data_buffers[0])[0]); 
 
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", fields_routers[0]->get_dst_comp_node()->get_comp_full_name());
 
@@ -441,7 +461,12 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 
         EXECUTION_REPORT(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
     }
-    
+
+    for (int j = 0; j < num_transfered_fields; j ++)
+        if (transfer_process_on[j]) {
+			fields_mem[j]->check_field_sum("after receiving data");
+			fields_mem[j]->define_field_values(false);
+        }    
 	for (int j = 0; j < num_transfered_fields; j ++)
 		if (fields_data_type_sizes[j] == 4)
 			printf("%s receive field instance (%s) with value %f at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), fields_mem[j]->get_field_name(), ((float*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
@@ -495,16 +520,16 @@ void Runtime_trans_algorithm::pack_MD_data(int remote_proc_index, int field_inde
     for (i = 0; i < num_segments; i ++) {
         switch (fields_data_type_sizes[field_index]) {
             case 1:
-                pack_segment_data((char*)((char*)data_buf+(*offset)), (char*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                pack_segment_data((char*)((char*)data_buf+(*offset)), (char*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             case 2:
-                pack_segment_data((short*)((char*)data_buf+(*offset)), (short*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                pack_segment_data((short*)((char*)data_buf+(*offset)), (short*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             case 4:
-                pack_segment_data((int*)((char*)data_buf+(*offset)), (int*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                pack_segment_data((int*)((char*)data_buf+(*offset)), (int*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             case 8:
-                pack_segment_data((double*)((char*)data_buf+(*offset)), (double*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                pack_segment_data((double*)((char*)data_buf+(*offset)), (double*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             default:
                 EXECUTION_REPORT(REPORT_ERROR,-1, false, "Software error in Runtime_trans_algorithm::pack_MD_data: unsupported data type in runtime transfer algorithm. Please verify.");
@@ -533,16 +558,16 @@ void Runtime_trans_algorithm::unpack_MD_data(void *data_buf, int remote_proc_ind
     for (i = 0; i < num_segments; i ++) {
         switch (fields_data_type_sizes[field_index]) {
             case 1:
-                unpack_segment_data((char*)((char*)data_buf+(*offset)), (char*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                unpack_segment_data((char*)((char*)data_buf+(*offset)), (char*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             case 2:
-                unpack_segment_data((short*)((char*)data_buf+(*offset)), (short*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                unpack_segment_data((short*)((char*)data_buf+(*offset)), (short*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             case 4:
-                unpack_segment_data((int*)((char*)data_buf+(*offset)), (int*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                unpack_segment_data((int*)((char*)data_buf+(*offset)), (int*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             case 8:
-                unpack_segment_data((double*)((char*)data_buf+(*offset)), (double*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index]);
+                unpack_segment_data((double*)((char*)data_buf+(*offset)), (double*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             default:
                 EXECUTION_REPORT(REPORT_ERROR,-1, false, "Software error in Runtime_trans_algorithm::unpack_MD_data: unsupported data type in runtime transfer algorithm. Please verify.");

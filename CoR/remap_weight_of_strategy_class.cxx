@@ -616,6 +616,7 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
 
 	if (tmp_field_data_src != NULL && tmp_field_data_src != field_data_src)
 		delete tmp_field_data_src;
+	field_data_src->interchange_grid_data(field_data_src->get_coord_value_grid());
     field_data_dst->interchange_grid_data(field_data_dst->get_coord_value_grid());
 	field_data_dst->get_grid_data_field()->read_data_size = field_data_dst->get_grid_data_field()->required_data_size;
 }

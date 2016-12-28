@@ -190,7 +190,7 @@ void Field_mem_info::calculate_field_conservative_sum(Field_mem_info *area_field
 }
 
 
-void Field_mem_info::check_field_sum()
+void Field_mem_info::check_field_sum(const char *hint)
 {
 #ifdef DEBUG_CCPL
 
@@ -203,7 +203,7 @@ void Field_mem_info::check_field_sum()
     for (long j = 0; j < size; j ++)
         partial_sum += (((int*) get_data_buf())[j]);
     MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
-    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" is %x vs %x", get_field_name(), total_sum, partial_sum);
+    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
 #endif
 }
 
@@ -385,7 +385,7 @@ void Memory_mgt::check_all_restart_fields_have_been_read()
 void Memory_mgt::check_sum_of_all_fields()
 {
 	for (int i = 0; i < fields_mem.size(); i ++)
-		fields_mem[i]->check_field_sum();
+		fields_mem[i]->check_field_sum("when checking all fields");
 }
 
 
