@@ -79,12 +79,7 @@ void Coupling_connection::create_union_comm()
     int intersection_size;
     int src_comp_num_procs = src_comp_node->get_num_procs();
     int dst_comp_num_procs = dst_comp_node->get_num_procs();
-
-
-	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
-	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	
 
     src_comm = src_comp_node->get_comm_group();
     dst_comm = dst_comp_node->get_comm_group();
@@ -99,6 +94,15 @@ void Coupling_connection::create_union_comm()
         src_ranks[i] = src_comp_node->get_local_proc_global_id(i);
     for (int i = 0; i < dst_comp_num_procs; i ++)
         dst_ranks[i] = dst_comp_node->get_local_proc_global_id(i);
+
+	if (current_proc_id_src_comp != -1) {
+		MPI_Barrier(src_comm);
+		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	}
+	if (current_proc_id_dst_comp != -1) {
+		MPI_Barrier(dst_comm);
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+	}
 
     MPI_Comm_group(MPI_COMM_WORLD, &common_group);
     MPI_Group_incl(common_group, src_comp_num_procs, src_ranks, &src_group);
@@ -852,7 +856,6 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 					}
 					field_index = import_field_index_lookup_table->search(field_name, false);
 					import_fields_src_components[field_index].push_back(std::pair<const char*,const char*>(strdup(comp_full_name),strdup(interface_name)));
-					printf("push producer comp %s for field %s\n", comp_full_name, field_name);
 				}
 				else {
 					if (export_field_index_lookup_table->search(field_name, false) == 0) {

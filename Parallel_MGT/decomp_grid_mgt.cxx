@@ -18,7 +18,7 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
     Remap_grid_class *decomp_info_grid, *decomp_2D_grid;
     Remap_grid_class *leaf_grids[256], *sub_grids[256];
     int num_leaf_grids, num_sub_grids, i, j, decomp_leaf_grid_indexes[2];
-	char decomp_grid_name[256];
+	char decomp_grid_name[NAME_STR_SIZE];
 	int comp_id;
 
 
@@ -49,6 +49,7 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 		for (i = 0, j = 0; i < num_leaf_grids; i ++)
 			if (leaf_grids[i]->is_subset_of_grid(decomp_info_grid))
 				decomp_leaf_grid_indexes[j++] = i;
+		EXECUTION_REPORT(REPORT_ERROR,-1, j == 2, "Software error in Decomp_grid_info::Decomp_grid_info: wrong j"); 
 		EXECUTION_REPORT(REPORT_ERROR,-1, decomp_leaf_grid_indexes[1]-decomp_leaf_grid_indexes[0] == 1, "C-Coupler error in Decomp_grid_info::Decomp_grid_info\n");
         for (i = 0, num_sub_grids = 0; i < num_leaf_grids; i ++) {
 			if (leaf_grids[i] == NULL)
@@ -58,13 +59,9 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 					if (leaf_grids[j]->is_subset_of_grid(decomp_info_grid))
 						leaf_grids[j] = NULL;
 				decomp_2D_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_id, decomp_info_grid, false)->get_decomp_grid();
-				EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, "add decomposition sphere grid (%s) for generating 3D decomp grid %s", decomp_2D_grid->get_grid_name(), original_grid->get_grid_name());
 				sub_grids[num_sub_grids++] = decomp_2D_grid;
 			}
-			else {				
-				sub_grids[num_sub_grids++] = leaf_grids[i]->duplicate_grid(leaf_grids[i]); 
-				EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, "add vertical grid (%s) for generating 3D decomp grid %s", sub_grids[num_sub_grids-1]->get_grid_name(), original_grid->get_grid_name());
-			}
+			else sub_grids[num_sub_grids++] = leaf_grids[i]->duplicate_grid(leaf_grids[i]); 
         }
 		sprintf(decomp_grid_name, "DECOMP_GRID_%s_%d", original_grid->get_grid_name(), comp_id);
         this->decomp_grid = new Remap_grid_class(decomp_grid_name, num_sub_grids, sub_grids, 0);

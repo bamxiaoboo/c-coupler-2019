@@ -110,13 +110,6 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
             weigt_values_of_one_dst_cell[num_nearest_points-1] -= weigt_values_of_one_dst_cell[i];
         }
         add_remap_weights_to_sparse_matrix(found_nearest_points_src_indexes, dst_cell_index, weigt_values_of_one_dst_cell, num_nearest_points, 0, true);
-		printf("add nearest weight for %d (%lf %lf): ", dst_cell_index, dst_cell_center_values[0], dst_cell_center_values[1]);
-		for (i = 0; i < num_nearest_points; i ++) {
-			get_cell_center_coord_values_of_src_grid(found_nearest_points_src_indexes[i], src_cell_center_values);
-			printf("%lf (%d %lf: %lf %lf) ", weigt_values_of_one_dst_cell[i], found_nearest_points_src_indexes[i], found_nearest_points_distance[i],
-				src_cell_center_values[0], src_cell_center_values[1]);
-		}
-		printf("\n");
     }
 }
 

@@ -112,8 +112,6 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 	            field_grids_num_lev[i] = 1;
 	        else field_grids_num_lev[i] = original_grid_mgr->get_num_grid_levels(fields_mem[i]->get_grid_id());
 			is_V1D_sub_grid_after_H2D_sub_grid[i] = original_grid_mgr->is_V1D_sub_grid_after_H2D_sub_grid(fields_mem[i]->get_grid_id());
-			if (!is_V1D_sub_grid_after_H2D_sub_grid[i])
-				printf("reverse order of 3D grid %s in component %s\n",  original_grid_mgr->get_name_of_grid(fields_mem[i]->get_grid_id()), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name());
             transfer_size_with_remote_procs[j] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, j) * fields_data_type_sizes[i] * field_grids_num_lev[i];
         }
 		if (transfer_size_with_remote_procs[j] > 0)
@@ -400,10 +398,6 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
     set_remote_tags(bypass_timer);
 
-	if (fields_data_type_sizes[0] == 4)
-		printf("%s check send buffer %f %f vs %f\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((float*)data_buf)[0], ((float*)data_buf)[10], ((float*)fields_data_buffers[0])[0]);
-	else printf("%s check send buffer %lf %lf vs %lf\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), ((double*)data_buf)[0], ((double*)data_buf)[10], ((double*)fields_data_buffers[0])[0]); 
-
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", fields_routers[0]->get_dst_comp_node()->get_comp_full_name());
 
     return true;
@@ -467,10 +461,6 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 			fields_mem[j]->check_field_sum("after receiving data");
 			fields_mem[j]->define_field_values(false);
         }    
-	for (int j = 0; j < num_transfered_fields; j ++)
-		if (fields_data_type_sizes[j] == 4)
-			printf("%s receive field instance (%s) with value %f at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), fields_mem[j]->get_field_name(), ((float*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
-		else printf("%s receive field instance (%s) with value %lf at %d-%05d, %ld\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name(), fields_mem[j]->get_field_name(), ((double*) fields_data_buffers[j])[0], components_time_mgrs->get_time_mgr(comp_id)->get_current_num_elapsed_day(), components_time_mgrs->get_time_mgr(comp_id)->get_current_second(), current_remote_fields_time[j]);
 
 	if (!bypass_timer) {
 		history_receive_buffer_status[last_history_receive_buffer_index] = false;

@@ -83,10 +83,21 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->unified_global_id = 0;
 
 
-	if (comm != -1)
+	if (comm != -1) {
 		comm_group = comm;
+		if (parent == NULL)
+			synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_ROOT_COMP, comm, "for checking the given communicator for registering root component", annotation);
+		else {
+			char tmp_string[NAME_STR_SIZE];
+			sprintf(tmp_string, "for checking the given communicator for registering a child component \"%s\"", comp_name);
+			synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, tmp_string, annotation);
+		}	
+	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR,-1, parent != NULL, "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node for checking parent");
+		if (comp_comm_group_mgt_mgr->get_global_node_root() != parent)
+			synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "for checking the communicator of the current component for registering its children component", annotation);
+		else synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_ROOT_COMP, parent->get_comm_group(), "for checking the communicator of the current component for registering its children component", annotation);
 		parent_comm = parent->get_comm_group();
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
 			EXECUTION_REPORT(REPORT_PROGRESS, parent->comp_id, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", parent->get_comp_name(), comp_name, annotation);
@@ -591,7 +602,7 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp
 
 MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_local_comp(int local_comp_id, const char *annotation)
 {
-	get_global_node_of_local_comp(local_comp_id, annotation)->get_comm_group();
+	return get_global_node_of_local_comp(local_comp_id, annotation)->get_comm_group();
 }
 
 

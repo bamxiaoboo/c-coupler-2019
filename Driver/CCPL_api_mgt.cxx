@@ -123,9 +123,12 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	if (comp_id != -1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when calling the interface \"%s\" for \"%s\". Please check the model code with the annotation \"%s\"", API_label_local, hint, annotation);
 
+	if (comm == -1)
+		comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in synchronize_comp_processes_for_API");
+
 	if (hint != NULL)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
-	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
+		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\" %d  %x", hint, API_label_local, annotation, comm, comp_id);	
+	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\" %d  %x", API_label_local, annotation, comm, comp_id);
 	MPI_Barrier(comm);
 	if (hint != NULL)
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
