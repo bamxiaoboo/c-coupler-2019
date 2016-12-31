@@ -33,16 +33,24 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 
 	if (decomp_id == -1) {
 		grid_match = true;
-		comp_id = comp_or_grid_id;
+		if (comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id)) {
+			comp_id = comp_or_grid_id;
+			grid_id = -1;
+			mem_size = get_data_type_size(data_type);
+		}
+		else {
+			comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
+			grid_id = comp_or_grid_id;
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_CoR_grid(grid_id)->get_num_dimensions() == 1 && original_grid_mgr->get_original_CoR_grid(grid_id)->has_grid_coord_label(COORD_LABEL_LEV), 
+				             "When the given parallel decomposition id (parameter \"decomp_id\") for registering an instance of coupling field of \"%s\" is -1, the corresponding grid must be one-dimension vertical grid. Please check the model code with the annotation \"%s\"", field_name, annotation);
+			mem_size = original_grid_mgr->get_grid_size(grid_id, "in Field_mem_info::Field_mem_info") * get_data_type_size(data_type);
+		}
 		host_comp_id = comp_id;
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id), "Software error1 in new Field_mem_info");
-		mem_size = get_data_type_size(data_type);
-		strcpy(decomp_name, "NULL");
-		strcpy(grid_name, "NULL");
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "Software error2 in new Field_mem_info");
 		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "Software error3 in new Field_mem_info");
+		grid_id = comp_or_grid_id;
 		comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
 		host_comp_id = decomps_info_mgr->get_decomp_info(decomp_id)->get_host_comp_id();
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == decomps_info_mgr->get_comp_id_of_decomp(decomp_id), 
@@ -51,16 +59,11 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 		remap_grid_grid = original_grid_mgr->get_original_CoR_grid(comp_or_grid_id);
 		grid_match = remap_grid_decomp->is_subset_of_grid(remap_grid_grid);
 		mem_size = decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells() * get_data_type_size(data_type) * remap_grid_grid->get_grid_size()/remap_grid_decomp->get_grid_size();
-		strcpy(decomp_name, remap_grid_decomp->get_decomp_name());
-		strcpy(grid_name, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_grid_name());
 	}
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"",
-		             field_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"", field_name, annotation);
 
 	if (check_field_name)
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL,
-			             "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered). Please check the model code with the annotation \"%s\"",
-			             field_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL, "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered). Please check the model code with the annotation \"%s\"", field_name, annotation);
 
 	if (strlen(unit) > 0)
 		strcpy(field_unit, unit);
@@ -112,9 +115,11 @@ Field_mem_info::~Field_mem_info()
 
 void Field_mem_info::reset_mem_buf(void * buf, bool is_restart_field)
 {
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, buf != NULL, "The data buffer corresponding to the field instance of \"%s\" is not allocated. Please verify the model code corresponding to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+
     if (grided_field_data->get_grid_data_field()->data_buf != NULL)
         delete [] grided_field_data->get_grid_data_field()->data_buf;
-	
+
     grided_field_data->get_grid_data_field()->data_buf = buf;
     is_registered_model_buf = true;
     this->is_restart_field = is_restart_field;
@@ -135,7 +140,7 @@ void Field_mem_info::define_field_values(bool is_restarting)
 }
 
 
-void Field_mem_info::use_field_values(const char *cfg_name)
+void Field_mem_info::use_field_values(const char *annotation)
 {	
     if (is_registered_model_buf) 
         return;
@@ -143,8 +148,12 @@ void Field_mem_info::use_field_values(const char *cfg_name)
     if (last_define_time == components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time())
         return;
 
-    EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time != 0x7fffffffffffffff, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before define it. Please check the configuration file %s", field_name, decomp_name, grid_name, buf_mark, cfg_name);
-    EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time <= components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time(), "C-Coupler error in set_use_field\n");
+	if (last_define_time == 0x7fffffffffffffff) {
+		if (is_registered_model_buf)
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before defining it. Please modify the model code with the annotation \"%s\"", field_name, get_decomp_name(), get_grid_name(), buf_mark, annotation);
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Field_mem_info::use_field_values: field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before defining it. Please modify the model code with the annotation \"%s\"", field_name, get_decomp_name(), get_grid_name(), buf_mark, annotation);		
+	}
+    EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time <= components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time(), "C-Coupler error in Field_mem_info::use_field_values: wrong time order");
     is_restart_field = true;
 }
 
@@ -158,12 +167,6 @@ bool Field_mem_info::match_field_instance(const char *field_name, int decomp_id,
 bool Field_mem_info::match_field_mem(void *data_buffer)
 {
     return this->get_data_buf() == data_buffer;
-}
-
-
-void Field_mem_info::get_field_mem_full_name(char *full_name)
-{
-    sprintf(full_name, "%s_%s_%s_%s_%d", comp_name, decomp_name, grid_name, field_name, buf_mark);
 }
 
 
@@ -185,7 +188,6 @@ void Field_mem_info::calculate_field_conservative_sum(Field_mem_info *area_field
     for (long j = 0; j < size; j ++)
         partial_sum += (((double*) get_data_buf())[j])*(((double*) area_field->get_data_buf())[j]);
 	MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_DOUBLE, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(area_field->get_comp_id(),"in Field_mem_info::calculate_field_conservative_sum"));
-    EXECUTION_REPORT(REPORT_LOG, comp_id, true, "float sum of field (%s %s) is %0.18lf vs %0.18lf\n", get_comp_name(), get_field_name(), partial_sum, total_sum);
 #endif
 }
 
@@ -198,12 +200,20 @@ void Field_mem_info::check_field_sum(const char *hint)
     long size;
 
 
-    size = get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)*get_field_data()->get_grid_data_field()->required_data_size/4;
-    partial_sum = 0;
-    for (long j = 0; j < size; j ++)
-        partial_sum += (((int*) get_data_buf())[j]);
-    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
-    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
+	size = get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)*get_field_data()->get_grid_data_field()->required_data_size/4;
+	partial_sum = 0;
+	for (long j = 0; j < size; j ++)
+		partial_sum += (((int*) get_data_buf())[j]);
+
+	if (decomp_id != -1) {
+	    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
+	    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
+	}
+	else {
+		total_sum = partial_sum;
+		MPI_Bcast(&total_sum, 1, MPI_INT, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, partial_sum == total_sum, "Field %s should be the same but not the same across all processes of the component. Please check the model code related to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+	}
 #endif
 }
 
@@ -220,19 +230,12 @@ long Field_mem_info::get_size_of_field()
 }
 
 
-int Field_mem_info::get_grid_id() 
-{
-	EXECUTION_REPORT(REPORT_ERROR, -1, decomp_id != -1, "Software error is reported in Field_mem_info::get_grid_id");
-	return comp_or_grid_id; 
-}
-
-
 const char *Field_mem_info::get_grid_name() 
 {
-	if (decomp_id == -1)
+	if (grid_id == -1)
 		return NULL;
 
-	return original_grid_mgr->search_grid_info(comp_or_grid_id)->get_grid_name();
+	return original_grid_mgr->search_grid_info(grid_id)->get_grid_name();
 }
 
 
@@ -255,19 +258,6 @@ void Field_mem_info::set_field_instance_id(int field_instance_id, const char *an
 {
 	this->field_instance_id = field_instance_id;
 	annotation_mgr->add_annotation(field_instance_id, "allocate field instance", annotation);
-}
-
-
-void Memory_mgt::add_registered_field_info(const char *field_name, const char *decomp_name, const char *grid_name)
-{
-	Registered_field_info *registered_field_info;
-
-
-	registered_field_info = new Registered_field_info;
-	strcpy(registered_field_info->field_name, field_name);
-	strcpy(registered_field_info->decomp_name, decomp_name);
-	strcpy(registered_field_info->grid_name, grid_name);
-	registered_fields_info.push_back(registered_field_info);
 }
 
 
@@ -419,20 +409,16 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	if (buf_mark == BUF_MARK_IO_FIELD_REG)
 		API_id = API_ID_FIELD_MGT_REG_IO_FIELD;
 	else API_id = API_ID_FIELD_MGT_REG_FIELD_INST;
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id) || original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "The parameter of \"comp_or_grid_id\" for registering an instance of coupling field of \"%s\" is wrong: not a grid id or a component id. Please check the model code with the annotation \"%s\"", field_name, annotation);
 	
-	if (decomp_id == -1) {
+	if (comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id))
 		comp_id = comp_or_grid_id;
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id), "The parameter of component ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"",
-			             field_name, annotation);
-	}
-	else {
-		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), 
-			             "The parameter of grid ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"",
-			             field_name, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), 
-						 "The parameter of decomposition ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"",
-			             field_name, annotation);
-		comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
+	else comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
+
+	if (decomp_id != -1) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "The parameter of decomposition ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "The parameter of grid ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);		
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == decomps_info_mgr->get_comp_id_of_decomp(decomp_id), 
 			             "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: they belong to different components. Please check the model code with the annotation \"%s\"",
 			             field_name, annotation);
@@ -446,7 +432,14 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", data_type, "the data type (such as integer, float, and double) of the field instance", annotation);
 	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", unit, "the unit", annotation);
 	if (decomp_id == -1) {
-		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", decomp_id, "the ID of the parallel decomposition", annotation);
+		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", decomp_id, "decomp_id (the ID of the parallel decomposition)", annotation);
+		int temp_int = (comp_id == comp_or_grid_id)? 1 : 0;
+		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", decomp_id, "comp_or_grid_id (a grid id or a component id)", annotation);
+		if (comp_id != comp_or_grid_id)	{
+			check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", original_grid_mgr->get_name_of_grid(comp_or_grid_id), "the grid name specified by the corresponding ID", annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_H2D_sub_CoR_grid() == NULL && original_grid_mgr->get_original_grid(comp_or_grid_id)->get_V1D_sub_CoR_grid() != NULL, "The grid corresponding to the parameter of \"comp_or_grid_id\" for registering an instance of coupling field of \"%s\" should be a vertical grid when the given \"decomp_id\" is -1. Please check the model code with the annotation \"%s\"", field_name, annotation);
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == comp_or_grid_id, "Fail to register a field instance of \"%s\" at the model code with the annotation \"%s\". We are sorry that C-Coupler now only supports the coupling of a scalar field or a field on a grid related to a horizontal grid that is decomposed in parallelization of a model. If you want to couple more kinds of fields, please contact us", field_name, annotation);
 	}
 	else {
 		check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", decomps_info_mgr->get_decomp_info(decomp_id)->get_decomp_name(), "the parallel decomposition name specified by the corresponding ID", annotation);
@@ -465,8 +458,8 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, buf_mark!=BUF_MARK_IO_FIELD_REG);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register an instance of coupling field of \"%s\" because the size of the model data buffer is different from the size determined by the parallel decomposition and grid. Please check the model code with the annotation \"%s\"",
 					 field_name, annotation);
-	new_field_instance->reset_mem_buf(data_buffer, true);
 	new_field_instance->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), annotation);
+	new_field_instance->reset_mem_buf(data_buffer, true);
 	fields_mem.push_back(new_field_instance);
 
 	return new_field_instance->get_field_instance_id();

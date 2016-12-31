@@ -21,6 +21,8 @@
 class Runtime_trans_algorithm
 {
     private:
+        int num_remote_procs_related;
+        int remote_proc_idx_begin;
 		bool send_or_receive;    // true means send and false means receive
 		int comp_id;
         int num_transfered_fields;

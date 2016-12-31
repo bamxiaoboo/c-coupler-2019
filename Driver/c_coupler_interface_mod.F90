@@ -1612,8 +1612,6 @@
        call register_cor_defined_grid(comp_id, trim(CCPL_grid_name)//char(0), trim(CoR_grid_name)//char(0), trim("")//char(0), grid_id)
    endif
 
-   write(*,*) 'fortran grid id is ', grid_id
-
    CCPL_get_CoR_defined_grid = grid_id
 
    END FUNCTION CCPL_get_CoR_defined_grid

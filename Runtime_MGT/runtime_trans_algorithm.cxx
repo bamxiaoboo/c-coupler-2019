@@ -51,6 +51,9 @@ template <class T> void Runtime_trans_algorithm::unpack_segment_data(T *mpi_buf,
 
 Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_transfered_fields, Field_mem_info ** fields_mem, Routing_info ** routers, MPI_Comm comm, int * ranks)
 {
+	bool only_have_no_decomp_data = true;
+
+
 	this->send_or_receive = send_or_receive;
     this->num_transfered_fields = num_transfered_fields;
     EXECUTION_REPORT(REPORT_ERROR,-1, num_transfered_fields > 0, "Software error: Runtime_trans_algorithm does not have transfer fields");
@@ -105,17 +108,49 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     memset(send_displs_in_remote_procs, 0, sizeof(int)*num_remote_procs);
     memset(recv_displs_in_current_proc, 0, sizeof(int)*num_remote_procs);
 
+	only_have_no_decomp_data = true;
 	for (int j = 0; j < num_remote_procs; j ++) {
 	    for (int i = 0; i < num_transfered_fields; i ++) {
 	        fields_data_type_sizes[i] = get_data_type_size(fields_mem[i]->get_data_type());
+			is_V1D_sub_grid_after_H2D_sub_grid[i] = true;
 	        if (fields_routers[i]->get_num_dimensions() == 0) 
 	            field_grids_num_lev[i] = 1;
-	        else field_grids_num_lev[i] = original_grid_mgr->get_num_grid_levels(fields_mem[i]->get_grid_id());
-			is_V1D_sub_grid_after_H2D_sub_grid[i] = original_grid_mgr->is_V1D_sub_grid_after_H2D_sub_grid(fields_mem[i]->get_grid_id());
-            transfer_size_with_remote_procs[j] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, j) * fields_data_type_sizes[i] * field_grids_num_lev[i];
+	        else {
+				field_grids_num_lev[i] = original_grid_mgr->get_num_grid_levels(fields_mem[i]->get_grid_id());
+				only_have_no_decomp_data = false;
+				transfer_size_with_remote_procs[j] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, j) * fields_data_type_sizes[i] * field_grids_num_lev[i];
+				is_V1D_sub_grid_after_H2D_sub_grid[i] = original_grid_mgr->is_V1D_sub_grid_after_H2D_sub_grid(fields_mem[i]->get_grid_id());
+	        }	
         }
 		if (transfer_size_with_remote_procs[j] > 0)
 			index_remote_procs_with_common_data.push_back(j);
+    }
+
+    if (only_have_no_decomp_data) {
+        if (send_or_receive) {
+            num_remote_procs_related = num_remote_procs / num_local_procs;
+            if (current_proc_local_id < (num_remote_procs % num_local_procs))
+                num_remote_procs_related += 1;
+            remote_proc_idx_begin = current_proc_local_id;
+        }
+        else {
+            num_remote_procs_related = 1;
+            remote_proc_idx_begin = current_proc_local_id % num_remote_procs;
+        }
+
+        for (int i = 0; i < num_remote_procs_related; i ++) {
+            int remote_proc_idx = remote_proc_idx_begin + i * num_local_procs;
+            for (int j = 0; j < num_transfered_fields; j ++)
+                transfer_size_with_remote_procs[remote_proc_idx] += fields_data_type_sizes[j];
+            index_remote_procs_with_common_data.push_back(remote_proc_idx);
+        }
+    }
+    else {
+        for (int j = 0; j < num_remote_procs; j ++)
+            if (transfer_size_with_remote_procs[j] > 0)
+                for (int i = 0; i < num_transfered_fields; i ++)
+                    if (fields_routers[i]->get_num_dimensions() == 0)
+                        transfer_size_with_remote_procs[j] += fields_data_type_sizes[i];
     }
 
     int * total_transfer_size_with_remote_procs = new int [num_local_procs * num_remote_procs];
@@ -138,16 +173,9 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     delete [] total_transfer_size_with_remote_procs;
 
 	data_buf_size = 0;
-	if (send_or_receive) {
-		for (int i = 0; i < num_transfered_fields; i ++) 
-			for (int j = 0; j < num_remote_procs; j ++) 
-				data_buf_size += fields_data_type_sizes[i]*fields_routers[i]->get_num_elements_transferred_with_remote_proc(true, j)*field_grids_num_lev[i];
-	}
-	else {
-		for (int i = 0; i < num_transfered_fields; i ++) 
-			for (int j = 0; j < num_remote_procs; j ++) 
-				data_buf_size += fields_data_type_sizes[i]*fields_routers[i]->get_num_elements_transferred_with_remote_proc(false, j)*field_grids_num_lev[i];
-	}	
+	for (int j = 0; j < num_remote_procs; j ++) 
+		data_buf_size += transfer_size_with_remote_procs[j];
+	
     data_buf = (void *) new char [data_buf_size];
 
     if (!send_or_receive)
@@ -235,6 +263,9 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
 {
 	long temp_field_remote_recv_count = -100;
 
+
+    if (index_remote_procs_with_common_data.size() == 0)
+        return true;
 	
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
 		int remote_proc_index = index_remote_procs_with_common_data[i];
@@ -379,8 +410,8 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
         for (int j = 0; j < num_transfered_fields; j ++)
             if (transfer_process_on[j]) {
                 if (fields_routers[j]->get_num_dimensions() == 0) {
-                    if (fields_routers[j]->get_num_elements_transferred_with_remote_proc(true, i) > 0)
-                        MPI_Pack((char *)fields_data_buffers[j], fields_data_type_sizes[j], MPI_CHAR, data_buf, data_buf_size, &offset, union_comm);
+                    memcpy((char *)data_buf + offset, fields_data_buffers[j], fields_data_type_sizes[j]);
+                    offset += fields_data_type_sizes[j];
                 }
                 else
                     pack_MD_data(i, j, &offset);
@@ -446,8 +477,8 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
         for (int j = 0; j < num_transfered_fields; j ++)
             if (transfer_process_on[j]) {
                 if (fields_routers[j]->get_num_dimensions() == 0) {
-                    if (fields_routers[j]->get_num_elements_transferred_with_remote_proc(false, i) > 0)
-                        MPI_Unpack((char *) history_receive_data_buffer[last_history_receive_buffer_index], data_buf_size, &offset, (char *) fields_data_buffers[j], fields_data_type_sizes[j], MPI_CHAR, union_comm);
+					memcpy(fields_data_buffers[j], (char *) history_receive_data_buffer[last_history_receive_buffer_index] + offset, fields_data_type_sizes[j]);
+					offset += fields_data_type_sizes[j];
                 }
                 else unpack_MD_data(history_receive_data_buffer[last_history_receive_buffer_index], i, j, &offset);
 				fields_mem[j]->define_field_values(false);
@@ -481,12 +512,17 @@ long Runtime_trans_algorithm::get_history_receive_sender_time(int j)
 
 void Runtime_trans_algorithm::preprocess()
 {
-    memset(transfer_size_with_remote_procs, 0, sizeof(int)*num_remote_procs);
+	for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++)
+		transfer_size_with_remote_procs[index_remote_procs_with_common_data[i]] = 0;
 
     for (int i = 0; i < num_transfered_fields; i ++) {
         if (transfer_process_on[i]) {
-            for (int j = 0; j < num_remote_procs; j ++)
-                transfer_size_with_remote_procs[j] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, j) * fields_data_type_sizes[i] * field_grids_num_lev[i];
+            for (int j = 0; j < index_remote_procs_with_common_data.size(); j ++) {
+				int remote_proc_index = index_remote_procs_with_common_data[j];
+				if (fields_routers[i]->get_num_dimensions() == 0)
+					transfer_size_with_remote_procs[remote_proc_index] += fields_data_type_sizes[i];
+				else transfer_size_with_remote_procs[remote_proc_index] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, remote_proc_index) * fields_data_type_sizes[i] * field_grids_num_lev[i];
+            }
         }
     }
 }

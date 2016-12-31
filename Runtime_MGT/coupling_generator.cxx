@@ -96,12 +96,12 @@ void Coupling_connection::create_union_comm()
         dst_ranks[i] = dst_comp_node->get_local_proc_global_id(i);
 
 	if (current_proc_id_src_comp != -1) {
-		MPI_Barrier(src_comm);
 		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		MPI_Barrier(src_comm);
 	}
 	if (current_proc_id_dst_comp != -1) {
-		MPI_Barrier(dst_comm);
 		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		MPI_Barrier(dst_comm);
 	}
 
     MPI_Comm_group(MPI_COMM_WORLD, &common_group);
@@ -248,6 +248,7 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 
 	Original_grid_info *sender_original_grid = original_grid_mgr->search_grid_info(grid_name, sender_comp_node->get_comp_id());
 	Original_grid_info *receiver_original_grid = original_grid_mgr->search_grid_info(grid_name, receiver_comp_node->get_comp_id());
+	
 	original_grid_status = 0;
 	if (sender_original_grid != NULL && receiver_original_grid != NULL && sender_original_grid->get_original_CoR_grid() == receiver_original_grid->get_original_CoR_grid())
 		original_grid_status = 1;
@@ -257,8 +258,10 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	for (int i = 0; i < num_processes; i ++)
 		if (all_original_grid_status[i] == 1) {
 			delete [] all_original_grid_status;
-			if (current_proc_id_src_comp == 0 || current_proc_id_dst_comp == 0)
-				EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+			if (sender_comp_node->get_current_proc_local_id() != -1)
+				EXECUTION_REPORT(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+			if (receiver_comp_node->get_current_proc_local_id() != -1)
+				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
 			return false;
 		}
 	
@@ -271,21 +274,34 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		}
 	delete [] all_original_grid_status;
 	if (!should_exchange_grid) {
-		if (current_proc_id_src_comp == 0 || current_proc_id_dst_comp == 0)
-			EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+		if (sender_comp_node->get_current_proc_local_id() != -1)
+			EXECUTION_REPORT(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+		if (receiver_comp_node->get_current_proc_local_id() != -1)
+			EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
 		return true;
 	}
 
-	if (current_proc_id_src_comp == 0 || current_proc_id_dst_comp == 0)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Exchange grid \"%s\" from \"%s\" to \"%s\"", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+	if (sender_comp_node->get_current_proc_local_id() != -1) 
+		EXECUTION_REPORT(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Send grid %s to component \"%s\"", grid_name, receiver_comp_node->get_full_name());
+	if (receiver_comp_node->get_current_proc_local_id() != -1) 
+		EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Receive grid %s from component \"%s\"", grid_name, sender_comp_node->get_full_name());
 
 	if (sender_original_grid != NULL)
 		sender_original_grid->get_original_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
 	transfer_array_from_one_comp_to_another(sender_comp_node->get_current_proc_local_id(), sender_comp_node->get_root_proc_global_id(), receiver_comp_node->get_current_proc_local_id(), receiver_comp_node->get_root_proc_global_id(), receiver_comp_node->get_comm_group(), &temp_array_buffer, buffer_content_size);
 
 	if (original_grid_status == 0) {
-		Remap_grid_class *mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
-		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
+		char temp_string[NAME_STR_SIZE];
+		sprintf(temp_string, "%s%s", grid_name, sender_comp_node->get_full_name());
+		Remap_grid_class *mirror_grid = remap_grid_manager->search_remap_grid_with_grid_name(temp_string);
+		if (mirror_grid == NULL) {
+			mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
+			EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
+		}
+		else {
+			if (receiver_comp_node->get_current_proc_local_id() != -1) 
+				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" again", grid_name);
+		}
 		original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid);
 	}
 
@@ -323,6 +339,7 @@ void Coupling_connection::generate_interpolation()
 	for (int i = 0; i < fields_name.size(); i ++) {
 		src_fields_info[i]->runtime_remapping_weights = NULL;
 		dst_fields_info[i]->runtime_remapping_weights = NULL;
+		printf("check check grid name is %s : %s\n", dst_fields_info[i]->grid_name, fields_name[i]);
 		if (words_are_the_same(dst_fields_info[i]->grid_name, "NULL"))
 			continue;
 		if (src_comp_node == dst_comp_node && words_are_the_same(src_fields_info[i]->grid_name, dst_fields_info[i]->grid_name))

@@ -29,25 +29,14 @@
 #define BUF_MARK_REMAP_DATATYPE_TRANS_DST        ((int)(0xF0200000))
 
 
-struct Registered_field_info
-{
-    char field_name[NAME_STR_SIZE];
-    char decomp_name[NAME_STR_SIZE];
-    char grid_name[NAME_STR_SIZE];
-};
-
-
 class Field_mem_info
 {
     private:
-        char comp_name[NAME_STR_SIZE];
-        char decomp_name[NAME_STR_SIZE];
-        char grid_name[NAME_STR_SIZE];
-
         char field_name[NAME_STR_SIZE];
 		char field_unit[NAME_STR_SIZE];
 		int field_instance_id;
 		int decomp_id;
+		int grid_id;
 		int comp_or_grid_id;
 		int comp_id;
 		int host_comp_id;
@@ -69,9 +58,7 @@ class Field_mem_info
         void *get_data_buf() { return grided_field_data->get_grid_data_field()->data_buf; }
         Remap_grid_data_class *get_field_data() { return grided_field_data; }
         void reset_mem_buf(void *buf, bool);
-        void get_field_mem_full_name(char*);
         const char *get_decomp_name();
-        const char *get_comp_name() const { return comp_name; }
         const char *get_field_name() const { return field_name; }
 		long get_size_of_field();
         void reset_field_name(const char*);
@@ -86,7 +73,7 @@ class Field_mem_info
 		long get_define_order_count() const { return define_order_count; }
 		int get_field_instance_id() const { return field_instance_id; }
 		int get_comp_id() { return comp_id; }
-		int get_grid_id();
+		int get_grid_id() { return grid_id; }
         const char *get_grid_name();
 		const char *get_unit() const { return field_unit; }
 		int get_buf_mark() const { return buf_mark; }
@@ -102,11 +89,6 @@ class Memory_mgt
 {
     private:
         std::vector<Field_mem_info *> fields_mem;
-        std::vector<Registered_field_info *> registered_fields_info;
-		long field_define_order_counter;
-		char field_register_cfg_file[NAME_STR_SIZE];
-
-		void add_registered_field_info(const char*, const char*, const char*);
         
     public: 
         Memory_mgt() {}
@@ -123,8 +105,5 @@ class Memory_mgt
 		bool check_is_legal_field_instance_id(int);
 		Field_mem_info *get_field_instance(int);
 };
-
-
-extern Field_mem_info *alloc_mem(const char *, int, int, int, const char *, const char *, const char *);
 
 #endif

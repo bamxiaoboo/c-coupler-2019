@@ -141,7 +141,6 @@ void report_ender(int report_type, int comp_id, char *output_string)
 	fflush(NULL);	
 #endif	
 	if (report_type == REPORT_ERROR) {
-                while(1);
 		assert(false);
         }
 }
