@@ -223,28 +223,13 @@ extern "C" void coupling_add_field_info_(const char *field_name, const char *fie
 }
 
 
-extern "C" void initialize_CCPL_mgrs(const char *executable_name)
+extern "C" void initialize_CCPL_mgrs()
 {
-    char root_cfg_name[NAME_STR_SIZE], line[NAME_STR_SIZE];
-	FILE *root_cfg_fp;
-	int i;
-
-
-	for (i = strlen(executable_name)-1; i >= 0; i --)
-		if (executable_name[i] == '/')
-			break;
-    sprintf(root_cfg_name, "%s_coupling.cfg", executable_name+i+1);
-	root_cfg_fp = open_config_file(root_cfg_name);
-	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the configuration file (a CoR script) for grid management and data interpolation in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
-	sprintf(root_cfg_name, "%s/%s", C_COUPLER_CONFIG_DIR, line);
 	execution_phase_number = 1;
 	annotation_mgr = new Annotation_mgt();
-	original_grid_mgr = new Original_grid_mgt(root_cfg_name);
 	decomps_info_mgr = new Decomp_info_mgt();
 	decomp_grids_mgr = new Decomp_grid_mgt();
 	memory_manager = new Memory_mgt();
-	EXECUTION_REPORT(REPORT_ERROR,-1, get_next_line(line, root_cfg_fp), "Please specify the field information table in the configuration file \"%s\". Please specify \"NULL\" when there is no such configuration file.", root_cfg_name);
-	fields_info = new Field_info_mgt(line, "NULL");
 	components_time_mgrs = new Components_time_mgt();
 	timer_mgr2 = new Timer_mgt();
 	execution_phase_number = 2;
@@ -268,7 +253,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	char file_name[NAME_STR_SIZE], local_comp_name[NAME_STR_SIZE];
 
 
-	initialize_CCPL_mgrs(executable_name);
+	initialize_CCPL_mgrs();
 
 	strcpy(local_comp_name, comp_name);
 
@@ -285,7 +270,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_ROOT_COMP, MPI_COMM_WORLD, "registering root component", annotation);
 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
-                                		current_config_time, original_case_name, original_config_time);
+                                						  current_config_time, original_case_name, original_config_time);
 
 	if (*comm != -1) {
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", local_comp_name, annotation);
@@ -325,8 +310,10 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	*comp_id = root_comp_id;
 
-	sprintf(file_name, "%s/CCPL_configs/env_run.xml", comp_comm_group_mgt_mgr->get_root_working_dir());
+	sprintf(file_name, "%s/env_run.xml", comp_comm_group_mgt_mgr->get_config_all_dir());
 	components_time_mgrs->define_root_comp_time_mgr(*comp_id, file_name);
+	fields_info = new Field_info_mgt();
+	original_grid_mgr = new Original_grid_mgt();
 	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
 	remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 }
@@ -425,7 +412,6 @@ extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_n
 	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering grid", local_CCPL_grid_name, "CCPL_grid_name", annotation);
 	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering grid", local_CoR_grid_name, "CoR_grid_name", annotation);
 	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, local_CCPL_grid_name, local_CoR_grid_name, annotation);
-	printf("grid id is %d %lx\n", *grid_id, *grid_id);
 }
 
 
@@ -474,7 +460,6 @@ extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *fr
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr2->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
-	printf("timer comp id is %x  %x at %lx\n", *timer_id, timer_mgr2->get_timer(*timer_id)->get_comp_id(), timer_mgr2->get_timer(*timer_id));
 }
 
 

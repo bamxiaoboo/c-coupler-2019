@@ -87,12 +87,18 @@ bool Original_grid_info::is_V1D_sub_grid_after_H2D_sub_grid()
 }
 
 
-Original_grid_mgt::Original_grid_mgt(const char *script)
+Original_grid_mgt::Original_grid_mgt()
 {
 	original_grids.clear();
-	strcpy(CoR_script_name, script);
+	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
+	printf("CoR script is %s\n", CoR_script_name);
+	FILE *fp = fopen(CoR_script_name, "r");
+	if (fp == NULL)
+		CoR_script_name[0] = '\0';
+	else fclose(fp);
+	printf("CoR script is %s\n", CoR_script_name);
 	if (strlen(CoR_script_name) != 0)
-		CoR_grids = new Remap_mgt(script);
+		CoR_grids = new Remap_mgt(CoR_script_name);
 	else CoR_grids = new Remap_mgt(NULL);
 }
 

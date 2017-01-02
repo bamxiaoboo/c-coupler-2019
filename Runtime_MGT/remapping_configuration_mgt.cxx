@@ -185,9 +185,6 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 				for (TiXmlNode *type_element_node = detailed_element_node->FirstChild(); type_element_node != NULL; type_element_node = type_element_node->NextSibling()) {
 					TiXmlElement *type_element = type_element_node->ToElement();
 					const char *field_type = get_XML_attribute(comp_id, type_element, "value", XML_file_name, line_number, "the field type corresponding to a remapping setting", "remapping configuration");
-					printf("field type is \"%s\"\n", field_type);
-					if (words_are_the_same(field_type, "state") || words_are_the_same(field_type, "flux"))
-						printf("feichangqiguai\n");
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(field_type, "state") || words_are_the_same(field_type, "flux"), "In the XML file \"%s\" for remapping configuration, the field type \"%s\" is wrong. C-Coupler only supports field types \"state\" and \"flux\" at this time. Please verify the XML file arround the line number %d.", XML_file_name, field_type, line_number);
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_specification.size() == 0, "In the XML file \"%s\" for remapping configuration, there are more than one field type specified while only one field type can be set for a remapping setting. Please verify the XML file arround the line number %d.", XML_file_name, type_element->Row());
 					fields_specification.push_back(strdup(field_type));
@@ -344,6 +341,7 @@ Remapping_configuration::Remapping_configuration(int comp_id, const char *XML_fi
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file.LoadFile(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration")), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
 	for (TiXmlNode *XML_element_node = XML_file.FirstChildElement(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
 		TiXmlElement *XML_element = XML_element_node->ToElement();
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(XML_element->Value(), "remapping_setting"), "\"%s\" is not a legal attribute (the legal is \"remapping_setting\") for defining a remapping setting. Please verify the XML file arround the line number %d.", XML_element->Value(), XML_element->Row());
 		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status of a remapping setting", "remapping configuration"))
 			continue;
 		remapping_settings.push_back(new Remapping_setting(comp_id, XML_element, XML_file_name));
@@ -407,7 +405,10 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 	}
 
 	char XML_file_name[NAME_STR_SIZE];
-	sprintf(XML_file_name, "%s/CCPL_configs/remapping_configuration.xml", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_working_dir());
+	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration");
+	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
+		sprintf(XML_file_name, "%s/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_all_dir());
+	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
 	FILE *fp = fopen(XML_file_name, "r");
 	if (fp == NULL) {
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);

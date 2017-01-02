@@ -56,7 +56,7 @@ class Original_grid_mgt
 		Remap_mgt *CoR_grids;
 
 	public:
-		Original_grid_mgt(const char*);
+		Original_grid_mgt();
 		~Original_grid_mgt();
 		void check_for_grid_definition(int, const char*, const char*);
 		int get_CoR_defined_grid(int, const char*, const char*, const char*);

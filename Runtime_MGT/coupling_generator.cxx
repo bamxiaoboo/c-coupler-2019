@@ -300,7 +300,7 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		}
 		else {
 			if (receiver_comp_node->get_current_proc_local_id() != -1) 
-				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" again", grid_name);
+				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" (\"%s\") again", grid_name, temp_string);
 		}
 		original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid);
 	}
@@ -612,7 +612,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 
 
 	strcpy(comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
-	sprintf(XML_file_name, "%s/CCPL_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_full_name);
+	sprintf(XML_file_name, "%s/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_all_dir(), comp_full_name);
 	tmp_file = fopen(XML_file_name, "r");
 	if (tmp_file == NULL) {
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 

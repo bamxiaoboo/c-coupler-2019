@@ -184,13 +184,9 @@ FILE *open_config_file(const char *config_file_name, const char *config_file_dir
 FILE *open_config_file(const char *config_file_name)
 {
     FILE *cfg_fp;
-    char config_file_full_name[NAME_STR_SIZE];
 
-	
-    sprintf(config_file_full_name, "%s/\0", C_COUPLER_CONFIG_DIR);
-    strcat(config_file_full_name, config_file_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, -1, (cfg_fp = fopen(config_file_full_name, "rb")) != NULL, 
+    EXECUTION_REPORT(REPORT_ERROR, -1, (cfg_fp = fopen(config_file_name, "rb")) != NULL, 
 		         "Config file %s can not be opened\n", config_file_name);	    
 
     return cfg_fp;

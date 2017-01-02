@@ -51,6 +51,8 @@ class Comp_comm_group_mgt_node
 		int buffer_max_size;
 		bool definition_finalized;
 		char working_dir[NAME_STR_SIZE];
+		char config_all_dir[NAME_STR_SIZE];
+		char config_comp_dir[NAME_STR_SIZE];
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
@@ -74,13 +76,15 @@ class Comp_comm_group_mgt_node
 		void reset_local_node_id(int new_id) { comp_id = new_id; }
 		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
-		void reset_working_dir(const char *);
+		void reset_dir(Comp_comm_group_mgt_node *);
 		bool is_definition_finalized() { return definition_finalized; }
 		const char *get_annotation_start() { return annotation_start; }
 		const char *get_annotation_end() { return annotation_end; }
 		Comp_comm_group_mgt_node *get_parent() const { return parent; }
 		void write_node_into_XML(TiXmlElement *);
 		const char *get_working_dir() const { return working_dir; }
+		const char *get_config_all_dir() const { return config_all_dir; }
+		const char *get_config_comp_dir() const { return config_comp_dir; }
 		void update_child(const Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*);
 		void transfer_data_buffer(Comp_comm_group_mgt_node*);
 		int get_num_procs() const { return local_processes_global_ids.size(); }
@@ -136,6 +140,8 @@ class Comp_comm_group_mgt_mgr
 		int get_current_proc_global_id() { return current_proc_global_id; }
 		int get_num_total_global_procs() { return num_total_global_procs; }
 		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
+		const char *get_config_all_dir() { return global_node_array[0]->get_config_all_dir(); }
+		const char *get_config_root_comp_dir() { return global_node_array[1]->get_config_comp_dir(); }
 		void confirm_coupling_configuration_active(int, int, const char*);
 		const int *get_all_components_ids();
 		void generate_sorted_comp_ids();

@@ -47,6 +47,8 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->comm_group = -1;
 	this->current_proc_local_id = -1;
 	this->working_dir[0] = '\0';
+	this->config_all_dir[0] = '\0';
+	this->config_comp_dir[0] = '\0';
 	global_node_id ++;
 	this->parent = parent;
 	temp_array_buffer = NULL;
@@ -163,15 +165,19 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	if (parent != NULL) {
 		if (parent->get_parent() == NULL) {
 			EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
+			sprintf(config_all_dir, "%s/../../../../config/CCPL_runtime/all", working_dir);
+			sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
 			strcpy(working_dir+strlen(working_dir), "/../");
 		}
 		else {
 			sprintf(working_dir, "%s/%s\0", parent->working_dir, comp_name);
+			strcpy(config_all_dir, parent->config_all_dir);
+			strcpy(config_comp_dir, parent->config_comp_dir);
 			create_directory(working_dir, get_current_proc_local_id() == 0);
 		}
+		printf("config all dir is %s\n", config_all_dir);
+		printf("config comp dir is %s\n", config_comp_dir);
 		sprintf(dir, "%s/CCPL_logs", working_dir, comp_name);
-		create_directory(dir, get_current_proc_local_id() == 0);
-		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);   // to be modified: should be linked
 		create_directory(dir, get_current_proc_local_id() == 0);
 		sprintf(dir, "%s/data", working_dir, comp_name);
 		create_directory(dir, get_current_proc_local_id() == 0);
@@ -183,9 +189,9 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
+		sprintf(config_all_dir, "%s/../../../../config/CCPL_runtime/all", working_dir);
+		sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
 		strcpy(working_dir+strlen(working_dir), "/../../../all/");
-		sprintf(dir, "%s/CCPL_configs", working_dir, comp_name);
-		create_directory(dir, get_current_proc_local_id() == 0);
 	}
 }
 
@@ -211,9 +217,11 @@ void Comp_comm_group_mgt_node::transform_node_into_array()
 }
 
 
-void Comp_comm_group_mgt_node::reset_working_dir(const char *new_working_dir)
+void Comp_comm_group_mgt_node::reset_dir(Comp_comm_group_mgt_node *another_node)
 {
-	strcpy(working_dir, new_working_dir);
+	strcpy(working_dir, another_node->working_dir);
+	strcpy(config_all_dir, another_node->config_all_dir);
+	strcpy(config_comp_dir, another_node->config_comp_dir);
 }
 
 
@@ -451,7 +459,7 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all
 		all_global_nodes[j]->reset_comm_group(global_node_array[i]->get_comm_group());
 		all_global_nodes[j]->reset_current_proc_local_id(global_node_array[i]->get_current_proc_local_id());
 		all_global_nodes[j]->reset_local_node_id(global_node_array[i]->get_local_node_id());
-		all_global_nodes[j]->reset_working_dir(global_node_array[i]->get_working_dir());
+		all_global_nodes[j]->reset_dir(global_node_array[i]);
 		delete global_node_array[i];
 		global_node_array[i] = all_global_nodes[j];
 	}

@@ -30,7 +30,7 @@ private:
     std::vector<field_attr> fields_attr;
     
 public:
-    Field_info_mgt(const char*, const char*);
+    Field_info_mgt();
     ~Field_info_mgt() {}
     const field_attr* search_field_info(const char*);
 	int get_field_num_dims(const char*, const char*);
