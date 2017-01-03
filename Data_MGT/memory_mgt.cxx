@@ -62,12 +62,28 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 	}
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"", field_name, annotation);
 
-	if (check_field_name)
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL, "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered). Please check the model code with the annotation \"%s\"", field_name, annotation);
+	const field_attr *field_attributes = fields_info->search_field_info(field_name);
+
+	if (check_field_name) {
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, field_attributes != NULL, "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered through the configuration XML file public_field_attribute.xml). Please check the model code with the annotation \"%s\"", field_name, annotation);
+		bool dimensions_match_grid;
+		if (words_are_the_same(field_attributes->field_dim, FIELD_0_DIM))
+			dimensions_match_grid = decomp_id == -1 && remap_grid_grid == NULL;
+		else if (words_are_the_same(field_attributes->field_dim, FIELD_2_DIM))
+			dimensions_match_grid = decomp_id != -1 && remap_grid_grid != NULL && remap_grid_grid->get_is_sphere_grid();
+		else if (words_are_the_same(field_attributes->field_dim, FIELD_3_DIM))
+			dimensions_match_grid = decomp_id != -1 && remap_grid_grid != NULL && remap_grid_grid->get_num_dimensions() == 3;
+		if (!dimensions_match_grid) {
+			if (grid_id != -1)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when trying to register a field instance of \"%s\" at the model code with the annotation \"%s\": the dimension information (\"%s\") of the field does not match the dimensions of the corresponding grid \"%s\"", field_name, annotation, field_attributes->field_dim, original_grid_mgr->get_name_of_grid(grid_id));
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when trying to register a field instance of \"%s\" at the model code with the annotation \"%s\": the dimension information (\"%s\") of the field does not match the dimensions of the corresponding empty grid", field_name, annotation, field_attributes->field_dim);
+		}
+	}	
 
 	if (strlen(unit) > 0)
 		strcpy(field_unit, unit);
-	else strcpy(field_unit, fields_info->search_field_info(field_name)->field_unit);
+	else if (field_attributes != NULL) 
+		strcpy(field_unit, fields_info->search_field_info(field_name)->field_unit);
 	// check the field unit
 
 	strcpy(this->field_name, field_name);
@@ -88,10 +104,8 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
     remap_data_field->required_data_size = mem_size / get_data_type_size(data_type);
     remap_data_field->read_data_size = remap_data_field->required_data_size;
     remap_data_field->data_buf = new char [mem_size];
-	if (check_field_name) {
-		EXECUTION_REPORT(REPORT_ERROR,-1, fields_info->get_field_long_name(field_name) != NULL, "Cannot register the field \"%s\" because its basic information has not been registered. Please check model code with the annotation \"%s\"", field_name, annotation);
+	if (check_field_name)
 	    remap_data_field->set_field_long_name(fields_info->get_field_long_name(field_name));
-	}
     remap_data_field->set_field_unit(unit);   // to complete: when strlen(unit) is 0, use default unit of the field
     memset(remap_data_field->data_buf, 0, mem_size);
 

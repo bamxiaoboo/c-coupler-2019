@@ -1441,17 +1441,6 @@
    END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_4D
 
 
-   SUBROUTINE c_coupler_register_field_info(fld_name, units, long_name)
-   implicit none
-   character(len=*), intent(in) :: fld_name      
-   character(len=*), intent(in) :: units 
-   character(len=*), intent(in) :: long_name
-
-   call coupling_add_field_info(trim(fld_name)//char(0), trim(units)//char(0), trim(long_name)//char(0)) 
-
-   END SUBROUTINE c_coupler_register_field_info
-
-
 
    SUBROUTINE c_coupler_perturb_roundoff_errors
    implicit none

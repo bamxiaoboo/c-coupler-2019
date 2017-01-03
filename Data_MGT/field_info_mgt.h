@@ -14,6 +14,12 @@
 #include <vector>
 
 
+#define FIELD_0_DIM       "0D"
+#define FIELD_2_DIM       "H2D"
+#define FIELD_3_DIM       "V3D"
+#define FIELD_4_DIM       "4D"
+
+
 struct field_attr
 {
     char field_name[NAME_STR_SIZE];
@@ -21,6 +27,7 @@ struct field_attr
     char field_unit[NAME_STR_SIZE];
     char field_dim[NAME_STR_SIZE];           // dimension info: scalar, 1D, 2D, 3D, etc
     char field_type[NAME_STR_SIZE];          // state or flux
+    int line_number;
 };
 
 
@@ -36,7 +43,7 @@ public:
 	int get_field_num_dims(const char*, const char*);
 	const char *get_field_long_name(const char*);
 	const char *get_field_unit(const char*);
-	void add_field_info(const char*, const char*, const char*, const char*, const char *field_type);
+	void add_field_info(const char*, const char*, const char*, const char*, const char *, int);
 };
 
 #endif
