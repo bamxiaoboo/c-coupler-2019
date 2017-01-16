@@ -6,58 +6,58 @@
 !*************************************************************
 
 
- MODULE c_coupler_interface_mod
+ MODULE CCPL_interface_mod
    
 
    IMPLICIT none
 !
 !  PUBLIC: interfaces
 !
-   public :: c_coupler_abort
-   public :: c_coupler_get_current_date
-   public :: c_coupler_get_current_time
-   public :: c_coupler_get_num_elapsed_days_from_start
-   public :: c_coupler_allreduce_real16
-   public :: c_coupler_check_sum_for_all_fields
+   public :: CCPL_abort
+   public :: CCPL_get_current_date
+   public :: CCPL_get_current_time
+   public :: CCPL_get_num_elapsed_days_from_start
+   public :: CCPL_allreduce_real16
+   public :: CCPL_check_sum_for_all_fields
 
    interface CCPL_register_field_instance ; module procedure &
-        c_coupler_register_model_double_0D_data, &
-        c_coupler_register_model_double_1D_data, &
-        c_coupler_register_model_double_2D_data, &
-        c_coupler_register_model_double_3D_data, &
-        c_coupler_register_model_double_4D_data, &
-        c_coupler_register_model_float_0D_data, &
-        c_coupler_register_model_float_1D_data, &
-        c_coupler_register_model_float_2D_data, &
-        c_coupler_register_model_float_3D_data, &
-        c_coupler_register_model_float_4D_data, &
-        c_coupler_register_model_integer_0D_data, &
-        c_coupler_register_model_integer_1D_data, &
-        c_coupler_register_model_integer_2D_data, &
-        c_coupler_register_model_integer_3D_data, &
-        c_coupler_register_model_integer_4D_data
+        CCPL_register_model_double_0D_data, &
+        CCPL_register_model_double_1D_data, &
+        CCPL_register_model_double_2D_data, &
+        CCPL_register_model_double_3D_data, &
+        CCPL_register_model_double_4D_data, &
+        CCPL_register_model_float_0D_data, &
+        CCPL_register_model_float_1D_data, &
+        CCPL_register_model_float_2D_data, &
+        CCPL_register_model_float_3D_data, &
+        CCPL_register_model_float_4D_data, &
+        CCPL_register_model_integer_0D_data, &
+        CCPL_register_model_integer_1D_data, &
+        CCPL_register_model_integer_2D_data, &
+        CCPL_register_model_integer_3D_data, &
+        CCPL_register_model_integer_4D_data
    end interface
 
 
 
    interface CCPL_register_IO_field ; module procedure &
-        c_coupler_register_one_IO_field_from_field_instance_new_name, &
-        c_coupler_register_one_IO_field_from_field_instance_no_name, &
-        c_coupler_register_new_IO_field_double_0D_data, &
-        c_coupler_register_new_IO_field_double_1D_data, &
-        c_coupler_register_new_IO_field_double_2D_data, &
-        c_coupler_register_new_IO_field_double_3D_data, &
-        c_coupler_register_new_IO_field_double_4D_data, &
-        c_coupler_register_new_IO_field_float_0D_data, &
-        c_coupler_register_new_IO_field_float_1D_data, &
-        c_coupler_register_new_IO_field_float_2D_data, &
-        c_coupler_register_new_IO_field_float_3D_data, &
-        c_coupler_register_new_IO_field_float_4D_data, &
-        c_coupler_register_new_IO_field_integer_0D_data, &
-        c_coupler_register_new_IO_field_integer_1D_data, &
-        c_coupler_register_new_IO_field_integer_2D_data, &
-        c_coupler_register_new_IO_field_integer_3D_data, &
-        c_coupler_register_new_IO_field_integer_4D_data
+        CCPL_register_one_IO_field_from_field_instance_new_name, &
+        CCPL_register_one_IO_field_from_field_instance_no_name, &
+        CCPL_register_new_IO_field_double_0D_data, &
+        CCPL_register_new_IO_field_double_1D_data, &
+        CCPL_register_new_IO_field_double_2D_data, &
+        CCPL_register_new_IO_field_double_3D_data, &
+        CCPL_register_new_IO_field_double_4D_data, &
+        CCPL_register_new_IO_field_float_0D_data, &
+        CCPL_register_new_IO_field_float_1D_data, &
+        CCPL_register_new_IO_field_float_2D_data, &
+        CCPL_register_new_IO_field_float_3D_data, &
+        CCPL_register_new_IO_field_float_4D_data, &
+        CCPL_register_new_IO_field_integer_0D_data, &
+        CCPL_register_new_IO_field_integer_1D_data, &
+        CCPL_register_new_IO_field_integer_2D_data, &
+        CCPL_register_new_IO_field_integer_3D_data, &
+        CCPL_register_new_IO_field_integer_4D_data
    end interface
 
 
@@ -79,46 +79,46 @@
 
 
 
-   interface c_coupler_register_sigma_grid_bottom_field ; module procedure &
-        c_coupler_register_sigma_grid_bottom_field_1d_float,   &
-        c_coupler_register_sigma_grid_bottom_field_2d_float,   &
-        c_coupler_register_sigma_grid_bottom_field_1d_double,  &
-        c_coupler_register_sigma_grid_bottom_field_2d_double
+   interface CCPL_register_sigma_grid_bottom_field ; module procedure &
+        CCPL_register_sigma_grid_bottom_field_1d_float,   &
+        CCPL_register_sigma_grid_bottom_field_2d_float,   &
+        CCPL_register_sigma_grid_bottom_field_1d_double,  &
+        CCPL_register_sigma_grid_bottom_field_2d_double
    end interface
 
 
 
-   interface c_coupler_add_field_for_perturbing_roundoff_errors ; module procedure &
-        c_coupler_add_field_for_perturbing_roundoff_errors_double_0D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_double_1D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_double_2D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_double_3D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_double_4D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_float_0D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_float_1D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_float_2D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_float_3D, &
-        c_coupler_add_field_for_perturbing_roundoff_errors_float_4D
+   interface CCPL_add_field_for_perturbing_roundoff_errors ; module procedure &
+        CCPL_add_field_for_perturbing_roundoff_errors_double_0D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_double_1D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_double_2D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_double_3D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_double_4D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_float_0D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_float_1D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_float_2D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_float_3D, &
+        CCPL_add_field_for_perturbing_roundoff_errors_float_4D
    end interface
 
-   interface c_coupler_perturb_roundoff_errors_for_an_array ; module procedure &
-        c_coupler_perturb_roundoff_errors_for_an_array_double_0D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_double_1D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_double_2D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_double_3D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_double_4D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_float_0D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_float_1D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_float_2D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_float_3D, &
-        c_coupler_perturb_roundoff_errors_for_an_array_float_4D
+   interface CCPL_perturb_roundoff_errors_for_an_array ; module procedure &
+        CCPL_perturb_roundoff_errors_for_an_array_double_0D, &
+        CCPL_perturb_roundoff_errors_for_an_array_double_1D, &
+        CCPL_perturb_roundoff_errors_for_an_array_double_2D, &
+        CCPL_perturb_roundoff_errors_for_an_array_double_3D, &
+        CCPL_perturb_roundoff_errors_for_an_array_double_4D, &
+        CCPL_perturb_roundoff_errors_for_an_array_float_0D, &
+        CCPL_perturb_roundoff_errors_for_an_array_float_1D, &
+        CCPL_perturb_roundoff_errors_for_an_array_float_2D, &
+        CCPL_perturb_roundoff_errors_for_an_array_float_3D, &
+        CCPL_perturb_roundoff_errors_for_an_array_float_4D
    end interface
 
 
 
-   interface c_coupler_get_current_calendar_time ; module procedure &
-        c_coupler_get_double_current_calendar_time, &
-        c_coupler_get_float_current_calendar_time 
+   interface CCPL_get_current_calendar_time ; module procedure &
+        CCPL_get_double_current_calendar_time, &
+        CCPL_get_float_current_calendar_time
    end interface
 
 
@@ -141,51 +141,51 @@
 !  SUBROUTINE below
 ! 
 
-   SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_1d_float(data_buf, grid_name)
+   SUBROUTINE  CCPL_register_sigma_grid_bottom_field_1d_float(data_buf, grid_name)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
    character(len=*)                           :: grid_name
    
    call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
    
-   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_1d_float
+   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_1d_float
 
 
 
-   SUBROUTINE c_coupler_register_sigma_grid_bottom_field_2d_float(data_buf,grid_name)
+   SUBROUTINE CCPL_register_sigma_grid_bottom_field_2d_float(data_buf,grid_name)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
    character(len=*)                           :: grid_name
    
    call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
    
-   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_2d_float
+   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_2d_float
 
 
 
-   SUBROUTINE c_coupler_register_sigma_grid_bottom_field_1d_double(data_buf,grid_name)
+   SUBROUTINE CCPL_register_sigma_grid_bottom_field_1d_double(data_buf,grid_name)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
    character(len=*)                           :: grid_name
    
    call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
    
-   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_1d_double
+   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_1d_double
 
 
 
-   SUBROUTINE c_coupler_register_sigma_grid_bottom_field_2d_double(data_buf,grid_name)
+   SUBROUTINE CCPL_register_sigma_grid_bottom_field_2d_double(data_buf,grid_name)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)       :: data_buf
    character(len=*)                           :: grid_name
    
    call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
    
-   END SUBROUTINE  c_coupler_register_sigma_grid_bottom_field_2d_double
+   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_2d_double
 
 
 
-   integer FUNCTION c_coupler_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN)                    :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -205,13 +205,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_double_0D_data = field_instance_id
+   CCPL_register_model_double_0D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_double_0D_data
+   END FUNCTION CCPL_register_model_double_0D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_double_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)      :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -231,13 +231,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_double_1D_data = field_instance_id
+   CCPL_register_model_double_1D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_double_1D_data
+   END FUNCTION CCPL_register_model_double_1D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_double_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)    :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -257,13 +257,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_double_2D_data = field_instance_id
+   CCPL_register_model_double_2D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_double_2D_data
+   END FUNCTION CCPL_register_model_double_2D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_double_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -283,13 +283,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_double_3D_data = field_instance_id
+   CCPL_register_model_double_3D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_double_3D_data
+   END FUNCTION CCPL_register_model_double_3D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_double_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:,:)  :: data_buf
    character(len=*), intent(in)              :: field_name
@@ -309,13 +309,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_double_4D_data = field_instance_id
+   CCPL_register_model_double_4D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_double_4D_data
+   END FUNCTION CCPL_register_model_double_4D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_float_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN)                    :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -335,13 +335,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_float_0D_data = field_instance_id
+   CCPL_register_model_float_0D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_float_0D_data
+   END FUNCTION CCPL_register_model_float_0D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_float_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)      :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -361,13 +361,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_float_1D_data = field_instance_id
+   CCPL_register_model_float_1D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_float_1D_data
+   END FUNCTION CCPL_register_model_float_1D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_float_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)    :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -387,13 +387,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_float_2D_data = field_instance_id
+   CCPL_register_model_float_2D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_float_2D_data
+   END FUNCTION CCPL_register_model_float_2D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_float_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -413,13 +413,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_float_3D_data = field_instance_id
+   CCPL_register_model_float_3D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_float_3D_data
+   END FUNCTION CCPL_register_model_float_3D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_float_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:,:)  :: data_buf
    character(len=*), intent(in)              :: field_name
@@ -439,13 +439,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_float_4D_data = field_instance_id
+   CCPL_register_model_float_4D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_float_4D_data
+   END FUNCTION CCPL_register_model_float_4D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_integer_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    integer, INTENT(IN)                     :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -465,13 +465,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_integer_0D_data = field_instance_id
+   CCPL_register_model_integer_0D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_integer_0D_data
+   END FUNCTION CCPL_register_model_integer_0D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_integer_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:)       :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -491,13 +491,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_integer_1D_data = field_instance_id
+   CCPL_register_model_integer_1D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_integer_1D_data
+   END FUNCTION CCPL_register_model_integer_1D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_integer_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:)     :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -517,13 +517,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_integer_2D_data = field_instance_id
+   CCPL_register_model_integer_2D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_integer_2D_data
+   END FUNCTION CCPL_register_model_integer_2D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_integer_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:)   :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -543,13 +543,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_integer_3D_data = field_instance_id
+   CCPL_register_model_integer_3D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_integer_3D_data
+   END FUNCTION CCPL_register_model_integer_3D_data
 
 
 
-   integer FUNCTION c_coupler_register_model_integer_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:,:) :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -569,13 +569,13 @@
    endif
 
    call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
-   c_coupler_register_model_integer_4D_data = field_instance_id
+   CCPL_register_model_integer_4D_data = field_instance_id
 
-   END FUNCTION c_coupler_register_model_integer_4D_data
+   END FUNCTION CCPL_register_model_integer_4D_data
 
 
 
-   SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_new_name(field_IO_name, field_inst_id, annotation)
+   SUBROUTINE CCPL_register_one_IO_field_from_field_instance_new_name(field_IO_name, field_inst_id, annotation)
    implicit none
    character(len=*), intent(in)            :: field_IO_name
    integer,          intent(in)            :: field_inst_id
@@ -587,11 +587,11 @@
        call register_an_io_field_from_field_instance(field_inst_id, trim(field_IO_name)//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_new_name
+   END SUBROUTINE CCPL_register_one_IO_field_from_field_instance_new_name
 
 
 
-   SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_no_name(field_inst_id, annotation)
+   SUBROUTINE CCPL_register_one_IO_field_from_field_instance_no_name(field_inst_id, annotation)
    implicit none
    integer,          intent(in)            :: field_inst_id
    character(len=*), intent(in), optional  :: annotation
@@ -602,11 +602,11 @@
        call register_an_io_field_from_field_instance(field_inst_id, trim("")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_one_IO_field_from_field_instance_no_name
+   END SUBROUTINE CCPL_register_one_IO_field_from_field_instance_no_name
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_double_0D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_double_0D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R8), INTENT(IN)                    :: data_buf
@@ -625,11 +625,11 @@
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_double_0D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_double_0D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_double_1D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_double_1D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)      :: data_buf
@@ -648,11 +648,11 @@
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_double_1D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_double_1D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_double_2D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_double_2D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)    :: data_buf
@@ -671,11 +671,11 @@
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_double_2D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_double_2D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_double_3D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_double_3D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
@@ -694,11 +694,11 @@
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_double_3D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_double_3D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_double_4D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_double_4D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:,:):: data_buf
@@ -717,11 +717,11 @@
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_double_4D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_double_4D_data 
 
 
 
-   subroutine c_coupler_register_new_IO_field_float_0D_data(data_buf, field_io_name, &
+   subroutine CCPL_register_new_IO_field_float_0D_data(data_buf, field_io_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(r4), intent(in)                    :: data_buf
@@ -740,11 +740,11 @@
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
-   end subroutine c_coupler_register_new_IO_field_float_0D_data 
+   end subroutine CCPL_register_new_IO_field_float_0D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_float_1D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_float_1D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)      :: data_buf
@@ -763,11 +763,11 @@
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_float_1D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_float_1D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_float_2D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_float_2D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)    :: data_buf
@@ -786,11 +786,11 @@
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_float_2D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_float_2D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_float_3D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_float_3D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
@@ -809,11 +809,11 @@
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_float_3D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_float_3D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_float_4D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_float_4D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:,:):: data_buf
@@ -832,11 +832,11 @@
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_float_4D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_float_4D_data 
 
 
 
-   subroutine c_coupler_register_new_IO_field_integer_0D_data(data_buf, field_io_name, &
+   subroutine CCPL_register_new_IO_field_integer_0D_data(data_buf, field_io_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    integer, intent(in)                     :: data_buf
@@ -855,11 +855,11 @@
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
-   end subroutine c_coupler_register_new_IO_field_integer_0D_data 
+   end subroutine CCPL_register_new_IO_field_integer_0D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_integer_1D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_integer_1D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:)       :: data_buf
@@ -878,11 +878,11 @@
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_integer_1D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_integer_1D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_integer_2D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_integer_2D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:)     :: data_buf
@@ -901,11 +901,11 @@
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_integer_2D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_integer_2D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_integer_3D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_integer_3D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:)   :: data_buf
@@ -924,11 +924,11 @@
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_integer_3D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_integer_3D_data 
 
 
 
-   SUBROUTINE c_coupler_register_new_IO_field_integer_4D_data(data_buf, field_IO_name, &
+   SUBROUTINE CCPL_register_new_IO_field_integer_4D_data(data_buf, field_IO_name, &
               field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:,:) :: data_buf
@@ -947,240 +947,348 @@
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE c_coupler_register_new_IO_field_integer_4D_data 
+   END SUBROUTINE CCPL_register_new_IO_field_integer_4D_data 
 
 
 
- SUBROUTINE c_coupler_reset_timer
-
-   call coupling_reset_timer
-
- END SUBROUTINE c_coupler_reset_timer
-
-
-
- integer FUNCTION c_coupler_get_nstep
+ integer FUNCTION CCPL_get_number_of_current_step(comp_id, annotation)
    implicit none  
-   integer :: nstep
+   integer,          intent(in) :: comp_id
+   character(len=*), intent(in), optional :: annotation
+   integer                      :: nstep
 
-   call coupling_get_current_nstep(nstep)
-   c_coupler_get_nstep = nstep
+   if (present(annotation)) then
+      call get_ccpl_current_number_of_step(comp_id, nstep, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_number_of_step(comp_id, nstep, trim("")//char(0))
+   endif
+   CCPL_get_number_of_current_step = nstep
 
- END FUNCTION c_coupler_get_nstep
+ END FUNCTION CCPL_get_number_of_current_step
 
 
 
- integer FUNCTION c_coupler_get_num_total_step
+ integer FUNCTION CCPL_get_num_total_step(comp_id, annotation)
    implicit none  
-   integer :: nstep
+   integer,          intent(in) :: comp_id
+   character(len=*), intent(in), optional :: annotation
+   integer                      :: nstep
 
-   call coupling_get_num_total_step(nstep)
-   c_coupler_get_num_total_step = nstep
+   if (present(annotation)) then
+      call get_ccpl_num_total_step(comp_id, nstep, trim(annotation)//char(0))
+   else
+      call get_ccpl_num_total_step(comp_id, nstep, trim("")//char(0))
+   endif
+   CCPL_get_num_total_step = nstep
 
- END FUNCTION c_coupler_get_num_total_step
+ END FUNCTION CCPL_get_num_total_step
 
 
 
- integer FUNCTION c_coupler_get_step_size
+ integer FUNCTION CCPL_get_time_step(comp_id, annotation)
    implicit none  
-   integer :: step_size
+   integer, intent(in) :: comp_id
+   character(len=*), intent(in), optional :: annotation
+   integer             :: step_size
 
-   call coupling_get_step_size(step_size)
-   c_coupler_get_step_size = step_size
+   if (present(annotation)) then
+      call get_ccpl_time_step(comp_id, step_size, trim(annotation)//char(0))
+   else 
+      call get_ccpl_time_step(comp_id, step_size, trim("")//char(0))
+   endif
+   CCPL_get_time_step = step_size
 
- END FUNCTION c_coupler_get_step_size
+ END FUNCTION CCPL_get_time_step
 
 
 
- integer FUNCTION c_coupler_get_field_size(data_buf, annotation)
+ integer FUNCTION CCPL_get_field_size(data_buf, annotation)
    implicit none  
-   real(R8),DIMENSION(:)      :: data_buf
-   character(len=*), intent(in) :: annotation
-   integer :: field_size
+   real(R8),DIMENSION(:)        :: data_buf
+   character(len=*), intent(in), optional :: annotation
+   integer                      :: field_size
 
    call coupling_get_field_size(data_buf, trim(annotation)//char(0), field_size)
-   c_coupler_get_field_size = field_size
+   CCPL_get_field_size = field_size
 
- END FUNCTION c_coupler_get_field_size
+ END FUNCTION CCPL_get_field_size
 
 
 
- logical FUNCTION c_coupler_is_first_restart_step
+ logical FUNCTION CCPL_is_first_restart_step
    implicit none
    logical is_first_restart_step
 
    call coupling_is_first_restart_step(is_first_restart_step)
-   c_coupler_is_first_restart_step = is_first_restart_step
+   CCPL_is_first_restart_step = is_first_restart_step
 
- END FUNCTION c_coupler_is_first_restart_step
+ END FUNCTION CCPL_is_first_restart_step
 
 
 
- logical FUNCTION c_coupler_is_first_step
+ logical FUNCTION CCPL_is_first_step(comp_id, annotation)
    implicit none
-   logical is_first_step
+   integer                      :: is_first_step
+   integer,          intent(in) :: comp_id
+   character(len=*), intent(in), optional :: annotation
 
-   call coupling_is_first_step(is_first_step)
-   c_coupler_is_first_step = is_first_step
+   if (present(annotation)) then
+      call is_comp_first_step(comp_id, is_first_step, trim(annotation)//char(0))
+   else
+      call is_comp_first_step(comp_id, is_first_step, trim("")//char(0))
+   endif
+   if (is_first_step .eq. 1) then
+      CCPL_is_first_step = .true.
+   else
+      CCPL_is_first_step = .false.
+   endif
+   CCPL_is_first_step = is_first_step
 
- END FUNCTION c_coupler_is_first_step
+ END FUNCTION CCPL_is_first_step
 
 
 
- SUBROUTINE c_coupler_get_current_num_days_in_year(days)
+ integer FUNCTION CCPL_get_current_num_days_in_year(comp_id, annotation)
    implicit none
-   integer  days
+   integer,          intent(in) :: comp_id
+   character(len=*), intent(in), optional :: annotation
+   integer                      :: days
 
-   call coupling_get_current_num_days_in_year(days)
- END SUBROUTINE c_coupler_get_current_num_days_in_year
+   if (present(annotation)) then
+      call get_ccpl_current_num_days_in_year(comp_id, days, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_num_days_in_year(comp_id, days, trim("")//char(0))
+   endif
+   CCPL_get_current_num_days_in_year = days
+ END FUNCTION CCPL_get_current_num_days_in_year
 
 
 
- SUBROUTINE c_coupler_get_current_year(year)
+ integer FUNCTION CCPL_get_current_year(comp_id, annotation)
    implicit none
-   integer  year
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year
 
-   call coupling_get_current_year(year)
- END SUBROUTINE c_coupler_get_current_year
+   if (present(annotation)) then
+      call get_ccpl_current_year(comp_id, year, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_year(comp_id, year, trim("")//char(0))
+   endif
+   CCPL_get_current_year = year
+ END FUNCTION CCPL_get_current_year
 
 
 
- SUBROUTINE c_coupler_get_current_date(date)
+ integer FUNCTION CCPL_get_current_date(comp_id, annotation)
    implicit none
-   integer  date
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: date
 
-   call coupling_get_current_date(date)
- END SUBROUTINE c_coupler_get_current_date
+   if (present(annotation)) then
+      call get_ccpl_current_date(comp_id, date, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_date(comp_id, date, trim("")//char(0))
+   endif
+   CCPL_get_current_date = date
+ END FUNCTION CCPL_get_current_date
 
 
- SUBROUTINE c_coupler_get_current_second(second)
+
+ integer FUNCTION CCPL_get_current_second(comp_id, annotation)
    implicit none
-   integer  second
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: second
 
-   call coupling_get_current_second(second)
- END SUBROUTINE c_coupler_get_current_second
-
-
-
- SUBROUTINE c_coupler_get_start_time(year, month, day, second)
-    implicit none
-    integer year, month, day, second
-
-    call coupling_get_start_time(year, month, day, second)
-
- END SUBROUTINE c_coupler_get_start_time
+   if (present(annotation)) then
+      call get_ccpl_current_second(comp_id, second, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_second(comp_id, second, trim("")//char(0))
+   endif
+   CCPL_get_current_second = second
+ END FUNCTION CCPL_get_current_second
 
 
 
- SUBROUTINE c_coupler_get_stop_time(year, month, day, second)
-    implicit none
-    integer year, month, day, second
+ SUBROUTINE CCPL_get_start_time(comp_id, year, month, day, second, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year, month, day, second
 
-    call coupling_get_stop_time(year, month, day, second)
-
- END SUBROUTINE c_coupler_get_stop_time
-
-
-
- SUBROUTINE c_coupler_get_previous_time(year, month, day, second)
-    implicit none
-    integer year, month, day, second
-
-    call coupling_get_previous_time(year, month, day, second)
-
- END SUBROUTINE c_coupler_get_previous_time
+   if (present(annotation)) then
+      call get_ccpl_start_time(comp_id, year, month, day, second, trim(annotation)//char(0))
+   else
+      call get_ccpl_start_time(comp_id, year, month, day, second, trim("")//char(0))
+   endif
+ END SUBROUTINE CCPL_get_start_time
 
 
 
- SUBROUTINE c_coupler_get_current_time(year, month, day, second, shift_second)
-    implicit none
-    integer year, month, day, second
-    integer, optional ::  shift_second
-    integer           ::  local_shift
+ SUBROUTINE CCPL_get_stop_time(comp_id, year, month, day, second, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year, month, day, second
 
-    local_shift = 0
-    if (present(shift_second)) local_shift = shift_second
+   if (present(annotation)) then
+      call get_ccpl_stop_time(comp_id, year, month, day, second, trim(annotation)//char(0))
+   else
+      call get_ccpl_stop_time(comp_id, year, month, day, second, trim("")//char(0))
+   endif
 
-    call coupling_get_current_time(year, month, day, second, local_shift)
-
- END SUBROUTINE c_coupler_get_current_time
-
-
-
- SUBROUTINE c_coupler_get_num_elapsed_days_from_reference(days, seconds)
-    implicit none
-    integer days, seconds
-
-    call coupling_get_elapsed_days_from_reference_date(days, seconds)
-
- END SUBROUTINE c_coupler_get_num_elapsed_days_from_reference
+ END SUBROUTINE CCPL_get_stop_time
 
 
 
- SUBROUTINE c_coupler_get_num_elapsed_days_from_start(days, seconds)
-    implicit none
-    integer days, seconds
+ SUBROUTINE CCPL_get_previous_time(comp_id, year, month, day, second, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year, month, day, second
 
-    call coupling_get_elapsed_days_from_start_date(days, seconds)
+   if (present(annotation)) then
+      call get_ccpl_previous_time(comp_id, year, month, day, second, trim(annotation)//char(0))
+   else
+      call get_ccpl_previous_time(comp_id, year, month, day, second, trim("")//char(0))
+   endif
 
- END SUBROUTINE c_coupler_get_num_elapsed_days_from_start
-
-
-
- logical FUNCTION c_coupler_is_end_current_day()
-    implicit none
-    integer year, month, day, second
-
-    call coupling_get_current_time(year, month, day, second, 0)
-    c_coupler_is_end_current_day = (second == 0)
-
- END FUNCTION c_coupler_is_end_current_day
+ END SUBROUTINE CCPL_get_previous_time
 
 
 
- logical FUNCTION c_coupler_is_end_current_month()
-    implicit none
-    integer year, month, day, second
+ SUBROUTINE CCPL_get_current_time(comp_id, year, month, day, second, shift_second, annotation)
+   implicit none 
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year, month, day, second
+   integer,          optional   :: shift_second
+   integer                      :: local_shift
 
-    call coupling_get_current_time(year, month, day, second, 0)
-    if (second .eq. 0 .and. day .eq. 1) then
-       c_coupler_is_end_current_month = .true.
-    else 
-       c_coupler_is_end_current_month = .false.
-    end if
+   local_shift = 0
+   if (present(shift_second)) local_shift = shift_second
+   if (present(annotation)) then
+      call get_ccpl_current_time(comp_id, year, month, day, second, local_shift, trim(annotation)//char(0))
+   else 
+      call get_ccpl_current_time(comp_id, year, month, day, second, local_shift, trim("")//char(0))
+   endif
 
- END FUNCTION c_coupler_is_end_current_month
+ END SUBROUTINE CCPL_get_current_time
 
 
 
- SUBROUTINE c_coupler_get_double_current_calendar_time(cal_time, shift_second)
+ SUBROUTINE CCPL_get_num_elapsed_days_from_reference(comp_id, days, seconds, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: days, seconds
+
+   if (present(annotation)) then
+      call get_ccpl_num_elapsed_days_from_reference_date(comp_id, days, seconds, trim(annotation)//char(0))
+   else
+      call get_ccpl_num_elapsed_days_from_reference_date(comp_id, days, seconds, trim("")//char(0))
+   endif
+
+ END SUBROUTINE CCPL_get_num_elapsed_days_from_reference
+
+
+
+ SUBROUTINE CCPL_get_num_elapsed_days_from_start(comp_id, days, seconds, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: days, seconds
+
+   if (present(annotation)) then
+      call get_ccpl_num_elapsed_days_from_start_date(comp_id, days, seconds, trim(annotation)//char(0))
+   else
+      call get_ccpl_num_elapsed_days_from_start_date(comp_id, days, seconds, trim("")//char(0))
+   endif
+
+ END SUBROUTINE CCPL_get_num_elapsed_days_from_start
+
+
+
+ logical FUNCTION CCPL_is_end_current_day(comp_id, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year, month, day, second
+
+   if (present(annotation)) then
+      call get_ccpl_current_time(comp_id, year, month, day, second, 0, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_time(comp_id, year, month, day, second, 0, trim("")//char(0))
+   endif
+   CCPL_is_end_current_day = (second == 0)
+
+ END FUNCTION CCPL_is_end_current_day
+
+
+
+ logical FUNCTION CCPL_is_end_current_month(comp_id, annotation)
+   implicit none
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer                      :: year, month, day, second
+
+   if (present(annotation)) then
+      call get_ccpl_current_time(comp_id, year, month, day, second, 0, trim(annotation)//char(0))
+   else
+      call get_ccpl_current_time(comp_id, year, month, day, second, 0, trim("")//char(0))
+   endif
+   if (second .eq. 0 .and. day .eq. 1) then
+      CCPL_is_end_current_month = .true.
+   else 
+      CCPL_is_end_current_month = .false.
+   end if
+
+ END FUNCTION CCPL_is_end_current_month
+
+
+
+ SUBROUTINE CCPL_get_double_current_calendar_time(comp_id, cal_time, shift_second, annotation)
    implicit none
    real(R8)  cal_time
-   integer, optional ::  shift_second
-   integer           ::  local_shift
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer,          optional   ::  shift_second
+   integer                      ::  local_shift
 
    local_shift = 0
    if (present(shift_second)) local_shift = shift_second
-   call coupling_get_double_current_calendar_time(cal_time, local_shift)
+   if (present(annotation)) then
+      call get_ccpl_double_current_calendar_time(comp_id, cal_time, local_shift, trim(annotation)//char(0))
+   else
+      call get_ccpl_double_current_calendar_time(comp_id, cal_time, local_shift, trim("")//char(0))
+   endif
+ END SUBROUTINE CCPL_get_double_current_calendar_time
 
- END SUBROUTINE c_coupler_get_double_current_calendar_time
 
 
- SUBROUTINE c_coupler_get_float_current_calendar_time(cal_time, shift_second)
+ SUBROUTINE CCPL_get_float_current_calendar_time(comp_id, cal_time, shift_second, annotation)
    implicit none
    real(R4)  cal_time
-   integer, optional ::  shift_second
-   integer           ::  local_shift
+   character(len=*), intent(in), optional :: annotation
+   integer,          intent(in) :: comp_id
+   integer,          optional   ::  shift_second
+   integer                      ::  local_shift
 
    local_shift = 0
    if (present(shift_second)) local_shift = shift_second
-   call coupling_get_float_current_calendar_time(cal_time, local_shift)
+   if (present(annotation)) then
+      call get_ccpl_float_current_calendar_time(comp_id, cal_time, local_shift, trim(annotation)//char(0))
+   else
+      call get_ccpl_float_current_calendar_time(comp_id, cal_time, local_shift, trim("")//char(0))
+   endif
 
- END SUBROUTINE c_coupler_get_float_current_calendar_time
+ END SUBROUTINE CCPL_get_float_current_calendar_time
 
 
 
- SUBROUTINE c_coupler_allreduce_real16(input_data, output_data, num_data, comm, num_proc)
+ SUBROUTINE CCPL_allreduce_real16(input_data, output_data, num_data, comm, num_proc)
    implicit none
    include 'mpif.h'
    real(R16)         :: input_data(:), output_data(:)
@@ -1211,243 +1319,243 @@
 #else
    call mpi_allreduce(input_data,output_data,num_data,MPI_REAL16,MPI_SUM,comm,ierr)
 #endif
- END SUBROUTINE c_coupler_allreduce_real16
+ END SUBROUTINE CCPL_allreduce_real16
  
 
 
- SUBROUTINE c_coupler_check_sum_for_all_fields
+ SUBROUTINE CCPL_check_sum_for_all_fields
    implicit none
    CALL coupling_check_sum_for_all_fields
- END SUBROUTINE c_coupler_check_sum_for_all_fields
+ END SUBROUTINE CCPL_check_sum_for_all_fields
 
 
 
- SUBROUTINE c_coupler_abort(error_string)
+ SUBROUTINE CCPL_abort(error_string)
    implicit none
    character(len=*),     intent(in)    ::  error_string
 
    call coupling_abort(trim(error_string)//char(0))
 
- END SUBROUTINE c_coupler_abort
+ END SUBROUTINE CCPL_abort
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_0D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_0D(data_buf)
    implicit none
    real(R8), INTENT(IN)         :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_0D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_0D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_1D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_1D(data_buf)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_1D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_1D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_2D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_2D(data_buf)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)         :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_2D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_2D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_3D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_3D(data_buf)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:)       :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_3D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_3D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_4D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_4D(data_buf)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:,:)     :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_double_4D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_4D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_0D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_0D(data_buf)
    implicit none
    real(R4), INTENT(IN)         :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_0D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_0D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_1D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_1D(data_buf)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_1D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_1D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_2D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_2D(data_buf)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_2D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_2D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_3D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_3D(data_buf)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:)     :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_3D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_3D
 
 
 
-   SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_4D(data_buf)
+   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_4D(data_buf)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:,:)   :: data_buf
 
    call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
 
-   END SUBROUTINE c_coupler_add_field_for_perturbing_roundoff_errors_float_4D
+   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_4D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_0D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_0D(data_buf, array_size)
    implicit none
    real(R8), INTENT(IN)         :: data_buf
    integer, INTENT(IN)          :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_0D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_0D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_1D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_1D(data_buf, array_size)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
    integer, INTENT(IN)                        :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_1D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_1D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_2D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_2D(data_buf, array_size)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)         :: data_buf
    integer, INTENT(IN)                          :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_2D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_2D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_3D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_3D(data_buf, array_size)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:)       :: data_buf
    integer, INTENT(IN)                          :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_3D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_3D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_4D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_4D(data_buf, array_size)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:,:)     :: data_buf
    integer, INTENT(IN)                          :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_double_4D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_4D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_0D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_0D(data_buf, array_size)
    implicit none
    real(R4), INTENT(IN)         :: data_buf
    integer, INTENT(IN)          :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_0D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_0D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_1D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_1D(data_buf, array_size)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
    integer, INTENT(IN)                        :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_1D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_1D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_2D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_2D(data_buf, array_size)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
    integer, INTENT(IN)                        :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_2D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_2D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_3D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_3D(data_buf, array_size)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:)     :: data_buf
    integer, INTENT(IN)                        :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_3D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_3D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_4D(data_buf, array_size)
+   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_4D(data_buf, array_size)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:,:)   :: data_buf
    integer, INTENT(IN)                        :: array_size
 
    call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
 
-   END SUBROUTINE c_coupler_perturb_roundoff_errors_for_an_array_float_4D
+   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_4D
 
 
 
-   SUBROUTINE c_coupler_perturb_roundoff_errors
+   SUBROUTINE CCPL_perturb_roundoff_errors
    implicit none
 
    call coupling_perturb_roundoff_errors
    
-   END SUBROUTINE c_coupler_perturb_roundoff_errors
+   END SUBROUTINE CCPL_perturb_roundoff_errors
 
 
 
@@ -1970,4 +2078,4 @@
 
 
 
- END MODULE c_coupler_interface_mod
+ END MODULE CCPL_interface_mod

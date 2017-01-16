@@ -85,33 +85,38 @@ extern "C" void coupling_perturb_roundoff_errors_()
 
 
 
-extern "C" void coupling_get_double_current_calendar_time_(double *cal_time, int *shift_seconds)
+extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
-    *cal_time = timer_mgr->get_double_current_calendar_time(*shift_seconds);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current calendar time. Please check the model code with the annotation \"%s\"", annotation);
+    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_double_current_calendar_time(*shift_seconds);
 }
 
 
-extern "C" void coupling_get_current_date_(int *date)
+extern "C" void get_ccpl_current_date_(int *comp_id, int *date, const char *annotation)
 {
-    *date = timer_mgr->get_current_date();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current date. Please check the model code with the annotation \"%s\"", annotation);
+    *date = components_time_mgrs->get_time_mgr(*comp_id)->get_current_date();
 }
 
 
-extern "C" void coupling_get_current_second_(int *date)
+extern "C" void get_ccpl_current_second_(int *comp_id, int *second, const char *annotation)
 {
-    *date = timer_mgr->get_current_second();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current second. Please check the model code with the annotation \"%s\"", annotation);
+    *second = components_time_mgrs->get_time_mgr(*comp_id)->get_current_second();
 }
 
 
-extern "C" void coupling_get_float_current_calendar_time_(float *cal_time, int *shift_seconds)
+extern "C" void get_ccpl_float_current_calendar_time_(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
 {
-    *cal_time = timer_mgr->get_float_current_calendar_time(*shift_seconds);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current calendar time. Please check the model code with the annotation \"%s\"", annotation);
+    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds);
 }
 
 
-extern "C" void coupling_is_first_step_(bool *result)
+extern "C" void is_comp_first_step_(int *comp_id, int *result, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, false, "coupling_is_first_step has not been implemented");
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to check whether it is at the first step. Please check the model code with the annotation \"%s\"", annotation);
+	*result = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step() == 0? 1 : 0;
 }
 
 
@@ -122,84 +127,92 @@ extern "C" void coupling_is_first_restart_step_(bool *result)
 }
 
 
-extern "C" void coupling_reset_timer_()
+extern "C" void get_ccpl_current_number_of_step_(int *comp_id, int *nstep, const char *annotation)
 {
-	timer_mgr->reset_timer();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current number of step. Please check the model code with the annotation \"%s\"", annotation);
+	*nstep = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step();
 }
 
 
-extern "C" void coupling_get_current_nstep_(int *nstep)
+extern "C" void get_ccpl_num_total_step_(int *comp_id, int *nstep, const char *annotation)
 {
-	*nstep = timer_mgr->get_current_num_time_step();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the number of total steps. Please check the model code with the annotation \"%s\"", annotation);
+	*nstep = (int) components_time_mgrs->get_time_mgr(*comp_id)->get_num_total_step();
 }
 
 
-extern "C" void coupling_get_num_total_step_(int *nstep)
+extern "C" void get_ccpl_time_step_(int *comp_id, int *time_step, const char *annotation)
 {
-	*nstep = (int) timer_mgr->get_num_total_step();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current step. Please check the model code with the annotation \"%s\"", annotation);
+    *time_step = components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second();
 }
 
 
-extern "C" void coupling_get_step_size_(int *step_size)
+extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
-    *step_size = timer_mgr->get_time_step_in_second();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the start time. Please check the model code with the annotation \"%s\"", annotation);
+
+	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 1000000000;
+	*month = (components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 10000000)%100;
+	*day = (components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 100000)%100;
+	*seconds = components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() % 100000;
 }
 
 
-extern "C" void coupling_get_start_time_(int *year, int *month, int *day, int *seconds)
+extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *day, int *second, const char *annotation)
 {
-	*year = timer_mgr->get_start_full_time() / 1000000000;
-	*month = (timer_mgr->get_start_full_time() / 10000000)%100;
-	*day = (timer_mgr->get_start_full_time() / 100000)%100;
-	*seconds = timer_mgr->get_start_full_time() % 100000;
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the stop time. Please check the model code with the annotation \"%s\"", annotation);
+
+	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_year();
+	*month = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_month();
+	*day = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_day();
+	*second = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_second();
 }
 
 
-extern "C" void coupling_get_stop_time_(int *year, int *month, int *day, int *second)
+extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
-	*year = timer_mgr->get_stop_year();
-	*month = timer_mgr->get_stop_month();
-	*day = timer_mgr->get_stop_day();
-	*second = timer_mgr->get_stop_second();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the time of the previous step. Please check the model code with the annotation \"%s\"", annotation);
+
+	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 1000000000;
+	*month = (components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 10000000)%100;
+	*day = (components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 100000)%100;
+	*seconds = components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() % 100000;
 }
 
 
-extern "C" void coupling_get_previous_time_(int *year, int *month, int *day, int *seconds)
+extern "C" void get_ccpl_current_time_(int *comp_id, int *year, int *month, int *day, int *second, int *shift_second, const char *annotation)
 {
-	*year = timer_mgr->get_previous_full_time() / 1000000000;
-	*month = (timer_mgr->get_previous_full_time() / 10000000)%100;
-	*day = (timer_mgr->get_previous_full_time() / 100000)%100;
-	*seconds = timer_mgr->get_previous_full_time() % 100000;
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current time. Please check the model code with the annotation \"%s\"", annotation);
+	components_time_mgrs->get_time_mgr(*comp_id)->get_current_time(*year, *month, *day, *second, *shift_second);
 }
 
 
-extern "C" void coupling_get_current_time_(int *year, int *month, int *day, int *second, int *shift_second)
+extern "C" void get_ccpl_current_num_days_in_year_(int *comp_id, int *days, const char *annotation)
 {
-	timer_mgr->get_current_time(*year, *month, *day, *second, *shift_second);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current data in a year. Please check the model code with the annotation \"%s\"", annotation);
+	*days = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_days_in_year();
 }
 
 
-extern "C" void coupling_get_current_num_days_in_year_(int *days)
+extern "C" void get_ccpl_current_year_(int *comp_id, int *year, const char *annotation)
 {
-	*days = timer_mgr->get_current_num_days_in_year();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current year. Please check the model code with the annotation \"%s\"", annotation);
+	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_current_year();
 }
 
 
-extern "C" void coupling_get_current_year_(int *year)
+extern "C" void get_ccpl_num_elapsed_days_from_start_date_(int *comp_id, int *days, int *seconds, const char *annotation)
 {
-	*year = timer_mgr->get_current_year();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current number of elapsed days from the start date. Please check the model code with the annotation \"%s\"", annotation);
+	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_start_date(days, seconds);
 }
 
 
-extern "C" void coupling_get_elapsed_days_from_start_date_(int *days, int *seconds)
+extern "C" void get_ccpl_num_elapsed_days_from_reference_date_(int *comp_id, int *days, int *seconds, const char *annotation)
 {
-	timer_mgr->get_elapsed_days_from_start_date(days, seconds);
-}
-
-
-extern "C" void coupling_get_elapsed_days_from_reference_date_(int *days, int *seconds)
-{
-	timer_mgr->get_elapsed_days_from_reference_date(days, seconds);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current number of elapsed days from the reference date. Please check the model code with the annotation \"%s\"", annotation);
+	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_reference_date(days, seconds);
 }
 
 
@@ -224,7 +237,7 @@ extern "C" void initialize_CCPL_mgrs()
 	decomp_grids_mgr = new Decomp_grid_mgt();
 	memory_manager = new Memory_mgt();
 	components_time_mgrs = new Components_time_mgt();
-	timer_mgr2 = new Timer_mgt();
+	timer_mgr = new Timer_mgt();
 	execution_phase_number = 2;
 	inout_interface_mgr = new Inout_interface_mgt();
 	IO_fields_mgr = new IO_field_mgt();
@@ -448,27 +461,27 @@ extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, i
 
 extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *del_count, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
-	*timer_id = timer_mgr2->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
+	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
 }
 
 
 extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *or_or_and, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
-	*timer_id = timer_mgr2->define_timer(*comp_id, children_timers_id, *num_children_timers, *or_or_and, annotation);
+	*timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *or_or_and, annotation);
 }
 
 
 extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when setting the step of a component. Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when setting the step of a component. Please check the model code with the annotation \"%s\"", annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component", annotation);
 	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), "setting the time step of a component", *time_step_in_second, "the value of the time step (the unit is seconds)", annotation);
@@ -478,7 +491,7 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component id is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
@@ -486,13 +499,14 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 
 extern "C" void check_ccpl_component_current_time_(int *comp_id, int *date, int *second, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when checking the time consitency between a component model and C-Coupler. Please check the model code with the annotation \"%s\"", annotation);	
 	components_time_mgrs->check_component_current_time(*comp_id, *date, *second, annotation);
 }
 
 
 extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotation)
 {
-	if (timer_mgr2->is_timer_on(*timer_id, annotation))
+	if (timer_mgr->is_timer_on(*timer_id, annotation))
 		*is_on = 1;
 	else *is_on = 0;
 }

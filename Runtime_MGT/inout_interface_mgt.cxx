@@ -325,11 +325,11 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	EXECUTION_REPORT(REPORT_ERROR, -1, interface_type == INTERFACE_TYPE_REGISTER || interface_type == INTERFACE_TYPE_IO_OUTPUT || interface_type == INTERFACE_TYPE_IO_WRITE, "Software error in Inout_interface::Inout_interface: wrong interface_type");
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "The number of fields for registering an import/export interface \"%s\" is wrong (negative). Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
 	for (int i = 0; i < timer_ids_size; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr2->check_is_legal_timer_id(timer_ids[i]), "Wrong timer id is detected when registering a import/export interface \"%s\". Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr->check_is_legal_timer_id(timer_ids[i]), "Wrong timer id is detected when registering a import/export interface \"%s\". Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
 		if (comp_id == -1)
-			comp_id = timer_mgr2->get_timer(timer_ids[i])->get_comp_id();
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr2->get_timer(timer_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface \"%s\". All timers and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
-			             interface_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 1")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr2->get_timer(timer_ids[i])->get_comp_id(),"in Inout_interface::Inout_interface 2")->get_comp_name(), annotation);
+			comp_id = timer_mgr->get_timer(timer_ids[i])->get_comp_id();
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface \"%s\". All timers and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
+			             interface_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 1")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(timer_ids[i])->get_comp_id(),"in Inout_interface::Inout_interface 2")->get_comp_name(), annotation);
 	}
 
 	for (int i = 0; i < num_fields; i ++) {
@@ -367,8 +367,8 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", inst_or_aver[i], "inst_or_aver (the tag for specifying instantaneous or time averaged field value)", annotation);
 	for (int i = 0; i < num_fields; i ++) {
 		if (timer_ids_size == 1)
-			timers.push_back(timer_mgr2->get_timer(timer_ids[0]));
-		else timers.push_back(timer_mgr2->get_timer(timer_ids[i]));
+			timers.push_back(timer_mgr->get_timer(timer_ids[0]));
+		else timers.push_back(timer_mgr->get_timer(timer_ids[i]));
 		if (inst_or_aver_size == 0)
 			this->inst_or_aver.push_back(0);
 		else if (inst_or_aver_size == 1)

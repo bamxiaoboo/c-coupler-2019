@@ -212,8 +212,8 @@ void check_API_parameter_timer(int comp_id, int API_id, MPI_Comm comm, const cha
 	Coupling_timer *timer;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr2->check_is_legal_timer_id(timer_id), "Software error in check_API_parameter_timer");
-	timer = timer_mgr2->get_timer(timer_id);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Software error in check_API_parameter_timer");
+	timer = timer_mgr->get_timer(timer_id);
 	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_frequency_count(), parameter_name, annotation);
 	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_lag_count(), parameter_name, annotation);
 	check_API_parameter_string(comp_id, API_id, comm, hint, timer->get_frequency_unit(), parameter_name, annotation);

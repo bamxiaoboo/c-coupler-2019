@@ -61,8 +61,8 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, int *children_timers_i
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_children_timers > 1, "The parameter of number of children timers must be larger than 1 when defining a complex timer. Please check the model code according to the annotation \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, or_or_and == 0 || or_or_and == 1, "The value of the parameter of \"OR_or_AND\" is wrong when defining a complex timer. Its value must be 0 (means OR) or 1 (means AND). Please check the model code according to the annotation \"%s\"", annotation);
 	for (int i = 0; i < num_children_timers; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr2->get_timer(children_timers_id[i]) != NULL, "The id of the %dth timer for defining a new timer is wrong. Please check the model code according to the annotation \"%s\"", i, annotation);
-		children.push_back(timer_mgr2->get_timer(children_timers_id[i]));
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->get_timer(children_timers_id[i]) != NULL, "The id of the %dth timer for defining a new timer is wrong. Please check the model code according to the annotation \"%s\"", i, annotation);
+		children.push_back(timer_mgr->get_timer(children_timers_id[i]));
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, children[i]->get_comp_id() == comp_id, "All timers for defining a new timer must belong to the same component. Please check the model code of defining the current timer according to the annotation \"%s\", and the model code corresponding to the %dth timer according to the annotation \"%s\"", i, annotation, annotation_mgr->get_annotation(children[i]->get_timer_id(), "define timer"));
 	}
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
@@ -89,15 +89,6 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit,
 		frequency_count *= comp_time_mgr->get_time_step_in_second();
 		lag_count *= comp_time_mgr->get_time_step_in_second();
 	}
-}
-
-
-Coupling_timer::Coupling_timer(Coupling_timer *existing_timer)
-{
-	frequency_count = existing_timer->frequency_count;
-	lag_count = existing_timer->lag_count;
-	strcpy(frequency_unit, existing_timer->frequency_unit);
-	timer_id = -1;
 }
 
 
@@ -159,7 +150,6 @@ void Coupling_timer::get_time_of_next_timer_on(Time_mgt *time_mgr, int current_y
 	next_timer_num_elapsed_days = current_num_elapsed_days;
 	next_timer_second = current_second;
 }
-
 
 
 bool Coupling_timer::is_timer_on()
@@ -329,7 +319,11 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			reference_day = reference_date % 100;
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(reference_year, reference_month, reference_day, 0, NULL), "The reference date specified is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);			
 		}
-		else reference_year = reference_month = reference_day = -1;
+		else {
+			reference_year = 0;
+			reference_month = 1;
+			reference_day = 1;
+		}
 		const char *rest_freq_unit = XML_element->Attribute("rest_freq_unit", &line_number);
 		EXECUTION_REPORT(REPORT_ERROR, -1, rest_freq_unit != NULL, "The time unit for the frequency of writing restart files (rest_freq_unit) is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, "seconds")|| words_are_the_same(rest_freq_unit, "days") || words_are_the_same(rest_freq_unit, "months") || words_are_the_same(rest_freq_unit, "years"),
@@ -466,7 +460,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 void Time_mgt::build_restart_timer()
 {
 	if (!words_are_the_same(rest_freq_unit, "none"))
-		restart_timer = timer_mgr2->get_timer(timer_mgr2->define_timer(comp_id, rest_freq_unit, rest_freq_count, 0, "C-Coupler define restart timer"));
+		restart_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, rest_freq_unit, rest_freq_count, 0, "C-Coupler define restart timer"));
 }
 
 
@@ -478,8 +472,7 @@ Time_mgt::~Time_mgt()
 
 void Time_mgt::reset_timer()
 {
-//	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"), 
-//		             "the model timer cannot be reset when run type is not initial\n");
+	EXECUTION_REPORT(REPORT_ERROR,-1, false, "software error: Time_mgt::reset_timer is not enabled");
 
 	current_year = start_year;
 	current_month = start_month;
@@ -617,8 +610,8 @@ void Time_mgt::set_restart_time(long start_full_time, long restart_full_time)
 
 //	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
 //	    EXECUTION_REPORT(REPORT_ERROR,-1, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
-	EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
-	EXECUTION_REPORT(REPORT_ERROR,-1, timer_mgr->check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
+	EXECUTION_REPORT(REPORT_ERROR, -1, check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
+	EXECUTION_REPORT(REPORT_ERROR, -1, check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
     current_second = restart_full_time % 100000;
     current_day = (restart_full_time/100000)%100;
     current_month = (restart_full_time/10000000)%100;
