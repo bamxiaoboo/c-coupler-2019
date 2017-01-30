@@ -256,20 +256,18 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	MPI_Comm local_comm = -1;
 	int root_comp_id;
 	int current_proc_global_id;
-	char file_name[NAME_STR_SIZE], local_comp_name[NAME_STR_SIZE];
+	char file_name[NAME_STR_SIZE];
 
 
 	initialize_CCPL_mgrs();
 
-	strcpy(local_comp_name, comp_name);
-
-	check_and_verify_name_format_of_string_for_API(-1, local_comp_name, API_ID_COMP_MGT_REG_ROOT_COMP, "the root component", annotation);
+	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_ROOT_COMP, "the root component", annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
 		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before %s", comp_comm_group_mgt_mgr->get_annotation_start());  // add debug information
 	MPI_Initialized(&flag);
 	if (flag == 0) {
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Initialize MPI when registerring the root component \"%s\"", local_comp_name);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
 		MPI_Init(NULL, NULL);
 	}
 
@@ -279,13 +277,13 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
                                 						  current_config_time, original_case_name, original_config_time);
 
 	if (*comm != -1) {
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", local_comp_name, annotation);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(*comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", local_comp_name, annotation);
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		
 	}
 
-	root_comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, local_comp_type, local_comm, -1, annotation);
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, annotation);
 
 	if (*comm != -1) {
 		int input_comm_size, new_comm_size;
@@ -307,7 +305,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		for (int i = 0; i < input_comm_size; i ++)
 			EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_process_ids[i] == new_comm_process_ids[i], 
 			                 "The communicator of root component \"%s\" does not match the communicator generated (processes of the two communicators are not the same). Please check the model code with the annotation \"%s\"",
-			                 local_comp_name, annotation);
+			                 comp_name, annotation);
 		delete [] input_comm_process_ids;
 		delete [] new_comm_process_ids;
 		delete [] temp_array;
@@ -327,26 +325,22 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
-	char local_comp_name[NAME_STR_SIZE];
-
-
-	strcpy(local_comp_name, comp_name);
-	check_and_verify_name_format_of_string_for_API(-1, local_comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
+	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id), 
 					 "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong (the corresponding annotation of model code is \"%s\").",
-					 local_comp_name, annotation);
+					 comp_name, annotation);
 	
 	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_register_component");
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_register_component (corresponding to annotation \"%s\")", annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_register_component");
 
 	if (*comm !=-1) {
 		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on the parent component", annotation);
-		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", local_comp_name, "comp_name", annotation);
+		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_name, "comp_name", annotation);
 	}
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	*comp_id = comp_comm_group_mgt_mgr->register_component(local_comp_name, local_comp_type, *comm, *parent_comp_id, annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, annotation);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
 	remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 }
@@ -354,18 +348,14 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 
 extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
 {
-	char local_comp_name[NAME_STR_SIZE];
+	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
 
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling API CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
 
-	strcpy(local_comp_name, comp_name);
-	check_and_verify_name_format_of_string_for_API(-1, local_comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling interface CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
-
-	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_global_node(local_comp_name);
+	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_global_node(comp_name);
 
 	if (node == NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "no component named \"%s\" has been registerred. Please check the model code related to the annotation \"%s\"", local_comp_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "no component named \"%s\" has been registerred. Please check the model code related to the annotation \"%s\"", comp_name, annotation);
 		*comp_id = -1;
 	}
 	else *comp_id = node->get_local_node_id();
@@ -388,8 +378,8 @@ extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * 
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling interface CCPL_end_comp_registration");
+		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
+	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_end_comp_registration");
 
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
@@ -403,21 +393,41 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 }
 
 
+extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
+	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, void *center_lon, void *center_lat, int *mask, void *area, void *vertex_lon, void *vertex_lat, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call API CCPL_register_root_component before calling API CCPL_register_H2D_grid_via_model_data. Please check the model code related to the annotation \"%s\".", annotation);
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, annotation);
+	*grid_id = original_grid_mgr->register_H2D_grid_via_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
+												             *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
+												             API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA);
+	char nc_file_name[NAME_STR_SIZE];
+	sprintf(nc_file_name, "%s/H2D_grids/%s%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
+	char temp_grid_name[NAME_STR_SIZE];
+	sprintf(temp_grid_name, "%s_temp", grid_name);
+	original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
+
+}
+
+
+extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const char *grid_name, const char *data_file_name, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling API CCPL_register_H2D_grid_via_data_file. Please check the model code related to the annotation \"%s\".", annotation);
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
+	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, data_file_name, annotation);
+}
+
+
 extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
 {
-	char local_CCPL_grid_name[NAME_STR_SIZE], local_CoR_grid_name[NAME_STR_SIZE];
-
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling interface CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
-	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid based on a CoR grid", annotation);
-	strcpy(local_CCPL_grid_name, CCPL_grid_name);
-	strcpy(local_CoR_grid_name, CoR_grid_name);
-	check_and_verify_name_format_of_string_for_API(*comp_id, local_CCPL_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the C-Coupler grid", annotation);
-	check_and_verify_name_format_of_string_for_API(*comp_id, local_CoR_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the CoR grid", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling API CCPL_get_CoR_defined_grid. Please check the model code related to the annotation \"%s\".", annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, annotation);
-	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering grid", local_CCPL_grid_name, "CCPL_grid_name", annotation);
-	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering grid", local_CoR_grid_name, "CoR_grid_name", annotation);
-	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, local_CCPL_grid_name, local_CoR_grid_name, annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid based on a CoR grid", annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, CCPL_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the C-Coupler grid", annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, CoR_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the CoR grid", annotation);
+	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid", CCPL_grid_name, "CCPL_grid_name", annotation);
+	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid", CoR_grid_name, "CoR_grid_name", annotation);
+	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, CCPL_grid_name, CoR_grid_name, annotation);
 }
 
 

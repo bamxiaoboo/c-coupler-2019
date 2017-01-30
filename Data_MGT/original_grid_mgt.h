@@ -71,6 +71,9 @@ class Original_grid_mgt
 		int add_original_grid(int, const char*, Remap_grid_class*);
 		int get_num_grid_levels(int);
 		bool is_V1D_sub_grid_after_H2D_sub_grid(int);
+		int register_H2D_grid_via_data(int, const char *, const char *, const char *, const char *, const char *, int, int, int, int, 
+											   int, int, int, int, void *, void *, int *, void *, void *, void *, const char *, int);
+		int register_H2D_grid_via_file(int, const char *, const char *, const char *);
 };
 
 

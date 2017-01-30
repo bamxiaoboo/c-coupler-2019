@@ -128,6 +128,12 @@
    end interface
 
 
+   interface CCPL_register_H2D_grid_via_model_data; module procedure &
+        CCPL_register_H2D_grid_via_double_data, &
+        CCPL_register_H2D_grid_via_float_data
+   end interface
+
+
    REAL, parameter, public :: coupling_fill_value = 1.0e30 
    integer,parameter,private :: R16 = selected_real_kind(24) ! 16 byte real
    integer,parameter,private :: R8  = selected_real_kind(12) ! 8 byte real
@@ -1715,6 +1721,169 @@
 
 
 
+   integer FUNCTION CCPL_register_H2D_grid_via_data_file(comp_id, grid_name, data_file_name, annotation)
+   implicit none
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in)            :: grid_name
+   character(len=*), intent(in)            :: data_file_name
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: grid_id
+
+   if (present(annotation)) then
+      call register_H2D_grid_with_file(comp_id, grid_id, trim(grid_name)//char(0), trim(data_file_name)//char(0), trim(annotation)//char(0)) 
+   else 
+      call register_H2D_grid_with_file(comp_id, grid_id, trim(grid_name)//char(0), trim(data_file_name)//char(0), trim("")//char(0)) 
+   endif
+   CCPL_register_H2D_grid_via_data_file = grid_id
+
+   END FUNCTION CCPL_register_H2D_grid_via_data_file
+
+
+
+   integer FUNCTION CCPL_register_H2D_grid_via_float_data(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: edge_type
+   character(len=*), intent(in)                            :: coord_unit
+   character(len=*), intent(in)                            :: cyclic_or_acyclic
+   integer,          intent(in)                            :: dim_size1
+   integer,          intent(in)                            :: dim_size2
+   real(R4),         intent(in), dimension(:)              :: center_lon
+   real(R4),         intent(in), dimension(:)              :: center_lat
+   integer,          intent(in), dimension(:), optional    :: mask
+   real(R4),         intent(in), dimension(:), optional    :: area
+   real(R4),         intent(in), dimension(:), optional    :: vertex_lon
+   real(R4),         intent(in), dimension(:), optional    :: vertex_lat
+   character(len=*), intent(in),               optional    :: annotation
+   integer,                      dimension(:), allocatable :: temp_mask
+   real(R4),                     dimension(:), allocatable :: temp_area
+   real(R4),                     dimension(:), allocatable :: temp_vertex_lon
+   real(R4),                     dimension(:), allocatable :: temp_vertex_lat
+   integer                                                 :: grid_id
+   integer                                                 :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+   
+   size_center_lon = size(center_lon)
+   size_center_lat = size(center_lat)
+   size_mask = 0
+   size_area = 0
+   size_vertex_lon = 0
+   size_vertex_lat = 0
+   if (present(mask)) then
+      size_mask = size(mask)
+      allocate(temp_mask(size_mask))
+      temp_mask = mask
+   endif
+   if (present(area)) then
+      size_area = size(area)
+      allocate(temp_area(size_area))
+      temp_area = area
+   endif
+   if (present(vertex_lon)) then
+      size_vertex_lon = size(vertex_lon)
+      allocate(temp_vertex_lon(size_vertex_lon))
+      temp_vertex_lon = vertex_lon
+   endif
+   if (present(vertex_lat)) then
+      size_vertex_lat = size(vertex_lat)
+      allocate(temp_vertex_lat(size_vertex_lat))
+      temp_vertex_lat = vertex_lat
+   endif
+
+   if (present(annotation)) then
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                       trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+   else
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                       trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+   endif
+
+   if (present(mask)) deallocate(temp_mask)
+   if (present(area)) deallocate(temp_area)
+   if (present(vertex_lon)) deallocate(temp_vertex_lon)
+   if (present(vertex_lat)) deallocate(temp_vertex_lat)
+
+   CCPL_register_H2D_grid_via_float_data = grid_id
+
+   end FUNCTION CCPL_register_H2D_grid_via_float_data
+
+
+
+   integer FUNCTION CCPL_register_H2D_grid_via_double_data(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: edge_type
+   character(len=*), intent(in)                            :: coord_unit
+   character(len=*), intent(in)                            :: cyclic_or_acyclic
+   integer,          intent(in)                            :: dim_size1
+   integer,          intent(in)                            :: dim_size2
+   real(R8),         intent(in), dimension(:)              :: center_lon
+   real(R8),         intent(in), dimension(:)              :: center_lat
+   integer,          intent(in), dimension(:), optional    :: mask
+   real(R8),         intent(in), dimension(:), optional    :: area
+   real(R8),         intent(in), dimension(:), optional    :: vertex_lon
+   real(R8),         intent(in), dimension(:), optional    :: vertex_lat
+   character(len=*), intent(in),               optional    :: annotation
+   integer,                      dimension(:), allocatable :: temp_mask
+   real(R8),                     dimension(:), allocatable :: temp_area
+   real(R8),                     dimension(:), allocatable :: temp_vertex_lon
+   real(R8),                     dimension(:), allocatable :: temp_vertex_lat
+   integer                                                 :: grid_id
+   integer                                                 :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+   
+   size_center_lon = size(center_lon)
+   size_center_lat = size(center_lat)
+   size_mask = 0
+   size_area = 0
+   size_vertex_lon = 0
+   size_vertex_lat = 0
+   if (present(mask)) then
+      size_mask = size(mask)
+      allocate(temp_mask(size_mask))
+      temp_mask = mask
+   endif
+   if (present(area)) then
+      size_area = size(area)
+      allocate(temp_area(size_area))
+      temp_area = area
+   endif
+   if (present(vertex_lon)) then
+      size_vertex_lon = size(vertex_lon)
+      allocate(temp_vertex_lon(size_vertex_lon))
+      temp_vertex_lon = vertex_lon
+   endif
+   if (present(vertex_lat)) then
+      size_vertex_lat = size(vertex_lat)
+      allocate(temp_vertex_lat(size_vertex_lat))
+      temp_vertex_lat = vertex_lat
+   endif
+
+   if (present(annotation)) then
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                        trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+   else
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                       trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+   endif
+
+   if (present(mask)) deallocate(temp_mask)
+   if (present(area)) deallocate(temp_area)
+   if (present(vertex_lon)) deallocate(temp_vertex_lon)
+   if (present(vertex_lat)) deallocate(temp_vertex_lat)
+
+   CCPL_register_H2D_grid_via_double_data = grid_id
+
+   end FUNCTION CCPL_register_H2D_grid_via_double_data
+
+
+
    integer FUNCTION CCPL_get_grid_size(grid_id, annotation) 
    implicit none
    integer, intent(in)                     :: grid_id
@@ -1730,6 +1899,7 @@
    CCPL_get_grid_size = grid_size
     
    END FUNCTION CCPL_get_grid_size
+
 
 
    integer FUNCTION CCPL_register_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_indx, annotation) 

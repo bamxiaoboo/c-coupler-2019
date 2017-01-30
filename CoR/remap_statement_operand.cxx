@@ -360,7 +360,7 @@ void Remap_data_field::set_field_unit(const char *unit)
     Remap_field_attribute remap_field_attribute;
 
 
-    strcpy(remap_field_attribute.attribute_name, "units");
+    strcpy(remap_field_attribute.attribute_name, "unit");
     strcpy(remap_field_attribute.attribute_type, DATA_TYPE_CHAR);
     strcpy(remap_field_attribute.attribute_value, unit);
     remap_field_attribute.attribute_size = strlen(unit);

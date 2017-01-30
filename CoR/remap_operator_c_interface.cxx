@@ -842,12 +842,6 @@ double compute_area_of_sphere_cell(int num_vertexes,
     double eps = 2.0e-14;
 
 
-/*
-	printf("compute area for cell: ");
-	for (int i = 0; i < num_vertexes; i ++) 
-		printf("(%lf %lf)  ", vertexes_lons[i], vertexes_lats[i]);
-	printf("\n");
-*/
     if (num_vertexes == 0)
         return DEFAULT_FILL_VALUE;
     

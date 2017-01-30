@@ -28,11 +28,11 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			break;
 		case API_ID_COMP_MGT_GET_COMP_ID:
 			sprintf(API_label, "CCPL_get_component_id");
-        case API_ID_GRID_MGT_REG_H2D_GRID_ONLINE:
-			sprintf(API_label, "CCPL_register_H2D_grid");
+        case API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA:
+			sprintf(API_label, "CCPL_register_H2D_grid_via_model_data");
 			break;
         case API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE:
-			sprintf(API_label, "CCPL_register_H2D_grid");
+			sprintf(API_label, "CCPL_register_H2D_grid_via_data_file");
 			break;
         case API_ID_GRID_MGT_REG_1D_GRID_ONLINE:
 			sprintf(API_label, "CCPL_register_1D_grid");
@@ -201,7 +201,31 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 }
 
 
+void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, const char *hint, int array_size, const char *array_value, const char *parameter_name, const char *annotation)
+{
+	long temp_checksum = 0, total_checksum = 0;
+
+
+	if (array_size == 0)
+		return;
+	
+	for (int i = 0; i < array_size/sizeof(long); i ++)
+		total_checksum += ((const long*) array_value)[i] * (i+1);
+	for (int i = (array_size/sizeof(long))*sizeof(long); i < array_size; i ++) 
+		temp_checksum = (temp_checksum << 8) | array_value[i];
+	total_checksum += temp_checksum * ((array_size/sizeof(long))+1);
+
+	check_API_parameter_long(comp_id, API_id, comm, hint, total_checksum, parameter_name, annotation);
+}
+
+
 void check_API_parameter_int(int comp_id, int API_id, MPI_Comm comm, const char *hint, int value, const char *parameter_name, const char *annotation)
+{
+	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
+}
+
+
+void check_API_parameter_long(int comp_id, int API_id, MPI_Comm comm, const char *hint, long value, const char *parameter_name, const char *annotation)
 {
 	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
 }
@@ -286,7 +310,7 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 }
 
 
-bool check_and_verify_name_format_of_string(char *string)
+bool check_and_verify_name_format_of_string(const char *string)
 {
 	for (int i = 0; i < strlen(string); i ++)
 		if (!((string[i] >= 'a' && string[i] <= 'z') || (string[i] >= 'A' && string[i] <= 'Z') || (string[i] >= '0' && string[i] <= '9') || string[i] == '_' || string[i] == '-' || string[i] == '.'))
@@ -296,7 +320,7 @@ bool check_and_verify_name_format_of_string(char *string)
 }
 
 
-void check_and_verify_name_format_of_string_for_API(int comp_id, char *string, int API_id, const char *name_owner, const char *annotation)
+void check_and_verify_name_format_of_string_for_API(int comp_id, const char *string, int API_id, const char *name_owner, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 	int i;

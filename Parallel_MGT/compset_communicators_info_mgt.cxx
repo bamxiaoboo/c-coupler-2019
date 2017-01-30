@@ -190,6 +190,9 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	else {
 		EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
 		sprintf(config_all_dir, "%s/../../../../config/CCPL_runtime/all", working_dir);
+		char H2D_grids_dir[NAME_STR_SIZE];
+		sprintf(H2D_grids_dir, "%s/../../../../run/all/H2D_grids", working_dir);
+		create_directory(H2D_grids_dir, current_proc_global_id == 0);
 		sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
 		strcpy(working_dir+strlen(working_dir), "/../../../all/");
 	}

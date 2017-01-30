@@ -41,6 +41,7 @@ void Remap_grid_class::initialize_grid_class_data()
     this->grid_center_fields.clear();
     this->grid_vertex_fields.clear();
     this->grid_mask_field = NULL;
+	this->imported_area = NULL;
     this->super_grids_of_setting_mask_value.clear();
     this->original_grid_mask_field = NULL;
     this->masks_are_known = false;    
@@ -546,11 +547,11 @@ void Remap_grid_class::read_grid_data_through_span(char extension_names[16][256]
     else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error in read_grid_data_through_span\n");
     if (words_are_the_same(this->coord_label, COORD_LABEL_LON)) {
         grid_center_fields[0]->get_grid_data_field()->set_field_long_name("longitude");
-        grid_center_fields[0]->get_grid_data_field()->set_field_unit("degrees_east");
+        grid_center_fields[0]->get_grid_data_field()->set_field_unit(COORD_UNIT_DEGREES);
     }
     if (words_are_the_same(this->coord_label, COORD_LABEL_LAT)) {
         grid_center_fields[0]->get_grid_data_field()->set_field_long_name("latitude");
-        grid_center_fields[0]->get_grid_data_field()->set_field_unit("degrees_north");
+        grid_center_fields[0]->get_grid_data_field()->set_field_unit(COORD_UNIT_DEGREES);
     }
 }
 
@@ -1120,6 +1121,89 @@ Remap_grid_data_class *Remap_grid_class::get_unique_vertex_field()
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, grid_vertex_fields.size() == 1 && is_sigma_grid() && num_vertexes == 2, "C-Coupler error in Remap_grid_class::get_unique_vertex_field");
 	return grid_vertex_fields[0];
+}
+
+
+void Remap_grid_class::read_grid_data_from_array(const char *coord_label, const char *coord_name, const char *data_type, const char *array_data, int num_vertexes)
+{
+    Remap_data_field *remap_data_field;
+    Remap_grid_data_class *remap_grid_data_field;
+    Remap_grid_class *similar_grid;
+
+
+    if (num_vertexes != 0)
+        this->num_vertexes = num_vertexes;
+
+    EXECUTION_REPORT(REPORT_ERROR, -1, grid_size > 0, "Software error in Remap_grid_class::read_grid_data_from_array: wrong grid size");
+
+    remap_data_field = new Remap_data_field;    
+    if (words_are_the_same(coord_label, GRID_MASK_LABEL)) {
+        strcpy(remap_data_field->field_name_in_application, GRID_MASK_LABEL);
+        strcpy(remap_data_field->data_type_in_application, DATA_TYPE_BOOL);
+        check_mask_value_can_be_set();
+    }
+    else {
+        if (words_are_the_same(coord_label, GRID_VERTEX_LABEL))
+            check_vertex_coord_value_can_be_set(coord_name);
+        else if (words_are_the_same(coord_label, GRID_CENTER_LABEL))
+			check_center_coord_value_can_be_set(coord_name);
+        strcpy(remap_data_field->field_name_in_application, coord_name);
+        strcpy(remap_data_field->data_type_in_application, DATA_TYPE_DOUBLE);
+    }
+    remap_data_field->required_data_size = grid_size;
+    if (words_are_the_same(coord_label, GRID_VERTEX_LABEL))  
+        remap_data_field->required_data_size *= num_vertexes;
+	remap_data_field->read_data_size = remap_data_field->required_data_size;
+    remap_data_field->data_buf = new char [remap_data_field->required_data_size*get_data_type_size(remap_data_field->data_type_in_application)];
+	if (words_are_the_same(coord_label, GRID_VERTEX_LABEL))
+		sprintf(remap_data_field->field_name_in_IO_file, "%s_%s", GRID_VERTEX_LABEL, coord_name);
+	else strcpy(remap_data_field->field_name_in_IO_file, coord_name);
+	if (words_are_the_same(coord_label, GRID_MASK_LABEL)) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_INT), "Software error in Remap_grid_class::read_grid_data_from_array: wrong data type for mask");
+		for (int i = 0; i < grid_size; i ++)
+			((bool*)remap_data_field->data_buf)[i] = ((int*) array_data)[i] == 1;
+	}
+	else {
+		int array_size = grid_size; 
+		if (num_vertexes > 0)
+			array_size *= num_vertexes;
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Software error in Remap_grid_class::read_grid_data_from_array: wrong data type for others");
+		if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
+			for (int i = 0; i < array_size; i ++)
+				((double*)remap_data_field->data_buf)[i] = ((float*) array_data)[i];
+		}
+		else {
+			for (int i = 0; i < array_size; i ++)
+				((double*)remap_data_field->data_buf)[i] = ((double*) array_data)[i];			
+		}
+	}
+    remap_grid_data_field = new Remap_grid_data_class(this, remap_data_field);
+    if (words_are_the_same(coord_label, GRID_MASK_LABEL))
+        grid_mask_field = remap_grid_data_field;
+    else if (words_are_the_same(coord_label, GRID_CENTER_LABEL) || words_are_the_same(coord_label, GRID_VERTEX_LABEL)) {
+        transform_coord_values_from_radian_to_degrees(remap_grid_data_field);
+        formalize_cyclic_coord_values(remap_grid_data_field);
+        if (words_are_the_same(coord_label, GRID_CENTER_LABEL))
+            grid_center_fields.push_back(remap_grid_data_field);
+        else grid_vertex_fields.push_back(remap_grid_data_field);
+    }
+	else imported_area = remap_grid_data_field;
+
+	if (words_are_the_same(coord_name, COORD_LABEL_LON) || words_are_the_same(coord_name, COORD_LABEL_LAT) || words_are_the_same(coord_name, COORD_LABEL_LAT)) {
+		Remap_grid_class *leaf_grids[256]; 
+		int num_leaf_grids;
+		get_leaf_grids(&num_leaf_grids, leaf_grids, this);
+		for (int i = 0; i < num_leaf_grids; i ++)
+			if (words_are_the_same(leaf_grids[i]->get_coord_label(), coord_name)) {
+				if (words_are_the_same(coord_name, COORD_LABEL_LON))
+					remap_grid_data_field->get_grid_data_field()->set_field_long_name("longitude");
+				else if (words_are_the_same(coord_name, COORD_LABEL_LAT))
+					remap_grid_data_field->get_grid_data_field()->set_field_long_name("latitude");
+				remap_grid_data_field->get_grid_data_field()->set_field_unit(leaf_grids[i]->get_coord_unit());
+			}
+	}
+
+	strcpy(remap_data_field->data_type_in_IO_file, data_type);
 }
 
 
@@ -2729,7 +2813,7 @@ void Remap_grid_class::transform_coord_values_from_radian_to_degrees(Remap_grid_
         if (coord_value_array[i] != NULL_COORD_VALUE)
             coord_value_array[i] = RADIAN_TO_DEGREE(coord_value_array[i]);
     for (i = 0; i < remap_grid_data->grid_data_field->field_attributes.size(); i ++)
-        if (words_are_the_same(remap_grid_data->grid_data_field->field_attributes[i].attribute_name, GRID_FIELD_ATTRIBUTE_UNITS) ||
+        if (words_are_the_same(remap_grid_data->grid_data_field->field_attributes[i].attribute_name, GRID_FIELD_ATTRIBUTE_UNIT) ||
             words_are_the_same(remap_grid_data->grid_data_field->field_attributes[i].attribute_value, COORD_UNIT_RADIANS))
             strcpy(remap_grid_data->grid_data_field->field_attributes[i].attribute_value, COORD_UNIT_DEGREES);
 }
@@ -2838,7 +2922,7 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
             EXECUTION_REPORT(REPORT_ERROR, -1, lon_vertex_values[i*2] != NULL_COORD_VALUE && lon_vertex_values[i*2+1] != NULL_COORD_VALUE,
                          "remap software error3 in calculate_area_of_sphere_grid\n");
             EXECUTION_REPORT(REPORT_ERROR, -1, lat_vertex_values[i*2] != NULL_COORD_VALUE && lat_vertex_values[i*2+1] != NULL_COORD_VALUE,
-                         "remap software error3 in calculate_area_of_sphere_grid\n");
+                         "remap software error4 in calculate_area_of_sphere_grid : %d\n", i);
             current_num_vertex = 4;
             current_lon_vertex_values[0] = lon_vertex_values[i*2];
             current_lat_vertex_values[0] = lat_vertex_values[i*2];
@@ -2871,6 +2955,10 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
                 current_lat_vertex_values[current_num_vertex] = current_lat_vertex_values[j];
                 current_num_vertex ++;
             }
+		printf("compute area for cell %d of %s: ", i, grid_name);
+		for (int i = 0; i < current_num_vertex; i ++) 
+			printf("(%lf %lf)  ", current_lon_vertex_values[i], current_lat_vertex_values[i]);
+		printf("\n");
         if (current_num_vertex > 0)
             area_or_volumn[i] = compute_area_of_sphere_cell(current_num_vertex, current_lon_vertex_values, current_lat_vertex_values);
     }

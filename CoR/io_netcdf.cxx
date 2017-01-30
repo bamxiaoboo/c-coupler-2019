@@ -46,7 +46,7 @@ IO_netcdf::IO_netcdf(const char *object_name, const char *file_name, const char 
     else EXECUTION_REPORT(REPORT_ERROR, -1, false, "the format of openning netcdf file must be read or write (\"r\" or \"w\")\n");
     report_nc_error();
 
-    nc_close(ncfile_id);
+    rcode = nc_close(ncfile_id);
     report_nc_error();
 }
 
@@ -168,6 +168,7 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos)
             case NC_BYTE:
             case NC_CHAR:
                 rcode = nc_get_att_text(ncfile_id, variable_id, field_attribute.attribute_name, field_attribute.attribute_value);
+				field_attribute.attribute_value[field_attribute.attribute_size] = '\0';
                 break;
             case NC_SHORT:
                 rcode = nc_get_att_short(ncfile_id, variable_id, field_attribute.attribute_name, (short*)field_attribute.attribute_value);
@@ -255,7 +256,7 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos)
     }
 
     report_nc_error();
-    nc_close(ncfile_id);
+    rcode = nc_close(ncfile_id);
     report_nc_error();
 }
 
@@ -271,16 +272,19 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
     if (associated_grid == NULL)
         return;
 
+    rcode = nc_open(file_name, NC_WRITE, &ncfile_id);
+    report_nc_error();
+
     rcode = nc_redef(ncfile_id);
     report_nc_error();
     associated_grid->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
     for (i = 0; i < num_sized_sub_grids; i ++)
         if (sized_grids_map.find(sized_sub_grids[i]) == sized_grids_map.end()) {
             if (write_grid_name)
-                sprintf(tmp_string, "dim_size_%s", sized_sub_grids[i]->get_grid_name());
+                sprintf(tmp_string, "size_%s", sized_sub_grids[i]->get_grid_name());
             else if (sized_sub_grids[i]->get_num_dimensions() == 1)
                 sprintf(tmp_string, "%s", sized_sub_grids[i]->get_coord_label()); 
-            else sprintf(tmp_string, "%s", sized_sub_grids[i]->get_grid_name()); 
+            else sprintf(tmp_string, "grid_size", sized_sub_grids[i]->get_grid_name()); 
             rcode = nc_def_dim(ncfile_id, tmp_string, sized_sub_grids[i]->get_grid_size(), &dim_ncid);
 			EXECUTION_REPORT(REPORT_LOG, -1, true, "define dim %s in ncfile %s", tmp_string, file_name);
             report_nc_error();
@@ -296,7 +300,9 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
             write_field_data(grid_data_field, associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
         grid_data_field = leaf_grids[i]->get_grid_vertex_field();
         if (grid_data_field != NULL && !grid_data_field->get_coord_value_grid()->get_are_vertex_values_set_in_default()) {
-            sprintf(tmp_string, "dim_num_vertexes_%s", grid_data_field->get_coord_value_grid()->get_grid_name());
+			if (grid_data_field->get_coord_value_grid()->get_num_dimensions() == 1)			
+	           sprintf(tmp_string, "num_vertexes_%s", grid_data_field->get_coord_value_grid()->get_coord_label());
+			else sprintf(tmp_string, "num_vertexes_H2D");
             rcode = nc_inq_dimid(ncfile_id, tmp_string, &dim_ncid);            
             if (rcode == NC_EBADDIM) {
                 rcode = nc_redef(ncfile_id);
@@ -311,7 +317,12 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
 
     associated_grid->get_masked_sub_grids(&num_masked_sub_grids, masked_sub_grids);
     for (i = 0; i < num_masked_sub_grids; i ++)
-        write_field_data(masked_sub_grids[i]->get_grid_mask_field(), associated_grid, true, "mask", -1, write_grid_name);
+        write_field_data(masked_sub_grids[i]->get_grid_mask_field(), associated_grid, true, GRID_MASK_LABEL, -1, write_grid_name);
+	if (associated_grid->get_grid_imported_area() != NULL)
+		write_field_data(associated_grid->get_grid_imported_area(), associated_grid, true, "area", -1, write_grid_name);
+
+    rcode = nc_close(ncfile_id);
+    report_nc_error();
 }
 
 
@@ -346,7 +357,11 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
     else {
         if (!words_are_the_same(field_data->get_grid_data_field()->field_name_in_IO_file, "\0") && !is_grid_data)
             sprintf(tmp_string, "%s", field_data->get_grid_data_field()->field_name_in_IO_file);
-        else sprintf(tmp_string, "%s", field_data->get_grid_data_field()->field_name_in_application);
+        else {
+            if (words_are_the_same(grid_field_type, GRID_VERTEX_LABEL))
+                sprintf(tmp_string , "%s_%s", grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
+            else sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
+        }
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "IO field name is %s", tmp_string);
     }
 
@@ -533,7 +548,14 @@ void IO_netcdf::write_grided_data(Remap_grid_data_class *grided_data, bool write
         }
     }
 
+    rcode = nc_close(ncfile_id);
+    report_nc_error();
+
     write_grid(grided_data->get_coord_value_grid(), write_grid_name);
+
+    rcode = nc_open(file_name, NC_WRITE, &ncfile_id);
+    report_nc_error();
+
     if (strlen(grided_data->get_grid_data_field()->data_type_in_IO_file) == 0)
         strcpy(grided_data->get_grid_data_field()->data_type_in_IO_file, grided_data->get_grid_data_field()->data_type_in_application);
     tmp_field_data_for_io = generate_field_data_for_IO(grided_data, is_restart_field);
@@ -541,7 +563,7 @@ void IO_netcdf::write_grided_data(Remap_grid_data_class *grided_data, bool write
     if (tmp_field_data_for_io != grided_data)
         delete tmp_field_data_for_io;
 
-    nc_close(ncfile_id);
+    rcode = nc_close(ncfile_id);
     report_nc_error();
 }
 
@@ -555,10 +577,14 @@ long IO_netcdf::get_dimension_size(const char *dim_name)
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
     report_nc_error();
     rcode = nc_inq_dimid(ncfile_id, dim_name, &dimension_id);
-    report_nc_error();
+	if (rcode != NC_NOERR) {
+		rcode = nc_close(ncfile_id);
+		report_nc_error();
+		return -1;
+	}
     rcode = nc_inq_dimlen(ncfile_id, dimension_id, &dimension_size);
     report_nc_error();   
-    nc_close(ncfile_id);
+    rcode = nc_close(ncfile_id);
     report_nc_error();
 
     return dimension_size;
@@ -723,7 +749,7 @@ void IO_netcdf::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
 		rcode = nc_put_var_int(ncfile_id, mask_b_id, temp_int_values);
 		report_nc_error();
         delete [] temp_int_values;
-        nc_close(ncfile_id);
+        rcode = nc_close(ncfile_id);
         report_nc_error();
 		delete remap_operator_grid_src;
 		delete remap_operator_grid_dst;
@@ -745,7 +771,7 @@ void IO_netcdf::put_global_text(const char *text_title, const char *text_value)
     nc_enddef(ncfile_id);
     report_nc_error();
 	if (!is_external_file) {
-	    nc_close(ncfile_id);
+	    rcode = nc_close(ncfile_id);
     	report_nc_error();
 	}
 }
@@ -758,14 +784,89 @@ void IO_netcdf::get_global_text(const char *text_title, char *text_value, int st
 
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
     report_nc_error();
-    rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, text_title, text_value);    
-    report_nc_error();
-    nc_close(ncfile_id);
+    rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, text_title, text_value);
+    rcode = nc_close(ncfile_id);
     report_nc_error();
 }
 
 
-void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *num_dims, int **dim_size_ptr, char *data_type)
+bool IO_netcdf::get_file_field_attribute(const char *field_name, const char *attribute_name, char *attribute_value, char *data_type)
+{
+	int variable_id, nc_data_type;
+	unsigned long attribute_size;
+
+	
+    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
+    report_nc_error();
+    rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
+	if (rcode != NC_NOERR) {
+		rcode = nc_close(ncfile_id);
+		report_nc_error();
+		return false;
+	}
+
+	rcode = nc_inq_att(ncfile_id, variable_id, attribute_name, &nc_data_type, &attribute_size);
+	if (rcode != NC_NOERR) {
+		rcode = nc_close(ncfile_id);
+		report_nc_error();
+		return false;	
+	}
+
+	switch (nc_data_type) {
+		case NC_BYTE:
+		case NC_CHAR:
+			strcpy(data_type, DATA_TYPE_STRING);
+			rcode = nc_get_att_text(ncfile_id, variable_id, attribute_name, attribute_value);
+			attribute_value[attribute_size] = '\0';
+			break;
+		case NC_SHORT:
+			rcode = nc_get_att_short(ncfile_id, variable_id, attribute_name, (short*)attribute_value);
+			strcpy(data_type, DATA_TYPE_SHORT);
+			break;
+		case NC_INT:
+			strcpy(data_type, DATA_TYPE_INT);
+			rcode = nc_get_att_int(ncfile_id, variable_id, attribute_name, (int*)attribute_value);
+			break;
+		case NC_FLOAT:
+			strcpy(data_type, DATA_TYPE_FLOAT);
+			rcode = nc_get_att_float(ncfile_id, variable_id, attribute_name, (float*)attribute_value);
+			break;
+		case NC_DOUBLE:
+			strcpy(data_type, DATA_TYPE_DOUBLE);
+			rcode = nc_get_att_double(ncfile_id, variable_id, attribute_name, (double*)attribute_value);
+			break;
+		default:
+			rcode = nc_close(ncfile_id);
+			report_nc_error();
+			return false;
+	}	
+
+	if (rcode != NC_NOERR) {
+		rcode = nc_close(ncfile_id);
+		report_nc_error();
+		return false;
+	}
+
+	rcode = nc_close(ncfile_id);
+	report_nc_error();
+	
+	return true;
+}
+
+
+bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const char *attribute_name, char *attribute_value)
+{
+	char data_type[NAME_STR_SIZE];
+
+	
+	if (get_file_field_attribute(field_name, attribute_name, attribute_value, data_type)) 
+		return words_are_the_same(data_type, DATA_TYPE_STRING);
+
+	return false;
+}
+
+
+void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *num_dims, int **dim_size_ptr, int *field_size, char *data_type)
 {
 	int i, variable_id, *dim_ids, *dim_size;
 	long total_size;
@@ -773,12 +874,19 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 	nc_type nc_var_type;
 	char *data_array;
 
+	*data_array_ptr = NULL;
+	*num_dims = 0;
+	*dim_size_ptr = NULL;
+	*field_size = 0;
 	
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
     report_nc_error();
-	printf("okok1 %s\n", field_name);
     rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
-    report_nc_error();
+	if (rcode != NC_NOERR) {
+		rcode = nc_close(ncfile_id);
+		report_nc_error();
+		return;
+	}
 	rcode = nc_inq_varndims(ncfile_id, variable_id, num_dims);
 	report_nc_error();
 	dim_ids = new int [*num_dims];
@@ -794,18 +902,19 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 	report_nc_error();
 	datatype_from_netcdf_to_application(nc_var_type, data_type, field_name);
 
-	total_size = get_data_type_size(data_type);
+	total_size = 1;
 	for (i = 0; i < *num_dims; i ++)
 		total_size *= dim_size[i];
-	data_array = new char [total_size];
+	data_array = new char [total_size*get_data_type_size(data_type)];
 	rcode = nc_get_var(ncfile_id, variable_id, data_array);
 
 	*data_array_ptr = data_array;
 	*dim_size_ptr = dim_size;
+	*field_size = total_size;
 
 	delete [] dim_ids;
 
-	nc_close(ncfile_id);
+	rcode = nc_close(ncfile_id);
 	report_nc_error();
 }
 

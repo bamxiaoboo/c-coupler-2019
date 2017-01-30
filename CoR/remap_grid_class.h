@@ -34,7 +34,7 @@
 #define COORD_LABEL_TRACER                    "tracer"
 #define COORD_UNIT_RADIANS                    "radians"
 #define COORD_UNIT_DEGREES                    "degrees"
-#define GRID_FIELD_ATTRIBUTE_UNITS            "units"
+#define GRID_FIELD_ATTRIBUTE_UNIT             "unit"
 #define SPHERE_GRID_ROTATION_LAT_THRESHOLD    ((double) 70.0)
 
 
@@ -86,6 +86,7 @@ class Remap_grid_class
         std::vector<Remap_grid_data_class *> grid_center_fields;
         std::vector<Remap_grid_data_class *> grid_vertex_fields;
         Remap_grid_data_class *grid_mask_field;
+		Remap_grid_data_class *imported_area;
         std::vector<Remap_grid_class *> super_grids_of_setting_mask_value; 
         Remap_grid_data_class *original_grid_mask_field;
         bool masks_are_known;        
@@ -168,6 +169,7 @@ class Remap_grid_class
 		void set_decomp_name(const char*);
         bool get_grid_cyclic() const { return cyclic; }
         Remap_grid_data_class *get_grid_mask_field() const { return grid_mask_field; }
+		Remap_grid_data_class *get_grid_imported_area() const { return imported_area; }
         bool get_are_vertex_values_set_in_default() const { return are_vertex_values_set_in_default; }
         const Remap_grid_class *get_whole_grid() const { return whole_grid; }
         Remap_grid_class *get_super_grid_of_setting_coord_values() const { return super_grid_of_setting_coord_values; }
@@ -192,6 +194,7 @@ class Remap_grid_class
         bool match_grid(const char*) const;
 		bool match_grid(int, Remap_grid_class**);
         void read_grid_data_from_IO(char extension_names[16][256], const char*, const char*, int);
+		void read_grid_data_from_array(const char*, const char*, const char*, const char*, int);
         void read_grid_data_through_span(char[16][256], const char*, const char*, long, const char*);
         void extract_mask(const char*, const char*, const char*);
         void compute_ocn_mask(const char*, double);
