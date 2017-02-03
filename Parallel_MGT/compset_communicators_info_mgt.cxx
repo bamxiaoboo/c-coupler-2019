@@ -371,7 +371,7 @@ void Comp_comm_group_mgt_node::confirm_coupling_configuration_active(int API_id,
 	char API_label[NAME_STR_SIZE]; 
 
 	get_API_hint(comp_id, API_id, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, !definition_finalized, "component \"%s\" cannot call the C-Coupler interface \"%s\" at the model code with the annotation \"%s\", because the coupling configuration stage has been ended at the model code with the annotation \"%s\"", 
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, !definition_finalized, "component \"%s\" cannot call the C-Coupler API \"%s\" at the model code with the annotation \"%s\", because the coupling configuration stage has been ended at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"confirm_coupling_configuration_active")->get_comp_name(), API_label, annotation, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"confirm_coupling_configuration_active")->get_annotation_end());
 }
 
@@ -487,14 +487,6 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 
 	int true_parent_id = (local_comp_id & TYPE_ID_SUFFIX_MASK);
 	return true_parent_id >= 0 && true_parent_id < global_node_array.size();
-}
-
-
-bool Comp_comm_group_mgt_mgr::is_local_comp_definition_finalized(int local_comp_id)
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, is_legal_local_comp_id(local_comp_id), "software error in Comp_comm_group_mgt_mgr::is_local_comp_definition_finalized");
-
-	return global_node_array[(local_comp_id&TYPE_ID_SUFFIX_MASK)]->is_definition_finalized();
 }
 
 

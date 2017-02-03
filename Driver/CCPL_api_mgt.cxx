@@ -28,6 +28,13 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			break;
 		case API_ID_COMP_MGT_GET_COMP_ID:
 			sprintf(API_label, "CCPL_get_component_id");
+			break;
+		case API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP:
+			sprintf(API_label, "CCPL_get_current_process_id_in_component");
+			break;
+		case API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP:
+			sprintf(API_label, "CCPL_get_num_process_in_component");
+			break;	
         case API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA:
 			sprintf(API_label, "CCPL_register_H2D_grid_via_model_data");
 			break;
@@ -43,11 +50,14 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_GRID_MGT_REG_GRID_VIA_COR:
 			sprintf(API_label, "CCPL_get_CoR_defined_grid");
 			break;
+		case API_ID_GRID_MGT_GET_GRID_SIZE:
+			sprintf(API_label, "CCPL_get_grid_size");
+			break;			
         case API_ID_GRID_MGT_REG_GRID_VIA_LOCAL:
 			sprintf(API_label, "CCPL_get_local_grid");
 			break;
-        case API_ID_GRID_MGT_REG_GRID_VIA_REMOTE:
-			sprintf(API_label, "CCPL_get_remote_grid");
+        case API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP:
+			sprintf(API_label, "CCPL_register_H2D_grid_from_another_component");
 			break;
         case API_ID_GRID_MGT_CMP_GRID_VIA_REMOTE:
 			sprintf(API_label, "CCPL_compare_to_remote_grid");
@@ -84,6 +94,66 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			break;
 		case API_ID_TIME_MGT_ADVANCE_TIME:
 			sprintf(API_label, "CCPL_advance_time");
+			break;
+		case API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR:
+			sprintf(API_label, "CCPL_get_current_num_days_in_year");
+			break;			
+		case API_ID_TIME_MGT_GET_CURRENT_YEAR:
+			sprintf(API_label, "CCPL_get_current_year");
+			break;						
+		case API_ID_TIME_MGT_GET_CURRENT_DATE:
+			sprintf(API_label, "CCPL_get_current_date");
+			break;						
+		case API_ID_TIME_MGT_GET_CURRENT_SECOND:
+			sprintf(API_label, "CCPL_get_current_second");
+			break;						
+		case API_ID_TIME_MGT_GET_START_TIME:
+			sprintf(API_label, "CCPL_get_start_time");
+			break;						
+		case API_ID_TIME_MGT_GET_STOP_TIME:
+			sprintf(API_label, "CCPL_get_stop_time");
+			break;			
+		case API_ID_TIME_MGT_GET_PREVIOUS_TIME:
+			sprintf(API_label, "CCPL_get_previous_time");
+			break;						
+		case API_ID_TIME_MGT_GET_CURRENT_TIME:
+			sprintf(API_label, "CCPL_get_current_time");
+			break;			
+		case API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_REF:
+			sprintf(API_label, "CCPL_get_num_elapsed_days_from_reference");
+			break;			
+		case API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_START:
+			sprintf(API_label, "CCPL_get_num_elapsed_days_from_start");
+			break;			
+		case API_ID_TIME_MGT_IS_END_CURRENT_DAY:
+			sprintf(API_label, "CCPL_is_end_current_day");
+			break;			
+		case API_ID_TIME_MGT_IS_END_CURRENT_MONTH:
+			sprintf(API_label, "CCPL_is_end_current_month");
+			break;			
+		case API_ID_TIME_MGT_GET_CURRENT_CAL_TIME:
+			sprintf(API_label, "CCPL_get_current_calendar_time");
+			break;											
+		case API_ID_TIME_MGT_IS_FIRST_STEP:
+			sprintf(API_label, "CCPL_is_first_step");
+			break;
+		case API_ID_TIME_MGT_GET_NUM_CURRENT_STEP:
+			sprintf(API_label, "CCPL_get_number_of_current_step");
+			break;
+		case API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS:
+			sprintf(API_label, "CCPL_get_number_of_total_steps");
+			break;
+		case API_ID_TIME_MGT_GET_TIME_STEP:
+			sprintf(API_label, "CCPL_get_time_step");
+			break;
+		case API_ID_TIME_MGT_CHECK_CURRENT_TIME:
+			sprintf(API_label, "CCPL_check_current_time");
+			break;
+		case API_ID_TIME_MGT_IS_TIMER_ON:
+			sprintf(API_label, "CCPL_is_timer_on");
+			break;
+		case API_ID_TIME_MGT_IS_MODEL_RUN_ENDED:
+			sprintf(API_label, "CCPL_is_model_run_ended");
 			break;
 		case API_ID_INTERFACE_REG_IMPORT:
 			sprintf(API_label, "CCPL_register_import_interface");
@@ -334,7 +404,7 @@ void check_and_verify_name_format_of_string_for_API(int comp_id, const char *str
 }
 
 
-void check_and_verify_name_format_of_string_for_XML(int comp_id, char *string, const char *name_owner, const char *XML_file_name, int line_number)
+void check_and_verify_name_format_of_string_for_XML(int comp_id, const char *string, const char *name_owner, const char *XML_file_name, int line_number)
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, check_and_verify_name_format_of_string(string),
 					 "When reading the XML file \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the XML file arround the line number %d",

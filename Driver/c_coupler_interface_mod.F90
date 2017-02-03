@@ -974,7 +974,7 @@
 
 
 
- integer FUNCTION CCPL_get_num_total_step(comp_id, annotation)
+ integer FUNCTION CCPL_get_number_of_total_steps(comp_id, annotation)
    implicit none  
    integer,          intent(in) :: comp_id
    character(len=*), intent(in), optional :: annotation
@@ -985,9 +985,9 @@
    else
       call get_ccpl_num_total_step(comp_id, nstep, trim("")//char(0))
    endif
-   CCPL_get_num_total_step = nstep
+   CCPL_get_number_of_total_steps = nstep
 
- END FUNCTION CCPL_get_num_total_step
+ END FUNCTION CCPL_get_number_of_total_steps
 
 
 
@@ -1737,6 +1737,24 @@
    CCPL_register_H2D_grid_via_data_file = grid_id
 
    END FUNCTION CCPL_register_H2D_grid_via_data_file
+
+
+
+   integer FUNCTION CCPL_register_H2D_grid_from_another_component(comp_id, grid_name, annotation)
+   implicit none
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in)            :: grid_name
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: grid_id
+
+   if (present(annotation)) then
+      call register_H2D_grid_from_another_component(comp_id, grid_id, trim(grid_name)//char(0), trim(annotation)//char(0)) 
+   else 
+      call register_H2D_grid_from_another_component(comp_id, grid_id, trim(grid_name)//char(0), trim("")//char(0)) 
+   endif
+   CCPL_register_H2D_grid_from_another_component = grid_id
+
+   END FUNCTION CCPL_register_H2D_grid_from_another_component
 
 
 

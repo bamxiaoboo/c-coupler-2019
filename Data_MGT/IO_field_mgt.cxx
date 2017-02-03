@@ -18,8 +18,10 @@ IO_field::IO_field(int IO_field_id, int field_instance_id, const char *field_IO_
 	Field_mem_info *field_inst = memory_manager->get_field_instance(field_instance_id);
 	this->comp_id = field_inst->get_comp_id();
 	this->field_instance_id = field_instance_id;
-	if (strlen(field_IO_name) > 0)
+	if (strlen(field_IO_name) > 0) {
 		strcpy(this->field_IO_name, field_IO_name);
+		check_and_verify_name_format_of_string_for_API(this->comp_id, field_IO_name, API_ID_FIELD_MGT_REG_IO_FIELD, "name of the I/O field in the data file", annotation);
+	}
 	else strcpy(this->field_IO_name, field_inst->get_field_name());
 	strcpy(this->field_long_name, fields_info->search_field_info(field_inst->get_field_name())->field_long_name);
 	strcpy(this->field_unit, field_inst->get_unit());
@@ -32,6 +34,7 @@ IO_field::IO_field(int IO_field_id, int comp_or_grid_id, int decomp_id, int fiel
 
 
 	this->IO_field_id = IO_field_id;
+	check_and_verify_name_format_of_string_for_API(this->comp_id, field_IO_name, API_ID_FIELD_MGT_REG_IO_FIELD, "name of the I/O field in the data file", annotation);
 	strcpy(this->field_IO_name, field_IO_name);
 	strcpy(this->field_unit, unit);
 	strcpy(this->field_long_name, long_name);

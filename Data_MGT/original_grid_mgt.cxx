@@ -9,6 +9,8 @@
 
 #include "global_data.h"
 #include "original_grid_mgt.h"
+#include <netcdf.h>
+#include <unistd.h>
 
 
 Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *grid_name, const char *annotation, Remap_grid_class *original_CoR_grid)
@@ -19,6 +21,25 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	strcpy(this->grid_name, grid_name);
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
+
+	if (H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL) {
+		char nc_file_name[NAME_STR_SIZE];
+		sprintf(nc_file_name, "%s/H2D_grids/%s@%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+		if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_h2d_grid_with_data") == 0) {
+			IO_netcdf *netcdf_file_object = new IO_netcdf("H2D_grid_data", nc_file_name, "w", false);
+			netcdf_file_object->write_grid(H2D_sub_CoR_grid, false);
+			netcdf_file_object->put_global_text("edge_type", "LONLAT");   // to be modified
+			Remap_grid_class *leaf_grids[256];
+			int num_leaf_grids;
+			H2D_sub_CoR_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, H2D_sub_CoR_grid);
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(leaf_grids[0]->get_coord_label(), COORD_LABEL_LON), "software error in Original_grid_info::Original_grid_info");
+			if (leaf_grids[0]->get_grid_cyclic())					
+				netcdf_file_object->put_global_text("cyclic_or_acyclic", "cyclic");
+			else netcdf_file_object->put_global_text("cyclic_or_acyclic", "acyclic");
+			delete netcdf_file_object;
+		}
+	}
+
 }
 
 
@@ -128,8 +149,71 @@ void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
 	if (search_grid_info(grid_name, comp_id) != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "grid \"%s\" has been defined in component \"%s\" before. Please check the model code with the annoation \"%s\" and \"%s\"",
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "grid \"%s\" has been defined in component \"%s\" before. Please check the model code with the annotation \"%s\" and \"%s\"",
 		                 grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler code in check_for_grid_definition for getting component management node")->get_comp_name(), search_grid_info(grid_name, comp_id)->get_annotation(), annotation);
+}
+
+
+int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_name, const char *annotation)
+{
+	char XML_file_name[NAME_STR_SIZE], nc_file_name[NAME_STR_SIZE];
+	const char *another_comp_full_name = NULL, *another_comp_grid_name = NULL;
+	FILE *tmp_file;
+	int line_number;
+
+	
+	check_for_grid_definition(comp_id, grid_name, annotation);
+	synchronize_comp_processes_for_API(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_comp"), "register_H2D_grid_via_comp", annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_comp"), "registering an H2D grid", grid_name, "grid_name", annotation);
+
+	sprintf(XML_file_name, "%s/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_all_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
+	tmp_file = fopen(XML_file_name, "r");
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, tmp_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
+	fclose(tmp_file);
+
+	TiXmlDocument XML_file(XML_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file.LoadFile(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp")), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
+	TiXmlElement *root_XML_element = XML_file.FirstChildElement();
+	TiXmlNode *root_XML_element_node = (TiXmlNode*) root_XML_element;
+	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+		root_XML_element = root_XML_element_node->ToElement();
+		if (words_are_the_same(root_XML_element->Value(),"component_grid_redirection_configuration"))
+			break;
+	}
+	if (root_XML_element_node != NULL) {
+		for (TiXmlNode *grid_XML_element_node = root_XML_element->FirstChild(); grid_XML_element_node != NULL; grid_XML_element_node = grid_XML_element_node->NextSibling()) {
+			TiXmlElement *grid_XML_element = grid_XML_element_node->ToElement();
+			const char *xml_grid_name = get_XML_attribute(comp_id, grid_XML_element, "local_grid_name", XML_file_name, line_number, "grid name of the current component", "the grid redirection configuration file");
+			if (words_are_the_same(xml_grid_name, grid_name)) {
+				another_comp_full_name = get_XML_attribute(comp_id, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the grid redirection configuration file");
+				another_comp_grid_name = get_XML_attribute(comp_id, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the grid redirection configuration file");
+				break;
+			}
+		}	
+	}
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
+
+	sprintf(nc_file_name, "%s/H2D_grids/%s@%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), another_comp_grid_name, another_comp_full_name);
+	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Wait to read NetCDF file \"%s\" to register H2D grid \"%s\"", nc_file_name, grid_name);
+	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_H2D_grid_via_comp") == 0) {
+		while (true) {
+			sleep(1);
+			int ncfile_id;
+			int rcode = nc_open(nc_file_name, NC_NOWRITE, &ncfile_id);
+			char cyclic_or_acyclic[NAME_STR_SIZE];
+			if (rcode != NC_NOERR)
+				continue;
+			rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, "cyclic_or_acyclic", cyclic_or_acyclic);
+			if (rcode != NC_NOERR)
+				continue;
+			nc_close(ncfile_id);
+			break;
+		}
+	}
+	synchronize_comp_processes_for_API(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_comp"), "register_H2D_grid_via_comp", annotation);
+
+	return register_H2D_grid_via_file(comp_id, grid_name, nc_file_name, annotation);
 }
 
 
@@ -204,7 +288,7 @@ int Original_grid_mgt::register_H2D_grid_via_data(int comp_id, const char *grid_
 		else EXECUTION_REPORT(REPORT_ERROR, comp_id ,num_vertex_lon == 2, "Error happens when registering an H2D grid through API CCPL_register_H2D_grid_via_model_data: the number of vertexes is wrong as it is not 2. Please check the model code related to the annotation \"%s\".", annotation);
 		num_vertex = num_vertex_lon;
 	}
-	sprintf(true_H2D_grid_name, "%s%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_full_name());
+	sprintf(true_H2D_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_full_name());
 	sprintf(true_lon_grid_name, "lon_%s", true_H2D_grid_name);
 	sprintf(true_lat_grid_name, "lat_%s", true_H2D_grid_name);
 	if (dim_size2 == 0) {
@@ -242,15 +326,6 @@ int Original_grid_mgt::register_H2D_grid_via_data(int comp_id, const char *grid_
 	remap_grid_manager->add_remap_grid(CoR_lat_grid);
 	remap_grid_manager->add_remap_grid(CoR_H2D_grid);
 	CoR_H2D_grid->end_grid_definition_stage(NULL);
-	char nc_file_name[NAME_STR_SIZE];
-	sprintf(nc_file_name, "%s/H2D_grids/%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), CoR_H2D_grid->get_grid_name());
-	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_h2d_grid_with_data") == 0) {
-		IO_netcdf *netcdf_file_object = new IO_netcdf("H2D_grid_data", nc_file_name, "w", false);
-		netcdf_file_object->write_grid(CoR_H2D_grid, false);
-		netcdf_file_object->put_global_text("edge_type", edge_type);
-		netcdf_file_object->put_global_text("cyclic_or_acyclic", cyclic_or_acyclic);
-		delete netcdf_file_object;
-	}
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_H2D_grid));
 	
 	return original_grids[original_grids.size()-1]->get_grid_id();
@@ -315,13 +390,12 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 	netcdf_file_object->get_global_text("cyclic_or_acyclic", cyclic_or_acyclic, NAME_STR_SIZE);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(edge_type) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"edge_type\" is not specified as a global attribute", grid_name, annotation, data_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(cyclic_or_acyclic) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"cyclic_or_acyclic\" is not specified as a global attribute", grid_name, annotation, data_file_name);
-
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "unit", unit_center_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "unit", unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "unit", unit_center_lon) || netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "units", unit_center_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "unit", unit_center_lat) || netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "units", unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of \"lon\" and \"lat\" are different", grid_name, annotation, data_file_name);
 	if (vertex_lon != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lon", "unit", unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"vertex_lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lat", "unit", unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"vertex_lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lon", "unit", unit_vertex_lon) || netcdf_file_object->get_file_field_string_attribute("vertex_lon", "units", unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"vertex_lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lat", "unit", unit_vertex_lat) || netcdf_file_object->get_file_field_string_attribute("vertex_lat", "units", unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of \"vertex_lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of \"lon\" and \"vertex_lon\" are different", grid_name, annotation, data_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lat,unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of \"lat\" and \"vertex_lat\" are different", grid_name, annotation, data_file_name);
 	}

@@ -21,6 +21,39 @@
 int coupling_process_control_counter = 0;
 
 
+void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	
+
+	get_API_hint(-1, API_ID, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_root_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+}
+
+
+void check_for_component_registered(int comp_id, int API_ID, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	
+
+	get_API_hint(-1, API_ID, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_root_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
+}
+
+
+void check_for_coupling_registration_stage(int comp_id, int API_ID, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	
+
+	get_API_hint(-1, API_ID, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_root_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The parameter of component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, annotation);		
+}
+
+
 extern "C" void coupling_get_field_size_(void *model_buf, const char *annotation, int *field_size)
 {
     EXECUTION_REPORT(REPORT_ERROR,-1, coupling_process_control_counter > 0, 
@@ -84,38 +117,37 @@ extern "C" void coupling_perturb_roundoff_errors_()
 }
 
 
-
 extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current calendar time. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
     *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_double_current_calendar_time(*shift_seconds);
+}
+
+
+extern "C" void get_ccpl_float_current_calendar_time_(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
+    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds);
 }
 
 
 extern "C" void get_ccpl_current_date_(int *comp_id, int *date, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current date. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_DATE, annotation);
     *date = components_time_mgrs->get_time_mgr(*comp_id)->get_current_date();
 }
 
 
 extern "C" void get_ccpl_current_second_(int *comp_id, int *second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current second. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_SECOND, annotation);
     *second = components_time_mgrs->get_time_mgr(*comp_id)->get_current_second();
-}
-
-
-extern "C" void get_ccpl_float_current_calendar_time_(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
-{
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current calendar time. Please check the model code with the annotation \"%s\"", annotation);
-    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds);
 }
 
 
 extern "C" void is_comp_first_step_(int *comp_id, int *result, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to check whether it is at the first step. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_FIRST_STEP, annotation);
 	*result = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step() == 0? 1 : 0;
 }
 
@@ -129,28 +161,28 @@ extern "C" void coupling_is_first_restart_step_(bool *result)
 
 extern "C" void get_ccpl_current_number_of_step_(int *comp_id, int *nstep, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current number of step. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_CURRENT_STEP, annotation);
 	*nstep = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step();
 }
 
 
 extern "C" void get_ccpl_num_total_step_(int *comp_id, int *nstep, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the number of total steps. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS, annotation);
 	*nstep = (int) components_time_mgrs->get_time_mgr(*comp_id)->get_num_total_step();
 }
 
 
 extern "C" void get_ccpl_time_step_(int *comp_id, int *time_step, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current step. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_TIME_STEP, annotation);
     *time_step = components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second();
 }
 
 
 extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the start time. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_START_TIME, annotation);
 
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 1000000000;
 	*month = (components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 10000000)%100;
@@ -161,7 +193,7 @@ extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *d
 
 extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *day, int *second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the stop time. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_STOP_TIME, annotation);
 
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_year();
 	*month = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_month();
@@ -172,7 +204,7 @@ extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *da
 
 extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the time of the previous step. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_PREVIOUS_TIME, annotation);
 
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 1000000000;
 	*month = (components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 10000000)%100;
@@ -183,35 +215,35 @@ extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int
 
 extern "C" void get_ccpl_current_time_(int *comp_id, int *year, int *month, int *day, int *second, int *shift_second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current time. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_TIME, annotation);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_current_time(*year, *month, *day, *second, *shift_second);
 }
 
 
 extern "C" void get_ccpl_current_num_days_in_year_(int *comp_id, int *days, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current data in a year. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR, annotation);
 	*days = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_days_in_year();
 }
 
 
 extern "C" void get_ccpl_current_year_(int *comp_id, int *year, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current year. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_YEAR, annotation);
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_current_year();
 }
 
 
 extern "C" void get_ccpl_num_elapsed_days_from_start_date_(int *comp_id, int *days, int *seconds, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current number of elapsed days from the start date. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_START, annotation);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_start_date(days, seconds);
 }
 
 
 extern "C" void get_ccpl_num_elapsed_days_from_reference_date_(int *comp_id, int *days, int *seconds, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when calling the corresponding C-Coupler API to get the current number of elapsed days from the reference date. Please check the model code with the annotation \"%s\"", annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_REF, annotation);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_reference_date(days, seconds);
 }
 
@@ -326,13 +358,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id), 
-					 "For the registration of component (name=\"%s\", type=\"%s\"), the input parameter of the ID of the parent component is wrong (the corresponding annotation of model code is \"%s\").",
-					 comp_name, annotation);
-	
-	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_register_component (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_register_component");
+	check_for_coupling_registration_stage(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, annotation);
 
 	if (*comm !=-1) {
 		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on the parent component", annotation);
@@ -349,8 +375,7 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling API CCPL_get_id_of_component. Please check the model code related to the annotation \"%s\".", annotation);
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_ID, annotation);
 
 	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_global_node(comp_name);
 
@@ -365,22 +390,21 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 
 extern "C" void get_current_proc_id_in_comp_(int *comp_id, int *proc_id, const char * annotation)
 {
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP, annotation);
 	*proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(*comp_id, annotation);
 }
 
 
 extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * annotation)
 {
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP, annotation);
 	*num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
 }
 
 
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
-	if (strlen(annotation) != 0)
-		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_end_comp_registration (corresponding to annotation \"%s\")", annotation);
-	else EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr != NULL, "Please call interface CCPL_register_root_component before calling API CCPL_end_comp_registration");
-
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	inout_interface_mgr->merge_inout_interface_fields_info(*comp_id);
@@ -396,13 +420,13 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
 	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, void *center_lon, void *center_lat, int *mask, void *area, void *vertex_lon, void *vertex_lat, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call API CCPL_register_root_component before calling API CCPL_register_H2D_grid_via_model_data. Please check the model code related to the annotation \"%s\".", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
 												             *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												             API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA);
 	char nc_file_name[NAME_STR_SIZE];
-	sprintf(nc_file_name, "%s/H2D_grids/%s%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
+	sprintf(nc_file_name, "%s/H2D_grids/%s@%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
 	char temp_grid_name[NAME_STR_SIZE];
 	sprintf(temp_grid_name, "%s_temp", grid_name);
 	original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
@@ -412,16 +436,23 @@ extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const c
 
 extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const char *grid_name, const char *data_file_name, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling API CCPL_register_H2D_grid_via_data_file. Please check the model code related to the annotation \"%s\".", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, "the C-Coupler grid", annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, data_file_name, annotation);
+}
+
+
+extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *grid_id, const char *grid_name, const char *annotation)
+{
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, "the C-Coupler grid", annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, annotation);
+	*grid_id = original_grid_mgr->register_H2D_grid_via_comp(*comp_id, grid_name, annotation);
 }
 
 
 extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call interface CCPL_register_root_component before calling API CCPL_get_CoR_defined_grid. Please check the model code related to the annotation \"%s\".", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid based on a CoR grid", annotation);
 	check_and_verify_name_format_of_string_for_API(*comp_id, CCPL_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the C-Coupler grid", annotation);
 	check_and_verify_name_format_of_string_for_API(*comp_id, CoR_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the CoR grid", annotation);
@@ -433,6 +464,8 @@ extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_n
 
 extern "C" void get_grid_size_(int *grid_id, int *grid_size, const char *annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_GRID_SIZE, annotation);
+
 	*grid_size = original_grid_mgr->get_grid_size(*grid_id, annotation);
 }
 
@@ -445,6 +478,7 @@ extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, i
 		             decomp_name, annotation);
 	EXECUTION_REPORT(REPORT_WARNING, -1, *num_local_cells == *array_size, "The number of local cells is different from the size of the array of local cells' global indexes when registering parallel decomposition \"%s\". Please check the model code related to \"%s\"",
 		             decomp_name, annotation);
+	check_for_ccpl_managers_allocated(API_ID_DECOMP_MGT_REG_DECOMP, annotation);
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 }
 
@@ -452,12 +486,14 @@ extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, i
 extern "C" void register_external_field_instance_(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
 	                                             int *buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_FIELD_INST, annotation);
 	*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
 }
 
 
 extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, const char *field_IO_name, const char *annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD, annotation);
 	IO_fields_mgr->register_IO_field(*field_inst_id, field_IO_name, annotation);
 }
 
@@ -465,14 +501,14 @@ extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, co
 extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
 	                                    const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD, annotation);
 	IO_fields_mgr->register_IO_field(*comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
 }
 
 
 extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *del_count, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
@@ -481,8 +517,7 @@ extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *fr
 
 extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *or_or_and, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when defining a timer. Please check the model code with the annotation \"%s\"", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *or_or_and, annotation);
@@ -491,8 +526,7 @@ extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children
 
 extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when setting the step of a component. Please check the model code with the annotation \"%s\"", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component", annotation);
 	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), "setting the time step of a component", *time_step_in_second, "the value of the time step (the unit is seconds)", annotation);
 	components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
@@ -501,7 +535,8 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when advance the time step of a component. Please check the model code with the annotation \"%s\"", annotation);	
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Cannot all the C-Coupler API \"CCPL_advance_time\" at the model code with the annotation \"%s\" because the coupling procedures of interfaces have not been generated. Please call the C-Coupler API \"CCPL_end_coupling_configuration\" of all components before advancing the time of a component", annotation);
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
@@ -509,13 +544,14 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 
 extern "C" void check_ccpl_component_current_time_(int *comp_id, int *date, int *second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*comp_id), "The component ID is wrong when checking the time consitency between a component model and C-Coupler. Please check the model code with the annotation \"%s\"", annotation);	
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_CHECK_CURRENT_TIME, annotation);
 	components_time_mgrs->check_component_current_time(*comp_id, *date, *second, annotation);
 }
 
 
 extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_TIME_MGT_IS_TIMER_ON, annotation);
 	if (timer_mgr->is_timer_on(*timer_id, annotation))
 		*is_on = 1;
 	else *is_on = 0;
@@ -524,6 +560,8 @@ extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotat
 
 extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, const char *annotation)
 {
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_RUN_ENDED, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Cannot all the C-Coupler API \"CCPL_is_model_run_ended\" at the model code with the annotation \"%s\" because the coupling procedures of interfaces have not been generated. Please call the C-Coupler API \"CCPL_end_coupling_configuration\" of all components before checking whether model run of a component finishes", annotation);
 	if (components_time_mgrs->is_model_run_ended(*comp_id, annotation))
 		*is_ended = 1;
 	else *is_ended = 0;
@@ -539,20 +577,27 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 	if (*import_or_export == 0)
 		EXECUTION_REPORT(REPORT_ERROR, -1, *array_size3 == 1 || *array_size3 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for specifying instantaneous or average value is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
 			             interface_name, annotation);
-	if (*import_or_export == 0)
+	if (*import_or_export == 0) {
+		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
 		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, inst_or_aver, annotation, *array_size2, *array_size3, INTERFACE_TYPE_REGISTER);
-	else *interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, NULL, annotation, *array_size2, *array_size3, INTERFACE_TYPE_REGISTER);
+	}
+	else {
+		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_EXPORT, annotation);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, timer_ids, NULL, annotation, *array_size2, *array_size3, INTERFACE_TYPE_REGISTER);
+	}	
 }
 
 
 extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, const char *annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
 	inout_interface_mgr->execute_interface(*interface_id, *bypass_timer == 1, annotation);
 }
 
 
 extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *interface_name, int *bypass_timer, const char *annotation)
 {
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
 	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, annotation);
 }
 

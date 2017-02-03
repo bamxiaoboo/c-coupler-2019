@@ -28,7 +28,7 @@
 #define API_ID_GRID_MGT_REG_MD_GRID                     ((int)(0X00400008))
 #define API_ID_GRID_MGT_REG_GRID_VIA_COR                ((int)(0X00400010))
 #define API_ID_GRID_MGT_REG_GRID_VIA_LOCAL              ((int)(0X00400020))
-#define API_ID_GRID_MGT_REG_GRID_VIA_REMOTE             ((int)(0X00400040))
+#define API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP           ((int)(0X00400040))
 #define API_ID_GRID_MGT_CMP_GRID_VIA_REMOTE             ((int)(0X00400080))
 #define API_ID_GRID_MGT_GET_GRID_ID                     ((int)(0X00400100))
 #define API_ID_GRID_MGT_SET_GRID_DATA                   ((int)(0X00400200))
@@ -45,6 +45,26 @@
 #define API_ID_TIME_MGT_ADVANCE_TIME                    ((int)(0X02000002))
 #define API_ID_TIME_MGT_DEFINE_SINGLE_TIMER             ((int)(0X02000004))
 #define API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER            ((int)(0X02000008))
+#define API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR	((int)(0X02100001))
+#define API_ID_TIME_MGT_GET_CURRENT_YEAR                ((int)(0X02100002))
+#define API_ID_TIME_MGT_GET_CURRENT_DATE                ((int)(0X02100004))
+#define API_ID_TIME_MGT_GET_CURRENT_SECOND              ((int)(0X02100008))
+#define API_ID_TIME_MGT_GET_START_TIME                  ((int)(0X02100010))	
+#define API_ID_TIME_MGT_GET_STOP_TIME                   ((int)(0X02100020))
+#define API_ID_TIME_MGT_GET_PREVIOUS_TIME               ((int)(0X02100040))
+#define API_ID_TIME_MGT_GET_CURRENT_TIME                ((int)(0X02100080))
+#define API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_REF       ((int)(0X02100100))
+#define API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_START     ((int)(0X02100200))
+#define API_ID_TIME_MGT_IS_END_CURRENT_DAY              ((int)(0X02100400))
+#define API_ID_TIME_MGT_IS_END_CURRENT_MONTH            ((int)(0X02100800))
+#define API_ID_TIME_MGT_GET_CURRENT_CAL_TIME            ((int)(0X02101000))
+#define API_ID_TIME_MGT_IS_FIRST_STEP                   ((int)(0X02102000))
+#define API_ID_TIME_MGT_GET_NUM_CURRENT_STEP            ((int)(0X02104000))
+#define API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS             ((int)(0X02108000))
+#define API_ID_TIME_MGT_GET_TIME_STEP                   ((int)(0X02110000))
+#define API_ID_TIME_MGT_CHECK_CURRENT_TIME              ((int)(0X02120000))
+#define API_ID_TIME_MGT_IS_TIMER_ON                     ((int)(0X02140000))
+#define API_ID_TIME_MGT_IS_MODEL_RUN_ENDED              ((int)(0X02180000))
 #define API_ID_INTERFACE_REG_IMPORT                     ((int)(0X04000001))
 #define API_ID_INTERFACE_REG_EXPORT                     ((int)(0X04000002))
 #define API_ID_INTERFACE_EXECUTE                        ((int)(0X04000004))
@@ -59,7 +79,7 @@ extern void check_API_parameter_timer(int, int, MPI_Comm, const char*, int, cons
 extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, int, const char*, const char*);
 extern void get_API_hint(int, int, char*);
 extern void check_and_verify_name_format_of_string_for_API(int, const char*, int, const char*, const char*);
-extern void check_and_verify_name_format_of_string_for_XML(int, char*, const char*, const char*, int);
+extern void check_and_verify_name_format_of_string_for_XML(int, const char*, const char*, const char*, int);
 extern const char *get_XML_attribute(int, TiXmlElement*, const char*, const char*, int&, const char*, const char*);
 extern bool is_XML_setting_on(int, TiXmlElement*, const char*, const char*, const char*);
 extern void transfer_array_from_one_comp_to_another(int, int, int, int, MPI_Comm, char **, int &);
