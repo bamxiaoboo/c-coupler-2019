@@ -232,6 +232,7 @@ class Remap_grid_class
 		bool is_sigma_grid_surface_value_field_updated(Remap_grid_data_class *);
 		void copy_sigma_grid_surface_value_field(Remap_grid_data_class*);
 		void set_lev_grid_sigma_info(const char*, double, double, const char*);
+		void set_lev_grid_sigma_info(double, const double *, const double *, double);
 		void renew_lev_grid_coord_values(double*, double*);
 		bool has_super_grids_of_setting_mask_value() { return super_grids_of_setting_mask_value.size() > 0; }
 		void set_original_grid(Remap_grid_class *grid) { original_grid = grid; }

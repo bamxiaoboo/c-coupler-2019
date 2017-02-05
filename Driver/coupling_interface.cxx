@@ -417,6 +417,51 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 }
 
 
+extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, int *caller_label, const char *grid_type, const char *coord_unit, int *dim_size2,  
+	                                         int *dim_size3, const char *data_type, void *value1, void *value2, void *value3, void *value4, const char *annotation)
+{
+	double temp_value1, *temp_value2, *temp_value3, temp_value4;
+		
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, annotation);
+	switch(*caller_label) {
+		case 1:
+			EXECUTION_REPORT(REPORT_ERROR, *comp_id, words_are_the_same(grid_type, "Z grid"), "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the list of parameters given do not match the grid type \"%s\". Please verify the model code with the annotation \"%s.", grid_name, grid_type, annotation);
+			break;
+		case 2:			
+			EXECUTION_REPORT(REPORT_ERROR, *comp_id, words_are_the_same(grid_type, "SIGMA grid"), "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the list of parameters given do not match the grid type \"%s\". Please verify the model code with the annotation \"%s.", grid_name, grid_type, annotation);
+				break;
+		case 3:			
+			EXECUTION_REPORT(REPORT_ERROR, *comp_id, words_are_the_same(grid_type, "HYBRID grid"), "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the list of parameters given do not match the grid type \"%s\". Please verify the model code with the annotation \"%s.", grid_name, grid_type, annotation);
+				break;			
+		default:
+			EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in register_V1D_grid_with_data: wrong caller_label");
+			break;
+	}
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: grid size is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s.", grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Software error in register_V1D_grid_with_data: wrong data type");
+	temp_value2 = new double [*dim_size2];
+	temp_value3 = new double [*dim_size3];
+	if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
+		transform_datatype_of_arrays((float*)value1, &temp_value1, 1);
+		transform_datatype_of_arrays((float*)value2, temp_value2, *dim_size2);
+		transform_datatype_of_arrays((float*)value3, temp_value3, *dim_size3);
+		transform_datatype_of_arrays((float*)value4, &temp_value4, 1);
+	}
+	else {
+		transform_datatype_of_arrays((double*)value1, &temp_value1, 1);
+		transform_datatype_of_arrays((double*)value2, temp_value2, *dim_size2);
+		transform_datatype_of_arrays((double*)value3, temp_value3, *dim_size3);
+		transform_datatype_of_arrays((double*)value4, &temp_value4, 1);
+	}
+
+	*grid_id = original_grid_mgr->register_V1D_grid_via_data(*comp_id, grid_name, grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, temp_value4, annotation);
+
+	delete [] temp_value2;
+	delete [] temp_value3;
+}
+
+
 extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
 	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, void *center_lon, void *center_lat, int *mask, void *area, void *vertex_lon, void *vertex_lat, const char *annotation)
 {

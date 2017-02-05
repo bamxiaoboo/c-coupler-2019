@@ -28,4 +28,12 @@ extern void write_data_into_array_buffer(const void*, int, char **, int &, int &
 extern void read_data_from_array_buffer(void*, int, const char*, int &);
 
 
+template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)
+{
+	for (long i = 0; i < num_local_cells; i ++)
+		dst_array[i] = (T2) src_array[i];
+}
+
+
+
 #endif

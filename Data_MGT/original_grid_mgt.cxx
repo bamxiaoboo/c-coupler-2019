@@ -149,8 +149,7 @@ void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
 	if (search_grid_info(grid_name, comp_id) != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "grid \"%s\" has been defined in component \"%s\" before. Please check the model code with the annotation \"%s\" and \"%s\"",
-		                 grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler code in check_for_grid_definition for getting component management node")->get_comp_name(), search_grid_info(grid_name, comp_id)->get_annotation(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to register grid \"%s\" again because it has already been registered before. Please check the model code with the annotation \"%s\" and \"%s\"", grid_name, search_grid_info(grid_name, comp_id)->get_annotation(), annotation);
 }
 
 
@@ -307,19 +306,19 @@ int Original_grid_mgt::register_H2D_grid_via_data(int comp_id, const char *grid_
 	if (size_area > 0)
 		CoR_H2D_grid->read_grid_data_from_array("area", "area", data_type, (const char*)area, 0);	
 	if (size_center_lon == grid_size) {
-		CoR_H2D_grid->read_grid_data_from_array("center", "lon", data_type, (const char*)center_lon, 0);
-		CoR_H2D_grid->read_grid_data_from_array("center", "lat", data_type, (const char*)center_lat, 0);
+		CoR_H2D_grid->read_grid_data_from_array("center", COORD_LABEL_LON, data_type, (const char*)center_lon, 0);
+		CoR_H2D_grid->read_grid_data_from_array("center", COORD_LABEL_LAT, data_type, (const char*)center_lat, 0);
 		if (size_vertex_lon >0) {
-			CoR_H2D_grid->read_grid_data_from_array("vertex", "lon", data_type, (const char*)vertex_lon, num_vertex);
-			CoR_H2D_grid->read_grid_data_from_array("vertex", "lat", data_type, (const char*)vertex_lat, num_vertex);		
+			CoR_H2D_grid->read_grid_data_from_array("vertex", COORD_LABEL_LON, data_type, (const char*)vertex_lon, num_vertex);
+			CoR_H2D_grid->read_grid_data_from_array("vertex", COORD_LABEL_LAT, data_type, (const char*)vertex_lat, num_vertex);		
 		}
 	}
 	else {
-		CoR_lon_grid->read_grid_data_from_array("center", "lon", data_type, (const char*)center_lon, 0);
-		CoR_lat_grid->read_grid_data_from_array("center", "lat", data_type, (const char*)center_lat, 0);		
+		CoR_lon_grid->read_grid_data_from_array("center", COORD_LABEL_LON, data_type, (const char*)center_lon, 0);
+		CoR_lat_grid->read_grid_data_from_array("center", COORD_LABEL_LAT, data_type, (const char*)center_lat, 0);		
 		if (size_vertex_lon > 0) {
-			CoR_lon_grid->read_grid_data_from_array("vertex", "lon", data_type, (const char*)vertex_lon, num_vertex);
-			CoR_lat_grid->read_grid_data_from_array("vertex", "lat", data_type, (const char*)vertex_lat, num_vertex);		
+			CoR_lon_grid->read_grid_data_from_array("vertex", COORD_LABEL_LON, data_type, (const char*)vertex_lon, num_vertex);
+			CoR_lat_grid->read_grid_data_from_array("vertex", COORD_LABEL_LAT, data_type, (const char*)vertex_lat, num_vertex);		
 		}
 	}
 	remap_grid_manager->add_remap_grid(CoR_lon_grid);
@@ -421,6 +420,42 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 		delete [] area;
 		delete [] dims_for_area;
 	}
+}
+
+
+int Original_grid_mgt::register_V1D_grid_via_data(int comp_id, const char *grid_name, const char *grid_type, const char *coord_unit, int grid_size, 
+	                                              double value1, const double *value2, const double *value3, double value4, const char *annotation)
+{
+	char full_grid_name[NAME_STR_SIZE];
+	Remap_grid_class *CoR_V1D_grid;
+	
+	
+	synchronize_comp_processes_for_API(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_V1D_grid_via_data"), "registering a V1D grid", annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_V1D_grid_via_data"), "registering a V1D grid", grid_name, "grid_name", annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_V1D_grid_via_data"), "registering a V1D grid", grid_type, "grid_type", annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_V1D_grid_via_data"), "registering a V1D grid", coord_unit, "coord_unit", annotation);
+	check_API_parameter_int(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", grid_size, "implicit grid size", annotation);
+	check_API_parameter_data_array(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", sizeof(double), (const char*)(&value1), "floating-point parameters", annotation);
+	check_API_parameter_data_array(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", sizeof(double)*grid_size, (const char*)(value2), "floating-point parameters", annotation);
+	check_API_parameter_data_array(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", sizeof(double)*grid_size, (const char*)(value3), "floating-point parameters", annotation);
+	check_API_parameter_data_array(comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", sizeof(double), (const char*)(&value4), "floating-point parameters", annotation);
+	check_for_grid_definition(comp_id, grid_name, annotation);	
+
+	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in register_V1D_grid_via_data")->get_full_name());
+	CoR_V1D_grid = new Remap_grid_class(full_grid_name, COORD_LABEL_LEV, coord_unit, NULL, grid_size);
+	if (words_are_the_same(grid_type, "Z grid")) {
+		CoR_V1D_grid->read_grid_data_from_array("center", COORD_LABEL_LEV, DATA_TYPE_DOUBLE, (const char*)value2, 0);
+	}
+	else if (words_are_the_same(grid_type, "SIGMA grid")) {
+		CoR_V1D_grid->set_lev_grid_sigma_info(value1, value2, NULL, value4);
+	}
+	else if (words_are_the_same(grid_type, "HYBRID grid")) {
+		CoR_V1D_grid->set_lev_grid_sigma_info(value1, value2, value3, value4);
+	}
+
+	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_V1D_grid));
+	
+	return original_grids[original_grids.size()-1]->get_grid_id();	
 }
 
 

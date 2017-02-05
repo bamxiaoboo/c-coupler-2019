@@ -842,6 +842,35 @@ void Remap_grid_class::gen_lev_coord_from_sigma_or_hybrid(char extension_names[1
 }
 
 
+void Remap_grid_class::set_lev_grid_sigma_info(double top_value, const double *sigma_values, const double *hybrid_grid_coefficients, double scale_factor)
+{
+	Remap_grid_data_class *sigma_value_field = NULL, *hybrid_grid_coefficient_field = NULL;
+	Remap_data_field *remap_data_field;
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_dimensions == 1 && words_are_the_same(coord_label, COORD_LABEL_LEV), "Software error in Remap_grid_class::set_lev_grid_sigma_info: only lev grid can be set sigma information", grid_name);
+	remap_data_field = new Remap_data_field;    
+	strcpy(remap_data_field->field_name_in_application, "sigma");
+	strcpy(remap_data_field->data_type_in_application, DATA_TYPE_DOUBLE);
+	strcpy(remap_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE);
+	remap_data_field->required_data_size = remap_data_field->read_data_size = grid_size;
+	remap_data_field->data_buf = new double [grid_size];
+	memcpy(remap_data_field->data_buf, sigma_values, grid_size*sizeof(double));
+	sigma_value_field = new Remap_grid_data_class(this, remap_data_field);
+	if (hybrid_grid_coefficients != NULL) {
+		remap_data_field = new Remap_data_field;	
+		strcpy(remap_data_field->field_name_in_application, "hybrid_coefficent_a");
+		strcpy(remap_data_field->data_type_in_application, DATA_TYPE_DOUBLE);
+		strcpy(remap_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE);
+		remap_data_field->required_data_size = remap_data_field->read_data_size = grid_size;
+		remap_data_field->data_buf = new double [grid_size];
+		memcpy(remap_data_field->data_buf, hybrid_grid_coefficients, grid_size*sizeof(double));
+		sigma_value_field = new Remap_grid_data_class(this, remap_data_field);
+	}
+	allocate_sigma_grid_specific_fields(hybrid_grid_coefficient_field, sigma_value_field, NULL, top_value, scale_factor);
+}
+
+
 void Remap_grid_class::set_lev_grid_sigma_info(const char *sigma_value_field_name, double top_value, double scale_factor, const char *hybrid_grid_coefficient_field_name)
 {
 	Remap_grid_data_class *sigma_value_field, *hybrid_grid_coefficient_field;

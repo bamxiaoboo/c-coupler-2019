@@ -128,10 +128,23 @@
    end interface
 
 
+
+   interface CCPL_register_V1D_grid_via_model_data; module procedure &
+        CCPL_register_V1D_Z_grid_via_double_data, &
+        CCPL_register_V1D_Z_grid_via_float_data, &
+        CCPL_register_V1D_SIGMA_grid_via_double_data, &
+        CCPL_register_V1D_SIGMA_grid_via_float_data, &
+        CCPL_register_V1D_HYBRID_grid_via_double_data, &
+        CCPL_register_V1D_HYBRID_grid_via_float_data
+   end interface
+
+
+
    interface CCPL_register_H2D_grid_via_model_data; module procedure &
         CCPL_register_H2D_grid_via_double_data, &
         CCPL_register_H2D_grid_via_float_data
    end interface
+
 
 
    REAL, parameter, public :: coupling_fill_value = 1.0e30 
@@ -1899,6 +1912,160 @@
    CCPL_register_H2D_grid_via_double_data = grid_id
 
    end FUNCTION CCPL_register_H2D_grid_via_double_data
+
+
+
+   integer FUNCTION CCPL_register_V1D_Z_grid_via_double_data(comp_id, grid_name, grid_type, coord_unit, coord_values, annotation)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: grid_type
+   character(len=*), intent(in)                            :: coord_unit
+   real(R8),         intent(in), dimension(:)              :: coord_values
+   character(len=*), intent(in),               optional    :: annotation
+   integer                                                 :: grid_id
+
+   if (present(annotation)) then
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
+   else
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
+   endif
+
+   CCPL_register_V1D_Z_grid_via_double_data = grid_id
+
+   END FUNCTION CCPL_register_V1D_Z_grid_via_double_data
+
+
+
+   integer FUNCTION CCPL_register_V1D_Z_grid_via_float_data(comp_id, grid_name, grid_type, coord_unit, coord_values, annotation)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: grid_type
+   character(len=*), intent(in)                            :: coord_unit
+   real(R4),         intent(in), dimension(:)              :: coord_values
+   character(len=*), intent(in),               optional    :: annotation
+   integer                                                 :: grid_id
+
+   if (present(annotation)) then
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, trim(annotation)//char(0))
+   else
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, trim("")//char(0))
+   endif
+
+   CCPL_register_V1D_Z_grid_via_float_data = grid_id
+
+   END FUNCTION CCPL_register_V1D_Z_grid_via_float_data
+
+
+
+   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_double_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, annotation, scale_factor)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: grid_type
+   character(len=*), intent(in)                            :: coord_unit
+   real(R8),         intent(in)                            :: top_value
+   real(R8),         intent(in), dimension(:)              :: sigma_values
+   character(len=*), intent(in),               optional    :: annotation
+   real(R8),         intent(in),               optional    :: scale_factor
+   integer                                                 :: grid_id
+   real                                                    :: local_scale_factor
+
+   local_scale_factor = 1.0
+   if (present(scale_factor)) local_scale_factor = scale_factor
+   if (present(annotation)) then
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
+   else
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
+   endif
+
+   CCPL_register_V1D_SIGMA_grid_via_double_data = grid_id
+
+   END FUNCTION CCPL_register_V1D_SIGMA_grid_via_double_data
+
+
+
+   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_float_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, annotation, scale_factor)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: grid_type
+   character(len=*), intent(in)                            :: coord_unit
+   real(R4),         intent(in)                            :: top_value
+   real(R4),         intent(in), dimension(:)              :: sigma_values
+   character(len=*), intent(in),               optional    :: annotation
+   real(R4),         intent(in),               optional    :: scale_factor
+   integer                                                 :: grid_id
+   real                                                    :: local_scale_factor
+
+   local_scale_factor = 1.0
+   if (present(scale_factor)) local_scale_factor = scale_factor
+   if (present(annotation)) then
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
+   else
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
+   endif
+
+   CCPL_register_V1D_SIGMA_grid_via_float_data = grid_id
+
+   END FUNCTION CCPL_register_V1D_SIGMA_grid_via_float_data
+
+
+
+   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_double_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, coefficient_values, annotation, scale_factor)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: grid_type
+   character(len=*), intent(in)                            :: coord_unit
+   real(R8),         intent(in)                            :: top_value
+   real(R8),         intent(in), dimension(:)              :: sigma_values
+   real(R8),         intent(in), dimension(:)              :: coefficient_values
+   character(len=*), intent(in),               optional    :: annotation
+   real(R8),         intent(in),               optional    :: scale_factor
+   integer                                                 :: grid_id
+   real                                                    :: local_scale_factor
+
+   local_scale_factor = 1.0
+   if (present(scale_factor)) local_scale_factor = scale_factor
+   if (present(annotation)) then
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real8", top_value, sigma_values, coefficient_values, local_scale_factor, trim(annotation)//char(0))
+   else
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real8", top_value, sigma_values, coefficient_values, local_scale_factor, trim("")//char(0))
+   endif
+
+   CCPL_register_V1D_HYBRID_grid_via_double_data = grid_id
+
+   END FUNCTION CCPL_register_V1D_HYBRID_grid_via_double_data
+
+
+
+   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, coefficient_values, annotation, scale_factor)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   character(len=*), intent(in)                            :: grid_type
+   character(len=*), intent(in)                            :: coord_unit
+   real(R4),         intent(in)                            :: top_value
+   real(R4),         intent(in), dimension(:)              :: sigma_values
+   real(R4),         intent(in), dimension(:)              :: coefficient_values
+   character(len=*), intent(in),               optional    :: annotation
+   real(R4),         intent(in),               optional    :: scale_factor
+   integer                                                 :: grid_id
+   real                                                    :: local_scale_factor
+
+   local_scale_factor = 1.0
+   if (present(scale_factor)) local_scale_factor = scale_factor
+   if (present(annotation)) then
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real4", top_value, sigma_values, coefficient_values, local_scale_factor, trim(annotation)//char(0))
+   else
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real4", top_value, sigma_values, coefficient_values, local_scale_factor, trim("")//char(0))
+   endif
+
+   CCPL_register_V1D_HYBRID_grid_via_float_data = grid_id
+
+   END FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data
 
 
 

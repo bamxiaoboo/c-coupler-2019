@@ -75,6 +75,7 @@ class Original_grid_mgt
 											   int, int, int, int, void *, void *, int *, void *, void *, void *, const char *, int);
 		int register_H2D_grid_via_file(int, const char *, const char *, const char *);
 		int register_H2D_grid_via_comp(int, const char *, const char *);
+		int register_V1D_grid_via_data(int, const char *, const char *, const char *, int, double, const double *, const double *, double, const char *);
 };
 
 

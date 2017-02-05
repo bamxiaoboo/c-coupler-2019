@@ -11,13 +11,6 @@
 #include "cor_global_data.h"
 
 
-template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)
-{
-	for (long i = 0; i < num_local_cells; i ++)
-		dst_array[i] = (T2) src_array[i];
-}
-
-
 Runtime_datatype_transformer::Runtime_datatype_transformer(Field_mem_info *src_field, Field_mem_info *dst_field)
 {
 	src_fields.push_back(src_field);

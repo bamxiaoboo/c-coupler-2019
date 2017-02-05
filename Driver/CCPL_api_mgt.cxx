@@ -83,6 +83,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_GRID_MGT_GET_MID_LAYER_GRID:
 			sprintf(API_label, "CCPL_get_mid_layer_grid");
 			break;
+		case API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA:
+			sprintf(API_label, "CCPL_register_V1D_grid_via_model_data");
+			break;			
 		case API_ID_DECOMP_MGT_REG_DECOMP:
 			sprintf(API_label, "CCPL_register_parallel_decomp");
 			break;
