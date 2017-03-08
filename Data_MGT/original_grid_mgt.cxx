@@ -18,6 +18,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->comp_id = comp_id;
 	this->grid_id = grid_id;
 	this->original_CoR_grid = original_CoR_grid;
+	this->bottom_field_id = -1;
 	strcpy(this->grid_name, grid_name);
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
@@ -420,6 +421,8 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 		delete [] area;
 		delete [] dims_for_area;
 	}
+
+	return grid_id;
 }
 
 
@@ -456,6 +459,79 @@ int Original_grid_mgt::register_V1D_grid_via_data(int comp_id, const char *grid_
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_V1D_grid));
 	
 	return original_grids[original_grids.size()-1]->get_grid_id();	
+}
+
+
+int Original_grid_mgt::register_md_grid_via_multi_grids(int comp_id, const char *grid_name, int sub_grid1_id, int sub_grid2_id, int sub_grid3_id, const char *annotation)
+{
+	int num_sub_grids = 2, num_H2D_grid = 0, num_V1D_grid = 0, num_T1D_grid = 0;
+	char full_grid_name[NAME_STR_SIZE];
+	Remap_grid_class *CoR_MD_grid, *sub_grids[3];
+
+	
+	MPI_Comm local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Original_grid_mgt::register_md_grid_via_multi_grids");
+	synchronize_comp_processes_for_API(comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, local_comm, "registering a multi-dimension grid", annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, local_comm, "registering a multi-dimension grid", grid_name, "grid_name", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->is_grid_id_legal(sub_grid1_id), "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": sub_grid1_id is wrong. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_comp_id_of_grid(sub_grid1_id) == comp_id, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": the component corresponding to the grid with id of sub_grid1_id is different from the current component with the id of comp_id. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, local_comm, "for registering a multi-dimension grid", original_grid_mgr->get_name_of_grid(sub_grid1_id), "sub_grid1_id (the corresponding grid name)", annotation);		
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->is_grid_id_legal(sub_grid2_id), "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": sub_grid2_id is wrong. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_comp_id_of_grid(sub_grid2_id) == comp_id, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": the component corresponding to the grid with id of sub_grid2_id is different from the current component with the id of comp_id. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, local_comm, "for registering a multi-dimension grid", original_grid_mgr->get_name_of_grid(sub_grid2_id), "sub_grid2_id (the corresponding grid name)", annotation);	
+	sub_grids[0] = original_grid_mgr->get_original_CoR_grid(sub_grid1_id);
+	sub_grids[1] = original_grid_mgr->get_original_CoR_grid(sub_grid2_id);
+	int have_sub_grid3 = sub_grid3_id != -1? 1: 0;
+	check_API_parameter_int(comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, local_comm, "for registering a multi-dimension grid", have_sub_grid3, "sub_grid3_id (specified or not)", annotation);
+	if (sub_grid3_id != -1) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->is_grid_id_legal(sub_grid3_id), "the sub_grid3_id for registering a multi-dimension grid \"%s\" through the API \"CCPL_register_MD_grid_via_multi_grids\" is wrong. Please check the model code related to the annotation \"%s\".", grid_name, annotation);		
+		check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, local_comm, "for registering a multi-dimension grid", original_grid_mgr->get_name_of_grid(sub_grid3_id), "sub_grid3_id (the corresponding grid name)", annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_comp_id_of_grid(sub_grid3_id) == comp_id, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": the component corresponding to the grid with id of sub_grid3_id is different from the current component with the id of comp_id. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+		sub_grids[num_sub_grids++] = original_grid_mgr->get_original_CoR_grid(sub_grid3_id);
+	}	
+	check_for_grid_definition(comp_id, grid_name, annotation);
+
+	for (int i = 0; i < num_sub_grids; i ++)
+		if (sub_grids[i]->get_is_sphere_grid())
+			num_H2D_grid ++;
+		else if (sub_grids[i]->has_grid_coord_label(COORD_LABEL_LEV))
+			num_V1D_grid ++;
+		else if (sub_grids[i]->has_grid_coord_label(COORD_LABEL_TIME))
+			num_T1D_grid ++;
+		else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": grid \"%s\" cannot be used to generate a multi-dimension grid. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_H2D_grid <= 1, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": more than one H2D grid are used to generate a multi-dimension grid. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_V1D_grid <= 1, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": more than one V1D grid are used to generate a multi-dimension grid. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_T1D_grid <= 1, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": more than one T1D grid are used to generate a multi-dimension grid. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
+	
+	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"register_md_grid_via_multi_grids")->get_full_name());
+	CoR_MD_grid = new Remap_grid_class(full_grid_name, num_sub_grids, sub_grids, 0);
+	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_MD_grid));	
+	return original_grids[original_grids.size()-1]->get_grid_id();
+}
+
+
+void Original_grid_mgt::set_3d_grid_bottom_field(int comp_id, int grid_id, int field_id, int static_or_dynamic, int API_id, const char *API_label, const char *annotation)
+{
+	Original_grid_info *original_grid = original_grid_mgr->get_original_grid(grid_id);
+	Field_mem_info *field_inst = memory_manager->get_field_instance(field_id);
+	MPI_Comm local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Original_grid_mgt::set_3d_grid_bottom_field");
+
+
+	synchronize_comp_processes_for_API(comp_id, API_id, local_comm, "setting the bottom field of a 3-D grid", annotation);
+	check_API_parameter_string(comp_id, API_id, local_comm, "setting the bottom field of a 3-D grid", original_grid->get_grid_name(), "the name of the 3-D grid", annotation);
+	check_API_parameter_string(comp_id, API_id, local_comm, "setting the bottom field of a 3-D grid", field_inst->get_field_name(), "the name of the bottom field", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->is_3D_grid(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid \"%s\": this grid is not a 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_inst->get_grid_id() != -1, "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": the bottom field \"%s\" is not on a grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+	Original_grid_info *field_original_grid = original_grid_mgr->get_original_grid(field_inst->get_grid_id());
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_original_grid->is_H2D_grid(), "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": the grid \"%s\" corresponding to the bottom field \"%s\" is not a H2D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_original_grid->get_original_CoR_grid()->is_subset_of_grid(original_grid->get_original_CoR_grid()), "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": the grid \"%s\" corresponding to the bottom field \"%s\" is not a sub grid of the 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->get_original_CoR_grid()->is_sigma_grid(), "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": cannot set the bottom field to this grid because its V1D sub grid is not a SIGMA or HYBRID grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
+	if (original_grid->get_bottom_field_id() != -1)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": the bottom field has been set before at the model code with the annotation \"%s\" and cannot be set again at the model code with the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation_mgr->get_annotation(grid_id, "set bottom field"), annotation);
+	annotation_mgr->add_annotation(grid_id, "set bottom field", annotation);
+	original_grid->set_bottom_field_id(field_id);
+	printf("qiguaiqiguai grid_name %s %ld vs %s %ld\n", decomp_grids_mgr->search_decomp_grid_info(field_inst->get_decomp_id(), original_grid->get_original_CoR_grid(), false)->get_decomp_grid()->get_grid_name(), decomp_grids_mgr->search_decomp_grid_info(field_inst->get_decomp_id(), original_grid->get_original_CoR_grid(), false)->get_decomp_grid()->get_grid_size(), field_inst->get_field_data()->get_coord_value_grid()->get_grid_name(), field_inst->get_field_data()->get_coord_value_grid()->get_grid_size());
+	decomp_grids_mgr->search_decomp_grid_info(field_inst->get_decomp_id(), original_grid->get_original_CoR_grid(), false)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(field_inst->get_field_data());
 }
 
 

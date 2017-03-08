@@ -62,36 +62,6 @@ extern "C" void coupling_get_field_size_(void *model_buf, const char *annotation
 }
 
 
-extern "C" void register_sigma_grid_bottom_field_(void *model_buf, const char *grid_name)
-{
-	Field_mem_info *bottom_field;
-	Remap_grid_class *field_grid, *sigma_grid;
-
-/*
-	sigma_grid = remap_grid_manager->search_remap_grid_with_grid_name(grid_name);
-	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid != NULL, "\"%s\" has not been defined in the CoR script", grid_name);
-	EXECUTION_REPORT(REPORT_ERROR,-1, sigma_grid->is_sigma_grid(), "grid \"%s\" is not a sigma grid", grid_name);
-
-	bottom_field = memory_manager->search_field_via_data_buf(model_buf, false);
-	EXECUTION_REPORT(REPORT_ERROR,-1, bottom_field != NULL && bottom_field->get_is_registered_model_buf(), "the model bottom field for the sigma grid \"%s\" has not been registered to C-Coupler", grid_name);
-	EXECUTION_REPORT(REPORT_ERROR,-1, !words_are_the_same(bottom_field->get_grid_name(), "NULL"), "scalar model variable \"%s\" cannot be used as the model bottom field for a sigma grid", bottom_field->get_field_name());
-
-	field_grid = remap_grid_manager->search_remap_grid_with_grid_name(bottom_field->get_grid_name());
-	EXECUTION_REPORT(REPORT_ERROR,-1, field_grid != NULL, "C-Coupler error in register_sigma_grid_bottom_field");
-	EXECUTION_REPORT(REPORT_ERROR,-1, field_grid->get_is_sphere_grid(), "field \"%s\" that will be set as the model bottom field for the sigma grid \"%s\" is not on a sphere grid: \"%s\" is not a sphere grid",
-                     bottom_field->get_field_name(), grid_name, field_grid->get_grid_name());
-	EXECUTION_REPORT(REPORT_ERROR,-1, field_grid->is_subset_of_grid(sigma_grid), "the grid \"%s\" for the grid bottom field is not a sub grid for the sigma grid \"%s\"", 
-					 bottom_field->get_grid_name(), grid_name);
-	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(bottom_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
-					 "the data type of the bottom field for the sigma grid \"%s\" must be real4 or real8", grid_name); 
-	// check the whether the parallel decomposition covers all grid points
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "Register surface field of grid %s on decomposition %s", grid_name, bottom_field->get_decomp_name());
-	decomp_grids_mgr->search_decomp_grid_info(bottom_field->get_decomp_name(), sigma_grid, true)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(bottom_field->get_field_data());
-*/
-}                  
-
-
-
 extern "C" void coupling_initialize_ensemble_manager_(int *ensemble_id, int *have_random_seed_for_perturbation, int *root_random_seed_for_perturbation, const char *perturbation_type)
 {
 	EXECUTION_REPORT(REPORT_ERROR,-1, ensemble_mgr != NULL, "C-Coupler software error: ensemble_mgr is not created before the initialization");
@@ -421,19 +391,20 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 	                                         int *dim_size3, const char *data_type, void *value1, void *value2, void *value3, void *value4, const char *annotation)
 {
 	double temp_value1, *temp_value2, *temp_value3, temp_value4;
+
 		
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
 	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
 	switch(*caller_label) {
 		case 1:
 			EXECUTION_REPORT(REPORT_ERROR, *comp_id, words_are_the_same(grid_type, "Z grid"), "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the list of parameters given do not match the grid type \"%s\". Please verify the model code with the annotation \"%s.", grid_name, grid_type, annotation);
 			break;
 		case 2:			
 			EXECUTION_REPORT(REPORT_ERROR, *comp_id, words_are_the_same(grid_type, "SIGMA grid"), "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the list of parameters given do not match the grid type \"%s\". Please verify the model code with the annotation \"%s.", grid_name, grid_type, annotation);
-				break;
+			break;
 		case 3:			
 			EXECUTION_REPORT(REPORT_ERROR, *comp_id, words_are_the_same(grid_type, "HYBRID grid"), "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the list of parameters given do not match the grid type \"%s\". Please verify the model code with the annotation \"%s.", grid_name, grid_type, annotation);
-				break;			
+			break;			
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in register_V1D_grid_with_data: wrong caller_label");
 			break;
@@ -462,11 +433,40 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 }
 
 
+extern "C" void set_3d_grid_bottom_field_(int *grid_id, int *field_id, int *static_or_dynamic, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	int comp_id, API_id;
+
+
+	if (*static_or_dynamic == 0)
+		API_id = API_ID_GRID_MGT_SET_3D_GRID_STATIC_BOT_FLD;
+	else if (*static_or_dynamic == 1) API_id = API_ID_GRID_MGT_SET_3D_GRID_DYN_BOT_FLD;
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in set_3d_grid_bottom_field_: wrong value of static_or_dynamic");
+	get_API_hint(-1, API_id, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the bottom field of a 3D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the bottom field of a 3D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the bottom field of a 3D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the bottom field of a 3D grid: the components corresponding to the grid_id and field id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	check_for_coupling_registration_stage(comp_id, API_id, annotation);
+	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic, API_id, API_label, annotation);
+}
+
+
+extern "C" void register_md_grid_via_multi_grids_(int *comp_id, int *grid_id, const char *grid_name, int *sub_grid1_id, int *sub_grid2_id, int *sub_grid3_id, const char *annotation)
+{
+	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, "the C-Coupler grid", annotation);
+	*grid_id = original_grid_mgr->register_md_grid_via_multi_grids(*comp_id, grid_name, *sub_grid1_id, *sub_grid2_id, *sub_grid3_id, annotation);
+}
+
+
 extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
 	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, void *center_lon, void *center_lat, int *mask, void *area, void *vertex_lon, void *vertex_lat, const char *annotation)
 {
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
 	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
 												             *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												             API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA);
@@ -475,22 +475,21 @@ extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const c
 	char temp_grid_name[NAME_STR_SIZE];
 	sprintf(temp_grid_name, "%s_temp", grid_name);
 	original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
-
 }
 
 
 extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const char *grid_name, const char *data_file_name, const char *annotation)
 {
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, "the C-Coupler grid", annotation);
 	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, "the C-Coupler grid", annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, data_file_name, annotation);
 }
 
 
 extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *grid_id, const char *grid_name, const char *annotation)
 {
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, "the C-Coupler grid", annotation);
 	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, annotation);
+	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, "the C-Coupler grid", annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_comp(*comp_id, grid_name, annotation);
 }
 

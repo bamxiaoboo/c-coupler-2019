@@ -44,9 +44,6 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_GRID_MGT_REG_1D_GRID_ONLINE:
 			sprintf(API_label, "CCPL_register_1D_grid");
 			break;
-        case API_ID_GRID_MGT_REG_MD_GRID:
-			sprintf(API_label, "CCPL_combine_grids");
-			break;
         case API_ID_GRID_MGT_REG_GRID_VIA_COR:
 			sprintf(API_label, "CCPL_get_CoR_defined_grid");
 			break;
@@ -68,11 +65,11 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_GRID_MGT_SET_GRID_DATA:
 			sprintf(API_label, "CCPL_set_grid_data");
 			break;
-        case API_ID_GRID_MGT_SET_3D_GRID_DYN_REF_FLD:
-			sprintf(API_label, "CCPL_set_dynamic_3D_grid_reference_fied");
+        case API_ID_GRID_MGT_SET_3D_GRID_DYN_BOT_FLD:
+			sprintf(API_label, "CCPL_set_dynamic_3D_grid_bottom_field");
 			break;
-        case API_ID_GRID_MGT_SET_3D_GRID_STATIC_REF_FLD:
-			sprintf(API_label, "CCPL_set_static_3D_grid_reference_fied");
+        case API_ID_GRID_MGT_SET_3D_GRID_STATIC_BOT_FLD:
+			sprintf(API_label, "CCPL_set_static_3D_grid_bottom_field");
 			break;
         case API_ID_GRID_MGT_GET_GRID_GLOBAL_DATA:
 			sprintf(API_label, "CCPL_get_global_grid_data");
@@ -85,6 +82,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			break;
 		case API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA:
 			sprintf(API_label, "CCPL_register_V1D_grid_via_model_data");
+			break;		
+		case API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS:
+			sprintf(API_label, "CCPL_register_MD_grid_via_multi_grids");
 			break;			
 		case API_ID_DECOMP_MGT_REG_DECOMP:
 			sprintf(API_label, "CCPL_register_parallel_decomp");

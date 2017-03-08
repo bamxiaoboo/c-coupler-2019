@@ -79,15 +79,6 @@
 
 
 
-   interface CCPL_register_sigma_grid_bottom_field ; module procedure &
-        CCPL_register_sigma_grid_bottom_field_1d_float,   &
-        CCPL_register_sigma_grid_bottom_field_2d_float,   &
-        CCPL_register_sigma_grid_bottom_field_1d_double,  &
-        CCPL_register_sigma_grid_bottom_field_2d_double
-   end interface
-
-
-
    interface CCPL_add_field_for_perturbing_roundoff_errors ; module procedure &
         CCPL_add_field_for_perturbing_roundoff_errors_double_0D, &
         CCPL_add_field_for_perturbing_roundoff_errors_double_1D, &
@@ -159,49 +150,6 @@
 !   
 !  SUBROUTINE below
 ! 
-
-   SUBROUTINE  CCPL_register_sigma_grid_bottom_field_1d_float(data_buf, grid_name)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
-   character(len=*)                           :: grid_name
-   
-   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
-   
-   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_1d_float
-
-
-
-   SUBROUTINE CCPL_register_sigma_grid_bottom_field_2d_float(data_buf,grid_name)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
-   character(len=*)                           :: grid_name
-   
-   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
-   
-   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_2d_float
-
-
-
-   SUBROUTINE CCPL_register_sigma_grid_bottom_field_1d_double(data_buf,grid_name)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
-   character(len=*)                           :: grid_name
-   
-   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
-   
-   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_1d_double
-
-
-
-   SUBROUTINE CCPL_register_sigma_grid_bottom_field_2d_double(data_buf,grid_name)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:)       :: data_buf
-   character(len=*)                           :: grid_name
-   
-   call register_sigma_grid_bottom_field(data_buf, trim(grid_name)//char(0))
-   
-   END SUBROUTINE  CCPL_register_sigma_grid_bottom_field_2d_double
-
 
 
    integer FUNCTION CCPL_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
@@ -2066,6 +2014,65 @@
    CCPL_register_V1D_HYBRID_grid_via_float_data = grid_id
 
    END FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data
+
+
+
+   integer FUNCTION CCPL_register_MD_grid_via_multi_grids(comp_id, grid_name, sub_grid1_id, sub_grid2_id, sub_grid3_id, annotation)
+   implicit none
+   integer, intent(in)                                     :: comp_id
+   character(len=*), intent(in)                            :: grid_name
+   integer, intent(in)                                     :: sub_grid1_id
+   integer, intent(in)                                     :: sub_grid2_id
+   integer, intent(in),                        optional    :: sub_grid3_id
+   character(len=*), intent(in),               optional    :: annotation
+   integer                                                 :: grid_id, local_sub_grid3_id
+   
+   local_sub_grid3_id = -1
+   if (present(sub_grid3_id)) local_sub_grid3_id = sub_grid3_id 
+
+   if (present(annotation)) then
+      call register_MD_grid_via_multi_grids(comp_id, grid_id, trim(grid_name)//char(0), sub_grid1_id, sub_grid2_id, local_sub_grid3_id, trim(annotation)//char(0))
+   else 
+      call register_MD_grid_via_multi_grids(comp_id, grid_id, trim(grid_name)//char(0), sub_grid1_id, sub_grid2_id, local_sub_grid3_id, trim("")//char(0))
+   endif
+
+   CCPL_register_MD_grid_via_multi_grids = grid_id
+
+   END FUNCTION CCPL_register_MD_grid_via_multi_grids
+
+
+
+   SUBROUTINE CCPL_set_dynamic_3D_grid_bottom_field(grid_id, field_id, annotation)
+   implicit none
+   integer, intent(in)                                     :: grid_id
+   integer, intent(in)                                     :: field_id
+   character(len=*), intent(in),               optional    :: annotation
+ 
+   
+   if (present(annotation)) then
+       call set_3D_grid_bottom_field(grid_id, field_id, 1, trim(annotation)//char(0))
+   else
+       call set_3D_grid_bottom_field(grid_id, field_id, 1, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_set_dynamic_3D_grid_bottom_field
+   
+
+
+   SUBROUTINE CCPL_set_static_3D_grid_bottom_field(grid_id, field_id, annotation)
+   implicit none
+   integer, intent(in)                                     :: grid_id
+   integer, intent(in)                                     :: field_id
+   character(len=*), intent(in),               optional    :: annotation
+ 
+   
+   if (present(annotation)) then
+       call set_3D_grid_bottom_field(grid_id, field_id, 0, trim(annotation)//char(0))
+   else
+       call set_3D_grid_bottom_field(grid_id, field_id, 0, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_set_static_3D_grid_bottom_field
 
 
 
