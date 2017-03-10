@@ -66,11 +66,14 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			sprintf(API_label, "CCPL_set_grid_data");
 			break;
         case API_ID_GRID_MGT_SET_3D_GRID_DYN_BOT_FLD:
-			sprintf(API_label, "CCPL_set_dynamic_3D_grid_bottom_field");
+			sprintf(API_label, "CCPL_set_3D_grid_dynamic_bottom_field");
 			break;
         case API_ID_GRID_MGT_SET_3D_GRID_STATIC_BOT_FLD:
-			sprintf(API_label, "CCPL_set_static_3D_grid_bottom_field");
+			sprintf(API_label, "CCPL_set_3D_grid_static_bottom_field");
 			break;
+		case API_ID_GRID_MGT_SET_3D_GRID_EXTERNAL_BOT_FLD:
+			sprintf(API_label, "CCPL_set_3D_grid_external_bottom_field");
+			break;			
         case API_ID_GRID_MGT_GET_GRID_GLOBAL_DATA:
 			sprintf(API_label, "CCPL_get_global_grid_data");
 			break;

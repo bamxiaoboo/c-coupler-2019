@@ -2042,7 +2042,7 @@
 
 
 
-   SUBROUTINE CCPL_set_dynamic_3D_grid_bottom_field(grid_id, field_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_dynamic_bottom_field(grid_id, field_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    integer, intent(in)                                     :: field_id
@@ -2055,11 +2055,11 @@
        call set_3D_grid_bottom_field(grid_id, field_id, 1, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_dynamic_3D_grid_bottom_field
+   END SUBROUTINE CCPL_set_3D_grid_dynamic_bottom_field
    
 
 
-   SUBROUTINE CCPL_set_static_3D_grid_bottom_field(grid_id, field_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_static_bottom_field(grid_id, field_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    integer, intent(in)                                     :: field_id
@@ -2072,7 +2072,24 @@
        call set_3D_grid_bottom_field(grid_id, field_id, 0, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_static_3D_grid_bottom_field
+   END SUBROUTINE CCPL_set_3D_grid_static_bottom_field
+
+
+
+   SUBROUTINE CCPL_set_3D_grid_external_bottom_field(grid_id, decomp_id, annotation)
+   implicit none
+   integer, intent(in)                                     :: grid_id
+   integer, intent(in)                                     :: decomp_id
+   character(len=*), intent(in),               optional    :: annotation
+
+
+   if (present(annotation)) then
+       call set_3D_grid_bottom_field(grid_id, decomp_id, 2, trim(annotation)//char(0))
+   else
+       call set_3D_grid_bottom_field(grid_id, decomp_id, 2, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_set_3D_grid_external_bottom_field
 
 
 
