@@ -242,7 +242,7 @@ void Coupling_connection::generate_data_transfer()
 bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_node, Comp_comm_group_mgt_node *receiver_comp_node, const char *grid_name)
 {
 	char *temp_array_buffer = NULL;
-	int buffer_max_size, buffer_content_size, original_grid_status, *all_original_grid_status, num_processes;
+	int buffer_max_size, buffer_content_size, original_grid_status, *all_original_grid_status, num_processes, bottom_field_variation_type;
 	bool should_exchange_grid = false;
 
 
@@ -286,14 +286,18 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	if (receiver_comp_node->get_current_proc_local_id() != -1) 
 		EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Receive grid %s from component \"%s\"", grid_name, sender_comp_node->get_full_name());
 
-	if (sender_original_grid != NULL)
+	if (sender_original_grid != NULL) {
+		bottom_field_variation_type = sender_original_grid->get_bottom_field_variation_type();
 		sender_original_grid->get_original_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
+		write_data_into_array_buffer(&bottom_field_variation_type, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
+	}
 	transfer_array_from_one_comp_to_another(sender_comp_node->get_current_proc_local_id(), sender_comp_node->get_root_proc_global_id(), receiver_comp_node->get_current_proc_local_id(), receiver_comp_node->get_root_proc_global_id(), receiver_comp_node->get_comm_group(), &temp_array_buffer, buffer_content_size);
 
 	if (original_grid_status == 0) {
 		char temp_string[NAME_STR_SIZE];
 		sprintf(temp_string, "%s%s", grid_name, sender_comp_node->get_full_name());
 		Remap_grid_class *mirror_grid = remap_grid_manager->search_remap_grid_with_grid_name(temp_string);
+		read_data_from_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_content_size);
 		if (mirror_grid == NULL) {
 			mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
 			EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
@@ -302,7 +306,10 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 			if (receiver_comp_node->get_current_proc_local_id() != -1) 
 				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" (\"%s\") again", grid_name, temp_string);
 		}
-		original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid);
+		receiver_original_grid = original_grid_mgr->get_original_grid(original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid));
+		if (receiver_original_grid->get_bottom_field_variation_type() != bottom_field_variation_type)
+			EXECUTION_REPORT(REPORT_ERROR, -1, receiver_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Software error in Coupling_connection::exchange_grid regarding bottom_field_variation_type");
+		receiver_original_grid->set_bottom_field_variation_type(bottom_field_variation_type);
 	}
 
 	if (temp_array_buffer != NULL)
@@ -351,6 +358,15 @@ void Coupling_connection::generate_interpolation()
 		if (grid_different && current_proc_id_dst_comp != -1) {
 			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
 			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
+			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != -1, "Fail to generate interpolation from component \"%s\" to \"%s\": the bottom field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL, "Fail to generate interpolation from component \"%s\" to \"%s\": it is not allowed to set the bottom field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate to be an external field. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
+			}
+			if (dst_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), dst_original_grid->get_bottom_field_id() != -1, "Fail to generate interpolation from component \"%s\" to \"%s\": the bottom field of the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name());
+				if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL)
+					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate interpolation from component \"%s\" to \"%s\": when the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has external bottom field, the source 3-D grid \"%s\" must include SIGMA or HYBRID vertical coordinate. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
+			}	
 			dst_fields_info[i]->runtime_remapping_weights = new Runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 		}	
 	}

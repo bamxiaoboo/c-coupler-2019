@@ -457,8 +457,6 @@ Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *objec
 	EXECUTION_REPORT(REPORT_ERROR, -1, remap_strategy != NULL && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
 
 	generate_remapping_related_grids();
-	build_operations_for_calculating_sigma_values_of_grids();
-	calculate_sigma_values_of_grids();
 	remap_strategy->calculate_remapping_weights(this);
 }
 

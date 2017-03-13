@@ -16,6 +16,11 @@
 #include <vector>
 
 
+#define BOTTOM_FIELD_VARIATION_STATIC            ((int)0)
+#define BOTTOM_FIELD_VARIATION_DYNAMIC           ((int)1)
+#define BOTTOM_FIELD_VARIATION_EXTERNAL          ((int)2)
+
+
 class Original_grid_info
 {
 	private: 
@@ -43,6 +48,8 @@ class Original_grid_info
 		int get_comp_id() const { return comp_id; }
 		int get_grid_id() const { return grid_id; }
 		int get_bottom_field_id() const { return bottom_field_id; }
+		int get_bottom_field_variation_type() const { return bottom_field_variation_type; }
+		void set_bottom_field_variation_type(int type) { bottom_field_variation_type = type; }
 		void set_bottom_field_id(int field_id, int type) { bottom_field_id = field_id; bottom_field_variation_type = type; } 
 		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }

@@ -439,16 +439,18 @@ extern "C" void set_3d_grid_bottom_field_(int *grid_id, int *field_or_decomp_id,
 	int comp_id, API_id;
 
 
-	if (*static_or_dynamic_or_external == 0)
+	if (*static_or_dynamic_or_external == BOTTOM_FIELD_VARIATION_STATIC)
 		API_id = API_ID_GRID_MGT_SET_3D_GRID_STATIC_BOT_FLD;
-	else if (*static_or_dynamic_or_external == 1) API_id = API_ID_GRID_MGT_SET_3D_GRID_DYN_BOT_FLD;
-	else if (*static_or_dynamic_or_external == 2) API_id = API_ID_GRID_MGT_SET_3D_GRID_EXTERNAL_BOT_FLD;
+	else if (*static_or_dynamic_or_external == BOTTOM_FIELD_VARIATION_DYNAMIC) 
+		API_id = API_ID_GRID_MGT_SET_3D_GRID_DYN_BOT_FLD;
+	else if (*static_or_dynamic_or_external == BOTTOM_FIELD_VARIATION_EXTERNAL) 
+		API_id = API_ID_GRID_MGT_SET_3D_GRID_EXTERNAL_BOT_FLD;
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in set_3d_grid_bottom_field_: wrong value of static_or_dynamic_or_external");
 	get_API_hint(-1, API_id, API_label);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
-	if (*static_or_dynamic_or_external != 2) {
+	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(*field_or_decomp_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == memory_manager->get_field_instance(*field_or_decomp_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the components corresponding to the grid_id and field_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	}	

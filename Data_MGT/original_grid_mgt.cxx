@@ -458,6 +458,8 @@ int Original_grid_mgt::register_V1D_grid_via_data(int comp_id, const char *grid_
 	}
 
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_V1D_grid));
+
+	remap_grid_manager->add_remap_grid(CoR_V1D_grid);
 	
 	return original_grids[original_grids.size()-1]->get_grid_id();	
 }
@@ -507,6 +509,8 @@ int Original_grid_mgt::register_md_grid_via_multi_grids(int comp_id, const char 
 	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"register_md_grid_via_multi_grids")->get_full_name());
 	CoR_MD_grid = new Remap_grid_class(full_grid_name, num_sub_grids, sub_grids, 0);
 	original_grids.push_back(new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, CoR_MD_grid));	
+	remap_grid_manager->add_remap_grid(CoR_MD_grid);
+	
 	return original_grids[original_grids.size()-1]->get_grid_id();
 }
 
@@ -525,7 +529,7 @@ void Original_grid_mgt::set_3d_grid_bottom_field(int comp_id, int grid_id, int f
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->get_original_CoR_grid()->is_sigma_grid(), "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": cannot set the bottom field to this grid because its V1D sub grid is not a SIGMA or HYBRID grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
 	if (original_grid->get_bottom_field_id() != -1)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": the bottom field has been set before at the model code with the annotation \"%s\" and cannot be set again at the model code with the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation_mgr->get_annotation(grid_id, "set bottom field"), annotation);
-	if (static_or_dynamic_or_external != 2) {
+	if (static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
 		check_API_parameter_field_instance(comp_id, API_id, local_comm, "setting the bottom field of a 3-D grid", field_or_decomp_id, "the bottom field", annotation);
 		field_inst = memory_manager->get_field_instance(field_or_decomp_id);
 	}
