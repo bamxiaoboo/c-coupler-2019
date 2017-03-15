@@ -63,6 +63,7 @@ extern IO_field_mgt *IO_fields_mgr;
 extern Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr;
 extern Remapping_configuration_mgt *remapping_configuration_mgr;
 extern Coupling_generator *coupling_generator;
+extern Runtime_remapping_weights_mgt *runtime_remapping_weights_mgr;
 
 
 #endif

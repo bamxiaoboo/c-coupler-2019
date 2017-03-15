@@ -351,8 +351,8 @@ void Coupling_connection::generate_interpolation()
 			continue;
 		if (src_comp_node == dst_comp_node && words_are_the_same(src_fields_info[i]->grid_name, dst_fields_info[i]->grid_name))
 			continue;
-		Remapping_setting *field_remapping_setting = new Remapping_setting;
-		exchange_remapping_setting(i, *field_remapping_setting);
+		Remapping_setting field_remapping_setting;
+		exchange_remapping_setting(i, field_remapping_setting);
 //		exchange_grid(dst_comp_node, src_comp_node, dst_fields_info[i]->grid_name);
 		bool grid_different = exchange_grid(src_comp_node, dst_comp_node, src_fields_info[i]->grid_name);
 		if (grid_different && current_proc_id_dst_comp != -1) {
@@ -367,7 +367,7 @@ void Coupling_connection::generate_interpolation()
 				if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL)
 					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate interpolation from component \"%s\" to \"%s\": when the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has external bottom field, the source 3-D grid \"%s\" must include SIGMA or HYBRID vertical coordinate. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
 			}	
-			dst_fields_info[i]->runtime_remapping_weights = new Runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
+			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid())
 				src_original_grid->allocate_3d_grid_bottom_field(dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id());
 		}	

@@ -247,6 +247,7 @@ extern "C" void initialize_CCPL_mgrs()
 	fields_gather_scatter_mgr = new Fields_gather_scatter_mgt();
 	remapping_configuration_mgr = new Remapping_configuration_mgt();
 	routing_info_mgr = new Routing_info_mgt();
+	runtime_remapping_weights_mgr = new Runtime_remapping_weights_mgt();
 }
 
 

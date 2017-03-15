@@ -33,6 +33,8 @@ IO_field_mgt *IO_fields_mgr = NULL;
 Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr = NULL;
 Remapping_configuration_mgt *remapping_configuration_mgr = NULL;
 Coupling_generator *coupling_generator = NULL;
+Runtime_remapping_weights_mgt *runtime_remapping_weights_mgr = NULL;
+
 
 
 

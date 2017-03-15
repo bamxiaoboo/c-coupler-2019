@@ -23,6 +23,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	Remap_operator_basis *remap_operator_T1D = NULL;
 	Remap_operator_basis *remap_operators[3];
 	Remap_grid_class *remap_grids[2];
+	Remapping_setting *cloned_remapping_setting = remapping_setting->clone();
 	char parameter_name[NAME_STR_SIZE], parameter_value[NAME_STR_SIZE];
 	int num_remap_operators = 0;
 
@@ -31,7 +32,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	this->dst_comp_id = dst_comp_id;
 	this->src_original_grid = src_original_grid;
 	this->dst_original_grid = dst_original_grid;
-	this->remapping_setting = remapping_setting;
+	this->remapping_setting = cloned_remapping_setting;
 	this->dst_decomp_info = dst_decomp_info;
 	this->src_decomp_info = NULL;
 	this->sequential_remapping_weights = NULL;
@@ -40,15 +41,15 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	if (src_original_grid->get_H2D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
 		remap_grids[1] = dst_original_grid->get_H2D_sub_CoR_grid();
-        if (words_are_the_same(remapping_setting->get_H2D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_BILINEAR))
+        if (words_are_the_same(cloned_remapping_setting->get_H2D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_BILINEAR))
             remap_operator_H2D = new Remap_operator_bilinear("H2D_algorithm", 2, remap_grids);
-        else if (words_are_the_same(remapping_setting->get_H2D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_CONSERV_2D)) 
+        else if (words_are_the_same(cloned_remapping_setting->get_H2D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_CONSERV_2D)) 
             remap_operator_H2D = new Remap_operator_conserv_2D("H2D_algorithm", 2,  remap_grids);
-        else if (words_are_the_same(remapping_setting->get_H2D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_DISTWGT))
+        else if (words_are_the_same(cloned_remapping_setting->get_H2D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_DISTWGT))
             remap_operator_H2D = new Remap_operator_distwgt("H2D_algorithm", 2,  remap_grids);
         else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: wrong H2D algorithm");
-		for (int i = 0; i < remapping_setting->get_H2D_remapping_algorithm()->get_num_parameters(); i ++) {
-			remapping_setting->get_H2D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
+		for (int i = 0; i < cloned_remapping_setting->get_H2D_remapping_algorithm()->get_num_parameters(); i ++) {
+			cloned_remapping_setting->get_H2D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
 			remap_operator_H2D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_H2D;
@@ -56,13 +57,13 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	if (src_original_grid->get_V1D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_V1D_sub_CoR_grid();
 		remap_grids[1] = dst_original_grid->get_V1D_sub_CoR_grid();
-        if (words_are_the_same(remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_LINEAR))
+        if (words_are_the_same(cloned_remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_LINEAR))
             remap_operator_V1D = new Remap_operator_linear("V1D_algorithm", 2, remap_grids);
-        else if (words_are_the_same(remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_SPLINE_1D))
+        else if (words_are_the_same(cloned_remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_SPLINE_1D))
             remap_operator_V1D = new Remap_operator_spline_1D("V1D_algorithm", 2, remap_grids);
         else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: wrong V1D algorithm");		
-		for (int i = 0; i < remapping_setting->get_V1D_remapping_algorithm()->get_num_parameters(); i ++) {
-			remapping_setting->get_V1D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
+		for (int i = 0; i < cloned_remapping_setting->get_V1D_remapping_algorithm()->get_num_parameters(); i ++) {
+			cloned_remapping_setting->get_V1D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
 			remap_operator_V1D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_V1D;
@@ -70,13 +71,13 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	if (src_original_grid->get_T1D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_T1D_sub_CoR_grid();
 		remap_grids[1] = dst_original_grid->get_T1D_sub_CoR_grid();
-        if (words_are_the_same(remapping_setting->get_T1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_LINEAR))
+        if (words_are_the_same(cloned_remapping_setting->get_T1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_LINEAR))
             remap_operator_T1D = new Remap_operator_linear("T1D_algorithm", 2, remap_grids);
-        else if (words_are_the_same(remapping_setting->get_T1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_SPLINE_1D))
+        else if (words_are_the_same(cloned_remapping_setting->get_T1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_SPLINE_1D))
             remap_operator_T1D = new Remap_operator_spline_1D("T1D_algorithm", 2, remap_grids);
         else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: wrong T1D algorithm");		
-		for (int i = 0; i < remapping_setting->get_T1D_remapping_algorithm()->get_num_parameters(); i ++) {
-			remapping_setting->get_T1D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
+		for (int i = 0; i < cloned_remapping_setting->get_T1D_remapping_algorithm()->get_num_parameters(); i ++) {
+			cloned_remapping_setting->get_T1D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
 			remap_operator_T1D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_T1D;
@@ -84,9 +85,9 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 
 	execution_phase_number = 1;
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
-	Remap_strategy_class *remap_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
+	remapping_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "before generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
-	sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remap_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid());
+	sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid());
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "after generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
 	execution_phase_number = 2;
 
@@ -95,6 +96,23 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 		parallel_remapping_weights = sequential_remapping_weights;
 	}	
 	else generate_parallel_remapping_weights();
+}
+
+
+Runtime_remapping_weights::~Runtime_remapping_weights()
+{
+	delete remapping_setting;
+	delete remapping_strategy;
+	delete sequential_remapping_weights;
+	delete parallel_remapping_weights;
+}
+
+
+bool Runtime_remapping_weights::match_requirements(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
+{
+	return this->src_comp_id == src_comp_id && this->dst_comp_id == dst_comp_id && 
+		   this->src_original_grid == src_original_grid && this->dst_original_grid == dst_original_grid && 
+		   this->remapping_setting->is_the_same_as_another(remapping_setting) && this->dst_decomp_info == dst_decomp_info;
 }
 
 
@@ -156,5 +174,23 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 	delete [] remap_related_grids;
 	delete [] global_cells_local_indexes_in_decomps[0];
 	delete [] global_cells_local_indexes_in_decomps[1];
+}
+
+
+Runtime_remapping_weights_mgt::~Runtime_remapping_weights_mgt()
+{
+	for (int i = 0; i < runtime_remapping_weights.size(); i ++)
+		delete runtime_remapping_weights[i];
+}
+
+
+Runtime_remapping_weights *Runtime_remapping_weights_mgt::search_or_generate_runtime_remapping_weights(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
+{
+	for (int i = 0; i < runtime_remapping_weights.size(); i ++)
+		if (runtime_remapping_weights[i]->match_requirements(src_comp_id, dst_comp_id, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info))
+			return runtime_remapping_weights[i];
+
+	runtime_remapping_weights.push_back(new Runtime_remapping_weights(src_comp_id, dst_comp_id, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info));
+	return runtime_remapping_weights[runtime_remapping_weights.size()-1];
 }
 

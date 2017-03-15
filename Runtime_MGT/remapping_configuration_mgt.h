@@ -35,12 +35,15 @@ class Remapping_algorithm_specification
 		Remapping_algorithm_specification(const char*, int);
 		Remapping_algorithm_specification(const char *, int*);
 		Remapping_algorithm_specification(int, TiXmlElement*, const char*, int);
+		Remapping_algorithm_specification() {}
 		~Remapping_algorithm_specification();
 		void print();
 		void write_remapping_algorithm_specification_into_array(char **, int &, int &);
 		const char *get_algorithm_name() { return algorithm_name; }
 		int get_num_parameters() { return parameters_name.size(); }
 		void get_parameter(int, char *, char *);
+		Remapping_algorithm_specification *clone();
+		bool is_the_same_as_another(Remapping_algorithm_specification*);
 };
 
 
@@ -70,6 +73,8 @@ class Remapping_setting
 		void write_remapping_setting_into_array(char **, int &, int &);
 		void read_remapping_setting_from_array(const char *, int &);
 		void print();
+		Remapping_setting *clone();
+		bool is_the_same_as_another(Remapping_setting*);
 };
 
 

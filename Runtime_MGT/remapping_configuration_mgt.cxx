@@ -123,6 +123,38 @@ void Remapping_algorithm_specification::get_parameter(int i, char *parameter_nam
 }
 
 
+Remapping_algorithm_specification *Remapping_algorithm_specification::clone()
+{
+	Remapping_algorithm_specification *cloned_specification = new Remapping_algorithm_specification;
+	cloned_specification->comp_id = this->comp_id;
+	cloned_specification->type_id = this->type_id;
+	strcpy(cloned_specification->algorithm_name, this->algorithm_name);
+	for (int i = 0; i < this->parameters_name.size(); i ++) {
+		cloned_specification->parameters_name.push_back(strdup(this->parameters_name[i]));
+		cloned_specification->parameters_value.push_back(strdup(this->parameters_value[i]));
+	}
+
+	return cloned_specification;
+}
+
+
+bool Remapping_algorithm_specification::is_the_same_as_another(Remapping_algorithm_specification *another)
+{
+	if (another->type_id != this->type_id)
+		return false;
+	if (!words_are_the_same(another->algorithm_name,this->algorithm_name))
+		return false;
+	if (another->parameters_name.size() != this->parameters_name.size())
+		return false;
+	for (int i = 0; i < this->parameters_name.size(); i ++) {
+		if (!words_are_the_same(another->parameters_name[i],this->parameters_name[i]) || !words_are_the_same(another->parameters_value[i],this->parameters_value[i]))
+			return false;
+	}
+
+	return true;	
+}
+
+
 Remapping_setting::Remapping_setting()
 {
 	H2D_remapping_algorithm = NULL;
@@ -323,6 +355,53 @@ void Remapping_setting::read_remapping_setting_from_array(const char *array, int
 	V1D_remapping_algorithm = new Remapping_algorithm_specification(array, &buffer_content_iter);
 	T1D_remapping_algorithm = new Remapping_algorithm_specification(array, &buffer_content_iter);
 	EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_iter == 0, "Software error in Remapping_setting::read_remapping_setting_from_array");
+}
+
+
+Remapping_setting *Remapping_setting::clone()
+{
+	Remapping_setting *cloned_setting = new Remapping_setting;
+	cloned_setting->comp_id = this->comp_id;
+	cloned_setting->XML_start_line_number = this->XML_start_line_number;
+	cloned_setting->field_specification_manner = this->field_specification_manner;
+	if (this->H2D_remapping_algorithm != NULL)
+		cloned_setting->H2D_remapping_algorithm = this->H2D_remapping_algorithm->clone();
+	if (this->V1D_remapping_algorithm != NULL)
+		cloned_setting->V1D_remapping_algorithm = this->V1D_remapping_algorithm->clone();
+	if (this->T1D_remapping_algorithm != NULL)
+		cloned_setting->T1D_remapping_algorithm = this->T1D_remapping_algorithm->clone();
+	for(int i = 0; i < this->fields_specification.size(); i ++)
+		cloned_setting->fields_specification.push_back(strdup(this->fields_specification[i]));
+
+	return cloned_setting;
+}
+
+
+bool Remapping_setting::is_the_same_as_another(Remapping_setting *another)
+{
+	if (another->field_specification_manner != this->field_specification_manner)
+		return false;
+	if (another->H2D_remapping_algorithm == NULL && this->H2D_remapping_algorithm != NULL || another->H2D_remapping_algorithm != NULL && this->H2D_remapping_algorithm == NULL)
+		return false;
+	if (another->V1D_remapping_algorithm == NULL && this->V1D_remapping_algorithm != NULL || another->V1D_remapping_algorithm != NULL && this->V1D_remapping_algorithm == NULL)
+		return false;
+	if (another->T1D_remapping_algorithm == NULL && this->T1D_remapping_algorithm != NULL || another->T1D_remapping_algorithm != NULL && this->T1D_remapping_algorithm == NULL)
+		return false;
+
+	if (another->H2D_remapping_algorithm != NULL && !another->H2D_remapping_algorithm->is_the_same_as_another(this->H2D_remapping_algorithm))
+		return false;
+	if (another->V1D_remapping_algorithm != NULL && !another->V1D_remapping_algorithm->is_the_same_as_another(this->V1D_remapping_algorithm))
+		return false;
+	if (another->T1D_remapping_algorithm != NULL && !another->T1D_remapping_algorithm->is_the_same_as_another(this->T1D_remapping_algorithm))
+		return false;
+
+	if (another->fields_specification.size() != this->fields_specification.size())
+		return false;
+	for (int i = 0; i < this->fields_specification.size(); i ++)
+		if (!words_are_the_same(another->fields_specification[i], this->fields_specification[i]))
+			return false;
+
+	return true;
 }
 
 

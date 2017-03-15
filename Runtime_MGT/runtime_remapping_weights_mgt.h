@@ -12,6 +12,7 @@
 #define RUNTIME_REMAPPING_WEIGHTS_MGT_H
 
 
+#include <vector>
 #include "remapping_configuration_mgt.h"
 #include "remap_strategy_class.h"
 #include "original_grid_mgt.h"
@@ -37,6 +38,7 @@ class Runtime_remapping_weights
 		
 	public:
 		Runtime_remapping_weights(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
+		~Runtime_remapping_weights();
 		Remap_weight_of_strategy_class *get_sequential_remapping_weights() { return sequential_remapping_weights; }
 		Remap_weight_of_strategy_class *get_parallel_remapping_weights() { return parallel_remapping_weights; }
 		int get_src_comp_id() { return src_comp_id; }
@@ -45,6 +47,19 @@ class Runtime_remapping_weights
 		Original_grid_info *get_dst_original_grid() { return dst_original_grid; }
 		Decomp_info *get_src_decomp_info() { return src_decomp_info; }
 		Decomp_info *get_dst_decomp_info() { return dst_decomp_info; }
+		bool match_requirements(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
+};
+
+
+class Runtime_remapping_weights_mgt
+{
+	private:
+		std::vector<Runtime_remapping_weights*> runtime_remapping_weights;
+
+	public:
+		Runtime_remapping_weights_mgt() {}
+		~Runtime_remapping_weights_mgt();
+		Runtime_remapping_weights *search_or_generate_runtime_remapping_weights(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
 };
 
 
