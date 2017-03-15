@@ -351,30 +351,7 @@ void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_sr
 
 void Remap_operator_spline_1D::do_src_decomp_caculation(long *decomp_map_src, const long *decomp_map_dst)
 {
-	int i;
-	long temp_long_value1, temp_long_value2;
-	double temp_double_value;
-
-
-	allocate_1D_remap_operator_common_arrays_space();
-	allocate_local_arrays();
-	array_size_src = remap_weights_groups[0]->get_num_weights();
-	if (array_size_src == 0)
-		return;
-	
-	for (i = 0; i < array_size_src; i ++) {
-		remap_weights_groups[0]->get_weight(&temp_long_value1, &temp_long_value2, &temp_double_value, i);
-		useful_src_cells_global_index[i] = temp_long_value2;
-	}
-	for (i = 0; i < dst_grid->get_grid_size(); i ++) {
-		remap_weights_groups[4]->get_weight(&temp_long_value1, &temp_long_value2, &temp_double_value, i);
-		src_cell_index_left[i] = temp_long_value1;
-		src_cell_index_right[i] = temp_long_value2;
-		if (src_cell_index_left[i] == -1 || src_cell_index_right[i] == -1)
-			continue;
-		decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] = (decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] | decomp_map_dst[i]);
-		decomp_map_src[useful_src_cells_global_index[src_cell_index_right[i]]] = (decomp_map_src[useful_src_cells_global_index[src_cell_index_left[i]]] | decomp_map_dst[i]); 
-	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Remap_operator_spline_1D::do_src_decomp_caculation: 1-D remapping algorithm should not be used to calculate src decomp");
 }
 
 

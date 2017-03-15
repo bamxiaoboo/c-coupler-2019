@@ -45,9 +45,10 @@ class Remap_weight_of_operator_instance_class
         Remap_operator_basis *duplicated_remap_operator;
         long remap_beg_iter;
         long remap_end_iter;
+		bool empty_remap_weight;
         
     public: 
-        Remap_weight_of_operator_instance_class() {}
+        Remap_weight_of_operator_instance_class() { empty_remap_weight = false; }
         Remap_weight_of_operator_instance_class(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
         Remap_weight_of_operator_instance_class(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*, Remap_operator_basis*);
         ~Remap_weight_of_operator_instance_class();
@@ -57,6 +58,9 @@ class Remap_weight_of_operator_instance_class
         Remap_grid_class *get_field_data_grid_dst() { return field_data_grid_dst; }
         Remap_weight_of_operator_instance_class *generate_parallel_remap_weights(Remap_grid_class**, int **);
 		void renew_remapping_time_end_iter(long);
+		void mark_empty_remap_weight() { empty_remap_weight = true; }
+		bool is_remap_weight_empty() { return empty_remap_weight; }
+		void mark_calculated_remap_weight() { empty_remap_weight = false; }
 };
 
 
@@ -78,7 +82,7 @@ class Remap_weight_of_operator_class
         ~Remap_weight_of_operator_class();
         Remap_grid_class *get_field_data_grid_src() { return field_data_grid_src; }
         Remap_grid_class *get_field_data_grid_dst() { return field_data_grid_dst; }
-		void calculate_src_decomp(Remap_grid_data_class*, Remap_grid_data_class*);
+		void calculate_src_decomp(long*, const long*);
         Remap_weight_of_operator_class *generate_parallel_remap_weights(Remap_grid_class**, Remap_grid_class**, int **, int &, Remap_weight_of_strategy_class*);
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
 		void add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *);

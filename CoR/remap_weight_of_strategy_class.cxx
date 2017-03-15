@@ -27,6 +27,7 @@ Remap_weight_of_operator_instance_class::Remap_weight_of_operator_instance_class
     this->duplicated_remap_operator = remap_operator->duplicate_remap_operator(true);
     this->operator_grid_src = remap_operator->src_grid;
     this->operator_grid_dst = remap_operator->dst_grid;
+	this->empty_remap_weight = false;
 }
 
 
@@ -41,6 +42,7 @@ Remap_weight_of_operator_instance_class::Remap_weight_of_operator_instance_class
     this->duplicated_remap_operator = duplicated_remap_operator;
     this->operator_grid_src = remap_operator->src_grid;
     this->operator_grid_dst = remap_operator->dst_grid;
+	this->empty_remap_weight = false;
 }
 
 
@@ -52,6 +54,8 @@ Remap_weight_of_operator_instance_class *Remap_weight_of_operator_instance_class
 
     parallel_remap_weights_of_operator_instance = new Remap_weight_of_operator_instance_class();
     parallel_remap_weights_of_operator_instance->original_remap_operator = this->original_remap_operator;
+	if (this->empty_remap_weight)
+		parallel_remap_weights_of_operator_instance->mark_empty_remap_weight();
 
     for (int i = 0; i < 2; i ++)
         if (this->original_remap_operator->get_src_grid()->have_overlap_with_grid(decomp_original_grids[i])) {
@@ -100,27 +104,12 @@ Remap_weight_of_operator_class::Remap_weight_of_operator_class(Remap_grid_class 
 }
 
 
-void Remap_weight_of_operator_class::calculate_src_decomp(Remap_grid_data_class *field_data_src, Remap_grid_data_class *field_data_dst)
+void Remap_weight_of_operator_class::calculate_src_decomp(long *decomp_map_src, const long *decomp_map_dst)
 {
-    int i, j, k, num_sized_sub_grids, index_size_array[4], current_runtime_index_array[4];
-    Remap_grid_class *sized_sub_grids[4];
     long remap_beg_iter, remap_end_iter, index_size_iter, field_array_offset;
-    long *decomp_map_values_src, *decomp_map_values_dst;
 	
-    EXECUTION_REPORT(REPORT_ERROR, -1, field_data_src->get_coord_value_grid()->is_similar_grid_with(field_data_grid_src), "C-Coupler error1 in calculate_src_decomp of Remap_weight_of_operator_class");
-    EXECUTION_REPORT(REPORT_ERROR, -1, field_data_dst->get_coord_value_grid()->is_similar_grid_with(field_data_grid_dst), "C-Coupler error2 in calculate_src_decomp of Remap_weight_of_operator_class");
-	field_data_src->interchange_grid_data(field_data_grid_src);
-	field_data_dst->interchange_grid_data(field_data_grid_dst);
 
-	field_data_grid_src->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
-	for (j = 0; j < num_sized_sub_grids; j ++)
-		if (!sized_sub_grids[j]->is_subset_of_grid(operator_grid_src))
-			break;
-	for (k = 0; j < num_sized_sub_grids; j ++) 
-		index_size_array[k++] = sized_sub_grids[j]->get_grid_size();
-	num_sized_sub_grids = k;
-
-	for (i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
+	for (int i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
         EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->field_data_grid_src == this->field_data_grid_src && remap_weights_of_operator_instances[i]->field_data_grid_dst == this->field_data_grid_dst &&
 						 remap_weights_of_operator_instances[i]->operator_grid_src == this->operator_grid_src && remap_weights_of_operator_instances[i]->operator_grid_dst == this->operator_grid_dst,
                      	 "remap software error1 in generate_parallel_remap_weights of Remap_weight_of_operator_class\n");
@@ -130,19 +119,10 @@ void Remap_weight_of_operator_class::calculate_src_decomp(Remap_grid_data_class 
 	    else if (i+1 < remap_weights_of_operator_instances.size())
 	        remap_end_iter = remap_weights_of_operator_instances[i+1]->remap_beg_iter;
 	    else remap_end_iter = field_data_grid_src->get_grid_size()/operator_grid_src->get_grid_size();
-	    for (j = remap_beg_iter; j < remap_end_iter; j ++) {
-	        for (k = num_sized_sub_grids - 1, index_size_iter = 1; k >= 0; k --) {
-	            current_runtime_index_array[k] = (j/index_size_iter) % index_size_array[k];
-	            index_size_iter *= index_size_array[k];
-	        }
-	        for (field_array_offset = 0, index_size_iter = 1, k = 0; k < num_sized_sub_grids; k ++) {
-	            field_array_offset += current_runtime_index_array[k]*index_size_iter;
-	            index_size_iter *= index_size_array[k];
-	        }
-	        decomp_map_values_src = ((long*) field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
-	        decomp_map_values_dst = ((long*) field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();			
+		printf("calculate remapping weight based on operator %s %d: %d %d\n", remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_operator_name(), i, remap_beg_iter, remap_end_iter);
+	    for (int j = remap_beg_iter; j < remap_end_iter; j ++) {
 			EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->duplicated_remap_operator != NULL, "C-Coupler error3 in do_remap of Remap_weight_of_operator_class");
-	        remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_values_src, decomp_map_values_dst);
+	        remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_src, decomp_map_dst);
 	    }
 	}
 }
@@ -292,6 +272,7 @@ void Remap_weight_of_operator_class::do_remap(Remap_grid_data_class *field_data_
         EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->field_data_grid_src == this->field_data_grid_src && remap_weights_of_operator_instances[i]->field_data_grid_dst == this->field_data_grid_dst &&
 						 remap_weights_of_operator_instances[i]->operator_grid_src == this->operator_grid_src && remap_weights_of_operator_instances[i]->operator_grid_dst == this->operator_grid_dst,
                      	 "remap software error3 in do_remap of Remap_weight_of_strategy_class\n");
+		EXECUTION_REPORT(REPORT_ERROR, -1, !remap_weights_of_operator_instances[i]->is_remap_weight_empty(), "Software error in Remap_weight_of_operator_class::do_remap: empty remap weights of operator from %s to %s", remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_src_grid()->get_grid_name(), remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_dst_grid()->get_grid_name());
         remap_beg_iter = remap_weights_of_operator_instances[i]->remap_beg_iter;
         if (remap_weights_of_operator_instances[i]->remap_end_iter != -1)
             remap_end_iter = remap_weights_of_operator_instances[i]->remap_end_iter;
@@ -622,49 +603,31 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
 
 void Remap_weight_of_strategy_class::calculate_src_decomp(Remap_grid_class *grid_src, Remap_grid_class *grid_dst, long *decomp_map_src, const long *decomp_map_dst)
 {
-    Remap_grid_data_class *decomp_map_field_src, *decomp_map_field_dst;
-    Remap_grid_data_class *expanded_decomp_map_field_src, *expanded_decomp_map_field_dst;
-	Remap_grid_data_class *decomp_map_fields[256];
     long i, j;
-    long *tmp_decomp_map_src;
+	Remap_weight_of_operator_class *H2D_operator_weights = NULL;
 
 
     for (i = 0; i < grid_src->get_grid_size(); i ++)
         decomp_map_src[i] = 0;
- 	
-    EXECUTION_REPORT(REPORT_ERROR, -1, grid_src->get_grid_mask_field() != NULL && grid_dst->get_grid_mask_field() != NULL, "C-Coupler error in calculate_src_decomp\n");
-    decomp_map_field_src = grid_src->get_grid_mask_field()->duplicate_grid_data_field(grid_src, 1, false, true);
-	decomp_map_field_src->change_datatype_in_application(DATA_TYPE_LONG);
-    decomp_map_field_dst = grid_dst->get_grid_mask_field()->duplicate_grid_data_field(grid_dst, 1, false, true);
-	decomp_map_field_dst->change_datatype_in_application(DATA_TYPE_LONG);
-	for (i = 0; i < grid_src->get_grid_size(); i ++)
-		((long*) decomp_map_field_src->get_grid_data_field()->data_buf)[i] = 0;
-	for (i = 0; i < grid_dst->get_grid_size(); i ++)
-		((long*) decomp_map_field_dst->get_grid_data_field()->data_buf)[i] = decomp_map_dst[i];
-    expanded_decomp_map_field_src = data_grid_src->expand_to_generate_full_coord_value(decomp_map_field_src);
-    expanded_decomp_map_field_dst = data_grid_dst->expand_to_generate_full_coord_value(decomp_map_field_dst);
+	
+ 	for (i = 0; i < remap_weights_of_operators.size(); i ++) {
+		if (remap_weights_of_operators[i]->get_original_remap_operator()->get_src_grid()->has_grid_coord_label(COORD_LABEL_LON) || remap_weights_of_operators[i]->get_original_remap_operator()->get_src_grid()->has_grid_coord_label(COORD_LABEL_LON))
+			EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operators[i]->get_original_remap_operator()->get_src_grid()->get_is_sphere_grid(), "Software error in Remap_weight_of_strategy_class::calculate_src_decomp: 1-D remapping operator for lon or lat");
+		if (remap_weights_of_operators[i]->get_original_remap_operator()->get_src_grid()->get_is_sphere_grid()) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, H2D_operator_weights == NULL, "Software error in Remap_weight_of_strategy_class::calculate_src_decomp: multiple H2D remapping operator");
+			H2D_operator_weights = remap_weights_of_operators[i];
+		}
+ 	}
+	if (H2D_operator_weights == NULL) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, grid_src == grid_dst, "Software error in Remap_weight_of_strategy_class::calculate_src_decomp: src and dst grids are different when there are no H2D operator");
+		for (i = 0; i < grid_src->get_grid_size(); i ++)
+			decomp_map_src[i] = decomp_map_dst[i];
+		return;
+	}	
 
-	decomp_map_fields[0] = expanded_decomp_map_field_src;
-	for (i = 0; i < remap_weights_of_operators.size() - 1; i ++)
-		decomp_map_fields[i+1] = expanded_decomp_map_field_src->duplicate_grid_data_field(remap_weights_of_operators[i]->field_data_grid_dst, 1, false, false);
-	decomp_map_fields[remap_weights_of_operators.size()] = expanded_decomp_map_field_dst;
+	EXECUTION_REPORT(REPORT_ERROR, -1, grid_src == H2D_operator_weights->get_original_remap_operator()->get_src_grid() && grid_dst == H2D_operator_weights->get_original_remap_operator()->get_dst_grid(), "Software error in Remap_weight_of_strategy_class::calculate_src_decomp: H2D operator grids do not match decomp grids");
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "before calculate_src_decomp");
-	for (i = remap_weights_of_operators.size() - 1; i >= 0; i --)
-		remap_weights_of_operators[i]->calculate_src_decomp(decomp_map_fields[i], decomp_map_fields[i+1]);
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "after calculate_src_decomp");
-
-    expanded_decomp_map_field_src->interchange_grid_data(grid_src);
-    for (i = 0; i < data_grid_src->get_grid_size()/grid_src->get_grid_size(); i ++) {
-        tmp_decomp_map_src = ((long*) expanded_decomp_map_field_src->get_grid_data_field()->data_buf) + i*grid_src->get_grid_size();
-        for (j = 0; j < grid_src->get_grid_size(); j ++)
-			decomp_map_src[j] = (decomp_map_src[j] | tmp_decomp_map_src[j]);
-    }
-
-    delete decomp_map_field_src;
-    delete decomp_map_field_dst;
-	for (i = 0; i < remap_weights_of_operators.size()+1; i ++)
-		delete decomp_map_fields[i];
+	H2D_operator_weights->calculate_src_decomp(decomp_map_src, decomp_map_dst);
 }
 
 

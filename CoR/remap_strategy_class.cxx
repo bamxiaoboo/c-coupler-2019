@@ -193,7 +193,7 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
                                                                     remap_weight_of_strategy);
         if (execution_phase_number == 1) {
             for (runtime_remap_times_iter = 0; runtime_remap_times_iter < current_remap_src_data_grid_interchanged->get_grid_size()/runtime_remap_grid_src->get_grid_size(); runtime_remap_times_iter ++) {
-                current_runtime_remap_function->do_runtime_remap(runtime_remap_times_iter);
+                current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter);
             }
         }
 

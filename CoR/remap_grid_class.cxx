@@ -434,9 +434,9 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
     if (this->num_dimensions == 1 && this->super_grid_of_setting_coord_values != NULL &&
         this->super_grid_of_setting_coord_values->is_subset_of_grid(top_grid)) {
         EXECUTION_REPORT(REPORT_ERROR, -1, this->get_grid_center_field() != NULL, "remap software error3 in duplicate_grid\n");            
-        duplicated_grid->grid_center_fields.push_back(this->get_grid_center_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, 1, true, false));
+        duplicated_grid->grid_center_fields.push_back(this->get_grid_center_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, 1, true, true));
         if (this->get_grid_vertex_field() != NULL)
-            duplicated_grid->grid_vertex_fields.push_back(this->get_grid_vertex_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, this->super_grid_of_setting_coord_values->num_vertexes, true, false));
+            duplicated_grid->grid_vertex_fields.push_back(this->get_grid_vertex_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, this->super_grid_of_setting_coord_values->num_vertexes, true, true));
     }
 
     this->duplicated_grid = NULL;
@@ -468,26 +468,14 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
     for (i = 0; i < num_leaf_grids; i ++) {
 		if (leaf_grids[i]->has_grid_coord_label(COORD_LABEL_LEV) && leaf_grids[i]->get_sigma_grid_sigma_value_field() != NULL) {
 			center_value_field = leaf_grids[i]->get_sigma_grid_sigma_value_field();
-			vertex_value_field = center_value_field;
 			leaf_grids[i]->num_vertexes = 2;
+			leaf_grids[i]->grid_center_fields.push_back(center_value_field->duplicate_grid_data_field(remap_grid, 1, false, false));
+			leaf_grids[i]->grid_vertex_fields.push_back(center_value_field->duplicate_grid_data_field(remap_grid, leaf_grids[i]->num_vertexes, false, false));
 		}
 		else {
 	        super_grid = leaf_grids[i]->super_grid_of_setting_coord_values;
-	        EXECUTION_REPORT(REPORT_ERROR, -1, super_grid != NULL, "remap software error2 in generate_remap_operator_runtime_grid\n");
-	        if (super_grid->is_subset_of_grid(runtime_remap_grid))
-	            continue;
-	        EXECUTION_REPORT(REPORT_ERROR, -1, super_grid->is_superset_of_grid(remap_grid), "remap software error3 in generate_remap_operator_runtime_grid\n");
-	        center_value_field = leaf_grids[i]->get_grid_center_field();
-			vertex_value_field = leaf_grids[i]->get_grid_vertex_field();
-			if (vertex_value_field != NULL)
-				leaf_grids[i]->num_vertexes = super_grid->num_vertexes;
-		}		
-		duplicated_grid_data = center_value_field->duplicate_grid_data_field(remap_grid, 1, false, false);
-        leaf_grids[i]->grid_center_fields.push_back(duplicated_grid_data);
-        if (vertex_value_field != NULL) {
-            duplicated_grid_data = vertex_value_field->duplicate_grid_data_field(remap_grid, leaf_grids[i]->num_vertexes, false, false);
-            leaf_grids[i]->grid_vertex_fields.push_back(duplicated_grid_data);
-        }
+	        EXECUTION_REPORT(REPORT_ERROR, -1, super_grid != NULL && super_grid->is_subset_of_grid(runtime_remap_grid), "remap software error2 in generate_remap_operator_runtime_grid\n");
+		}
     }
 
     if (runtime_mask != NULL) {

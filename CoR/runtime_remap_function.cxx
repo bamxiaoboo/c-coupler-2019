@@ -40,8 +40,6 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
     this->remap_weight_of_strategy = remap_weight_of_strategy;
     this->last_remapping_time_iter = -1;
 	this->last_remap_weight_of_operator_instance = NULL;
-    for (i = 0; i < 256; i ++)
-        this->last_runtime_index_array[i] = -1;
 
     /* Check the remap software and then set num_sized_grids_of_interchanged_grid,
          sized_grids_of_interchanged_grid, index_size_array, etc */
@@ -69,7 +67,6 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
     this->num_sized_grids_of_interchanged_grid = num_sized_grids_of_interchanged_grid_src - num_sized_grids_of_remapping_src;
     for (i = 0; i < this->num_sized_grids_of_interchanged_grid; i ++) {
         this->sized_grids_of_interchanged_grid[i] = sized_grids_of_interchanged_grid_src[num_sized_grids_of_remapping_src+i];
-        this->index_size_array[i] = this->sized_grids_of_interchanged_grid[i]->get_grid_size();
     }
 
     if (runtime_remap_operator->does_require_grid_vertex_values()) {
@@ -152,10 +149,6 @@ Runtime_remap_function::Runtime_remap_function(Remap_grid_class *interchanged_gr
 
 Runtime_remap_function::~Runtime_remap_function()
 {
-    if (execution_phase_number == 1)
-        for (int i = 0; i < num_sized_grids_of_interchanged_grid; i ++)
-            EXECUTION_REPORT(REPORT_ERROR, -1, current_runtime_index_array[i] == index_size_array[i] - 1, "remap software error in ~Runtime_remap_function\n");
-
     delete runtime_remap_operator_grid_src;
     delete runtime_remap_operator_grid_dst;
 
@@ -170,215 +163,99 @@ Runtime_remap_function::~Runtime_remap_function()
 }
 
 
-void Runtime_remap_function::do_runtime_remap(long current_remapping_time_iter)
+void Runtime_remap_function::calculate_static_remapping_weights(long current_remapping_time_iter)
+/*  Calculate static remapping weights and allocate entries for dynamic remapping weights
+ */
 {
     long i, index_size_iter, field_array_offset;
     bool mask_values_have_been_changed, coord_values_have_been_changed_src, coord_values_have_been_changed_dst;
     int mask_values_status_src, mask_values_status_dst, redundant_mark_status_src;
     double *current_data_values_src, *current_data_values_dst;
+	bool src_grid_changed = false, dst_grid_changed = false;
 
 
-    EXECUTION_REPORT(REPORT_ERROR, -1, current_remapping_time_iter < num_remapping_times, "remap software error1 in do_runtime_remap\n");
-
+	EXECUTION_REPORT(REPORT_ERROR, -1, remap_weight_of_strategy != NULL, "Software error in Runtime_remap_function::calculate_static_remapping_weights: empty remap_weight_of_strategy");
+    EXECUTION_REPORT(REPORT_ERROR, -1, current_remapping_time_iter < num_remapping_times, "Software error in Runtime_remap_function::calculate_static_remapping_weights: wrong current_remapping_time_iter. \n");
+	
+	if (runtime_remap_operator->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV)) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, runtime_remap_operator->get_src_grid()->get_num_dimensions() == 1, "Software error in Runtime_remap_function::calculate_static_remapping_weights: wrong dimension number of a remapping operator with vertical interpolation");
+		if (runtime_remap_operator->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || runtime_remap_operator->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid()) {
+	        last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
+			last_remap_weight_of_operator_instance->mark_empty_remap_weight();
+			return;
+		}
+	}
+	
 	current_runtime_remap_operator_grid_src = runtime_remap_operator_grid_src;
 	current_runtime_remap_operator_grid_dst = runtime_remap_operator_grid_dst;
     current_runtime_remap_operator = runtime_remap_operator;
 
-    /* Update runtime index array according to current_remapping_time_iter */
-    for (i = num_sized_grids_of_interchanged_grid - 1, index_size_iter = 1; i >= 0; i --) {
-        current_runtime_index_array[i] = (current_remapping_time_iter/index_size_iter) % index_size_array[i];
-        index_size_iter *= index_size_array[i];
-    }
-
-    /* Extract the runtime grid field data for runtime remapping */
-    coord_values_have_been_changed_src = extract_and_set_runtime_grid_fields(interchanged_grid_src,
-																		     num_leaf_grids_of_remap_operator_grid_src,
-                                                                             leaf_grids_of_remap_operator_grid_src,
-                                                                             remap_operator_runtime_grid_src);
-    coord_values_have_been_changed_dst = extract_and_set_runtime_grid_fields(interchanged_grid_dst,
-																			 num_leaf_grids_of_remap_operator_grid_dst,
-                                                                             leaf_grids_of_remap_operator_grid_dst,
-                                                                             remap_operator_runtime_grid_dst);
-    if (remap_field_data_redundant_mark_field_src != NULL)
-        extract_runtime_grid_field(remap_field_data_redundant_mark_field_src, remap_operator_runtime_grid_src->redundant_cell_mark_field);
-    redundant_mark_status_src = check_mask_values_status(last_redundant_mark_src, current_redundant_mark_src, remap_operator_runtime_grid_src->grid_size);
-    mask_values_status_src = check_mask_values_status(last_mask_values_src, current_mask_values_src, remap_operator_runtime_grid_src->grid_size);
-    mask_values_status_dst = check_mask_values_status(last_mask_values_dst, current_mask_values_dst, remap_operator_runtime_grid_dst->grid_size);
-
-	if (mask_values_status_src == -1 || mask_values_status_dst == -1) {
-		return;
+	if (current_remapping_time_iter == 0) {
+		src_grid_changed = true;
+		dst_grid_changed = true;
 	}
 
-    mask_values_have_been_changed = (mask_values_status_src%2==1) || (mask_values_status_dst%2==1);
+    if (remap_field_data_redundant_mark_field_src != NULL) {
+        extract_runtime_field(remap_operator_runtime_grid_src, remap_field_data_redundant_mark_field_src, remap_operator_runtime_grid_src->redundant_cell_mark_field, current_remapping_time_iter);
+		if (!check_mask_values_status(last_redundant_mark_src, current_redundant_mark_src, remap_operator_runtime_grid_src->grid_size))
+			src_grid_changed = true;
+    }
+    /* Extract the runtime grid field data for runtime remapping */
+    extract_runtime_field(remap_operator_runtime_grid_src, remap_operator_runtime_grid_src->original_grid_mask_field, remap_operator_runtime_grid_src->grid_mask_field, current_remapping_time_iter);
+    extract_runtime_field(remap_operator_runtime_grid_dst, remap_operator_runtime_grid_dst->original_grid_mask_field, remap_operator_runtime_grid_dst->grid_mask_field, current_remapping_time_iter);
+	if (!check_mask_values_status(last_mask_values_src, current_mask_values_src, remap_operator_runtime_grid_src->grid_size)) 
+		src_grid_changed = true;
+	if (!check_mask_values_status(last_mask_values_dst, current_mask_values_dst, remap_operator_runtime_grid_dst->grid_size))
+		dst_grid_changed = true;
 
-    if (coord_values_have_been_changed_src || last_remapping_time_iter == -1 || redundant_mark_status_src%2==1)
-        runtime_remap_operator_grid_src->update_operator_grid_data();
-    if (coord_values_have_been_changed_dst || last_remapping_time_iter == -1)
-        runtime_remap_operator_grid_dst->update_operator_grid_data();
+	if (src_grid_changed)
+		runtime_remap_operator_grid_src->update_operator_grid_data();
+
+	if (dst_grid_changed)
+		runtime_remap_operator_grid_dst->update_operator_grid_data();
     
-    if (coord_values_have_been_changed_src || coord_values_have_been_changed_dst || redundant_mark_status_src%2==1 ||
-        mask_values_have_been_changed || last_remapping_time_iter == -1) {
+    if (src_grid_changed || dst_grid_changed) {
         runtime_remap_operator->calculate_remap_weights();
         last_remapping_time_iter = current_remapping_time_iter;
-        for (i = 0; i < num_sized_grids_of_interchanged_grid; i ++)
-            last_runtime_index_array[i] = current_runtime_index_array[i];
-        for (field_array_offset = 0, index_size_iter = 1, i = 0; i < num_sized_grids_of_interchanged_grid; i ++) {
-            field_array_offset += current_runtime_index_array[i]*index_size_iter;
-            index_size_iter *= index_size_array[i];
-        }
-        if (remap_weight_of_strategy != NULL) {
-            last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
-        }
+        last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
     }
 	else last_remap_weight_of_operator_instance->renew_remapping_time_end_iter(current_remapping_time_iter);
+	last_remap_weight_of_operator_instance->mark_empty_remap_weight();
+}
 
-    if (remap_field_data_src != NULL) {
-        for (field_array_offset = 0, index_size_iter = 1, i = 0; i < num_sized_grids_of_interchanged_grid; i ++) {
-            field_array_offset += current_runtime_index_array[i]*index_size_iter;
-            index_size_iter *= index_size_array[i];
-        }
-        current_data_values_src = (double*) remap_field_data_src->grid_data_field->data_buf + field_array_offset*remap_operator_runtime_grid_src->get_grid_size();    
-        current_data_values_dst = (double*) remap_field_data_dst->grid_data_field->data_buf + field_array_offset*remap_operator_runtime_grid_dst->get_grid_size();
-        runtime_remap_operator->do_remap_values_caculation(current_data_values_src, current_data_values_dst);
+
+void Runtime_remap_function::extract_runtime_field(Remap_grid_class *remap_operator_runtime_grid, Remap_grid_data_class *global_field, Remap_grid_data_class *operator_field, long current_remapping_time_iter)
+{
+    if (global_field != NULL) {
+        EXECUTION_REPORT(REPORT_ERROR, -1, operator_field != NULL, "remap software error8 in new extract_runtime_field\n");
+        check_dimension_order_of_grid_field(global_field, remap_operator_runtime_grid);
+		long grid_field_size = operator_field->grid_data_field->required_data_size;
+		char *data_buf_global = (char*) global_field->grid_data_field->data_buf;
+		char *data_buf_runtime = (char*) operator_field->grid_data_field->data_buf;
+		memcpy(data_buf_runtime, 
+			   data_buf_global+current_remapping_time_iter*grid_field_size*get_data_type_size(operator_field->grid_data_field->data_type_in_application),
+			   grid_field_size*get_data_type_size(operator_field->grid_data_field->data_type_in_application));
     }
 }
 
 
-bool Runtime_remap_function::extract_and_set_runtime_grid_fields(Remap_grid_class *field_data_grid,
-																 int num_leaf_grids_of_remap_operator_grid,
-                                                                 Remap_grid_class **leaf_grids_of_remap_operator_grid,
-                                                                 Remap_grid_class *remap_operator_runtime_grid)
+bool Runtime_remap_function::check_mask_values_status(bool *last_mask_values, bool *current_mask_values, long grid_size)
 {
-    int i;
-    Remap_grid_class *super_grid;
-    Remap_grid_data_class *center_value_field, *vertex_value_field = NULL;
-    bool are_coord_values_updated = false;
-
-
-    /* Extract runtime grid center fields and vertex fields. If the grid of defining the grid center/vertex field is a sub grid of 
-           remap_operator_runtime_grid, only set vertex values in default when necessary. Otherwise, extract runtime grid center
-           fields and extract grid vertex fields when necessary */
-    for (i = 0; i < num_leaf_grids_of_remap_operator_grid; i ++) {
-        if (runtime_remap_operator->does_require_grid_vertex_values() || leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() > 0)
-            EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields.size() == 1, "remap software error6 in new extract_and_set_runtime_grid_fields\n");
-		if (leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid())
-			super_grid = field_data_grid;
-        else super_grid = leaf_grids_of_remap_operator_grid[i]->get_super_grid_of_setting_coord_values();
-        if (super_grid == NULL) {
-            EXECUTION_REPORT(REPORT_ERROR, -1, !runtime_remap_operator->get_is_operator_regridding() && leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 0, 
-                         "remap software error1 in new extract_and_set_runtime_grid_fields\n");
-            continue;
-        }
-        if (super_grid->is_subset_of_grid(remap_operator_runtime_grid))
-            continue;
-		if (super_grid == field_data_grid) {
-			EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_of_remap_operator_grid[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid(), "C-Coupler error in extract_and_set_runtime_grid_fields");
-			center_value_field = super_grid->get_unique_center_field();
-			if (super_grid->grid_vertex_fields.size() > 0)
-				vertex_value_field = super_grid->grid_vertex_fields[0];
-		}
-        else {
-			center_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_center_field();
-	        vertex_value_field = leaf_grids_of_remap_operator_grid[i]->get_grid_vertex_field();
-        }
-        EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_of_remap_operator_grid[i]->grid_center_fields.size() == 1 && center_value_field != NULL, 
-                     "remap software error4 in new extract_and_set_runtime_grid_fields\n");    
-        check_dimension_order_of_grid_field(center_value_field, remap_operator_runtime_grid);
-        check_dimension_order_of_grid_field(leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0], remap_operator_runtime_grid);
-        are_coord_values_updated = extract_runtime_grid_field(center_value_field, leaf_grids_of_remap_operator_grid[i]->grid_center_fields[0]);
-        if (vertex_value_field != NULL) {
-            check_dimension_order_of_grid_field(vertex_value_field, remap_operator_runtime_grid);
-            check_dimension_order_of_grid_field(leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields[0], remap_operator_runtime_grid);
-            extract_runtime_grid_field(vertex_value_field, leaf_grids_of_remap_operator_grid[i]->grid_vertex_fields[0]);
-        }
-    }
-
-    /* Extract runtime grid mask fields and then compute the mask field of runtime grid when necessary. 
-           When original_grid_mask_field is not NULL, the runtime grid mask field will be extracted from the 
-           corresponding super grid when necessary. */
-    if (remap_operator_runtime_grid->original_grid_mask_field != NULL) {
-        EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator_runtime_grid->grid_mask_field != NULL, "remap software error8 in new extract_and_set_runtime_grid_fields\n");
-        check_dimension_order_of_grid_field(remap_operator_runtime_grid->original_grid_mask_field, remap_operator_runtime_grid);
-        extract_runtime_grid_field(remap_operator_runtime_grid->original_grid_mask_field, remap_operator_runtime_grid->grid_mask_field);
-    }
-
-    return are_coord_values_updated;
-}
-
-
-bool Runtime_remap_function::extract_runtime_grid_field(Remap_grid_data_class *grid_data_global, Remap_grid_data_class *grid_data_runtime)
-{
-    int i, j;
-    long grid_field_size, grid_data_offset_header, iter;
-    bool have_index_iter_changed;
-    char *data_buf_global, *data_buf_runtime;
-
-
-    EXECUTION_REPORT(REPORT_ERROR, -1, grid_data_runtime->get_coord_value_grid()->is_subset_of_grid(grid_data_global->get_coord_value_grid()), "remap software error1 in extract_runtime_grid_field\n");
-
-    have_index_iter_changed = false;
-    grid_data_offset_header = 0;
-    iter = 1;
-    for (j = 0; j < grid_data_global->sized_grids.size(); j ++) {
-        for (i = 0; i < num_sized_grids_of_interchanged_grid; i ++)
-            if (sized_grids_of_interchanged_grid[i] == grid_data_global->sized_grids[j])
-                break;
-        if (i < num_sized_grids_of_interchanged_grid) {
-            if (last_runtime_index_array[i] != current_runtime_index_array[i])
-                have_index_iter_changed = true;
-            grid_data_offset_header += current_runtime_index_array[i] * iter;
-            iter *= index_size_array[i];
-        }
-    }
-
-    if (!have_index_iter_changed)
-        return false;
-
-    grid_field_size = grid_data_runtime->grid_data_field->required_data_size;
-    data_buf_global = (char*) grid_data_global->grid_data_field->data_buf;
-    data_buf_runtime = (char*) grid_data_runtime->grid_data_field->data_buf;
-    memcpy(data_buf_runtime, 
-           data_buf_global+grid_data_offset_header*grid_field_size*get_data_type_size(grid_data_runtime->grid_data_field->data_type_in_application),
-           grid_field_size*get_data_type_size(grid_data_runtime->grid_data_field->data_type_in_application));
-
-    return true;
-}
-
-
-int Runtime_remap_function::check_mask_values_status(bool *last_mask_values, bool *current_mask_values, long grid_size)
-{
-    int mask_values_status = 0;
+    bool result = true;
     long i;
 
 
     if (last_mask_values == NULL)
-        return 0;
-
-	for (i = 0; i < grid_size; i ++)
-		if (current_mask_values[i])
-			break;
-	if (i == grid_size) {
-		for (i = 0; i < grid_size; i ++)
-			last_mask_values[i] = current_mask_values[i];
-		return -1;
-	}
+        return true;
     
-    for (i = 0; i < grid_size; i ++)
+    for (i = 0; i < grid_size; i ++) {
         if (last_mask_values[i] != current_mask_values[i]) {
-            mask_values_status += 1;
-            break;
+            result = false;
         }
+		last_mask_values[i] = current_mask_values[i];
+    }
 
-    for (i = 0; i < grid_size; i ++) 
-        if (current_mask_values[i]) {
-            mask_values_status += 2;
-            break;
-        }
-
-    for (i = 0; i < grid_size; i ++)
-        last_mask_values[i] = current_mask_values[i];
-
-    return mask_values_status;
+    return result;
 }
 
 

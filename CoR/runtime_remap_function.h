@@ -37,9 +37,6 @@ class Runtime_remap_function
         Remap_grid_class *sized_grids_of_interchanged_grid[256];
         Remap_grid_class *leaf_grids_of_remap_operator_grid_src[256];
         Remap_grid_class *leaf_grids_of_remap_operator_grid_dst[256];
-        long index_size_array[256];
-        long last_runtime_index_array[256];
-        long current_runtime_index_array[256];
         long num_remapping_times;
         long last_remapping_time_iter;
         Remap_operator_grid *runtime_remap_operator_grid_src;
@@ -51,14 +48,13 @@ class Runtime_remap_function
         bool *last_redundant_mark_src;
         bool *current_redundant_mark_src;
 
-        bool extract_and_set_runtime_grid_fields(Remap_grid_class *, int, Remap_grid_class**, Remap_grid_class*);
-        bool extract_runtime_grid_field(Remap_grid_data_class*, Remap_grid_data_class*);
-        int check_mask_values_status(bool*, bool*, long);
+        void extract_runtime_field(Remap_grid_class *, Remap_grid_data_class*, Remap_grid_data_class*, long);
+        bool check_mask_values_status(bool*, bool*, long);
         void check_dimension_order_of_grid_field(Remap_grid_data_class*, Remap_grid_class*);
         
     public:
         Runtime_remap_function(Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, Remap_grid_data_class*, Remap_grid_data_class*, Remap_weight_of_strategy_class*);
-        void do_runtime_remap(long);
+        void calculate_static_remapping_weights(long);
         ~Runtime_remap_function();
 };
 

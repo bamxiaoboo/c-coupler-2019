@@ -19,7 +19,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->grid_id = grid_id;
 	this->original_CoR_grid = original_CoR_grid;
 	this->bottom_field_id = -1;
-	this->bottom_field_variation_type = -1;
+	this->bottom_field_variation_type = BOTTOM_FIELD_VARIATION_UNSET;
 	strcpy(this->grid_name, grid_name);
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
@@ -107,6 +107,16 @@ bool Original_grid_info::is_V1D_sub_grid_after_H2D_sub_grid()
 		return true;
 
 	return H2D_sub_grid_order < V1D_sub_grid_order;
+}
+
+
+void Original_grid_info::allocate_3d_grid_bottom_field(int decomp_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_3D_grid() && original_CoR_grid->is_sigma_grid() && bottom_field_variation_type != BOTTOM_FIELD_VARIATION_EXTERNAL, "Software error in Original_grid_info::allocate_3d_grid_bottom_field");
+	if (decomp_grids_mgr->search_decomp_grid_info(decomp_id, get_original_CoR_grid(), false)->get_decomp_grid()->get_sigma_grid_dynamic_surface_value_field() == NULL) {
+		Field_mem_info *field_inst = memory_manager->alloc_mem("double_value", decomp_id, decomps_info_mgr->get_decomp_info(decomp_id)->get_grid_id(), -grid_id, DATA_TYPE_DOUBLE, "unitless", "Original_grid_info::allocate_3d_grid_bottom_field", false);
+		decomp_grids_mgr->search_decomp_grid_info(decomp_id, get_original_CoR_grid(), false)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(field_inst->get_field_data());
+	}
 }
 
 
@@ -527,7 +537,7 @@ void Original_grid_mgt::set_3d_grid_bottom_field(int comp_id, int grid_id, int f
 	check_API_parameter_string(comp_id, API_id, local_comm, "setting the bottom field of a 3-D grid", original_grid->get_grid_name(), "the name of the 3-D grid", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->is_3D_grid(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid \"%s\": this grid is not a 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->get_original_CoR_grid()->is_sigma_grid(), "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": cannot set the bottom field to this grid because its V1D sub grid is not a SIGMA or HYBRID grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
-	if (original_grid->get_bottom_field_id() != -1)
+	if (original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling API \"%s\" to set the bottom field of the 3-D grid \"%s\": the bottom field has been set before at the model code with the annotation \"%s\" and cannot be set again at the model code with the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation_mgr->get_annotation(grid_id, "set bottom field"), annotation);
 	if (static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
 		check_API_parameter_field_instance(comp_id, API_id, local_comm, "setting the bottom field of a 3-D grid", field_or_decomp_id, "the bottom field", annotation);
