@@ -387,32 +387,32 @@ void Coupling_connection::exchange_connection_fields_info()
 
 
 	if (current_proc_id_dst_comp != -1)
-		write_connection_fields_info_into_array(import_interface, &dst_fields_info_array, buffer_max_size, dst_fields_info_array_size);
+		write_connection_fields_info_into_array(import_interface, &dst_fields_info_array, buffer_max_size, dst_fields_info_array_size, &dst_timer, dst_inst_or_aver, dst_time_step_in_second);
 	if (current_proc_id_src_comp != -1)
-		write_connection_fields_info_into_array(export_interface, &src_fields_info_array, buffer_max_size, src_fields_info_array_size);
+		write_connection_fields_info_into_array(export_interface, &src_fields_info_array, buffer_max_size, src_fields_info_array_size, &src_timer, src_inst_or_aver, src_time_step_in_second);
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), &src_fields_info_array, src_fields_info_array_size);
 	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), &dst_fields_info_array, dst_fields_info_array_size);
 	comp_id = export_interface != NULL? export_interface->get_comp_id() : import_interface->get_comp_id();
-	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size, comp_id);
+	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size, comp_id, &src_timer, src_inst_or_aver, src_time_step_in_second);
 	comp_id = import_interface != NULL? import_interface->get_comp_id() : export_interface->get_comp_id();
-	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id);
+	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id, &dst_timer, dst_inst_or_aver, dst_time_step_in_second);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_name.size() == src_fields_info.size() && fields_name.size() == dst_fields_info.size(), "Software error in Coupling_connection::exchange_connection_fields_info");
 
-	for (int i = 0; i < src_fields_info.size(); i ++)
-		src_fields_info[i]->timer->reset_lag_count();
+	src_timer->reset_lag_count();
 	
 	delete [] src_fields_info_array;
 	delete [] dst_fields_info_array;
 }
 
 
-void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter, int comp_id)
+void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
+	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
+	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
+
 	while (buffer_content_iter > 0) {
 		Interface_field_info *field_info = new Interface_field_info;
-		read_data_from_array_buffer(&field_info->time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
-		read_data_from_array_buffer(&field_info->inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
-		field_info->timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
 		read_data_from_array_buffer(field_info->decomp_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
@@ -425,10 +425,9 @@ void Coupling_connection::read_connection_fields_info_from_array(std::vector<Int
 }
 
 
-void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size)
+void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
 	char tmp_string[NAME_STR_SIZE];
-	int inst_or_aver;
 
 	
 	for (int i = fields_name.size() - 1; i >= 0; i --) {
@@ -448,14 +447,14 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 			write_data_into_array_buffer(tmp_string, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 		}
 		else write_data_into_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		Coupling_timer *timer = inout_interface->search_a_timer(fields_name[i]);
-		EXECUTION_REPORT(REPORT_ERROR, -1, timer != NULL, "Software error in Coupling_generator::write_connection_fields_info_into_array: NULL timer");
-		timer->write_timer_into_array(array, buffer_max_size, buffer_content_size);
-		inst_or_aver = inout_interface->get_inst_or_aver(i);
-		write_data_into_array_buffer(&inst_or_aver, sizeof(int), array, buffer_max_size, buffer_content_size);
-		int time_step_in_second = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_time_step_in_second();
-		write_data_into_array_buffer(&time_step_in_second, sizeof(int), array, buffer_max_size, buffer_content_size);
 	}
+
+	*timer = inout_interface->get_timer();
+	inst_or_aver = inout_interface->get_inst_or_aver();
+	time_step_in_second = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_time_step_in_second();
+	(*timer)->write_timer_into_array(array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&inst_or_aver, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&time_step_in_second, sizeof(int), array, buffer_max_size, buffer_content_size);
 }
 
 

@@ -69,9 +69,9 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		fields_mem_datatype_transformed.push_back(NULL);
 		fields_mem_unit_transformed.push_back(NULL);
 		fields_mem_transfer.push_back(NULL);
-		Connection_field_time_info *field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->src_fields_info[i]->timer, coupling_connection->src_fields_info[i]->time_step_in_second, coupling_connection->src_fields_info[i]->inst_or_aver);
+		Connection_field_time_info *field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->src_timer, coupling_connection->src_time_step_in_second, -1);
 		fields_time_info_src.push_back(field_time_info);
-		field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->dst_fields_info[i]->timer, coupling_connection->dst_fields_info[i]->time_step_in_second, coupling_connection->dst_fields_info[i]->inst_or_aver);
+		field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->dst_timer, coupling_connection->dst_time_step_in_second, coupling_connection->dst_inst_or_aver);
 		fields_time_info_dst.push_back(field_time_info);
 		if (inout_interface->get_import_or_export() == 1) {
 			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
@@ -311,7 +311,7 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_cont
 }
 
 
-Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export, int num_fields, int *field_ids, int *timer_ids, int *inst_or_aver, const char *annotation, int timer_ids_size, int inst_or_aver_size, int interface_type)
+Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export, int num_fields, int *field_ids, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
 {
 	int API_id;
 
@@ -324,24 +324,21 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	this->interface_type = interface_type;
 	EXECUTION_REPORT(REPORT_ERROR, -1, interface_type == INTERFACE_TYPE_REGISTER || interface_type == INTERFACE_TYPE_IO_OUTPUT || interface_type == INTERFACE_TYPE_IO_WRITE, "Software error in Inout_interface::Inout_interface: wrong interface_type");
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "The number of fields for registering an import/export interface \"%s\" is wrong (negative). Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
-	for (int i = 0; i < timer_ids_size; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr->check_is_legal_timer_id(timer_ids[i]), "Wrong timer id is detected when registering a import/export interface \"%s\". Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
-		if (comp_id == -1)
-			comp_id = timer_mgr->get_timer(timer_ids[i])->get_comp_id();
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface \"%s\". All timers and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
-			             interface_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 1")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(timer_ids[i])->get_comp_id(),"in Inout_interface::Inout_interface 2")->get_comp_name(), annotation);
-	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr->check_is_legal_timer_id(timer_id), "Wrong timer id is detected when registering a import/export interface \"%s\". Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
+	if (comp_id == -1)
+		comp_id = timer_mgr->get_timer(timer_id)->get_comp_id();
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Inconsistency is detected when registering an import/export interface \"%s\". The timer and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
+		             interface_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 1")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(timer_id)->get_comp_id(),"in Inout_interface::Inout_interface 2")->get_comp_name(), annotation);
 
 	for (int i = 0; i < num_fields; i ++) {
 		if (interface_type != INTERFACE_TYPE_IO_WRITE)
 			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Wrong field instance id is detected when registering a import/export interface. Please verify the model code related to the annotation \"%s\"", annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface. All timers and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface. The timer and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
 						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 3")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(memory_manager->get_field_instance(field_ids[i])->get_comp_id(),"in Inout_interface::Inout_interface 4")->get_comp_name(), annotation);
 	}
 
-	for (int i = 0; i < inst_or_aver_size; i ++) 
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, inst_or_aver[i] == USING_INSTANTANEOUS_VALUE || inst_or_aver[i] == USING_AVERAGE_VALUE, "Wrong value of parameter \"inst_or_aver\" when registering an import interface \"%s\": value must be 0 (instantaneous) or 1 (average). Please verify the model code related to the annotation \"%s\"",
-		                 interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, inst_or_aver == USING_INSTANTANEOUS_VALUE || inst_or_aver == USING_AVERAGE_VALUE, "Wrong value of parameter \"inst_or_aver\" when registering an import interface \"%s\": value must be 0 (instantaneous) or 1 (average). Please verify the model code related to the annotation \"%s\"",
+	                 interface_name, annotation);
 
 	for (int i = 0; i < num_fields; i ++)
 		for (int j = i+1; j < num_fields; j ++)
@@ -357,25 +354,14 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	if (interface_type == INTERFACE_TYPE_REGISTER)
 		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);	
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", num_fields, "num_fields", annotation);
-	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", timer_ids_size, "number of timers implicitly specified", annotation);
-	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", inst_or_aver_size, "number of values in the array of \"inst_aver\"", annotation);
 	for (int i = 0; i < num_fields; i ++)
 		check_API_parameter_field_instance(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", field_ids[i], "field instances ids (the information of the field instances)", annotation);
-	for (int i = 0; i < timer_ids_size; i ++)	
-		check_API_parameter_timer(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", timer_ids[i], "timer ids (the information of the timers)", annotation);
-	for (int i = 0; i < inst_or_aver_size; i ++) 
-		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", inst_or_aver[i], "inst_or_aver (the tag for specifying instantaneous or time averaged field value)", annotation);
-	for (int i = 0; i < num_fields; i ++) {
-		if (timer_ids_size == 1)
-			timers.push_back(timer_mgr->get_timer(timer_ids[0]));
-		else timers.push_back(timer_mgr->get_timer(timer_ids[i]));
-		if (inst_or_aver_size == 0)
-			this->inst_or_aver.push_back(0);
-		else if (inst_or_aver_size == 1)
-			this->inst_or_aver.push_back(inst_or_aver[0]);
-		else this->inst_or_aver.push_back(inst_or_aver[i]);
+	check_API_parameter_timer(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", timer_id, "timer id (the information of the timer)", annotation);
+	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", inst_or_aver, "inst_or_aver (the tag for specifying instantaneous or time averaged field value)", annotation);
+	this->timer = timer_mgr->get_timer(timer_id);
+	this->inst_or_aver = inst_or_aver;
+	for (int i = 0; i < num_fields; i ++)
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
-	}
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	strcpy(this->interface_name, interface_name);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
@@ -446,24 +432,6 @@ Field_mem_info *Inout_interface::search_registered_field_instance(const char *fi
 			return fields_mem_registered[i];
 
 	return NULL;
-}
-
-
-Coupling_timer *Inout_interface::search_a_timer(const char *field_name)
-{
-	for (int i = 0; i < fields_mem_registered.size(); i ++)
-		if (words_are_the_same(fields_mem_registered[i]->get_field_name(), field_name))
-			return timers[i];
-
-	return NULL;
-}
-
-
-int Inout_interface::get_inst_or_aver(int i)
-{
-	EXECUTION_REPORT(REPORT_ERROR, -1, i >= 0 && i < inst_or_aver.size(), "Software error in Inout_interface::get_inst_or_aver");
-
-	return inst_or_aver[i];
 }
 
 
@@ -595,13 +563,9 @@ Inout_interface_mgt::~Inout_interface_mgt()
 }
 
 
-int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export, int num_fields, int *field_ids, int *timer_ids, int *inst_or_aver, const char *annotation, int timer_ids_size, int inst_or_aver_size, int interface_type)
+int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export, int num_fields, int *field_ids, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
 {
-	if (timer_ids_size > 1)
-		timer_ids_size = num_fields;
-	if (inst_or_aver_size > 1)
-		inst_or_aver_size = num_fields;
-	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export, num_fields, field_ids, timer_ids, inst_or_aver, annotation, timer_ids_size, inst_or_aver_size, interface_type);
+	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export, num_fields, field_ids, timer_id, inst_or_aver, annotation, interface_type);
 	for (int i = 0; i < interfaces.size(); i ++) {
 		if (new_interface->get_comp_id() != interfaces[i]->get_comp_id())
 			continue;

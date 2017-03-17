@@ -37,9 +37,6 @@ struct Interface_field_info
 	char data_type[NAME_STR_SIZE];
     char decomp_name[NAME_STR_SIZE];
 	char unit[NAME_STR_SIZE];
-	Coupling_timer *timer;
-	int time_step_in_second;
-    int inst_or_aver;
 	Runtime_remapping_weights *runtime_remapping_weights;
 };
 
@@ -59,6 +56,12 @@ class Coupling_connection
 		std::vector<Interface_field_info*> dst_fields_info;
 		Inout_interface *import_interface;
 		Inout_interface *export_interface;
+		Coupling_timer *src_timer;
+		Coupling_timer *dst_timer;
+		int src_time_step_in_second;
+		int dst_time_step_in_second;
+		int src_inst_or_aver;
+	    int dst_inst_or_aver;
 		Connection_coupling_procedure *import_procedure;
 		Connection_coupling_procedure *export_procedure;
 		Comp_comm_group_mgt_node *src_comp_node;
@@ -71,8 +74,8 @@ class Coupling_connection
         int * src_proc_ranks_in_union_comm;
         int * dst_proc_ranks_in_union_comm;
 
-		void write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size);	
-		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int);
+		void write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size, Coupling_timer**, int&, int&);	
+		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int, Coupling_timer **, int &, int &);
 		void exchange_connection_fields_info();
 		void generate_interpolation();
 		bool exchange_grid(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *, const char *);
