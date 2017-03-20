@@ -286,11 +286,8 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	if (receiver_comp_node->get_current_proc_local_id() != -1) 
 		EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Receive grid %s from component \"%s\"", grid_name, sender_comp_node->get_full_name());
 
-	if (sender_original_grid != NULL) {
-		bottom_field_variation_type = sender_original_grid->get_bottom_field_variation_type();
-		sender_original_grid->get_original_CoR_grid()->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
-		write_data_into_array_buffer(&bottom_field_variation_type, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
-	}
+	if (sender_original_grid != NULL)
+		sender_original_grid->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
 	transfer_array_from_one_comp_to_another(sender_comp_node->get_current_proc_local_id(), sender_comp_node->get_root_proc_global_id(), receiver_comp_node->get_current_proc_local_id(), receiver_comp_node->get_root_proc_global_id(), receiver_comp_node->get_comm_group(), &temp_array_buffer, buffer_content_size);
 
 	if (original_grid_status == 0) {
@@ -336,6 +333,54 @@ void Coupling_connection::exchange_remapping_setting(int i, Remapping_setting &f
 }
 
 
+void Coupling_connection::add_bottom_field_coupling_info(int field_connection_indx, Runtime_remapping_weights *V3D_remapping_weights, Remapping_setting *remapping_setting)
+{
+	for (int i = 0; i < dst_bottom_fields_coupling_info.size(); i ++)
+		if (dst_bottom_fields_coupling_info[i]->V3D_runtime_remapping_weights == V3D_remapping_weights)
+			return;
+
+	V3D_grid_bottom_field_coupling_info *bottom_field_coupling_info = new V3D_grid_bottom_field_coupling_info;
+	bottom_field_coupling_info->V3D_runtime_remapping_weights = V3D_remapping_weights;
+	bottom_field_coupling_info->field_connection_indx = field_connection_indx;
+	bottom_field_coupling_info->is_dynamic_bottom_field = V3D_remapping_weights->get_src_original_grid()->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_DYNAMIC;
+	bottom_field_coupling_info->bottom_field_inst = V3D_remapping_weights->allocate_intermediate_V3D_grid_bottom_field();
+	bottom_field_coupling_info->H2D_runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), 
+		original_grid_mgr->get_original_grid(V3D_remapping_weights->get_src_decomp_info()->get_grid_id()), original_grid_mgr->get_original_grid(V3D_remapping_weights->get_dst_decomp_info()->get_grid_id()), 
+		remapping_setting, V3D_remapping_weights->get_dst_decomp_info());
+	V3D_remapping_weights->get_parallel_remapping_weights()->set_dynamic_V3D_grid_bottom_field(bottom_field_coupling_info->bottom_field_inst->get_field_data(), V3D_remapping_weights->get_dst_original_grid()->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL);
+	dst_bottom_fields_coupling_info.push_back(bottom_field_coupling_info);
+}
+
+
+void Coupling_connection::generate_src_bottom_field_coupling_info()
+{
+	int *bottom_fields_indx = NULL;
+	int buffer_max_size = 0, buffer_content_size = 0;
+
+
+	if (current_proc_id_dst_comp != -1)
+		for (int i = dst_bottom_fields_coupling_info.size()-1; i >= 0; i --)
+			write_data_into_array_buffer(&(dst_bottom_fields_coupling_info[i]->field_connection_indx), sizeof(int), (char**)(&bottom_fields_indx), buffer_max_size, buffer_content_size);
+	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), (char**)(&bottom_fields_indx), buffer_content_size);
+	if (current_proc_id_src_comp != -1) {
+		for (int i = 0; i < buffer_content_size / 4; i ++) {
+			V3D_grid_bottom_field_coupling_info *bottom_field_coupling_info = new V3D_grid_bottom_field_coupling_info;
+			bottom_field_coupling_info->V3D_runtime_remapping_weights = NULL;
+			bottom_field_coupling_info->H2D_runtime_remapping_weights = NULL; 
+			bottom_field_coupling_info->field_connection_indx = bottom_fields_indx[i];
+			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[bottom_fields_indx[i]]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
+			EXECUTION_REPORT(REPORT_ERROR, -1, src_original_grid->is_3D_grid() && src_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_DYNAMIC || src_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_STATIC, "Software error in Coupling_connection::generate_src_bottom_field_coupling_info: wrong grid");
+			bottom_field_coupling_info->is_dynamic_bottom_field = src_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_DYNAMIC;
+			bottom_field_coupling_info->bottom_field_inst = memory_manager->get_field_instance(src_original_grid->get_bottom_field_id());
+			EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->get_original_CoR_grid(bottom_field_coupling_info->bottom_field_inst->get_grid_id())->is_subset_of_grid(src_original_grid->get_original_CoR_grid()), "Software error in Coupling_connection::generate_src_bottom_field_coupling_info: wrong grid relation");
+			src_bottom_fields_coupling_info.push_back(bottom_field_coupling_info);
+		}		
+	}
+	if (bottom_fields_indx != NULL)
+		delete [] bottom_fields_indx;
+}
+
+
 void Coupling_connection::generate_interpolation()
 {
 	if (current_proc_id_src_comp != -1)
@@ -369,9 +414,11 @@ void Coupling_connection::generate_interpolation()
 			}	
 			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid())
-				src_original_grid->allocate_3d_grid_bottom_field(dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id());
+				add_bottom_field_coupling_info(i, dst_fields_info[i]->runtime_remapping_weights, &field_remapping_setting);
 		}	
-	}
+	}	
+
+	generate_src_bottom_field_coupling_info();
 
 	if (current_proc_id_src_comp != -1)
 		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);

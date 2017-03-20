@@ -17,6 +17,7 @@
 #include "remap_strategy_class.h"
 #include "original_grid_mgt.h"
 #include "decomp_info_mgt.h"
+#include "memory_mgt.h"
 #include "remap_weight_of_strategy_class.h"
 
 
@@ -33,6 +34,7 @@ class Runtime_remapping_weights
 		Remap_strategy_class *remapping_strategy;
 		Remap_weight_of_strategy_class *sequential_remapping_weights;
 		Remap_weight_of_strategy_class *parallel_remapping_weights;
+		Field_mem_info *intermediate_V3D_grid_bottom_field;
 
 		void generate_parallel_remapping_weights();
 		
@@ -48,6 +50,8 @@ class Runtime_remapping_weights
 		Decomp_info *get_src_decomp_info() { return src_decomp_info; }
 		Decomp_info *get_dst_decomp_info() { return dst_decomp_info; }
 		bool match_requirements(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
+		Field_mem_info *allocate_intermediate_V3D_grid_bottom_field();
+		void set_dynamic_V3D_grid_bottom_field(Field_mem_info *);
 };
 
 

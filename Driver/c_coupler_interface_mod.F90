@@ -2059,17 +2059,16 @@
 
 
 
-   SUBROUTINE CCPL_set_3D_grid_external_bottom_field(grid_id, decomp_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_external_bottom_field(grid_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
-   integer, intent(in)                                     :: decomp_id
    character(len=*), intent(in),               optional    :: annotation
 
 
    if (present(annotation)) then
-       call set_3D_grid_bottom_field(grid_id, decomp_id, 2, trim(annotation)//char(0))
+       call set_3D_grid_bottom_field(grid_id, -1, 2, trim(annotation)//char(0))
    else
-       call set_3D_grid_bottom_field(grid_id, decomp_id, 2, trim("")//char(0))
+       call set_3D_grid_bottom_field(grid_id, -1, 2, trim("")//char(0))
    endif
 
    END SUBROUTINE CCPL_set_3D_grid_external_bottom_field

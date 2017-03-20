@@ -434,7 +434,7 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 }
 
 
-extern "C" void set_3d_grid_bottom_field_(int *grid_id, int *field_or_decomp_id, int *static_or_dynamic_or_external, const char *annotation)
+extern "C" void set_3d_grid_bottom_field_(int *grid_id, int *field_id, int *static_or_dynamic_or_external, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 	int comp_id, API_id;
@@ -452,16 +452,11 @@ extern "C" void set_3d_grid_bottom_field_(int *grid_id, int *field_or_decomp_id,
 		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(*field_or_decomp_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == memory_manager->get_field_instance(*field_or_decomp_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the components corresponding to the grid_id and field_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the components corresponding to the grid_id and field_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	}	
-	else {
-		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(*field_or_decomp_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the decomp_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == decomps_info_mgr->get_decomp_info(*field_or_decomp_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the components corresponding to the grid_id and decomp_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(decomps_info_mgr->get_decomp_info(*field_or_decomp_id)->get_grid_id()), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the parallel decomposition specified by decomp_id is not on an H2D grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
-	}
 	check_for_coupling_registration_stage(comp_id, API_id, annotation);
-	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_or_decomp_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
+	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
 }
 
 

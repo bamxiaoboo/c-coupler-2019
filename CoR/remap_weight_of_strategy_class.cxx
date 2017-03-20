@@ -1222,3 +1222,20 @@ void Remap_weight_of_strategy_class::renew_object_name(const char*new_object_nam
 	EXECUTION_REPORT(REPORT_ERROR, -1, strncmp(object_name, "TEMP_WEIGHT", strlen("TEMP_WEIGHT")) == 0, "Remap weights %s is the same as %s. Please do not calculate the same remap weights more than once", object_name, new_object_name);
 }
 
+
+void Remap_weight_of_strategy_class::set_dynamic_V3D_grid_bottom_field(Remap_grid_data_class *bottom_field, bool set_dst_grid_bottom_field)
+{
+    for (int i = 0; i < remap_weights_of_operators.size(); i ++) 
+		if (remap_weights_of_operators[i]->operator_grid_src->has_grid_coord_label(COORD_LABEL_LEV)) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, bottom_field->get_coord_value_grid()->is_subset_of_grid(remap_weights_of_operators[i]->field_data_grid_src) && bottom_field->get_coord_value_grid()->is_subset_of_grid(remap_weights_of_operators[i]->field_data_grid_dst), "Software error in Remap_weight_of_strategy_class::set_dynamic_V3D_grid_bottom_field: wrong bottom field grid or wrong 2-D+1-D order");
+			if (remap_weights_of_operators[i]->field_data_grid_src->get_sigma_grid_dynamic_surface_value_field() != NULL)
+				EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operators[i]->field_data_grid_src->get_sigma_grid_dynamic_surface_value_field() == bottom_field, "Software error in Remap_weight_of_strategy_class::set_dynamic_V3D_grid_bottom_field: the bottom field of the same grid has been set to different data fields");
+			else remap_weights_of_operators[i]->field_data_grid_src->set_sigma_grid_dynamic_surface_value_field(bottom_field);
+			if (set_dst_grid_bottom_field) {
+				if (remap_weights_of_operators[i]->field_data_grid_dst->get_sigma_grid_dynamic_surface_value_field() != NULL)
+					EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operators[i]->field_data_grid_dst->get_sigma_grid_dynamic_surface_value_field() == bottom_field, "Software error in Remap_weight_of_strategy_class::set_dynamic_V3D_grid_bottom_field: the bottom field of the same grid has been set to different data fields");
+				else remap_weights_of_operators[i]->field_data_grid_dst->set_sigma_grid_dynamic_surface_value_field(bottom_field);
+			}
+		}
+}
+

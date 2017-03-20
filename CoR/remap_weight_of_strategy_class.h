@@ -150,6 +150,7 @@ class Remap_weight_of_strategy_class
 		void calculate_sigma_values_of_grids();
 		int get_num_operations_for_caculating_sigma_values_of_grid() { return operations_for_caculating_sigma_values_of_grid.size(); }
 		Operation_for_caculating_sigma_values *get_operation_for_caculating_sigma_values_of_grid(int i) { return operations_for_caculating_sigma_values_of_grid[i]; }
+		void set_dynamic_V3D_grid_bottom_field(Remap_grid_data_class*, bool);
 };
 
 

@@ -28,6 +28,7 @@ class Original_grid_info
 		int comp_id;
 		int grid_id;
 		char grid_name[NAME_STR_SIZE];
+		char bottom_field_name[NAME_STR_SIZE];
 		Remap_grid_class *original_CoR_grid;
 		Remap_grid_class *H2D_sub_CoR_grid;
 		Remap_grid_class *V1D_sub_CoR_grid;
@@ -49,8 +50,9 @@ class Original_grid_info
 		int get_comp_id() const { return comp_id; }
 		int get_grid_id() const { return grid_id; }
 		int get_bottom_field_variation_type() const { return bottom_field_variation_type; }
+		const char *get_bottom_field_name() const { return bottom_field_name; }
 		void set_bottom_field_variation_type(int type) { bottom_field_variation_type = type; }
-		void set_bottom_field_id(int field_id, int type) { bottom_field_id = field_id; bottom_field_variation_type = type; } 
+		void set_unique_bottom_field(int field_id, int type);
 		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
 		Remap_grid_class *get_V1D_sub_CoR_grid() { return V1D_sub_CoR_grid; }
@@ -58,7 +60,8 @@ class Original_grid_info
 		bool is_V1D_sub_grid_after_H2D_sub_grid();
 		bool is_3D_grid() { return H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid != NULL && T1D_sub_CoR_grid == NULL; }
 		bool is_H2D_grid() { return H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL; } 
-		void allocate_3d_grid_bottom_field(int);
+		void write_grid_into_array(char **, int &, int &);
+		int get_bottom_field_id() { return bottom_field_id; }
 };
 
 

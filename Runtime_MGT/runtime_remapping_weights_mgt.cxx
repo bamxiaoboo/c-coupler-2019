@@ -37,6 +37,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	this->src_decomp_info = NULL;
 	this->sequential_remapping_weights = NULL;
 	this->parallel_remapping_weights = NULL;
+	this->intermediate_V3D_grid_bottom_field = NULL;
 
 	if (src_original_grid->get_H2D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
@@ -108,6 +109,14 @@ Runtime_remapping_weights::~Runtime_remapping_weights()
 }
 
 
+Field_mem_info *Runtime_remapping_weights::allocate_intermediate_V3D_grid_bottom_field()
+{
+	if (intermediate_V3D_grid_bottom_field == NULL)
+		intermediate_V3D_grid_bottom_field = memory_manager->alloc_mem("V3D_grid_bottom_field", dst_decomp_info->get_decomp_id(), decomps_info_mgr->get_decomp_info(dst_decomp_info->get_decomp_id())->get_grid_id(), -dst_original_grid->get_grid_id(), DATA_TYPE_DOUBLE, "unitless", "Runtime_remapping_weights::allocate_intermediate_V3D_grid_bottom_field", false);
+	return intermediate_V3D_grid_bottom_field;
+}
+
+
 bool Runtime_remapping_weights::match_requirements(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
 {
 	return this->src_comp_id == src_comp_id && this->dst_comp_id == dst_comp_id && 
@@ -174,6 +183,13 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 	delete [] remap_related_grids;
 	delete [] global_cells_local_indexes_in_decomps[0];
 	delete [] global_cells_local_indexes_in_decomps[1];
+}
+
+
+void Runtime_remapping_weights::set_dynamic_V3D_grid_bottom_field(Field_mem_info *bottom_field)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, src_original_grid->is_3D_grid(), "Software error in Runtime_remapping_weights::set_dynamic_V3D_grid_bottom_field: not 3-D remapping weights");
+	parallel_remapping_weights->set_dynamic_V3D_grid_bottom_field(bottom_field->get_field_data(), dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL);
 }
 
 

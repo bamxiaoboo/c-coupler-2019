@@ -41,6 +41,16 @@ struct Interface_field_info
 };
 
 
+struct V3D_grid_bottom_field_coupling_info
+{
+	Field_mem_info *bottom_field_inst;
+	Runtime_remapping_weights *V3D_runtime_remapping_weights;
+	Runtime_remapping_weights *H2D_runtime_remapping_weights;
+	int field_connection_indx;
+	bool is_dynamic_bottom_field;
+};
+
+
 class Coupling_connection
 {
 	private:
@@ -54,6 +64,8 @@ class Coupling_connection
 		char dst_interface_name[NAME_STR_SIZE];
 		std::vector<Interface_field_info*> src_fields_info;
 		std::vector<Interface_field_info*> dst_fields_info;
+		std::vector<V3D_grid_bottom_field_coupling_info*> src_bottom_fields_coupling_info; 
+		std::vector<V3D_grid_bottom_field_coupling_info*> dst_bottom_fields_coupling_info;
 		Inout_interface *import_interface;
 		Inout_interface *export_interface;
 		Coupling_timer *src_timer;
@@ -80,6 +92,8 @@ class Coupling_connection
 		void generate_interpolation();
 		bool exchange_grid(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *, const char *);
 		void exchange_remapping_setting(int, Remapping_setting &);
+		void add_bottom_field_coupling_info(int, Runtime_remapping_weights*, Remapping_setting *);
+		void generate_src_bottom_field_coupling_info();
 
 	public:
 		Coupling_connection(int);
