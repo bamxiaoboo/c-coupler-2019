@@ -172,9 +172,9 @@ void Coupling_connection::create_union_comm()
 
 void Coupling_connection::generate_data_transfer()
 {
-	Field_mem_info **src_fields_mem = new Field_mem_info *[fields_name.size()];
-	Field_mem_info **dst_fields_mem = new Field_mem_info *[fields_name.size()];
-	Routing_info **fields_router = new Routing_info *[fields_name.size()];
+	Field_mem_info **src_fields_mem = new Field_mem_info *[src_fields_info.size()];
+	Field_mem_info **dst_fields_mem = new Field_mem_info *[src_fields_info.size()];
+	Routing_info **fields_router = new Routing_info *[src_fields_info.size()];
 	Runtime_trans_algorithm * send_algorithm_object = NULL;
 	Runtime_trans_algorithm * recv_algorithm_object = NULL;
     MPI_Win data_win, tag_win;
@@ -187,7 +187,7 @@ void Coupling_connection::generate_data_transfer()
 	if (current_proc_id_dst_comp != -1)
 		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 
-	for (int i = 0; i < fields_name.size(); i ++) { 
+	for (int i = 0; i < src_fields_info.size(); i ++) { 
 		if (dst_fields_info[i]->runtime_remapping_weights != NULL && dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info() != NULL) {
 			strcpy(temp_dst_decomp_name, dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_name());
 			dst_comp_id = dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_comp_id();
@@ -205,11 +205,11 @@ void Coupling_connection::generate_data_transfer()
 	}
 
     if (current_proc_id_dst_comp != -1) {
-        recv_algorithm_object = new Runtime_trans_algorithm(false, fields_name.size(), dst_fields_mem, fields_router, union_comm, src_proc_ranks_in_union_comm);
+        recv_algorithm_object = new Runtime_trans_algorithm(false, src_fields_info.size(), dst_fields_mem, fields_router, union_comm, src_proc_ranks_in_union_comm);
 		import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
     }
     if (current_proc_id_src_comp != -1) {
-        send_algorithm_object = new Runtime_trans_algorithm(true, fields_name.size(), src_fields_mem, fields_router, union_comm, dst_proc_ranks_in_union_comm);
+        send_algorithm_object = new Runtime_trans_algorithm(true, src_fields_info.size(), src_fields_mem, fields_router, union_comm, dst_proc_ranks_in_union_comm);
         export_procedure->add_data_transfer_algorithm(send_algorithm_object);
     }
     if (current_proc_id_dst_comp != -1) {
@@ -376,6 +376,7 @@ void Coupling_connection::generate_src_bottom_field_coupling_info()
 			src_bottom_fields_coupling_info.push_back(bottom_field_coupling_info);
 		}		
 	}
+
 	if (bottom_fields_indx != NULL)
 		delete [] bottom_fields_indx;
 }
@@ -419,6 +420,7 @@ void Coupling_connection::generate_interpolation()
 	}	
 
 	generate_src_bottom_field_coupling_info();
+	exchange_bottom_fields_info();
 
 	if (current_proc_id_src_comp != -1)
 		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
@@ -452,14 +454,12 @@ void Coupling_connection::exchange_connection_fields_info()
 }
 
 
-void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
+void Coupling_connection::read_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter)
 {
-	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
-	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
-
 	while (buffer_content_iter > 0) {
 		Interface_field_info *field_info = new Interface_field_info;
+		field_info->bottom_field_indx = -1;
+		field_info->runtime_remapping_weights = NULL;
 		read_data_from_array_buffer(field_info->decomp_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 		read_data_from_array_buffer(field_info->unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
@@ -467,10 +467,43 @@ void Coupling_connection::read_connection_fields_info_from_array(std::vector<Int
 		fields_info.push_back(field_info);
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_iter == 0, "Software error in Coupling_connection::read_connection_fields_info_from_array: wrong buffer_content_iter");
+	EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_iter == 0, "Software error in Coupling_connection::read_fields_info_from_array: wrong buffer_content_iter");
+}
+
+
+void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
+{
+	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
+	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
+
+	read_fields_info_from_array(fields_info, array_buffer, buffer_content_iter);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_info.size() == fields_name.size(), "Software error in Coupling_connection::read_connection_fields_info_from_array: wrong size of fields_info");
 }
 
+
+void Coupling_connection::write_field_info_into_array(Field_mem_info *field, char **array, int &buffer_max_size,int &buffer_content_size)
+{
+	char tmp_string[NAME_STR_SIZE];
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, field != NULL, "Coupling_connection::write_field_info_into_array");
+	write_data_into_array_buffer(field->get_field_data()->get_grid_data_field()->data_type_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(field->get_unit(), NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	const char *grid_name = field->get_grid_name();
+	if (grid_name == NULL) {
+		strcpy(tmp_string, "NULL");
+		write_data_into_array_buffer(tmp_string, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	}
+	else write_data_into_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	const char *decomp_name = field->get_decomp_name();
+	if (decomp_name == NULL) {
+		strcpy(tmp_string, "NULL");
+		write_data_into_array_buffer(tmp_string, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	}
+	else write_data_into_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+}
+ 
 
 void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
@@ -479,29 +512,73 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 	
 	for (int i = fields_name.size() - 1; i >= 0; i --) {
 		Field_mem_info *field = inout_interface->search_registered_field_instance(fields_name[i]);
-		EXECUTION_REPORT(REPORT_ERROR, -1, field != NULL, "Software error in Coupling_generator::write_connection_fields_info_into_array: NULL field");
-		write_data_into_array_buffer(field->get_field_data()->get_grid_data_field()->data_type_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		write_data_into_array_buffer(field->get_unit(), NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		const char *grid_name = field->get_grid_name();
-		if (grid_name == NULL) {
-			strcpy(tmp_string, "NULL");
-			write_data_into_array_buffer(tmp_string, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		}
-		else write_data_into_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		const char *decomp_name = field->get_decomp_name();
-		if (decomp_name == NULL) {
-			strcpy(tmp_string, "NULL");
-			write_data_into_array_buffer(tmp_string, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		}
-		else write_data_into_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		write_field_info_into_array(field, array, buffer_max_size, buffer_content_size);
 	}
-
 	*timer = inout_interface->get_timer();
 	inst_or_aver = inout_interface->get_inst_or_aver();
 	time_step_in_second = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_time_step_in_second();
 	(*timer)->write_timer_into_array(array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&inst_or_aver, sizeof(int), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&time_step_in_second, sizeof(int), array, buffer_max_size, buffer_content_size);
+}
+
+
+void Coupling_connection::exchange_bottom_fields_info()
+{
+	char *src_fields_info_array = NULL, *dst_fields_info_array = NULL;
+	int src_fields_info_array_size = 0, dst_fields_info_array_size = 0, buffer_max_size;
+
+
+	if (current_proc_id_dst_comp != -1)
+		for (int i = dst_bottom_fields_coupling_info.size() - 1; i >= 0; i --)
+			write_field_info_into_array(dst_bottom_fields_coupling_info[i]->bottom_field_inst, &dst_fields_info_array, buffer_max_size, dst_fields_info_array_size);
+	if (current_proc_id_src_comp != -1)
+		for (int i = src_bottom_fields_coupling_info.size() - 1; i >= 0; i --)
+			write_field_info_into_array(src_bottom_fields_coupling_info[i]->bottom_field_inst, &src_fields_info_array, buffer_max_size, src_fields_info_array_size);
+
+	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), &src_fields_info_array, src_fields_info_array_size);
+	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), &dst_fields_info_array, dst_fields_info_array_size);
+
+	read_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size);
+	read_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size);
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, dst_fields_info.size() == src_fields_info.size(), "Software error in Coupling_connection::exchange_bottom_fields_info");
+	
+	for (int i = fields_name.size(); i < dst_fields_info.size(); i ++) {
+		dst_fields_info[i]->bottom_field_indx = i - fields_name.size();
+		src_fields_info[i]->bottom_field_indx = dst_fields_info[i]->bottom_field_indx;
+		if (current_proc_id_dst_comp != -1)
+			dst_fields_info[i]->runtime_remapping_weights = dst_bottom_fields_coupling_info[dst_fields_info[i]->bottom_field_indx]->H2D_runtime_remapping_weights;
+	}
+
+	if (dst_bottom_fields_coupling_info.size() > 0 || src_bottom_fields_coupling_info.size() > 0)
+		printf("have bottom field coupling1\n");
+	if (dst_fields_info.size() > fields_name.size())
+		printf("have bottom field coupling2\n");
+
+}
+
+
+Field_mem_info *Coupling_connection::get_bottom_field(bool export_or_import, int bottom_field_indx)
+{
+	if (export_or_import) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, bottom_field_indx < src_bottom_fields_coupling_info.size(), "Software error in Coupling_connection::get_bottom_field: wrong bottom_field_indx");
+		return src_bottom_fields_coupling_info[bottom_field_indx]->bottom_field_inst;
+	}
+	else {
+		EXECUTION_REPORT(REPORT_ERROR, -1, bottom_field_indx < dst_bottom_fields_coupling_info.size(), "Software error in Coupling_connection::get_bottom_field: wrong bottom_field_indx");
+
+		return dst_bottom_fields_coupling_info[bottom_field_indx]->bottom_field_inst;
+	}
+}
+
+
+bool Coupling_connection::get_is_bottom_field_dynamic(int field_indx)
+{
+	if (current_proc_id_src_comp != -1)
+		return src_bottom_fields_coupling_info[src_fields_info[field_indx]->bottom_field_indx]->is_dynamic_bottom_field;
+
+	return dst_bottom_fields_coupling_info[dst_fields_info[field_indx]->bottom_field_indx]->is_dynamic_bottom_field;
 }
 
 

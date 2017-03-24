@@ -38,6 +38,7 @@ struct Interface_field_info
     char decomp_name[NAME_STR_SIZE];
 	char unit[NAME_STR_SIZE];
 	Runtime_remapping_weights *runtime_remapping_weights;
+	int bottom_field_indx;
 };
 
 
@@ -86,9 +87,12 @@ class Coupling_connection
         int * src_proc_ranks_in_union_comm;
         int * dst_proc_ranks_in_union_comm;
 
+		void write_field_info_into_array(Field_mem_info *, char **, int &, int &);
 		void write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size, Coupling_timer**, int&, int&);	
+		void read_fields_info_from_array(std::vector<Interface_field_info*> &, const char*, int);
 		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int, Coupling_timer **, int &, int &);
 		void exchange_connection_fields_info();
+		void exchange_bottom_fields_info();
 		void generate_interpolation();
 		bool exchange_grid(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *, const char *);
 		void exchange_remapping_setting(int, Remapping_setting &);
@@ -100,6 +104,8 @@ class Coupling_connection
 		void generate_a_coupling_procedure();
         void create_union_comm();
 		void generate_data_transfer();
+		Field_mem_info *get_bottom_field(bool, int);
+		bool get_is_bottom_field_dynamic(int);
 };
 
 

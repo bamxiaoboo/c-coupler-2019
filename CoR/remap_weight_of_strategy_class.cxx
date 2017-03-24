@@ -272,6 +272,8 @@ void Remap_weight_of_operator_class::do_remap(Remap_grid_data_class *field_data_
         EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->field_data_grid_src == this->field_data_grid_src && remap_weights_of_operator_instances[i]->field_data_grid_dst == this->field_data_grid_dst &&
 						 remap_weights_of_operator_instances[i]->operator_grid_src == this->operator_grid_src && remap_weights_of_operator_instances[i]->operator_grid_dst == this->operator_grid_dst,
                      	 "remap software error3 in do_remap of Remap_weight_of_strategy_class\n");
+		if (remap_weights_of_operator_instances[i]->is_remap_weight_empty())
+			continue;
 		EXECUTION_REPORT(REPORT_ERROR, -1, !remap_weights_of_operator_instances[i]->is_remap_weight_empty(), "Software error in Remap_weight_of_operator_class::do_remap: empty remap weights of operator from %s to %s", remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_src_grid()->get_grid_name(), remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_dst_grid()->get_grid_name());
         remap_beg_iter = remap_weights_of_operator_instances[i]->remap_beg_iter;
         if (remap_weights_of_operator_instances[i]->remap_end_iter != -1)

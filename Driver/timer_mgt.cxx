@@ -22,7 +22,8 @@ int num_days_of_month_of_leap_year[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 
 
 bool common_is_timer_on(const char *frequency_unit, int frequency_count, int lag_count, int current_year, 
 	                  int current_month, int current_day, int current_second, int current_num_elapsed_day,
-	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
+	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day, 
+	                  bool time_advanced)
 {
     long num_elapsed_time;
 
@@ -131,20 +132,22 @@ void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max
 
 
 bool Coupling_timer::is_timer_on(int current_year, int current_month, int current_day, int current_second, int current_num_elapsed_day,
-	                             int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
+	                             int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day, bool time_advanced)
 {
 	return common_is_timer_on(frequency_unit, frequency_count, lag_count, current_year,  
 		                      current_month, current_day, current_second, current_num_elapsed_day,
-	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
+	                          start_year, start_month, start_day, start_second, start_num_elapsed_day,
+	                          time_advanced);
 }
 
 
 void Coupling_timer::get_time_of_next_timer_on(Time_mgt *time_mgr, int current_year, int current_month, int current_day, int current_second, int current_num_elapsed_days, int time_step_in_second, int &next_timer_num_elapsed_days, int &next_timer_second, bool advance)
-{
+{	
 	if (advance)
 		time_mgr->advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_step_in_second);
 	while (!is_timer_on(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_mgr->get_start_year(), 
-		                time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day()))	
+		                time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day(),
+		                time_mgr->is_time_advanced()))	
 		time_mgr->advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_step_in_second);
 
 	next_timer_num_elapsed_days = current_num_elapsed_days;
@@ -264,6 +267,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	this->comp_id = comp_id;
 	this->restart_timer = NULL;
 	this->advance_time_synchronized = false;
+	this->time_advanced = false;
 
 	{
 		int start_date, stop_date, reference_date, stop_n, rest_freq_count, time_step;
@@ -538,6 +542,8 @@ void Time_mgt::advance_time(int &current_year, int &current_month, int &current_
 		}
     }
 	current_second = current_second % SECONDS_PER_DAY;	
+	
+	time_advanced = true;
 }
 
 
@@ -598,7 +604,8 @@ bool Time_mgt::is_timer_on(const char *frequency_unit, int frequency_count, int 
 
    	return common_is_timer_on(frequency_unit, frequency_count, lag_count, current_year,  
 		                      current_month, current_day, current_second, current_num_elapsed_day,
-	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
+	                          start_year, start_month, start_day, start_second, start_num_elapsed_day,
+	                          time_advanced);
 }
 
 
@@ -667,7 +674,7 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
 	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
 	                 words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
-	                 "The frequency unit in timer must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", annotation);
+	                 "The frequency unit in a timer (the current unit is \"%s\") must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "The frquency count in timer must be larger than 0. Please check the model code with the annotation \"%s\"", annotation);
 	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
@@ -793,6 +800,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->start_num_elapsed_day = this->start_num_elapsed_day;
 	new_time_mgr->stop_num_elapsed_day = this->stop_num_elapsed_day;
 	new_time_mgr->advance_time_synchronized = false;
+	new_time_mgr->time_advanced = this->time_advanced;
 	strcpy(new_time_mgr->case_name, this->case_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);
 	strcpy(new_time_mgr->run_type, this->run_type);

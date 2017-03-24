@@ -16,6 +16,7 @@
 #define FREQUENCY_UNIT_MONTHS           "months"
 #define FREQUENCY_UNIT_YEARS            "years"
 
+
 #define SECONDS_PER_DAY                     86400
 #define NUM_MONTH_PER_YEAR                  12
 #define NUM_DAYS_PER_NONLEAP_YEAR           365
@@ -56,11 +57,10 @@ class Coupling_timer
 		Coupling_timer(int, int, int*, int, int, const char *);
 		Coupling_timer(int, int, const char*, int, int, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
-		Coupling_timer(Coupling_timer*);
 		Coupling_timer(const char*, int &, int);
         ~Coupling_timer() {}
         bool is_timer_on();
-		bool is_timer_on(int, int, int, int, int, int, int, int, int, int);
+		bool is_timer_on(int, int, int, int, int, int, int, int, int, int, bool);
 		int get_timer_id() { return timer_id; }
 		int get_comp_id() { return comp_id; }
 		int get_frequency_count() { return frequency_count; }
@@ -121,6 +121,7 @@ class Time_mgt
         long num_total_steps;
         bool leap_year_on;
         Coupling_timer *restart_timer;
+		bool time_advanced;
         std::vector<Comps_transfer_time_info*> comps_transfer_time_infos;
 
 		int comp_id;
@@ -157,6 +158,7 @@ class Time_mgt
 		int get_stop_num_elapsed_day() { return stop_num_elapsed_day; }
         void set_restart_time(long, long);
         bool is_timer_on(const char *, int, int);
+		bool is_time_advanced() { return time_advanced; }
         bool check_is_model_run_finished();
         bool check_is_coupled_run_restart_time();
         double get_double_current_calendar_time(int);
