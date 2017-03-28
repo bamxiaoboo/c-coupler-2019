@@ -40,7 +40,7 @@ class Runtime_remap_algorithm
 		Field_mem_info *specified_dst_field_instance;
 		Field_mem_info *true_src_field_instance;
 		Field_mem_info *true_dst_field_instance;
-        Remap_weight_of_strategy_class *parallel_remap_weights;
+		Runtime_remapping_weights *runtime_remapping_weights;
 		bool transform_data_type;
 		
         void do_remap(bool);

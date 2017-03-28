@@ -105,7 +105,7 @@ class Remap_grid_class
 		Remap_grid_data_class *sigma_grid_surface_value_field;
 		double sigma_grid_top_value;
 		double sigma_grid_scale_factor;
-		bool specified_sigma_grid_surface_value_field;
+		bool sigma_grid_surface_value_field_specified;
 		Remap_grid_data_class *sigma_grid_dynamic_surface_value_field;
         
 
@@ -225,11 +225,11 @@ class Remap_grid_class
 		bool is_sigma_grid();
 		Remap_grid_data_class *get_sigma_grid_sigma_value_field();
 		Remap_grid_data_class *get_sigma_grid_surface_value_field() { return sigma_grid_surface_value_field; }
-		bool has_specified_sigma_grid_surface_value_field() { return specified_sigma_grid_surface_value_field; }
+		bool is_sigma_grid_surface_value_field_specified() { return sigma_grid_surface_value_field_specified; }
 		void allocate_sigma_grid_specific_fields(Remap_grid_data_class*, Remap_grid_data_class*, Remap_grid_data_class*, double, double);
 		void set_sigma_grid_dynamic_surface_value_field(Remap_grid_data_class *); 
 		Remap_grid_data_class *get_sigma_grid_dynamic_surface_value_field() { return sigma_grid_dynamic_surface_value_field; }
-		bool is_sigma_grid_surface_value_field_updated(Remap_grid_data_class *);
+		bool is_sigma_grid_surface_value_field_updated();
 		void copy_sigma_grid_surface_value_field(Remap_grid_data_class*);
 		void set_lev_grid_sigma_info(const char*, double, double, const char*);
 		void set_lev_grid_sigma_info(double, const double *, const double *, double);

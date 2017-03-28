@@ -196,6 +196,9 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
                 current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter);
             }
         }
+		if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
+		if (remap_operators[i]->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || remap_operators[i]->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid())
+			remap_weight_of_strategy->mark_empty_remap_weight();
 
         delete runtime_remap_grid_src;
         delete runtime_remap_grid_dst;

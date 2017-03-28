@@ -24,14 +24,6 @@ class Remap_weight_of_strategy_class;
 class Remap_weight_of_operator_class;
 
 
-struct Operation_for_caculating_sigma_values
-{
-	Remap_grid_class *current_3D_sigma_grid_src;
-	Remap_grid_class *current_3D_sigma_grid_dst;
-	Remap_weight_of_strategy_class *remap_weights;
-};
-
-
 class Remap_weight_of_operator_instance_class
 {
     private:
@@ -45,10 +37,9 @@ class Remap_weight_of_operator_instance_class
         Remap_operator_basis *duplicated_remap_operator;
         long remap_beg_iter;
         long remap_end_iter;
-		bool empty_remap_weight;
         
     public: 
-        Remap_weight_of_operator_instance_class() { empty_remap_weight = false; }
+        Remap_weight_of_operator_instance_class() {}
         Remap_weight_of_operator_instance_class(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*);
         Remap_weight_of_operator_instance_class(Remap_grid_class*, Remap_grid_class*, long, Remap_operator_basis*, Remap_operator_basis*);
         ~Remap_weight_of_operator_instance_class();
@@ -58,9 +49,6 @@ class Remap_weight_of_operator_instance_class
         Remap_grid_class *get_field_data_grid_dst() { return field_data_grid_dst; }
         Remap_weight_of_operator_instance_class *generate_parallel_remap_weights(Remap_grid_class**, int **);
 		void renew_remapping_time_end_iter(long);
-		void mark_empty_remap_weight() { empty_remap_weight = true; }
-		bool is_remap_weight_empty() { return empty_remap_weight; }
-		void mark_calculated_remap_weight() { empty_remap_weight = false; }
 };
 
 
@@ -74,8 +62,7 @@ class Remap_weight_of_operator_class
         Remap_grid_class *operator_grid_dst;
         Remap_operator_basis *original_remap_operator;
 		std::vector<Remap_weight_of_operator_instance_class*> remap_weights_of_operator_instances;
-		long index_size_array[256];
-		int size_index_size_array;
+		bool empty_remap_weight;
         
     public: 
         Remap_weight_of_operator_class(Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, Remap_grid_class*, Remap_grid_class*);
@@ -87,9 +74,9 @@ class Remap_weight_of_operator_class
         void do_remap(Remap_grid_data_class*, Remap_grid_data_class*);
 		void add_remap_weight_of_operator_instance(Remap_weight_of_operator_instance_class *);
 		Remap_operator_basis *get_original_remap_operator() { return original_remap_operator; }
-		void renew_vertical_remap_weights(Remap_grid_class*, Remap_grid_class*);
-		void prepare_index_size_array();
-		long calculate_offset_for_operator_instance(int);
+		void renew_vertical_remap_weights(Remap_grid_class *runtime_remap_grid_src, Remap_grid_class *runtime_remap_grid_dst);
+		void mark_empty_remap_weight() { empty_remap_weight = true; }
+		bool is_remap_weight_empty() { return empty_remap_weight; }		
 };
 
 
@@ -107,7 +94,6 @@ class Remap_weight_of_strategy_class
 		int num_field_data_grids_in_remapping_process;
 		Remap_grid_class *field_data_grids_in_remapping_process[512];
 		Remap_grid_data_class *runtime_mask_fields_in_remapping_process[512];
-		std::vector<Operation_for_caculating_sigma_values*> operations_for_caculating_sigma_values_of_grid;
 
 		void read_grid_info_from_array(Remap_grid_class*, bool, const char *, FILE*, long&, long);
 		void read_data_from_array(void*, int, const char*, FILE*, long&, long, bool);
@@ -146,11 +132,8 @@ class Remap_weight_of_strategy_class
 		int get_num_field_data_grids_in_remapping_process() { return num_field_data_grids_in_remapping_process; }
 		Remap_grid_class *get_field_data_grid_in_remapping_process(int);
 		Remap_grid_data_class *get_runtime_mask_field_in_remapping_process(int);
-		void build_operations_for_calculating_sigma_values_of_grids();
-		void calculate_sigma_values_of_grids();
-		int get_num_operations_for_caculating_sigma_values_of_grid() { return operations_for_caculating_sigma_values_of_grid.size(); }
-		Operation_for_caculating_sigma_values *get_operation_for_caculating_sigma_values_of_grid(int i) { return operations_for_caculating_sigma_values_of_grid[i]; }
-		void set_dynamic_V3D_grid_bottom_field(Remap_grid_data_class*, bool);
+		Remap_weight_of_operator_class *get_dynamic_V1D_remap_weight_of_operator();
+		void mark_empty_remap_weight() { remap_weights_of_operators[remap_weights_of_operators.size()-1]->mark_empty_remap_weight(); }
 };
 
 

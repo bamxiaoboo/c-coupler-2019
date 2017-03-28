@@ -21,8 +21,8 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(Runtime_remapping_weights *runt
 	comp_id = dst_field_instance->get_comp_id();
 	specified_src_field_instance = src_field_instance;
 	specified_dst_field_instance = dst_field_instance;
-	parallel_remap_weights = runtime_remapping_weights->get_parallel_remapping_weights();
-	EXECUTION_REPORT(REPORT_ERROR, -1, parallel_remap_weights != NULL, "Software error in Runtime_remap_algorithm::Runtime_remap_algorithm: parallel_remap_weights");
+	this->runtime_remapping_weights = runtime_remapping_weights;
+	EXECUTION_REPORT(REPORT_ERROR, -1, runtime_remapping_weights->get_parallel_remapping_weights() != NULL, "Software error in Runtime_remap_algorithm::Runtime_remap_algorithm: parallel_remap_weights");
 	
 	if (words_are_the_same(src_field_instance->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT)) {
 		true_src_field_instance = memory_manager->alloc_mem(specified_src_field_instance, BUF_MARK_REMAP_DATATYPE_TRANS_SRC, connection_id, DATA_TYPE_DOUBLE, false);
@@ -64,7 +64,8 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	if (transform_data_type)
 		for (int i = 0; i < specified_src_field_instance->get_size_of_field(); i ++)
 			((double*)true_src_field_instance->get_data_buf())[i] = ((float*)specified_src_field_instance->get_data_buf())[i];
-	parallel_remap_weights->do_remap(true_src_field_instance->get_field_data(), true_dst_field_instance->get_field_data());
+	runtime_remapping_weights->renew_dynamic_V1D_remapping_weights();
+	runtime_remapping_weights->get_parallel_remapping_weights()->do_remap(true_src_field_instance->get_field_data(), true_dst_field_instance->get_field_data());
 	if (transform_data_type)
 		for (int i = 0; i < specified_dst_field_instance->get_size_of_field(); i ++)
 			((float*)specified_dst_field_instance->get_data_buf())[i] = ((double*)true_dst_field_instance->get_data_buf())[i];

@@ -38,6 +38,9 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	this->sequential_remapping_weights = NULL;
 	this->parallel_remapping_weights = NULL;
 	this->intermediate_V3D_grid_bottom_field = NULL;
+	this->dynamic_V1D_remap_weight_of_operator = NULL;
+	this->runtime_V1D_remap_grid_src = NULL;
+	this->runtime_V1D_remap_grid_dst = NULL;
 
 	if (src_original_grid->get_H2D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
@@ -176,6 +179,18 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 		if (dst_decomp_info->get_local_cell_global_indx()[j] >= 0)
 			global_cells_local_indexes_in_decomps[1][dst_decomp_info->get_local_cell_global_indx()[j]] = j;  
 	parallel_remapping_weights = sequential_remapping_weights->generate_parallel_remap_weights(remap_related_decomp_grids, decomp_original_grids, global_cells_local_indexes_in_decomps);
+	dynamic_V1D_remap_weight_of_operator = parallel_remapping_weights->get_dynamic_V1D_remap_weight_of_operator();
+	if (dynamic_V1D_remap_weight_of_operator != NULL) {
+		runtime_V1D_remap_grid_src = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->generate_remap_operator_runtime_grid(dynamic_V1D_remap_weight_of_operator->get_original_remap_operator()->get_src_grid(),	dynamic_V1D_remap_weight_of_operator->get_original_remap_operator(), NULL);
+		runtime_V1D_remap_grid_dst = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->generate_remap_operator_runtime_grid(dynamic_V1D_remap_weight_of_operator->get_original_remap_operator()->get_dst_grid(),	dynamic_V1D_remap_weight_of_operator->get_original_remap_operator(), NULL);
+	}
+
+	if (dynamic_V1D_remap_weight_of_operator != NULL && get_dst_original_grid()->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL && get_dst_original_grid()->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET) {
+		printf("set bottom field of \"%s\" at %lx to %lx\n", dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_grid_name(), dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst(), memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());
+		if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() != NULL)
+			EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() == memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the bottom field of the same grid has been set to different data fields");
+		else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->set_sigma_grid_dynamic_surface_value_field(memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());					
+	}
 	
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after generating parallel remap weights for runtime_remap_algorithm");
 
@@ -186,10 +201,37 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 }
 
 
-void Runtime_remapping_weights::set_dynamic_V3D_grid_bottom_field(Field_mem_info *bottom_field)
+void Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights()
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, src_original_grid->is_3D_grid(), "Software error in Runtime_remapping_weights::set_dynamic_V3D_grid_bottom_field: not 3-D remapping weights");
-	parallel_remapping_weights->set_dynamic_V3D_grid_bottom_field(bottom_field->get_field_data(), dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL);
+	bool src_bottom_value_updated = false, dst_bottom_value_updated = false;
+	bool src_bottom_value_specified = false, dst_bottom_value_specified = false;
+
+	
+	if (dynamic_V1D_remap_weight_of_operator == NULL)
+		return;
+
+	if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid()) {
+		src_bottom_value_specified = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid_surface_value_field_specified();
+		src_bottom_value_updated = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid_surface_value_field_updated();
+		if (src_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_STATIC)
+			EXECUTION_REPORT(REPORT_ERROR, src_original_grid->get_comp_id(), !src_bottom_value_updated || !src_bottom_value_specified, "The bottom field of the 3-D grid \"%s\" (registered in the component \"%s\") is updated while the bottom field has been specified as a static one. Please verify", src_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_original_grid->get_comp_id(),"in Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights")->get_full_name());
+	}
+	if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid()) {
+		dst_bottom_value_specified = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid_surface_value_field_specified();
+		dst_bottom_value_updated = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid_surface_value_field_updated();
+		if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_STATIC)
+			EXECUTION_REPORT(REPORT_ERROR, dst_original_grid->get_comp_id(), !dst_bottom_value_updated || !dst_bottom_value_specified, "The bottom field of the 3-D grid \"%s\" is updated while the bottom field has been specified as a static one. Please verify", dst_original_grid->get_grid_name());
+	}
+
+	if (src_bottom_value_updated)
+		dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->calculate_lev_sigma_values();
+	if (dst_bottom_value_updated)
+		dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->calculate_lev_sigma_values();
+
+	if (src_bottom_value_updated || dst_bottom_value_updated) {
+		printf("should renew V1D remapping weights for %s\n", parallel_remapping_weights->get_object_name());	
+		dynamic_V1D_remap_weight_of_operator->renew_vertical_remap_weights(runtime_V1D_remap_grid_src, runtime_V1D_remap_grid_dst);
+	}
 }
 
 

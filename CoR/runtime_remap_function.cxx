@@ -167,7 +167,7 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
 /*  Calculate static remapping weights and allocate entries for dynamic remapping weights
  */
 {
-    long i, index_size_iter, field_array_offset;
+    long i;
     bool mask_values_have_been_changed, coord_values_have_been_changed_src, coord_values_have_been_changed_dst;
     int mask_values_status_src, mask_values_status_dst, redundant_mark_status_src;
     double *current_data_values_src, *current_data_values_dst;
@@ -181,7 +181,6 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
 		EXECUTION_REPORT(REPORT_ERROR, -1, runtime_remap_operator->get_src_grid()->get_num_dimensions() == 1, "Software error in Runtime_remap_function::calculate_static_remapping_weights: wrong dimension number of a remapping operator with vertical interpolation");
 		if (runtime_remap_operator->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || runtime_remap_operator->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid()) {
 	        last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
-			last_remap_weight_of_operator_instance->mark_empty_remap_weight();
 			return;
 		}
 	}
@@ -220,7 +219,6 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
         last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
     }
 	else last_remap_weight_of_operator_instance->renew_remapping_time_end_iter(current_remapping_time_iter);
-	last_remap_weight_of_operator_instance->mark_empty_remap_weight();
 }
 
 

@@ -35,6 +35,9 @@ class Runtime_remapping_weights
 		Remap_weight_of_strategy_class *sequential_remapping_weights;
 		Remap_weight_of_strategy_class *parallel_remapping_weights;
 		Field_mem_info *intermediate_V3D_grid_bottom_field;
+		Remap_weight_of_operator_class *dynamic_V1D_remap_weight_of_operator;
+		Remap_grid_class *runtime_V1D_remap_grid_src;
+		Remap_grid_class *runtime_V1D_remap_grid_dst;
 
 		void generate_parallel_remapping_weights();
 		
@@ -51,7 +54,7 @@ class Runtime_remapping_weights
 		Decomp_info *get_dst_decomp_info() { return dst_decomp_info; }
 		bool match_requirements(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
 		Field_mem_info *allocate_intermediate_V3D_grid_bottom_field();
-		void set_dynamic_V3D_grid_bottom_field(Field_mem_info *);
+		void renew_dynamic_V1D_remapping_weights();
 };
 
 
