@@ -22,6 +22,7 @@
 #define GRID_VERTEX_LABEL                     "vertex"
 #define GRID_NUM_VERTEX_LABEL                 "num_vertex"
 #define GRID_MASK_LABEL                       "mask"
+#define GRID_AREA_LABEL                       "area"
 #define PI                                    ((double) 3.14159265358979323846)
 #define PARTIAL_AREA_BOUND_TYPE_INDEX         "index"
 #define PARTIAL_AREA_BOUND_TYPE_VALUE         "value"
@@ -74,7 +75,8 @@ class Remap_grid_class
         int num_dimensions;
         int num_vertexes;
         Remap_grid_class *whole_grid;
-		Remap_grid_class *edge_grid;
+		Remap_grid_class *mid_point_grid;
+		Remap_grid_class *interface_level_grid;
         std::vector<Partial_area *> partial_areas;
         Remap_grid_class *super_grid_of_setting_coord_values;
 		char name_super_grid_of_setting_coord_values[NAME_STR_SIZE];
@@ -183,6 +185,7 @@ class Remap_grid_class
         void get_grid_index_interchange_table(Remap_grid_class*, int*);
         bool is_partial_grid() const;
 		Remap_grid_class *get_original_grid() { return original_grid; }
+		Remap_grid_data_class *get_grid_center_field(const char*) const;
         Remap_grid_data_class *get_grid_center_field() const;
         Remap_grid_data_class *get_grid_vertex_field() const;
         bool has_grid_coord_label(const char*) const;
@@ -258,6 +261,8 @@ class Remap_grid_class
 		Remap_grid_class *search_sub_grid(const char*);
 		Remap_grid_class *get_sphere_sub_grid();
 		Remap_grid_class(Remap_grid_class*, const char *, const char *, int &);
+		Remap_grid_data_class *generate_mid_point_grid_field(Remap_grid_data_class *);
+		Remap_grid_class *generate_mid_point_grid();
 };
 
 #endif

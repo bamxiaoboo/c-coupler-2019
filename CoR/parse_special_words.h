@@ -23,7 +23,6 @@
 #define FUNCTION_WORD_ADD_NC_FILE                "add_nc_file"
 #define FUNCTION_WORD_ADD_BIN_FILE               "add_bin_file"
 #define FUNCTION_WORD_NEW_1D_GRID                "new_1D_grid"
-#define FUNCTION_WORD_NEW_MIDDLE_GRID            "new_middle_grid"
 #define FUNCTION_WORD_NEW_PARTIAL_GRID           "new_partial_grid"
 #define FUNCTION_WORD_ADD_GRID_AREA              "add_grid_area"
 #define FUNCTION_WORD_ADD_AREA_BOUND             "add_area_bound"

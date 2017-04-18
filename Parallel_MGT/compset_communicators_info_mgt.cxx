@@ -173,14 +173,14 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 			sprintf(working_dir, "%s/%s\0", parent->working_dir, comp_name);
 			strcpy(config_all_dir, parent->config_all_dir);
 			strcpy(config_comp_dir, parent->config_comp_dir);
-			create_directory(working_dir, get_current_proc_local_id() == 0);
+			create_directory(working_dir, get_current_proc_local_id() == 0, false);
 		}
 		printf("config all dir is %s\n", config_all_dir);
 		printf("config comp dir is %s\n", config_comp_dir);
 		sprintf(dir, "%s/CCPL_logs", working_dir, comp_name);
-		create_directory(dir, get_current_proc_local_id() == 0);
+		create_directory(dir, get_current_proc_local_id() == 0, true);
 		sprintf(dir, "%s/data", working_dir, comp_name);
-		create_directory(dir, get_current_proc_local_id() == 0);
+		create_directory(dir, get_current_proc_local_id() == 0, false);
 		MPI_Barrier(get_comm_group());
 		char file_name[NAME_STR_SIZE*2];
 		sprintf(file_name, "%s/CCPL_logs/%s.CCPL.log.%d", working_dir, get_comp_name(), get_current_proc_local_id());
@@ -191,8 +191,10 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
 		sprintf(config_all_dir, "%s/../../../../config/CCPL_runtime/all", working_dir);
 		char H2D_grids_dir[NAME_STR_SIZE];
-		sprintf(H2D_grids_dir, "%s/../../../../run/all/H2D_grids", working_dir);
-		create_directory(H2D_grids_dir, current_proc_global_id == 0);
+		sprintf(H2D_grids_dir, "%s/../../../../run/all/internal_H2D_grids", working_dir);
+		create_directory(H2D_grids_dir, current_proc_global_id == 0, true);
+		sprintf(H2D_grids_dir, "%s/../../../../run/all/comps_ending_config_status", working_dir);
+		create_directory(H2D_grids_dir, current_proc_global_id == 0, true);
 		sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
 		strcpy(working_dir+strlen(working_dir), "/../../../all/");
 	}
@@ -231,12 +233,19 @@ void Comp_comm_group_mgt_node::reset_dir(Comp_comm_group_mgt_node *another_node)
 void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 {
 	int i, num_children_at_root, *num_children_for_all, *counts, *displs;
-	char *temp_buffer;
+	char *temp_buffer, status_file_name[NAME_STR_SIZE];
 	
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, !definition_finalized, "The registration related to component \"%s\" has been finalized before (the corresponding model code annotation is \"%s\"). It cannot be finalized again at the model code with the annotation \"%s\". Please verify.",
 		             comp_name, annotation_end, annotation); 
 	this->definition_finalized = true;
+
+	sprintf(status_file_name, "%s/comps_ending_config_status/%s.end", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+	if (current_proc_local_id == 0) {
+		FILE *status_file = fopen(status_file_name, "w+");
+		EXECUTION_REPORT(REPORT_ERROR, -1, status_file != NULL, "Software error in Comp_comm_group_mgt_node::merge_comp_comm_info: configuration ending status file cannot be created");
+		fclose(status_file);
+	}
 
 	strcpy(this->annotation_end, annotation);
 
@@ -745,5 +754,18 @@ const int *Comp_comm_group_mgt_mgr::get_all_components_ids()
 	all_components_ids[0] = global_node_array.size();
 
 	return all_components_ids;
+}
+
+
+bool Comp_comm_group_mgt_mgr::has_comp_ended_configuration(const char *comp_full_name)
+{
+	char status_file_name[NAME_STR_SIZE];
+	sprintf(status_file_name, "%s/comps_ending_config_status/%s.end", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_full_name);
+	FILE *status_file = fopen(status_file_name, "r");
+	if (status_file == NULL)
+		return false;
+
+	fclose(status_file);
+	return true;
 }
 

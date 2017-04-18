@@ -166,12 +166,6 @@ void Remap_grid_mgt::execute(const char*function, Remap_statement_operand **stat
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the whole grid");
         remap_grids.push_back(new Remap_grid_class(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name));
     }
-    else if (words_are_the_same(function, FUNCTION_WORD_NEW_MIDDLE_GRID)) {
-        EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2, "function \"%s\" can have only one source operand which is the whole grid\n", function);
-        check_is_parameter_object_type_grid(function, 0, statement_operands[0], "the middle level grid to be generated");
-        check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the level grid");
-        remap_grids.push_back(new Remap_grid_class(statement_operands[0]->object->object_name, statement_operands[1]->object->object_name, "level"));
-    }
     else if (words_are_the_same(function, FUNCTION_WORD_ADD_GRID_AREA)) {
         EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2, "function \"%s\" has two input parameters\n", function);
         check_is_parameter_object_type_grid(function, 1, statement_operands[0], "the partial grid");

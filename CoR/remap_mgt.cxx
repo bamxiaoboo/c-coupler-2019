@@ -36,7 +36,6 @@ void Remap_mgt::push_back_all_words()
     push_back_words("function", FUNCTION_WORD_ADD_BIN_FILE);
     push_back_words("function", FUNCTION_WORD_NEW_1D_GRID);
     push_back_words("function", FUNCTION_WORD_NEW_PARTIAL_GRID);
-	push_back_words("function", FUNCTION_WORD_NEW_MIDDLE_GRID);
     push_back_words("function", FUNCTION_WORD_ADD_GRID_AREA);
     push_back_words("function", FUNCTION_WORD_ADD_AREA_BOUND);
     push_back_words("function", FUNCTION_WORD_COMBINE_GRIDS);
@@ -316,8 +315,7 @@ void Remap_mgt::process_statement()
             }
             else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_1D_GRID) ||
                      words_are_the_same(remap_statement->function, FUNCTION_WORD_COMBINE_GRIDS) ||
-                     words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_PARTIAL_GRID) ||
-                     words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_MIDDLE_GRID)) {
+                     words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_PARTIAL_GRID)) {
                 strcpy(remap_statement->result_operand->object->object_type, OBJECT_TYPE_GRID);
             }
             else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_NEW_OPERATOR)) {

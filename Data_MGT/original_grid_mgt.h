@@ -38,6 +38,8 @@ class Original_grid_info
 		int T1D_sub_grid_order;
 		int bottom_field_id;
 		int bottom_field_variation_type;   // 0: static; 1: dynamic; 2: external
+		Original_grid_info *mid_point_grid;
+		Original_grid_info *interface_level_grid;
 
 		void generate_remapping_grids();
 		
@@ -52,7 +54,7 @@ class Original_grid_info
 		int get_bottom_field_variation_type() const { return bottom_field_variation_type; }
 		const char *get_bottom_field_name() const { return bottom_field_name; }
 		void set_bottom_field_variation_type(int type) { bottom_field_variation_type = type; }
-		void set_unique_bottom_field(int field_id, int type);
+		void set_unique_bottom_field(int field_id, int type, const char*);
 		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
 		Remap_grid_class *get_V1D_sub_CoR_grid() { return V1D_sub_CoR_grid; }
@@ -61,7 +63,11 @@ class Original_grid_info
 		bool is_3D_grid() { return H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid != NULL && T1D_sub_CoR_grid == NULL; }
 		bool is_H2D_grid() { return H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL; } 
 		void write_grid_into_array(char **, int &, int &);
-		int get_bottom_field_id() { return bottom_field_id; }
+		int get_bottom_field_id() { return bottom_field_id; }		
+		void get_grid_data(int, const char*, const char*, int, char*, const char*, const char*);
+		Original_grid_info *get_interface_level_grid() { return interface_level_grid; }
+		Original_grid_info *get_mid_point_grid() { return mid_point_grid; }
+		void set_mid_point_grid(Original_grid_info*);
 };
 
 
@@ -85,6 +91,7 @@ class Original_grid_mgt
 		int get_comp_id_of_grid(int) const;
 		const char *get_name_of_grid(int) const;
 		int get_grid_size(int, const char*) const;
+		int get_grid_id(int, const char*, const char*);
 		int add_original_grid(int, const char*, Remap_grid_class*);
 		int get_num_grid_levels(int);
 		bool is_V1D_sub_grid_after_H2D_sub_grid(int);
@@ -92,9 +99,10 @@ class Original_grid_mgt
 											   int, int, int, int, void *, void *, int *, void *, void *, void *, const char *, int);
 		int register_H2D_grid_via_file(int, const char *, const char *, const char *);
 		int register_H2D_grid_via_comp(int, const char *, const char *);
-		int register_V1D_grid_via_data(int, const char *, const char *, const char *, int, double, const double *, const double *, double, const char *);
-		int register_md_grid_via_multi_grids(int, const char*, int, int, int, const char*);
+		int register_V1D_grid_via_data(int, int, const char *, int, const char *, int, double, const double *, const double *, double, const char *);
+		int register_md_grid_via_multi_grids(int, const char*, int, int, int, int, int *, const char*);
 		void set_3d_grid_bottom_field(int, int, int, int, int, const char*, const char*);
+		void register_mid_point_grid(int, int*, int*, int, const int*, const char*, const char *);
 };
 
 

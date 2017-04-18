@@ -31,7 +31,6 @@ void Remap_grid_class::initialize_grid_class_data()
     this->num_dimensions = 0;
     this->num_vertexes = 0;
     this->whole_grid = NULL;
-	this->edge_grid = NULL;
     this->partial_areas.clear();
     this->super_grid_of_setting_coord_values = NULL;
     this->first_super_grid_of_enable_setting_coord_value = NULL;
@@ -62,6 +61,8 @@ void Remap_grid_class::initialize_grid_class_data()
 	this->sigma_grid_surface_value_field = NULL;
 	this->sigma_grid_surface_value_field_specified = false;
 	this->sigma_grid_dynamic_surface_value_field = NULL;
+	this->mid_point_grid = NULL;
+	this->interface_level_grid = NULL;
 }
 
 
@@ -213,29 +214,6 @@ Remap_grid_class::Remap_grid_class(const char *grid_name, const char *whole_grid
     this->num_dimensions = whole_grid->num_dimensions;
     this->grid_size = whole_grid->grid_size;    
 	whole_grid->end_grid_definition_stage(NULL);
-}
-
-
-Remap_grid_class::Remap_grid_class(const char *grid_name, const char *level_grid_name, const char *label)
-{
-    Remap_grid_class *edge_grid;
-
-
-    edge_grid = remap_grid_manager->search_remap_grid_with_grid_name(level_grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, edge_grid->get_num_dimensions() == 1 && words_are_the_same(edge_grid->coord_label, COORD_LABEL_LEV), "\"%s\" is not a level grid. It cannot be used to generate a level middle grid. Please Check.", level_grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, !edge_grid->is_partial_grid(), "\"%s\" is a partial grid or has partial sub grids. It can not be used to generate a level middle grid\n", level_grid_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, edge_grid->edge_grid == NULL, "\"%s\" is not a level edge grid. It cannot be used to generate a level middle grid. Please Check.", level_grid_name);
-
-	edge_grid->end_grid_definition_stage(NULL);
-	
-    initialize_grid_class_data();
-    strcpy(this->grid_name, grid_name);
-	this->edge_grid = edge_grid;
-    this->enable_to_set_coord_values = false;
-    this->num_dimensions = edge_grid->num_dimensions;
-    this->grid_size = edge_grid->grid_size - 1;
-	this->first_super_grid_of_enable_setting_coord_value = this;
-	strcpy(coord_label, COORD_LABEL_LEV);
 }
 
 
@@ -407,7 +385,6 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
 	duplicated_grid->sigma_grid_scale_factor = this->sigma_grid_scale_factor;
 	duplicated_grid->sigma_grid_top_value = this->sigma_grid_top_value;
 	duplicated_grid->whole_grid = this->whole_grid;
-	duplicated_grid->edge_grid = this->edge_grid;
 	if (this->sigma_grid_sigma_value_field != NULL)
 		duplicated_grid->sigma_grid_sigma_value_field = this->sigma_grid_sigma_value_field->duplicate_grid_data_field(duplicated_grid, 1, true, true);
 	if (this->hybrid_grid_coefficient_field != NULL)
@@ -884,8 +861,6 @@ Remap_grid_class *Remap_grid_class::get_a_leaf_grid_of_sigma_or_hybrid()
 
 	
 	leaf_grid = get_a_leaf_grid(COORD_LABEL_LEV);
-	if (leaf_grid->edge_grid != NULL)
-		leaf_grid = leaf_grid->edge_grid;
 	if (leaf_grid->sigma_grid_sigma_value_field != NULL)
 		return leaf_grid;
 
@@ -1036,9 +1011,6 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 
 Remap_grid_data_class *Remap_grid_class::get_sigma_grid_sigma_value_field()
 {
-	if (edge_grid != NULL)
-		return edge_grid->sigma_grid_sigma_value_field;
-
 	return sigma_grid_sigma_value_field;
 }
 
@@ -1557,6 +1529,24 @@ void Remap_grid_class::get_partial_grid_mask_fields(int *num_mask_fields_partial
 }
 
 
+Remap_grid_data_class *Remap_grid_class::get_grid_center_field(const char *label) const
+{
+	int num_leaf_grids;
+	Remap_grid_class *leaf_grids[256];
+	
+	
+	get_leaf_grids(&num_leaf_grids, leaf_grids, this);
+
+	for (int i = 0; i < num_leaf_grids; i ++)
+		if (words_are_the_same(leaf_grids[i]->get_coord_label(), label))
+			return leaf_grids[i]->get_grid_center_field();
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Remap_grid_class::get_grid_center_field: fail to find a leaf grid with coordinate \"%s\"", label);
+
+	return NULL;
+}
+
+
 Remap_grid_data_class *Remap_grid_class::get_grid_center_field() const
 {
     Remap_grid_class *super_grid;
@@ -1576,8 +1566,7 @@ Remap_grid_data_class *Remap_grid_class::get_grid_center_field() const
             break;
         }
 
-    EXECUTION_REPORT(REPORT_ERROR, -1, existing_data_field != NULL,
-                 "remap software error2 in get_grid_center_field\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, existing_data_field != NULL, "remap software error2 in get_grid_center_field\n");
 
     return existing_data_field;
 }
@@ -3287,12 +3276,6 @@ void Remap_grid_class::write_grid_into_array(char **array, int &buffer_max_size,
 	int temp_int;
 
 	
-	if (edge_grid != NULL) {
-		edge_grid->write_grid_into_array(array, buffer_max_size, buffer_content_size);
-		temp_int = 1;
-	}
-	else temp_int = 0;
-	write_data_into_array_buffer(&temp_int, sizeof(int), array, buffer_max_size, buffer_content_size);
 	for (int i = sub_grids.size()-1; i >= 0 ; i --)
 		sub_grids[i]->write_grid_into_array(array, buffer_max_size, buffer_content_size);
 	temp_int = sub_grids.size();
@@ -3380,9 +3363,6 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 		}
 		sub_grids.push_back(existing_grid);
 	}
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
-	if (temp_int != 0)
-		edge_grid = new Remap_grid_class(NULL, grid_name_suffix, array, buffer_content_iter);
 	
 	if (this == top_grid)
 		link_grids(top_grid, grid_name_suffix);
@@ -3481,5 +3461,51 @@ Remap_grid_class *Remap_grid_class::get_sphere_sub_grid()
 			return sub_grids[i]->get_sphere_sub_grid();
 
 	return NULL;
+}
+
+
+Remap_grid_data_class *Remap_grid_class::generate_mid_point_grid_field(Remap_grid_data_class *interface_level_grid_field)
+{
+	Remap_grid_data_class *mid_point_grid_field = interface_level_grid_field->duplicate_grid_data_field(mid_point_grid, 1, false, false);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(mid_point_grid_field->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "Software error in Remap_grid_class::generate_mid_point_grid_field: wrong data type");
+	for (int i = 0; i < mid_point_grid->num_dimensions; i ++)
+		((double*)mid_point_grid_field->get_grid_data_field()->data_buf)[i] = (((double*)interface_level_grid_field->get_grid_data_field()->data_buf)[i]+((double*)interface_level_grid_field->get_grid_data_field()->data_buf)[i+1]) / 2; 
+
+	return mid_point_grid_field;
+}
+
+
+Remap_grid_class *Remap_grid_class::generate_mid_point_grid()
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, this->num_dimensions == 1 && has_grid_coord_label(COORD_LABEL_LEV), "Software error in Remap_grid_class::generate_mid_point_grid: not a V1D grid");
+	EXECUTION_REPORT(REPORT_ERROR, -1, this->interface_level_grid == NULL, "Software error in Remap_grid_class::generate_mid_point_grid: for mid-point grid of a mid-point grid");
+	if (this->mid_point_grid != NULL)
+		return this->mid_point_grid;
+
+	mid_point_grid = duplicate_grid(this);
+	mid_point_grid->interface_level_grid = this;
+	mid_point_grid->grid_size = this->grid_size - 1;
+    mid_point_grid->first_super_grid_of_enable_setting_coord_value = mid_point_grid;
+	if (this->super_grid_of_setting_coord_values != NULL)
+	    mid_point_grid->super_grid_of_setting_coord_values = mid_point_grid;
+	sprintf(mid_point_grid->grid_name, "mid_point_grid_for_%s", this->grid_name);
+	if (this->grid_center_fields.size() == 1) {
+		delete mid_point_grid->grid_center_fields[0];
+		mid_point_grid->grid_center_fields[0] = this->generate_mid_point_grid_field(this->grid_center_fields[0]);
+	}
+	if (this->sigma_grid_sigma_value_field != NULL) {
+		delete mid_point_grid->sigma_grid_sigma_value_field;
+		mid_point_grid->sigma_grid_sigma_value_field = this->generate_mid_point_grid_field(this->sigma_grid_sigma_value_field);
+	}
+	if (this->hybrid_grid_coefficient_field != NULL) {
+		delete mid_point_grid->hybrid_grid_coefficient_field;
+		mid_point_grid->hybrid_grid_coefficient_field = this->generate_mid_point_grid_field(this->hybrid_grid_coefficient_field);
+	}
+	if (mid_point_grid->grid_vertex_fields.size() == 1) {
+		delete mid_point_grid->grid_vertex_fields[0];
+		mid_point_grid->grid_vertex_fields.clear();
+	}
+
+	return mid_point_grid;
 }
 

@@ -146,6 +146,7 @@ class Comp_comm_group_mgt_mgr
 		void generate_sorted_comp_ids();
 		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }
+		bool has_comp_ended_configuration(const char*);
 };
 
 

@@ -214,13 +214,17 @@ int get_num_fields_in_config_file(const char *config_file_name, const char *conf
 }
 
 
-void create_directory(const char *path, bool is_root_proc)
+void create_directory(const char *path, bool is_root_proc, bool new_dir)
 {
 	if (is_root_proc) {
-		printf("path1 is %s\n", path);
 		DIR *dir=opendir(path);
+		if (new_dir) {
+			char buffer[NAME_STR_SIZE];
+			sprintf(buffer, "rm -rf \"%s\"", path);
+			system(buffer);
+			dir = NULL;
+		}
 		if (dir == NULL) {
-			printf("path2 is %s\n", path);
 			int is_create = mkdir(path, 0777);
 			EXECUTION_REPORT(REPORT_ERROR, -1, is_create == 0, "directory \"%s\" cannot be created. Please check why.", path);
 		}

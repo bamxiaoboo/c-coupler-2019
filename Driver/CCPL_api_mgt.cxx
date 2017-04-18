@@ -66,26 +66,29 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			sprintf(API_label, "CCPL_set_grid_data");
 			break;
         case API_ID_GRID_MGT_SET_3D_GRID_DYN_BOT_FLD:
-			sprintf(API_label, "CCPL_set_3D_grid_dynamic_bottom_field");
+			sprintf(API_label, "CCPL_set_3D_grid_dynamic_surface_field");
 			break;
         case API_ID_GRID_MGT_SET_3D_GRID_STATIC_BOT_FLD:
-			sprintf(API_label, "CCPL_set_3D_grid_static_bottom_field");
+			sprintf(API_label, "CCPL_set_3D_grid_static_surface_field");
 			break;
 		case API_ID_GRID_MGT_SET_3D_GRID_EXTERNAL_BOT_FLD:
-			sprintf(API_label, "CCPL_set_3D_grid_external_bottom_field");
+			sprintf(API_label, "CCPL_set_3D_grid_external_surface_field");
 			break;			
-        case API_ID_GRID_MGT_GET_GRID_GLOBAL_DATA:
-			sprintf(API_label, "CCPL_get_global_grid_data");
+        case API_ID_GRID_MGT_GET_H2D_GRID_DATA:
+			sprintf(API_label, "CCPL_get_H2D_grid_data");
 			break;
-        case API_ID_GRID_MGT_GET_GRID_LOCAL_DATA:
-			sprintf(API_label, "CCPL_get_local_grid_data");
+        case API_ID_GRID_MGT_REG_MID_POINT_GRID:
+			sprintf(API_label, "CCPL_register_mid_point_grid");
 			break;
-        case API_ID_GRID_MGT_GET_MID_LAYER_GRID:
-			sprintf(API_label, "CCPL_get_mid_layer_grid");
-			break;
-		case API_ID_GRID_MGT_REG_V1D_GRID_VIA_MODEL_DATA:
-			sprintf(API_label, "CCPL_register_V1D_grid_via_model_data");
-			break;		
+		case API_ID_GRID_MGT_REG_V1D_Z_GRID_VIA_MODEL:
+			sprintf(API_label, "CCPL_register_V1D_Z_grid_via_model_data");
+			break;	
+		case API_ID_GRID_MGT_REG_V1D_SIGMA_GRID_VIA_MODEL:
+			sprintf(API_label, "CCPL_register_V1D_SIGMA_grid_via_model_data");
+			break;	
+		case API_ID_GRID_MGT_REG_V1D_HYBRID_GRID_VIA_MODEL:
+			sprintf(API_label, "CCPL_register_V1D_HYBRID_grid_via_model_data");
+			break;	
 		case API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS:
 			sprintf(API_label, "CCPL_register_MD_grid_via_multi_grids");
 			break;			
@@ -269,7 +272,7 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 	if (local_process_id == 0) {
 		get_API_hint(comp_id, API_id, API_label);
 		for (i = 1; i < num_processes; i ++)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\" for %s: parameter \"%s\" is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\" for %s: parameter information (%s) is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 			                  API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
 	}
 
@@ -280,9 +283,16 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, const char *hint, int array_size, const char *array_value, const char *parameter_name, const char *annotation)
 {
 	long temp_checksum = 0, total_checksum = 0;
+	char API_label[NAME_STR_SIZE], temp_str[NAME_STR_SIZE];
 
 
-	if (array_size == 0)
+	get_API_hint(comp_id, API_id, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling API \"%s\" for %s: parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+
+	sprintf(temp_str, "implicit array size for \"%s\"", parameter_name);
+	check_API_parameter_int(comp_id, API_id, comm, hint, array_size, temp_str, annotation);
+
+	if (array_size <= 0)
 		return;
 	
 	for (int i = 0; i < array_size/sizeof(long); i ++)

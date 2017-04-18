@@ -16,17 +16,17 @@
 
 
 #define BUF_MARK_GRID_FIELD                      (-100)
-#define BUF_MARK_AVERAGED_INNER                  ((int)(0xFFFF0000))
-#define BUF_MARK_AVERAGED_INTER                  ((int)(0xFFF70000))
-#define BUF_MARK_UNIT_TRANS                      ((int)(0xFFF00000))
-#define BUF_MARK_DATATYPE_TRANS                  ((int)(0xFF700000))
+#define BUF_MARK_AVERAGED_INNER                  ((int)(0xF00F0000))
+#define BUF_MARK_AVERAGED_INTER                  ((int)(0xF0070000))
+#define BUF_MARK_UNIT_TRANS                      ((int)(0xF0F00000))
+#define BUF_MARK_DATATYPE_TRANS                  ((int)(0xF0700000))
 #define BUF_MARK_DATA_TRANSFER                   ((int)(0xFF000000))
 #define BUF_MARK_IO_FIELD_REG                    ((int)(0xF7000000))
 #define BUF_MARK_IO_FIELD_MIRROR                 ((int)(0xF7100000))
 #define BUF_MARK_GATHER                          ((int)(0xF1000000))
 #define BUF_MARK_REMAP_NORMAL                    ((int)(0xF0000000))
 #define BUF_MARK_REMAP_DATATYPE_TRANS_SRC        ((int)(0xF0200000))
-#define BUF_MARK_REMAP_DATATYPE_TRANS_DST        ((int)(0xF0200000))
+#define BUF_MARK_REMAP_DATATYPE_TRANS_DST        ((int)(0xF0400000))
 
 
 class Field_mem_info

@@ -877,7 +877,7 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 	*data_array_ptr = NULL;
 	*num_dims = 0;
 	*dim_size_ptr = NULL;
-	*field_size = 0;
+	*field_size = -1;
 	
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
     report_nc_error();
@@ -910,7 +910,8 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 
 	*data_array_ptr = data_array;
 	*dim_size_ptr = dim_size;
-	*field_size = total_size;
+	if (total_size > 0)
+		*field_size = total_size;
 
 	delete [] dim_ids;
 

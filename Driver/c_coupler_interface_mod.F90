@@ -103,11 +103,21 @@
 
 
 
-   interface CCPL_register_V1D_grid_via_model_data; module procedure &
+   interface CCPL_register_V1D_Z_grid_via_model_data; module procedure &
         CCPL_register_V1D_Z_grid_via_double_data, &
-        CCPL_register_V1D_Z_grid_via_float_data, &
+        CCPL_register_V1D_Z_grid_via_float_data
+   end interface
+
+
+
+   interface CCPL_register_V1D_SIGMA_grid_via_model_data; module procedure &
         CCPL_register_V1D_SIGMA_grid_via_double_data, &
-        CCPL_register_V1D_SIGMA_grid_via_float_data, &
+        CCPL_register_V1D_SIGMA_grid_via_float_data
+   end interface
+
+
+
+   interface CCPL_register_V1D_HYBRID_grid_via_model_data; module procedure &
         CCPL_register_V1D_HYBRID_grid_via_double_data, &
         CCPL_register_V1D_HYBRID_grid_via_float_data
    end interface
@@ -115,8 +125,17 @@
 
 
    interface CCPL_register_H2D_grid_via_model_data; module procedure &
-        CCPL_register_H2D_grid_via_double_data, &
-        CCPL_register_H2D_grid_via_float_data
+        CCPL_register_H2D_grid_online_C1D_M1D_float, &
+        CCPL_register_H2D_grid_online_C1D_M1D_double , &
+        CCPL_register_H2D_grid_online_C2D_M2D_float, &
+        CCPL_register_H2D_grid_online_C2D_M2D_double
+   end interface
+
+
+   interface CCPL_get_H2D_grid_data; module procedure &
+       CCPL_get_H2D_grid_integer_data, &
+       CCPL_get_H2D_grid_float_data, &
+       CCPL_get_H2D_grid_double_data
    end interface
 
 
@@ -1702,55 +1721,49 @@
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_via_float_data(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+   integer FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
                                                            center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
-   integer, intent(in)                                     :: comp_id
-   character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: edge_type
-   character(len=*), intent(in)                            :: coord_unit
-   character(len=*), intent(in)                            :: cyclic_or_acyclic
-   integer,          intent(in)                            :: dim_size1
-   integer,          intent(in)                            :: dim_size2
-   real(R4),         intent(in), dimension(:)              :: center_lon
-   real(R4),         intent(in), dimension(:)              :: center_lat
-   integer,          intent(in), dimension(:), optional    :: mask
-   real(R4),         intent(in), dimension(:), optional    :: area
-   real(R4),         intent(in), dimension(:), optional    :: vertex_lon
-   real(R4),         intent(in), dimension(:), optional    :: vertex_lat
-   character(len=*), intent(in),               optional    :: annotation
-   integer,                      dimension(:), allocatable :: temp_mask
-   real(R4),                     dimension(:), allocatable :: temp_area
-   real(R4),                     dimension(:), allocatable :: temp_vertex_lon
-   real(R4),                     dimension(:), allocatable :: temp_vertex_lat
-   integer                                                 :: grid_id
-   integer                                                 :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+   integer, intent(in)                                              :: comp_id
+   character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
+   integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R4),         intent(in), dimension(:)                       :: center_lon, center_lat
+   integer,          intent(in), dimension(:),   target, optional   :: mask
+   real(R4),         intent(in), dimension(:),   target, optional   :: area
+   real(R4),         intent(in), dimension(:,:), target, optional   :: vertex_lon, vertex_lat
+   character(len=*), intent(in),                         optional   :: annotation
+   integer,                      dimension(:),   pointer            :: temp_mask, temp_int
+   real(R4),                     dimension(:),   pointer            :: temp_area, temp_float_1d
+   real(R4),                     dimension(:,:), pointer            :: temp_vertex_lon, temp_vertex_lat, temp_float_2d
+   integer                                                          :: grid_id
+   integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
    
    size_center_lon = size(center_lon)
    size_center_lat = size(center_lat)
-   size_mask = 0
-   size_area = 0
-   size_vertex_lon = 0
-   size_vertex_lat = 0
+   size_mask = -1
+   size_area = -1
+   size_vertex_lon = -1
+   size_vertex_lat = -1
+   allocate(temp_int(1), temp_float_1d(1), temp_float_2d(1,1))
+   temp_mask => temp_int
+   temp_area => temp_float_1d
+   temp_vertex_lon => temp_float_2d
+   temp_vertex_lat => temp_float_2d
    if (present(mask)) then
       size_mask = size(mask)
-      allocate(temp_mask(size_mask))
-      temp_mask = mask
+      temp_mask => mask
    endif
    if (present(area)) then
       size_area = size(area)
-      allocate(temp_area(size_area))
-      temp_area = area
+      temp_area => area
    endif
    if (present(vertex_lon)) then
       size_vertex_lon = size(vertex_lon)
-      allocate(temp_vertex_lon(size_vertex_lon))
-      temp_vertex_lon = vertex_lon
+      temp_vertex_lon => vertex_lon
    endif
    if (present(vertex_lat)) then
       size_vertex_lat = size(vertex_lat)
-      allocate(temp_vertex_lat(size_vertex_lat))
-      temp_vertex_lat = vertex_lat
+      temp_vertex_lat => vertex_lat
    endif
 
    if (present(annotation)) then
@@ -1763,66 +1776,58 @@
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
-   if (present(mask)) deallocate(temp_mask)
-   if (present(area)) deallocate(temp_area)
-   if (present(vertex_lon)) deallocate(temp_vertex_lon)
-   if (present(vertex_lat)) deallocate(temp_vertex_lat)
+   CCPL_register_H2D_grid_online_C1D_M1D_float = grid_id
 
-   CCPL_register_H2D_grid_via_float_data = grid_id
+   deallocate(temp_int, temp_float_1d, temp_float_2d)
 
-   end FUNCTION CCPL_register_H2D_grid_via_float_data
+   end FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_float
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_via_double_data(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+   integer FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
                                                            center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
-   integer, intent(in)                                     :: comp_id
-   character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: edge_type
-   character(len=*), intent(in)                            :: coord_unit
-   character(len=*), intent(in)                            :: cyclic_or_acyclic
-   integer,          intent(in)                            :: dim_size1
-   integer,          intent(in)                            :: dim_size2
-   real(R8),         intent(in), dimension(:)              :: center_lon
-   real(R8),         intent(in), dimension(:)              :: center_lat
-   integer,          intent(in), dimension(:), optional    :: mask
-   real(R8),         intent(in), dimension(:), optional    :: area
-   real(R8),         intent(in), dimension(:), optional    :: vertex_lon
-   real(R8),         intent(in), dimension(:), optional    :: vertex_lat
-   character(len=*), intent(in),               optional    :: annotation
-   integer,                      dimension(:), allocatable :: temp_mask
-   real(R8),                     dimension(:), allocatable :: temp_area
-   real(R8),                     dimension(:), allocatable :: temp_vertex_lon
-   real(R8),                     dimension(:), allocatable :: temp_vertex_lat
-   integer                                                 :: grid_id
-   integer                                                 :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
-   
+   integer, intent(in)                                              :: comp_id
+   character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
+   integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R8),         intent(in), dimension(:)                       :: center_lon, center_lat
+   integer,          intent(in), dimension(:),   target, optional   :: mask
+   real(R8),         intent(in), dimension(:),   target, optional   :: area
+   real(R8),         intent(in), dimension(:,:), target, optional   :: vertex_lon, vertex_lat
+   character(len=*), intent(in),                         optional   :: annotation
+   integer,                      dimension(:),   pointer            :: temp_mask, temp_int
+   real(R8),                     dimension(:),   pointer            :: temp_area, temp_double_1d
+   real(R8),                     dimension(:,:), pointer            :: temp_vertex_lon, temp_vertex_lat, temp_double_2d
+   integer                                                          :: grid_id
+   integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+  
+
    size_center_lon = size(center_lon)
    size_center_lat = size(center_lat)
-   size_mask = 0
-   size_area = 0
-   size_vertex_lon = 0
-   size_vertex_lat = 0
+   size_mask = -1
+   size_area = -1
+   size_vertex_lon = -1
+   size_vertex_lat = -1
+   allocate(temp_int(1), temp_double_1d(1), temp_double_2d(1,1))
+   temp_mask => temp_int
+   temp_area => temp_double_1d
+   temp_vertex_lon => temp_double_2d
+   temp_vertex_lat => temp_double_2d
    if (present(mask)) then
       size_mask = size(mask)
-      allocate(temp_mask(size_mask))
-      temp_mask = mask
+      temp_mask => mask
    endif
    if (present(area)) then
       size_area = size(area)
-      allocate(temp_area(size_area))
-      temp_area = area
+      temp_area => area
    endif
    if (present(vertex_lon)) then
       size_vertex_lon = size(vertex_lon)
-      allocate(temp_vertex_lon(size_vertex_lon))
-      temp_vertex_lon = vertex_lon
+      temp_vertex_lon => vertex_lon
    endif
    if (present(vertex_lat)) then
       size_vertex_lat = size(vertex_lat)
-      allocate(temp_vertex_lat(size_vertex_lat))
-      temp_vertex_lat = vertex_lat
+      temp_vertex_lat => vertex_lat
    endif
 
    if (present(annotation)) then
@@ -1835,31 +1840,155 @@
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
-   if (present(mask)) deallocate(temp_mask)
-   if (present(area)) deallocate(temp_area)
-   if (present(vertex_lon)) deallocate(temp_vertex_lon)
-   if (present(vertex_lat)) deallocate(temp_vertex_lat)
+   CCPL_register_H2D_grid_online_C1D_M1D_double = grid_id
 
-   CCPL_register_H2D_grid_via_double_data = grid_id
+   deallocate(temp_int, temp_double_1d, temp_double_2d)
 
-   end FUNCTION CCPL_register_H2D_grid_via_double_data
+   end FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_double
 
 
 
-   integer FUNCTION CCPL_register_V1D_Z_grid_via_double_data(comp_id, grid_name, grid_type, coord_unit, coord_values, annotation)
+   integer FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+   implicit none
+   integer, intent(in)                                              :: comp_id
+   character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
+   integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R4),         intent(in), dimension(:,:)                     :: center_lon, center_lat
+   integer,          intent(in), dimension(:,:),   target, optional :: mask
+   real(R4),         intent(in), dimension(:,:),   target, optional :: area
+   real(R4),         intent(in), dimension(:,:,:), target, optional :: vertex_lon, vertex_lat
+   character(len=*), intent(in),                           optional :: annotation
+   integer,                      dimension(:,:),   pointer          :: temp_mask, temp_int
+   real(R4),                     dimension(:,:),   pointer          :: temp_area, temp_float_2d
+   real(R4),                     dimension(:,:,:), pointer          :: temp_vertex_lon, temp_vertex_lat, temp_float_3d
+   integer                                                          :: grid_id
+   integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+   
+   size_center_lon = size(center_lon)
+   size_center_lat = size(center_lat)
+   size_mask = -1
+   size_area = -1
+   size_vertex_lon = -1
+   size_vertex_lat = -1
+   allocate(temp_int(1,1), temp_float_2d(1,1), temp_float_3d(1,1,1))
+   temp_mask => temp_int
+   temp_area => temp_float_2d
+   temp_vertex_lon => temp_float_3d
+   temp_vertex_lat => temp_float_3d
+   if (present(mask)) then
+      size_mask = size(mask)
+      temp_mask => mask
+   endif
+   if (present(area)) then
+      size_area = size(area)
+      temp_area => area
+   endif
+   if (present(vertex_lon)) then
+      size_vertex_lon = size(vertex_lon)
+      temp_vertex_lon => vertex_lon
+   endif
+   if (present(vertex_lat)) then
+      size_vertex_lat = size(vertex_lat)
+      temp_vertex_lat => vertex_lat
+   endif
+
+   if (present(annotation)) then
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                       trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+   else
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                       trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+   endif
+
+   CCPL_register_H2D_grid_online_C2D_M2D_float = grid_id
+
+   deallocate(temp_int, temp_float_2d, temp_float_3d)
+
+   end FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_float
+
+
+
+   integer FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+   implicit none
+   integer, intent(in)                                              :: comp_id
+   character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
+   integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R8),         intent(in), dimension(:,:)                     :: center_lon, center_lat
+   integer,          intent(in), dimension(:,:),   target, optional :: mask
+   real(R8),         intent(in), dimension(:,:),   target, optional :: area
+   real(R8),         intent(in), dimension(:,:,:), target, optional :: vertex_lon, vertex_lat
+   character(len=*), intent(in),                           optional :: annotation
+   integer,                      dimension(:,:),   pointer          :: temp_mask, temp_int
+   real(R8),                     dimension(:,:),   pointer          :: temp_area, temp_double_2d
+   real(R8),                     dimension(:,:,:), pointer          :: temp_vertex_lon, temp_vertex_lat, temp_double_3d
+   integer                                                          :: grid_id
+   integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+  
+
+   size_center_lon = size(center_lon)
+   size_center_lat = size(center_lat)
+   size_mask = -1
+   size_area = -1
+   size_vertex_lon = -1
+   size_vertex_lat = -1
+   allocate(temp_int(1,1), temp_double_2d(1,1), temp_double_3d(1,1,1))
+   temp_mask => temp_int
+   temp_area => temp_double_2d
+   temp_vertex_lon => temp_double_3d
+   temp_vertex_lat => temp_double_3d
+   if (present(mask)) then
+      size_mask = size(mask)
+      temp_mask => mask
+   endif
+   if (present(area)) then
+      size_area = size(area)
+      temp_area => area
+   endif
+   if (present(vertex_lon)) then
+      size_vertex_lon = size(vertex_lon)
+      temp_vertex_lon => vertex_lon
+   endif
+   if (present(vertex_lat)) then
+      size_vertex_lat = size(vertex_lat)
+      temp_vertex_lat => vertex_lat
+   endif
+
+   if (present(annotation)) then
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                        trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+   else
+      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                       trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+   endif
+
+   CCPL_register_H2D_grid_online_C2D_M2D_double = grid_id
+
+   deallocate(temp_int, temp_double_2d, temp_double_3d)
+
+   end FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_double
+
+
+
+
+   integer FUNCTION CCPL_register_V1D_Z_grid_via_double_data(comp_id, grid_name, coord_unit, coord_values, annotation)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: grid_type
    character(len=*), intent(in)                            :: coord_unit
    real(R8),         intent(in), dimension(:)              :: coord_values
    character(len=*), intent(in),               optional    :: annotation
    integer                                                 :: grid_id
 
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
    endif
 
    CCPL_register_V1D_Z_grid_via_double_data = grid_id
@@ -1868,20 +1997,19 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_Z_grid_via_float_data(comp_id, grid_name, grid_type, coord_unit, coord_values, annotation)
+   integer FUNCTION CCPL_register_V1D_Z_grid_via_float_data(comp_id, grid_name, coord_unit, coord_values, annotation)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: grid_type
    character(len=*), intent(in)                            :: coord_unit
    real(R4),         intent(in), dimension(:)              :: coord_values
    character(len=*), intent(in),               optional    :: annotation
    integer                                                 :: grid_id
 
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
    endif
 
    CCPL_register_V1D_Z_grid_via_float_data = grid_id
@@ -1890,25 +2018,24 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_double_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, annotation, scale_factor)
+   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_double_data(comp_id, grid_name, coord_unit, top_value, sigma_values, annotation, scale_factor)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: grid_type
    character(len=*), intent(in)                            :: coord_unit
    real(R8),         intent(in)                            :: top_value
    real(R8),         intent(in), dimension(:)              :: sigma_values
    character(len=*), intent(in),               optional    :: annotation
    real(R8),         intent(in),               optional    :: scale_factor
    integer                                                 :: grid_id
-   real                                                    :: local_scale_factor
+   real(R8)                                                :: local_scale_factor
 
    local_scale_factor = 1.0
    if (present(scale_factor)) local_scale_factor = scale_factor
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
    endif
 
    CCPL_register_V1D_SIGMA_grid_via_double_data = grid_id
@@ -1917,25 +2044,24 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_float_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, annotation, scale_factor)
+   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_float_data(comp_id, grid_name, coord_unit, top_value, sigma_values, annotation, scale_factor)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: grid_type
    character(len=*), intent(in)                            :: coord_unit
    real(R4),         intent(in)                            :: top_value
    real(R4),         intent(in), dimension(:)              :: sigma_values
    character(len=*), intent(in),               optional    :: annotation
    real(R4),         intent(in),               optional    :: scale_factor
    integer                                                 :: grid_id
-   real                                                    :: local_scale_factor
+   real(R4)                                                :: local_scale_factor
 
    local_scale_factor = 1.0
    if (present(scale_factor)) local_scale_factor = scale_factor
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
    endif
 
    CCPL_register_V1D_SIGMA_grid_via_float_data = grid_id
@@ -1944,26 +2070,27 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_double_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, coefficient_values, annotation, scale_factor)
+   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_double_data(comp_id, grid_name, coord_unit, coef_A, coef_B, annotation, scale_factor_for_A, scale_factor_for_all)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: grid_type
    character(len=*), intent(in)                            :: coord_unit
-   real(R8),         intent(in)                            :: top_value
-   real(R8),         intent(in), dimension(:)              :: sigma_values
-   real(R8),         intent(in), dimension(:)              :: coefficient_values
+   real(R8),         intent(in), dimension(:)              :: coef_A
+   real(R8),         intent(in), dimension(:)              :: coef_B
    character(len=*), intent(in),               optional    :: annotation
-   real(R8),         intent(in),               optional    :: scale_factor
+   real(R8),         intent(in),               optional    :: scale_factor_for_A
+   real(R8),         intent(in),               optional    :: scale_factor_for_all
    integer                                                 :: grid_id
-   real                                                    :: local_scale_factor
+   real(R8)                                                :: local_scale_factor_for_A, local_scale_factor_for_all
 
-   local_scale_factor = 1.0
-   if (present(scale_factor)) local_scale_factor = scale_factor
+   local_scale_factor_for_A = 1.0
+   local_scale_factor_for_all = 1.0
+   if (present(scale_factor_for_A)) local_scale_factor_for_A = scale_factor_for_A
+   if (present(scale_factor_for_all)) local_scale_factor_for_all = scale_factor_for_all
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real8", top_value, sigma_values, coefficient_values, local_scale_factor, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real8", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real8", top_value, sigma_values, coefficient_values, local_scale_factor, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real8", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim("")//char(0))
    endif
 
    CCPL_register_V1D_HYBRID_grid_via_double_data = grid_id
@@ -1972,26 +2099,27 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data(comp_id, grid_name, grid_type, coord_unit, top_value, sigma_values, coefficient_values, annotation, scale_factor)
+   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data(comp_id, grid_name, coord_unit, coef_A, coef_B, annotation, scale_factor_for_A, scale_factor_for_all)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
-   character(len=*), intent(in)                            :: grid_type
    character(len=*), intent(in)                            :: coord_unit
-   real(R4),         intent(in)                            :: top_value
-   real(R4),         intent(in), dimension(:)              :: sigma_values
-   real(R4),         intent(in), dimension(:)              :: coefficient_values
+   real(R4),         intent(in), dimension(:)              :: coef_A
+   real(R4),         intent(in), dimension(:)              :: coef_B
    character(len=*), intent(in),               optional    :: annotation
-   real(R4),         intent(in),               optional    :: scale_factor
+   real(R4),         intent(in),               optional    :: scale_factor_for_A
+   real(R4),         intent(in),               optional    :: scale_factor_for_all
    integer                                                 :: grid_id
-   real                                                    :: local_scale_factor
+   real(R4)                                                :: local_scale_factor_for_A, local_scale_factor_for_all
 
-   local_scale_factor = 1.0
-   if (present(scale_factor)) local_scale_factor = scale_factor
+   local_scale_factor_for_A = 1.0
+   local_scale_factor_for_all = 1.0
+   if (present(scale_factor_for_A)) local_scale_factor_for_A = scale_factor_for_A
+   if (present(scale_factor_for_all)) local_scale_factor_for_all = scale_factor_for_all
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real4", top_value, sigma_values, coefficient_values, local_scale_factor, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real4", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(grid_type)//char(0), trim(coord_unit)//char(0), size(sigma_values), size(coefficient_values), "real4", top_value, sigma_values, coefficient_values, local_scale_factor, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real4", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim("")//char(0))
    endif
 
    CCPL_register_V1D_HYBRID_grid_via_float_data = grid_id
@@ -2000,32 +2128,44 @@
 
 
 
-   integer FUNCTION CCPL_register_MD_grid_via_multi_grids(comp_id, grid_name, sub_grid1_id, sub_grid2_id, sub_grid3_id, annotation)
+   integer FUNCTION CCPL_register_MD_grid_via_multi_grids(comp_id, grid_name, sub_grid1_id, sub_grid2_id, sub_grid3_id, mask, annotation)
    implicit none
-   integer, intent(in)                                     :: comp_id
-   character(len=*), intent(in)                            :: grid_name
-   integer, intent(in)                                     :: sub_grid1_id
-   integer, intent(in)                                     :: sub_grid2_id
-   integer, intent(in),                        optional    :: sub_grid3_id
-   character(len=*), intent(in),               optional    :: annotation
-   integer                                                 :: grid_id, local_sub_grid3_id
+   integer, intent(in)                                               :: comp_id
+   character(len=*), intent(in)                                      :: grid_name
+   integer, intent(in)                                               :: sub_grid1_id
+   integer, intent(in)                                               :: sub_grid2_id
+   integer, intent(in),                                optional      :: sub_grid3_id
+   character(len=*), intent(in),                       optional      :: annotation
+   integer,          intent(in), dimension(:), target, optional      :: mask
+   integer,                      dimension(:), pointer               :: temp_mask, temp_int
+   integer                                                           :: grid_id, local_sub_grid3_id, size_mask
    
+   
+   size_mask = -1
+   allocate(temp_int(1))
+   temp_mask => temp_int
+   if (present(mask)) then
+       size_mask = size(mask)
+       temp_mask => mask
+   endif
    local_sub_grid3_id = -1
    if (present(sub_grid3_id)) local_sub_grid3_id = sub_grid3_id 
 
    if (present(annotation)) then
-      call register_MD_grid_via_multi_grids(comp_id, grid_id, trim(grid_name)//char(0), sub_grid1_id, sub_grid2_id, local_sub_grid3_id, trim(annotation)//char(0))
+      call register_MD_grid_via_multi_grids(comp_id, grid_id, trim(grid_name)//char(0), sub_grid1_id, sub_grid2_id, local_sub_grid3_id, size_mask, temp_mask, trim(annotation)//char(0))
    else 
-      call register_MD_grid_via_multi_grids(comp_id, grid_id, trim(grid_name)//char(0), sub_grid1_id, sub_grid2_id, local_sub_grid3_id, trim("")//char(0))
+      call register_MD_grid_via_multi_grids(comp_id, grid_id, trim(grid_name)//char(0), sub_grid1_id, sub_grid2_id, local_sub_grid3_id, size_mask, temp_mask, trim("")//char(0))
    endif
 
    CCPL_register_MD_grid_via_multi_grids = grid_id
 
-   END FUNCTION CCPL_register_MD_grid_via_multi_grids
+   deallocate(temp_int)
+
+   END FUNCTION CCPL_register_MD_grid_via_multi_grids 
 
 
 
-   SUBROUTINE CCPL_set_3D_grid_dynamic_bottom_field(grid_id, field_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_dynamic_surface_field(grid_id, field_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    integer, intent(in)                                     :: field_id
@@ -2033,16 +2173,16 @@
  
    
    if (present(annotation)) then
-       call set_3D_grid_bottom_field(grid_id, field_id, 1, trim(annotation)//char(0))
+       call set_3D_grid_surface_field(grid_id, field_id, 1, trim(annotation)//char(0))
    else
-       call set_3D_grid_bottom_field(grid_id, field_id, 1, trim("")//char(0))
+       call set_3D_grid_surface_field(grid_id, field_id, 1, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_3D_grid_dynamic_bottom_field
+   END SUBROUTINE CCPL_set_3D_grid_dynamic_surface_field
    
 
 
-   SUBROUTINE CCPL_set_3D_grid_static_bottom_field(grid_id, field_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_static_surface_field(grid_id, field_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    integer, intent(in)                                     :: field_id
@@ -2050,28 +2190,56 @@
  
    
    if (present(annotation)) then
-       call set_3D_grid_bottom_field(grid_id, field_id, 0, trim(annotation)//char(0))
+       call set_3D_grid_surface_field(grid_id, field_id, 0, trim(annotation)//char(0))
    else
-       call set_3D_grid_bottom_field(grid_id, field_id, 0, trim("")//char(0))
+       call set_3D_grid_surface_field(grid_id, field_id, 0, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_3D_grid_static_bottom_field
+   END SUBROUTINE CCPL_set_3D_grid_static_surface_field
 
 
 
-   SUBROUTINE CCPL_set_3D_grid_external_bottom_field(grid_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_external_surface_field(grid_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    character(len=*), intent(in),               optional    :: annotation
 
 
    if (present(annotation)) then
-       call set_3D_grid_bottom_field(grid_id, -1, 2, trim(annotation)//char(0))
+       call set_3D_grid_surface_field(grid_id, -1, 2, trim(annotation)//char(0))
    else
-       call set_3D_grid_bottom_field(grid_id, -1, 2, trim("")//char(0))
+       call set_3D_grid_surface_field(grid_id, -1, 2, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_3D_grid_external_bottom_field
+   END SUBROUTINE CCPL_set_3D_grid_external_surface_field
+
+
+
+   SUBROUTINE CCPL_register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, mask, annotation)
+   implicit none
+   integer, intent(in)                                     :: level_3D_grid_id
+   integer, intent(out)                                    :: mid_3D_grid_id
+   integer, intent(out)                                    :: mid_1D_grid_id
+   integer, intent(in),  dimension(:), target, optional    :: mask
+   integer,              dimension(:),         pointer     :: temp_mask, temp_int
+   character(len=*), intent(in),               optional    :: annotation
+   integer                                                 :: size_mask
+
+
+   allocate(temp_int(1))
+   size_mask = -1
+   temp_mask => temp_int
+   if (present(mask)) then
+      temp_mask=>mask
+      size_mask = size(mask)
+   endif
+   if (present(annotation)) then
+      call register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, size_mask, temp_mask, trim(annotation)//char(0))
+   else
+      call register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, size_mask, temp_mask, trim("")//char(0))
+   endif
+   deallocate(temp_int)
+   END SUBROUTINE CCPL_register_mid_point_grid
 
 
 
@@ -2090,6 +2258,79 @@
    CCPL_get_grid_size = grid_size
     
    END FUNCTION CCPL_get_grid_size
+
+
+
+   integer FUNCTION CCPL_get_grid_id(comp_id, grid_name, annotation) 
+   implicit none
+   integer, intent(in)                     :: comp_id
+   integer                                 :: grid_id
+   character(len=*), intent(in)            :: grid_name
+   character(len=*), intent(in), optional  :: annotation
+
+   if (present(annotation)) then
+       call get_grid_id(comp_id, grid_name, grid_id, trim(annotation)//char(0))
+   else 
+       call get_grid_id(comp_id, grid_name, grid_id, trim("")//char(0))
+   endif
+   
+   CCPL_get_grid_id = grid_id
+    
+   END FUNCTION CCPL_get_grid_id
+
+
+
+   SUBROUTINE CCPL_get_H2D_grid_integer_data(grid_id, decomp_id, label, grid_data, annotation)
+   implicit none
+   integer, intent(in)                     :: grid_id
+   integer, intent(in)                     :: decomp_id
+   character(len=*), intent(in)            :: label
+   integer, intent(inout), dimension(:)    :: grid_data
+   character(len=*), intent(in), optional  :: annotation
+
+   if (present(annotation)) then
+      call get_H2D_grid_data(grid_id, decomp_id, trim(label)//char(0), trim("integer")//char(0), size(grid_data), grid_data, trim(annotation)//char(0))
+   else
+      call get_H2D_grid_data(grid_id, decomp_id, trim(label)//char(0), trim("integer")//char(0), size(grid_data), grid_data, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_get_H2D_grid_integer_data
+
+
+
+   SUBROUTINE CCPL_get_H2D_grid_float_data(grid_id, decomp_id, label, grid_data, annotation)
+   implicit none
+   integer, intent(in)                     :: grid_id
+   integer, intent(in)                     :: decomp_id
+   character(len=*), intent(in)            :: label
+   real(R4), intent(inout), dimension(:)   :: grid_data
+   character(len=*), intent(in), optional  :: annotation
+
+   if (present(annotation)) then
+      call get_H2D_grid_data(grid_id, decomp_id, trim(label)//char(0), trim("real4")//char(0), size(grid_data), grid_data, trim(annotation)//char(0))
+   else
+      call get_H2D_grid_data(grid_id, decomp_id, trim(label)//char(0), trim("real4")//char(0), size(grid_data), grid_data, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_get_H2D_grid_float_data
+
+
+
+   SUBROUTINE CCPL_get_H2D_grid_double_data(grid_id, decomp_id, label, grid_data, annotation)
+   implicit none
+   integer, intent(in)                     :: grid_id
+   integer, intent(in)                     :: decomp_id
+   character(len=*), intent(in)            :: label
+   real(R8), intent(inout), dimension(:)   :: grid_data
+   character(len=*), intent(in), optional  :: annotation
+
+   if (present(annotation)) then
+      call get_H2D_grid_data(grid_id, decomp_id, trim(label)//char(0), trim("real8")//char(0), size(grid_data), grid_data, trim(annotation)//char(0))
+   else
+      call get_H2D_grid_data(grid_id, decomp_id, trim(label)//char(0), trim("real8")//char(0), size(grid_data), grid_data, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_get_H2D_grid_double_data
 
 
 

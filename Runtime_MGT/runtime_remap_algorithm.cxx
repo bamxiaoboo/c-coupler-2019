@@ -25,6 +25,7 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(Runtime_remapping_weights *runt
 	EXECUTION_REPORT(REPORT_ERROR, -1, runtime_remapping_weights->get_parallel_remapping_weights() != NULL, "Software error in Runtime_remap_algorithm::Runtime_remap_algorithm: parallel_remap_weights");
 	
 	if (words_are_the_same(src_field_instance->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT)) {
+		printf("remap field %lx to %lx\n", specified_src_field_instance, specified_dst_field_instance);
 		true_src_field_instance = memory_manager->alloc_mem(specified_src_field_instance, BUF_MARK_REMAP_DATATYPE_TRANS_SRC, connection_id, DATA_TYPE_DOUBLE, false);
 		true_dst_field_instance = memory_manager->alloc_mem(specified_dst_field_instance, BUF_MARK_REMAP_DATATYPE_TRANS_DST, connection_id, DATA_TYPE_DOUBLE, false);
 		transform_data_type = true;

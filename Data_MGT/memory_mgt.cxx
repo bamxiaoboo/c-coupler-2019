@@ -279,9 +279,14 @@ Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, i
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER || special_buf_mark == BUF_MARK_UNIT_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || 
 		             special_buf_mark == BUF_MARK_IO_FIELD_MIRROR || special_buf_mark == BUF_MARK_REMAP_NORMAL || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST, "Software error in Field_mem_info *alloc_mem: wrong special_buf_mark");
-	int new_buf_mark = (special_buf_mark ^ original_field_instance->get_buf_mark() ^ object_id);
+	int new_buf_mark = (special_buf_mark ^ object_id);
 	Field_mem_info *existing_field_instance = search_field_instance(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark);
-	EXECUTION_REPORT(REPORT_ERROR, -1, existing_field_instance == NULL, "Software error in Field_mem_info *alloc_mem: special field instance exists");
+	if (existing_field_instance != NULL) {
+		if (special_buf_mark == BUF_MARK_UNIT_TRANS)
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(existing_field_instance->get_data_type(), original_field_instance->get_data_type()) && words_are_the_same(existing_field_instance->get_unit(), unit_or_datatype), "Software error in Field_mem_info *alloc_mem: special field instance exists %lx with different data type or wrong unit", new_buf_mark);
+		else EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(existing_field_instance->get_data_type(), unit_or_datatype), "Software error in Field_mem_info *alloc_mem: special field instance exists %lx with wrong data type", new_buf_mark);
+		return existing_field_instance;
+	}
 	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", check_field_name));
 	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST) {
@@ -298,15 +303,15 @@ Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, i
 	}
 	else if (special_buf_mark == BUF_MARK_REMAP_NORMAL) {
 		// check unit
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for remapping", check_field_name));
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for remapping", check_field_name));
 	}
 	else if (special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC) {
 		// check unit
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for data type transformation in remapping", check_field_name));
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation in remapping", check_field_name));
 	}
 	else if (special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST) {
 		// check unit
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, unit_or_datatype, original_field_instance->get_data_type(), "new field instance for data type transformation in remapping", check_field_name));
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), unit_or_datatype, "new field instance for data type transformation in remapping", check_field_name));
 	}
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Field_mem_info *alloc_mem");
 
