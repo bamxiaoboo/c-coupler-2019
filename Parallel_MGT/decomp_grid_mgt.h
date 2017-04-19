@@ -11,8 +11,8 @@
 #define DECOMP_GRID_MGT
 
 
-#include "decomp_info_mgt.h"
 #include "common_utils.h"
+#include "decomp_info_mgt.h"
 #include "cor_global_data.h"
 #include <vector>
 

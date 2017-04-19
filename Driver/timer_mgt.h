@@ -126,6 +126,7 @@ class Time_mgt
 
 		int comp_id;
 		char case_name[NAME_STR_SIZE];
+		char exp_model_name[NAME_STR_SIZE];
 		char case_desc[NAME_STR_SIZE];
 		char run_type[NAME_STR_SIZE];
 		char stop_option[NAME_STR_SIZE];

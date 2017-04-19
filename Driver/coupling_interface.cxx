@@ -252,8 +252,7 @@ extern "C" void initialize_CCPL_mgrs()
 
 
 extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
-										const char *executable_name, const char *exp_model, const char *case_name, const char *case_desc, const char *case_mode, const char *comp_namelist,
-                                		const char *current_config_time, const char *original_case_name, const char *original_config_time)
+										const char *executable_name)
 {
 	int flag;
 	MPI_Comm local_comm = -1;
@@ -276,8 +275,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_ROOT_COMP, MPI_COMM_WORLD, "registering root component", annotation);
 
-	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name, exp_model, case_name, case_desc, case_mode, comp_namelist,
-                                						  current_config_time, original_case_name, original_config_time);
+	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
 
 	if (*comm != -1) {
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
@@ -317,7 +315,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	*comp_id = root_comp_id;
 
-	sprintf(file_name, "%s/env_run.xml", comp_comm_group_mgt_mgr->get_config_all_dir());
+	sprintf(file_name, "%s/all/env_run.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
 	components_time_mgrs->define_root_comp_time_mgr(*comp_id, file_name);
 	fields_info = new Field_info_mgt();
 	original_grid_mgr = new Original_grid_mgt();
@@ -480,7 +478,7 @@ extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const c
 												             *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												             API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA);
 	char nc_file_name[NAME_STR_SIZE];
-	sprintf(nc_file_name, "%s/internal_H2D_grids/%s@%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
+	sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
 	char temp_grid_name[NAME_STR_SIZE];
 	sprintf(temp_grid_name, "%s_temp", grid_name);
 	original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);

@@ -486,7 +486,7 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 	char XML_file_name[NAME_STR_SIZE];
 	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration");
 	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
-		sprintf(XML_file_name, "%s/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_all_dir());
+		sprintf(XML_file_name, "%s/all/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
 	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
 	FILE *fp = fopen(XML_file_name, "r");
 	if (fp == NULL) {

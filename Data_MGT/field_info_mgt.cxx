@@ -63,11 +63,11 @@ Field_info_mgt::Field_info_mgt()
     field_attr local_attr;
 	
 
-	sprintf(XML_file_name, "%s/public_field_attribute.xml", comp_comm_group_mgt_mgr->get_config_all_dir());
+	sprintf(XML_file_name, "%s/all/public_field_attribute.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
 	FILE *tmp_file = fopen(XML_file_name, "r");
 	if (tmp_file == NULL) {
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-			EXECUTION_REPORT(REPORT_WARNING, -1, true, "There is no configuration file public_field_attribute.xml under the directory \"%s\", which indicates that no fields will be coupled among component models.", comp_comm_group_mgt_mgr->get_config_all_dir());
+			EXECUTION_REPORT(REPORT_WARNING, -1, true, "There is no configuration file public_field_attribute.xml under the directory \"%s/all\", which indicates that no fields will be coupled among component models.", comp_comm_group_mgt_mgr->get_config_root_dir());
 		return;
 	}
 	fclose(tmp_file);

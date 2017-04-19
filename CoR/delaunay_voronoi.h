@@ -12,11 +12,12 @@
 #define __DELAUNAY_VORONOI_H__
 
 
+#include "remap_grid_class.h"
 #include <vector>
 #include <list>
 #include <cmath>
 #include <iostream>
-#include "remap_grid_class.h"
+
 
 using namespace std;
 

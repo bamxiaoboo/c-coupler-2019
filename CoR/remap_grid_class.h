@@ -10,8 +10,9 @@
 #ifndef REMAP_GRID_CLASS
 #define REMAP_GRID_CLASS
 
-#include "remap_statement_operand.h"
+
 #include "common_utils.h"
+#include "remap_statement_operand.h"
 #include <vector>
 #include <stdio.h>
 #include <string.h>

@@ -29,7 +29,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 
 	if (H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL) {
 		char nc_file_name[NAME_STR_SIZE];
-		sprintf(nc_file_name, "%s/internal_H2D_grids/%s@%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+		sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
 		if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_h2d_grid_with_data") == 0) {
 			IO_netcdf *netcdf_file_object = new IO_netcdf("H2D_grid_data", nc_file_name, "w", false);
 			netcdf_file_object->write_grid(H2D_sub_CoR_grid, false);
@@ -187,15 +187,21 @@ void Original_grid_info::set_mid_point_grid(Original_grid_info *new_grid)
 
 
 Original_grid_mgt::Original_grid_mgt()
-{
+{	
 	original_grids.clear();
 	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
 	FILE *fp = fopen(CoR_script_name, "r");
 	if (fp == NULL)
 		CoR_script_name[0] = '\0';
 	else fclose(fp);
-	if (strlen(CoR_script_name) != 0)
+	if (strlen(CoR_script_name) != 0) {
+		char current_dir[NAME_STR_SIZE], grids_dir[NAME_STR_SIZE];
+		EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(current_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory for running the model");
+		sprintf(grids_dir, "%s/grids", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
+		EXECUTION_REPORT(REPORT_ERROR, -1, chdir(grids_dir) == 0, "Fail to access the directory of the CoR grid data files: \"%s\". Please verify.", grids_dir);
 		CoR_grids = new Remap_mgt(CoR_script_name);
+		chdir(current_dir);
+	}
 	else CoR_grids = new Remap_mgt(NULL);
 }
 
@@ -243,7 +249,7 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 	synchronize_comp_processes_for_API(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_comp"), "register_H2D_grid_via_comp", annotation);
 	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_comp"), "registering an H2D grid", grid_name, "grid_name", annotation);
 
-	sprintf(XML_file_name, "%s/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_all_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
+	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
 	tmp_file = fopen(XML_file_name, "r");
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, tmp_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 	fclose(tmp_file);
@@ -271,7 +277,7 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 
-	sprintf(nc_file_name, "%s/internal_H2D_grids/%s@%s.nc", comp_comm_group_mgt_mgr->get_root_working_dir(), another_comp_grid_name, another_comp_full_name);
+	sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), another_comp_grid_name, another_comp_full_name);
 	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Wait to read NetCDF file \"%s\" to register H2D grid \"%s\"", nc_file_name, grid_name);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_H2D_grid_via_comp") == 0) {
 		while (true) {
@@ -765,6 +771,10 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	original_grids.push_back(mid_3D_grid);
 	*mid_3D_grid_id = mid_3D_grid->get_grid_id();
 	level_3D_grid->set_mid_point_grid(mid_3D_grid);
+	if (size_mask > 0) {
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), size_mask == mid_3D_CoR_grid->get_grid_size(), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the size of the mask array is different from the size of the mid-point grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		mid_3D_CoR_grid->read_grid_data_from_array("mask", "mask", DATA_TYPE_INT, (const char*)mask, 0);
+	}
 }
 
 

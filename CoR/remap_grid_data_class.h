@@ -11,8 +11,8 @@
 #define REMAP_FIELD_DATA_CLASS
 
 
-#include "remap_statement_operand.h"
 #include "common_utils.h"
+#include "remap_statement_operand.h"
 
 
 class Remap_grid_class;

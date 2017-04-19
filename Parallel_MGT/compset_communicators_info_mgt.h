@@ -51,7 +51,6 @@ class Comp_comm_group_mgt_node
 		int buffer_max_size;
 		bool definition_finalized;
 		char working_dir[NAME_STR_SIZE];
-		char config_all_dir[NAME_STR_SIZE];
 		char config_comp_dir[NAME_STR_SIZE];
 
 	public:
@@ -83,7 +82,6 @@ class Comp_comm_group_mgt_node
 		Comp_comm_group_mgt_node *get_parent() const { return parent; }
 		void write_node_into_XML(TiXmlElement *);
 		const char *get_working_dir() const { return working_dir; }
-		const char *get_config_all_dir() const { return config_all_dir; }
 		const char *get_config_comp_dir() const { return config_comp_dir; }
 		void update_child(const Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*);
 		void transfer_data_buffer(Comp_comm_group_mgt_node*);
@@ -103,19 +101,16 @@ class Comp_comm_group_mgt_mgr
 		bool definition_finalized;
 		int current_proc_global_id;
 		int num_total_global_procs;
-        char experiment_model[NAME_STR_SIZE];
-        char original_case_name[NAME_STR_SIZE];
-        char current_case_name[NAME_STR_SIZE];
-        char current_case_desc[NAME_STR_SIZE];
-        char running_case_mode[NAME_STR_SIZE];
-        char comp_namelist_filename[NAME_STR_SIZE];
-		char current_config_time[NAME_STR_SIZE];
-		char original_config_time[NAME_STR_SIZE];
 		char executable_name[NAME_STR_SIZE];
+		char root_working_dir[NAME_STR_SIZE];
+		char internal_H2D_grids_dir[NAME_STR_SIZE];
+		char comps_ending_config_status_dir[NAME_STR_SIZE];
+		char runtime_config_root_dir[NAME_STR_SIZE];
+		char coupling_flow_config_dir[NAME_STR_SIZE];
 		int *sorted_comp_ids;
 
 	public:
-		Comp_comm_group_mgt_mgr(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
+		Comp_comm_group_mgt_mgr(const char*);
 		~Comp_comm_group_mgt_mgr();
 		int register_component(const char*, const char*, MPI_Comm&, int, const char*);
 		void merge_comp_comm_info(int, const char*);
@@ -138,9 +133,12 @@ class Comp_comm_group_mgt_mgr
 		int get_num_proc_in_comp(int, const char *);
 		int get_current_proc_global_id() { return current_proc_global_id; }
 		int get_num_total_global_procs() { return num_total_global_procs; }
-		const char *get_root_working_dir() { return global_node_array[0]->get_working_dir(); }
-		const char *get_config_all_dir() { return global_node_array[0]->get_config_all_dir(); }
+		const char *get_root_working_dir() { return root_working_dir; }
+		const char *get_internal_H2D_grids_dir() { return internal_H2D_grids_dir; }
+		const char *get_comps_ending_config_status_dir() { return comps_ending_config_status_dir; }
+		const char *get_config_root_dir() { return runtime_config_root_dir; }
 		const char *get_config_root_comp_dir() { return global_node_array[1]->get_config_comp_dir(); }
+		const char *get_coupling_flow_config_dir() { return coupling_flow_config_dir; }
 		void confirm_coupling_configuration_active(int, int, const char*);
 		const int *get_all_components_ids();
 		void generate_sorted_comp_ids();

@@ -275,8 +275,10 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		TiXmlDocument XML_file(XML_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(MPI_COMM_WORLD), "Fail to read XML file \"%s\" with the time information setting. The XML file may not exist or may not be a legal XML file. Please check.", XML_file_name);
 		TiXmlElement *XML_element = XML_file.FirstChildElement();
-		const char *case_name = XML_element->Attribute("case_name", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, case_name != NULL, "Case name is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
+		const char *exp_model_name = get_XML_attribute(-1, XML_element, "model_name", XML_file_name, line_number, "the name of the model for the simulation", "the overall parameters to run the model");
+		EXECUTION_REPORT(REPORT_ERROR, -1, strlen(exp_model_name) < NAME_STR_SIZE, "The model name set in the XML file \"%s\" is too long. The limit is %d characters. Please check the XML file arround the line_number %d", XML_file_name, NAME_STR_SIZE-1, line_number);
+		strcpy(this->exp_model_name, exp_model_name);	
+		const char *case_name = get_XML_attribute(-1, XML_element, "case_name", XML_file_name, line_number, "the name of the simulation", "the overall parameters to run the model");
 		EXECUTION_REPORT(REPORT_ERROR, -1, strlen(case_name) < NAME_STR_SIZE, "The case name set in the XML file \"%s\" is too long. The limit is %d characters. Please check the XML file arround the line_number %d", XML_file_name, NAME_STR_SIZE-1, line_number);
 		strcpy(this->case_name, case_name);
 		const char *case_desc = XML_element->Attribute("case_description", &line_number);
@@ -285,28 +287,24 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			strcpy(this->case_desc, case_desc);
 		}
 		EXECUTION_REPORT(REPORT_WARNING, -1, case_desc != NULL, "The description of the current simulation is unset or the format of the XML file is wrong. ");
-		const char *run_type = XML_element->Attribute("run_type", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, run_type != NULL, "Run type is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
+		const char *run_type = get_XML_attribute(-1, XML_element, "run_type", XML_file_name, line_number, "the type to run the model", "the overall parameters to run the model");
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(run_type, "initial") || words_are_the_same(run_type, "continue") || words_are_the_same(run_type, "branch") || words_are_the_same(run_type, "hybrid"),
-			             "Run type is wrong. It must be one of the four options: \"initial\", \"continue\", \"branch\" and \"hybrid\". Please check the XML file \"%s\"  arround the line_number %d", XML_file_name, line_number);
+			             "Run_type is wrong. It must be one of the four options: \"initial\", \"continue\", \"branch\" and \"hybrid\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->run_type, run_type);
 		// to be added for how to settle the run type. 
-		const char *leap_year_string = XML_element->Attribute("leap_year", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, leap_year_string != NULL, "Whether leap year is on or off is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
+		const char *leap_year_string = get_XML_attribute(-1, XML_element, "leap_year", XML_file_name, line_number, "whether leap year is on in the simulation", "the overall parameters to run the model");
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(leap_year_string, "on") || words_are_the_same(leap_year_string, "off"),
 			             "The value of leap year wrong. Its value must be \"on\" or \"off\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		if (words_are_the_same(leap_year_string, "on"))
 			leap_year_on = true;
 		else leap_year_on = false;
-		const char *start_date_string = XML_element->Attribute("start_date", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, start_date_string != NULL, "The start date is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
+		const char *start_date_string = get_XML_attribute(-1, XML_element, "start_date", XML_file_name, line_number, "the start date to run the simulation", "the overall parameters to run the model");		
 		sscanf(start_date_string, "%d", &start_date);
 	    start_year = start_date / 10000;
     	start_month = (start_date%10000) / 100;
     	start_day = start_date % 100;
 		EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(start_year, start_month, start_day, 0, NULL), "The start date specified is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
-		const char *start_second_string = XML_element->Attribute("start_second", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, start_second_string != NULL, "The start second is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
+		const char *start_second_string = get_XML_attribute(-1, XML_element, "start_second", XML_file_name, line_number, "the start second to run the simulation", "the overall parameters to run the model");		
 		sscanf(start_second_string, "%d", &this->start_second);		
 		EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(start_year, start_month, start_day, start_second, NULL), "The start second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
@@ -328,42 +326,36 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			reference_month = 1;
 			reference_day = 1;
 		}
-		const char *rest_freq_unit = XML_element->Attribute("rest_freq_unit", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, rest_freq_unit != NULL, "The time unit for the frequency of writing restart files (rest_freq_unit) is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
+		const char *rest_freq_unit = get_XML_attribute(-1, XML_element, "rest_freq_unit", XML_file_name, line_number, "the unit of the frequency of writing restart data files", "the overall parameters to run the model");		
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, "seconds")|| words_are_the_same(rest_freq_unit, "days") || words_are_the_same(rest_freq_unit, "months") || words_are_the_same(rest_freq_unit, "years"),
 			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", \"seconds\", \"days\", \"months\", and \"years\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->rest_freq_unit, rest_freq_unit);
 		this->rest_freq_count = 0;
 		if (!words_are_the_same(rest_freq_unit, "none")) {
-			const char *rest_freq_count_string = XML_element->Attribute("rest_freq_count", &line_number);			
-			EXECUTION_REPORT(REPORT_ERROR, -1, rest_freq_count_string != NULL, "The count of time unit for the frequency of writing restart files (rest_freq_count) is unset or the format of the XML file is wrong. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);			
+			const char *rest_freq_count_string = get_XML_attribute(-1, XML_element, "rest_freq_count", XML_file_name, line_number, "the count of the frequency of writing restart data files", "the overall parameters to run the model");		
 			sscanf(rest_freq_count_string, "%d", &rest_freq_count);
 			EXECUTION_REPORT(REPORT_ERROR, -1, rest_freq_count > 0, "The count of time unit for the frequency of writing restart files (rest_freq_count) must be a possitive value. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 			this->rest_freq_count = rest_freq_count;
 		}
-		const char *stop_option = XML_element->Attribute("stop_option", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, stop_option != NULL, "The stop option is unset or the format of the XML file is wrong. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		const char *stop_option = get_XML_attribute(-1, XML_element, "stop_option", XML_file_name, line_number, "the option to specify the end of the simulation", "the overall parameters to run the model");
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(stop_option, "date") || words_are_the_same(stop_option, "nseconds") || words_are_the_same(stop_option, "nminutes") || words_are_the_same(stop_option, "nhours") || words_are_the_same(stop_option, "ndays") || words_are_the_same(stop_option, "nmonths") || words_are_the_same(stop_option, "nyears"),
 			             "Stop option is wrong. It must be one of the following options: \"date\", \"nseconds\", \"nminutes\", \"nhours\", \"ndays\", \"nmonths\" and \"nyears\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->stop_option, stop_option);
 		if (words_are_the_same(stop_option, "date")) {
-			const char *stop_date_string = XML_element->Attribute("stop_date", &line_number);
-			EXECUTION_REPORT(REPORT_ERROR, -1, stop_date_string != NULL, "The stop date is unset or the format of the XML file is wrong when the stop option is \"date\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);			
+			const char *stop_date_string = get_XML_attribute(-1, XML_element, "stop_date", XML_file_name, line_number, "the date to stop the simulation", "the overall parameters to run the model");
 			sscanf(stop_date_string, "%d", &stop_date);
 			stop_year = stop_date / 10000;
 			stop_month = (stop_date%10000) / 100;
 			stop_day = stop_date % 100;
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year, stop_month, stop_day, 0, NULL), "The stop date specified is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
-			const char *stop_second_string = XML_element->Attribute("stop_second", &line_number);
-			EXECUTION_REPORT(REPORT_ERROR, -1, stop_second_string != NULL, "The stop second is unset or the format of the XML file is wrong when the stop option is \"date\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+			const char *stop_second_string = get_XML_attribute(-1, XML_element, "stop_second", XML_file_name, line_number, "the second to stop the simulation", "the overall parameters to run the model");
 			sscanf(stop_second_string, "%d", &this->stop_second); 	
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year, stop_month, stop_day, stop_second, NULL), "The stop second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 			num_total_seconds = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
 			EXECUTION_REPORT(REPORT_ERROR,-1, num_total_seconds > 0, "The stop time of simulation is wrong. It must be after the start time. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		}
 		else {
-			const char *stop_n_string = XML_element->Attribute("stop_n", &line_number);
-			EXECUTION_REPORT(REPORT_ERROR, -1, stop_n_string != NULL, "The parameter \"stop_n\" is unset or the format of the XML file is wrong when the stop option is \"%s\". Please check the XML file \"%s\" arround the line_number %d", stop_option, XML_file_name, line_number);
+			const char *stop_n_string = get_XML_attribute(-1, XML_element, "stop_n", XML_file_name, line_number, "the count for stopping the simulation", "the overall parameters to run the model");
 			sscanf(stop_n_string, "%d", &stop_n);
 			if (stop_n == -999 || stop_n <= 0)
 				stop_year = stop_month = stop_day = stop_second = -1;
@@ -802,6 +794,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->advance_time_synchronized = false;
 	new_time_mgr->time_advanced = this->time_advanced;
 	strcpy(new_time_mgr->case_name, this->case_name);
+	strcpy(new_time_mgr->exp_model_name, this->exp_model_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);
 	strcpy(new_time_mgr->run_type, this->run_type);
 	strcpy(new_time_mgr->stop_option, this->stop_option);

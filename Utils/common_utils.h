@@ -12,7 +12,9 @@
 
 #define NAME_STR_SIZE    1024
 
+
 #include <stdio.h>
+
 
 extern bool get_next_line(char *, FILE *);
 extern bool get_next_attr(char *, char **);
@@ -23,7 +25,6 @@ extern bool is_end_of_file(FILE *);
 extern FILE *open_config_file(const char *, const char *);
 extern FILE *open_config_file(const char *);
 extern int get_num_fields_in_config_file(const char *, const char *);
-extern void create_directory(const char*, bool, bool);
 extern void write_data_into_array_buffer(const void*, int, char **, int &, int &);
 extern void read_data_from_array_buffer(void*, int, const char*, int &);
 

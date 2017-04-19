@@ -89,7 +89,7 @@ Decomp_grid_info *Decomp_grid_mgt::search_decomp_grid_info(int decomp_id, Remap_
             return decomp_grids_info[i];
 
 	if (diag)
-		EXECUTION_REPORT(REPORT_ERROR,-1, true, "C-Coupler error in Decomp_grid_mgt::search_decomp_grid_info");
+		EXECUTION_REPORT(REPORT_ERROR, -1, true, "C-Coupler error in Decomp_grid_mgt::search_decomp_grid_info");
 		
     decomp_grids_info.push_back(new Decomp_grid_info(decomp_id, original_grid));
     return decomp_grids_info[decomp_grids_info.size()-1];

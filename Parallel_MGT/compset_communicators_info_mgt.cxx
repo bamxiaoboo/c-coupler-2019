@@ -14,6 +14,28 @@
 #include "cor_global_data.h"
 #include "quick_sort.h"
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+
+
+void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool new_dir)
+{
+	if (is_root_proc) {
+		DIR *dir=opendir(path);
+		if (new_dir) {
+			char buffer[NAME_STR_SIZE];
+			sprintf(buffer, "rm -rf \"%s\"", path);
+			system(buffer);
+			dir = NULL;
+		}
+		if (dir == NULL) {
+			int is_create = mkdir(path, 0777);
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_create == 0, "Directory \"%s\" cannot be created. Please check why.", path);
+		}
+	}	
+	MPI_Barrier(comm);
+}
 
 
 Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
@@ -47,7 +69,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->comm_group = -1;
 	this->current_proc_local_id = -1;
 	this->working_dir[0] = '\0';
-	this->config_all_dir[0] = '\0';
 	this->config_comp_dir[0] = '\0';
 	global_node_id ++;
 	this->parent = parent;
@@ -164,23 +185,22 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	
 	if (parent != NULL) {
 		if (parent->get_parent() == NULL) {
-			EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
-			sprintf(config_all_dir, "%s/../../../../config/CCPL_runtime/all", working_dir);
-			sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
-			strcpy(working_dir+strlen(working_dir), "/../");
+			sprintf(config_comp_dir, "%s/%s/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_type, comp_name);
+			sprintf(working_dir, "%s/CCPL_dir/run/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type);
+			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
+			sprintf(working_dir, "%s/CCPL_dir/run/%s/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, comp_name);
+			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
 		}
 		else {
-			sprintf(working_dir, "%s/%s\0", parent->working_dir, comp_name);
-			strcpy(config_all_dir, parent->config_all_dir);
+			sprintf(working_dir, "%s/%s", parent->working_dir, comp_name);
 			strcpy(config_comp_dir, parent->config_comp_dir);
-			create_directory(working_dir, get_current_proc_local_id() == 0, false);
+			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
 		}
-		printf("config all dir is %s\n", config_all_dir);
 		printf("config comp dir is %s\n", config_comp_dir);
 		sprintf(dir, "%s/CCPL_logs", working_dir, comp_name);
-		create_directory(dir, get_current_proc_local_id() == 0, true);
+		create_directory(dir, comm_group, get_current_proc_local_id() == 0, true);
 		sprintf(dir, "%s/data", working_dir, comp_name);
-		create_directory(dir, get_current_proc_local_id() == 0, false);
+		create_directory(dir, comm_group, get_current_proc_local_id() == 0, false);
 		MPI_Barrier(get_comm_group());
 		char file_name[NAME_STR_SIZE*2];
 		sprintf(file_name, "%s/CCPL_logs/%s.CCPL.log.%d", working_dir, get_comp_name(), get_current_proc_local_id());
@@ -189,12 +209,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR,-1, getcwd(working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory");
-		sprintf(config_all_dir, "%s/../../../../config/CCPL_runtime/all", working_dir);
-		char H2D_grids_dir[NAME_STR_SIZE];
-		sprintf(H2D_grids_dir, "%s/../../../../run/all/internal_H2D_grids", working_dir);
-		create_directory(H2D_grids_dir, current_proc_global_id == 0, true);
-		sprintf(H2D_grids_dir, "%s/../../../../run/all/comps_ending_config_status", working_dir);
-		create_directory(H2D_grids_dir, current_proc_global_id == 0, true);
 		sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
 		strcpy(working_dir+strlen(working_dir), "/../../../all/");
 	}
@@ -225,7 +239,6 @@ void Comp_comm_group_mgt_node::transform_node_into_array()
 void Comp_comm_group_mgt_node::reset_dir(Comp_comm_group_mgt_node *another_node)
 {
 	strcpy(working_dir, another_node->working_dir);
-	strcpy(config_all_dir, another_node->config_all_dir);
 	strcpy(config_comp_dir, another_node->config_comp_dir);
 }
 
@@ -240,7 +253,7 @@ void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 		             comp_name, annotation_end, annotation); 
 	this->definition_finalized = true;
 
-	sprintf(status_file_name, "%s/comps_ending_config_status/%s.end", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+	sprintf(status_file_name, "%s/%s.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
 	if (current_proc_local_id == 0) {
 		FILE *status_file = fopen(status_file_name, "w+");
 		EXECUTION_REPORT(REPORT_ERROR, -1, status_file != NULL, "Software error in Comp_comm_group_mgt_node::merge_comp_comm_info: configuration ending status file cannot be created");
@@ -396,25 +409,16 @@ int Comp_comm_group_mgt_node::get_local_proc_global_id(int local_indx)
 }
 
 
-Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name, const char *experiment_model, const char *case_name, 
-	       const char *case_desc, const char *case_mode, const char *comp_namelist,
-           const char *current_config_time, const char *original_case_name, const char *original_config_time)
+Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 {
 	int i, j;
+	char temp_string[NAME_STR_SIZE];
 
 	
 	global_node_array.clear();
 	global_node_root = NULL;
 	definition_finalized = false;
-
-	strcpy(this->experiment_model, experiment_model);
-    strcpy(current_case_name, case_name);
-    strcpy(current_case_desc, case_desc);
-    strcpy(running_case_mode, case_mode);
-    strcpy(comp_namelist_filename, comp_namelist);
-	strcpy(this->current_config_time, current_config_time);
-	strcpy(this->original_case_name, original_case_name);
-	strcpy(this->original_config_time, original_config_time);
+	EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(root_working_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory for running the model");
 
 	for (i = strlen(executable_name)-1; i >= 0; i --)
 		if (executable_name[i] == '/')
@@ -424,12 +428,19 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name, co
 	strcpy(this->executable_name, executable_name+i);
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(MPI_COMM_WORLD, &num_total_global_procs) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(MPI_COMM_WORLD, &num_total_global_procs) == MPI_SUCCESS);	
 
-	if (words_are_the_same(case_mode, "initial")) {
-		strcpy(this->original_case_name, "none");
-		strcpy(this->original_config_time, "none");
-	}		
+	sprintf(temp_string, "%s/CCPL_dir/run", root_working_dir);
+	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
+	sprintf(temp_string, "%s/CCPL_dir/run/all", root_working_dir);
+	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
+	sprintf(internal_H2D_grids_dir, "%s/CCPL_dir/run/all/internal_H2D_grids", root_working_dir);
+	create_directory(internal_H2D_grids_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/all/comps_ending_config_status", root_working_dir);
+	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);
+	sprintf(coupling_flow_config_dir, "%s/CCPL_dir/run/all/coupling_flow_config", root_working_dir);
+	create_directory(coupling_flow_config_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 }
 
 
@@ -662,7 +673,7 @@ void Comp_comm_group_mgt_mgr::write_comp_comm_info_into_XML()
 	XML_file->LinkEndChild(root_element);
 	global_node_root->write_node_into_XML(root_element);
 
-	sprintf(XML_file_name, "%s/CCPL_configs/components.xml", global_node_array[0]->get_working_dir());
+	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
 	
 	XML_file->SaveFile(XML_file_name);
 }
@@ -691,7 +702,7 @@ void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
 	if (current_proc_global_id != 0)
 		return;
 
-	sprintf(XML_file_name, "%s/CCPL_configs/components.xml", global_node_array[0]->get_working_dir());
+	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
 	TiXmlDocument XML_file(XML_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(), "cannot open the components xml file: %s", XML_file_name);
 	
@@ -760,7 +771,7 @@ const int *Comp_comm_group_mgt_mgr::get_all_components_ids()
 bool Comp_comm_group_mgt_mgr::has_comp_ended_configuration(const char *comp_full_name)
 {
 	char status_file_name[NAME_STR_SIZE];
-	sprintf(status_file_name, "%s/comps_ending_config_status/%s.end", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_full_name);
+	sprintf(status_file_name, "%s/%s.end", comps_ending_config_status_dir, comp_full_name);
 	FILE *status_file = fopen(status_file_name, "r");
 	if (status_file == NULL)
 		return false;

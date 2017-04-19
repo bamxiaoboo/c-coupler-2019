@@ -758,7 +758,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 
 
 	strcpy(comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
-	sprintf(XML_file_name, "%s/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_all_dir(), comp_full_name);
+	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
 	tmp_file = fopen(XML_file_name, "r");
 	if (tmp_file == NULL) {
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
