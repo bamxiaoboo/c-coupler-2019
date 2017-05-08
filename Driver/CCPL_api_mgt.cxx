@@ -17,9 +17,6 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_FINALIZE:
 			sprintf(API_label, "CCPL_finalize");
 			break;
-        case API_ID_COMP_MGT_REG_ROOT_COMP:
-			sprintf(API_label, "CCPL_register_root_component");
-			break;
         case API_ID_COMP_MGT_REG_COMP:
 			sprintf(API_label, "CCPL_register_component");
 			break;
@@ -45,7 +42,7 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			sprintf(API_label, "CCPL_register_1D_grid");
 			break;
         case API_ID_GRID_MGT_REG_GRID_VIA_COR:
-			sprintf(API_label, "CCPL_get_CoR_defined_grid");
+			sprintf(API_label, "CCPL_register_CoR_defined_grid");
 			break;
 		case API_ID_GRID_MGT_GET_GRID_SIZE:
 			sprintf(API_label, "CCPL_get_grid_size");
@@ -206,8 +203,8 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 		comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in synchronize_comp_processes_for_API");
 
 	if (hint != NULL)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\" %d  %x", hint, API_label_local, annotation, comm, comp_id);	
-	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\" %d  %x", API_label_local, annotation, comm, comp_id);
+		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
+	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
 	MPI_Barrier(comm);
 	if (hint != NULL)
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
@@ -271,16 +268,20 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 	else EXECUTION_REPORT(REPORT_ERROR, comp_id, true, "software error in check_API_parameter_scalar");
 	if (local_process_id == 0) {
 		get_API_hint(comp_id, API_id, API_label);
-		for (i = 1; i < num_processes; i ++)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\" for %s: parameter information (%s) is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
-			                  API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
+		for (i = 1; i < num_processes; i ++) {
+			if (hint != NULL)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\": %s of parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\": parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				                  API_label, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
+		}
 	}
 
 	delete [] values;
 }
 
 
-void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, const char *hint, int array_size, const char *array_value, const char *parameter_name, const char *annotation)
+void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, const char *hint, int array_size, int data_type_size, const char *array_value, const char *parameter_name, const char *annotation)
 {
 	long temp_checksum = 0, total_checksum = 0;
 	char API_label[NAME_STR_SIZE], temp_str[NAME_STR_SIZE];
@@ -289,19 +290,19 @@ void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, cons
 	get_API_hint(comp_id, API_id, API_label);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling API \"%s\" for %s: parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 
-	sprintf(temp_str, "implicit array size for \"%s\"", parameter_name);
-	check_API_parameter_int(comp_id, API_id, comm, hint, array_size, temp_str, annotation);
+	check_API_parameter_int(comp_id, API_id, comm, "array size", array_size, parameter_name, annotation);
+	check_API_parameter_int(comp_id, API_id, comm, "data type", data_type_size, parameter_name, annotation);
 
 	if (array_size <= 0)
 		return;
 	
-	for (int i = 0; i < array_size/sizeof(long); i ++)
+	for (int i = 0; i < array_size*data_type_size/sizeof(long); i ++)
 		total_checksum += ((const long*) array_value)[i] * (i+1);
-	for (int i = (array_size/sizeof(long))*sizeof(long); i < array_size; i ++) 
+	for (int i = (array_size*data_type_size/sizeof(long))*sizeof(long); i < array_size*data_type_size; i ++) 
 		temp_checksum = (temp_checksum << 8) | array_value[i];
-	total_checksum += temp_checksum * ((array_size/sizeof(long))+1);
+	total_checksum += temp_checksum * ((array_size*data_type_size/sizeof(long))+1);
 
-	check_API_parameter_long(comp_id, API_id, comm, hint, total_checksum, parameter_name, annotation);
+	check_API_parameter_long(comp_id, API_id, comm, "array value", total_checksum, parameter_name, annotation);
 }
 
 
@@ -362,9 +363,10 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 	char API_label[NAME_STR_SIZE], *all_string_para;
 
 
+	local_string_size = strlen(string);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, local_string_size > 0, "Error happens when calling API \"%s\" for %s: parameter %s is an empty string. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);
-	local_string_size = strlen(string);
 	all_string_size = new int [num_processes];
 	
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&local_string_size, 1, MPI_INT, all_string_size, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
@@ -372,9 +374,9 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 		get_API_hint(comp_id, API_id, API_label);
 		for (int i = 1; i < num_processes; i ++)
 			if (comp_id != -1)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling API \"%s\" for %s: parameter \"%s\" is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
-			else EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling API \"%s\" for %s: parameter \"%s\" is not consistent among processes. Please check the model code related to the annotation \"%s\"",
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes. Please check the model code related to the annotation \"%s\"",
 				                  API_label, hint, parameter_name, annotation);
 	}
 	all_string_para = new char [local_string_size*num_processes];
@@ -384,10 +386,10 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 		for (int i = 1; i < num_processes; i ++)
 			if (comp_id != -1)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, strncmp(all_string_para, all_string_para+local_string_size*i, local_string_size) == 0, 
-				                 "Error happens when calling API \"%s\" for %s: parameter \"%s\" is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				                 "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
 			else EXECUTION_REPORT(REPORT_ERROR, comp_id, strncmp(all_string_para, all_string_para+local_string_size*i, local_string_size) == 0, 
-				                  "Error happens when calling API \"%s\" for %s: parameter \"%s\" is not consistent among processes. Please check the model code related to the annotation \"%s\"",
+				                  "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes. Please check the model code related to the annotation \"%s\"",
 				                  API_label, hint, parameter_name, annotation);			
 	}
 	
@@ -415,7 +417,7 @@ void check_and_verify_name_format_of_string_for_API(int comp_id, const char *str
 	get_API_hint(comp_id, API_id, API_label);
 	
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, check_and_verify_name_format_of_string(string),
-					 "When calling the C-Coupler interface \"%s\", the format of the name of %s (currently is \"%s\") is wrong. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please check the model code with the annotation \"%s\"",
+					 "Error happens when calling the API \"%s\": the name of %s (currently is \"%s\") is in a wrong format. Each character in the name can only be '-', '_', 'a-z', 'A-Z', '0-9', or '.'. Please verify the model code with the annotation \"%s\".",
 					 API_label, name_owner, string, annotation);
 }
 

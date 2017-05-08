@@ -16,7 +16,6 @@
 
 
 #define API_ID_FINALIZE                                 ((int)(0x00100001))
-#define API_ID_COMP_MGT_REG_ROOT_COMP                   ((int)(0x00200001))
 #define API_ID_COMP_MGT_REG_COMP                        ((int)(0x00200002))
 #define API_ID_COMP_MGT_END_COMP_REG                    ((int)(0x00200004))
 #define API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP     ((int)(0x00200008))
@@ -77,7 +76,7 @@ extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *,
 extern void check_API_parameter_string(int, int, MPI_Comm, const char*, const char*, const char*, const char*);
 extern void check_API_parameter_int(int, int, MPI_Comm, const char*, int, const char*, const char*);
 extern void check_API_parameter_long(int, int, MPI_Comm, const char*, long, const char*, const char*);
-extern void check_API_parameter_data_array(int, int, MPI_Comm, const char *, int, const char *, const char *, const char *);
+extern void check_API_parameter_data_array(int, int, MPI_Comm, const char *, int, int, const char *, const char *, const char *);
 extern void check_API_parameter_timer(int, int, MPI_Comm, const char*, int, const char*, const char*);
 extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, int, const char*, const char*);
 extern void get_API_hint(int, int, char*);

@@ -44,7 +44,7 @@ class Original_grid_info
 		void generate_remapping_grids();
 		
 	public:
-		Original_grid_info(int, int, const char*, const char*, Remap_grid_class*);
+		Original_grid_info(int, int, const char*, const char*, Remap_grid_class*, bool);
 		const char *get_annotation();
 		const char *get_grid_name() const { return grid_name; }
 		int get_local_grid_id() const { return grid_id; }
@@ -99,7 +99,7 @@ class Original_grid_mgt
 											   int, int, int, int, void *, void *, int *, void *, void *, void *, const char *, int);
 		int register_H2D_grid_via_file(int, const char *, const char *, const char *);
 		int register_H2D_grid_via_comp(int, const char *, const char *);
-		int register_V1D_grid_via_data(int, int, const char *, int, const char *, int, double, const double *, const double *, double, const char *);
+		int register_V1D_grid_via_data(int, int, const char *, int, const char *, int, double, const double *, const double *, const char *);
 		int register_md_grid_via_multi_grids(int, const char*, int, int, int, int, int *, const char*);
 		void set_3d_grid_bottom_field(int, int, int, int, int, const char*, const char*);
 		void register_mid_point_grid(int, int*, int*, int, const int*, const char*, const char *);

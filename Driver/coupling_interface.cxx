@@ -27,7 +27,7 @@ void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
 	
 
 	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_root_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
 }
 
 
@@ -37,20 +37,9 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 	
 
 	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_root_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
-}
-
-
-void check_for_coupling_registration_stage(int comp_id, int API_ID, const char *annotation)
-{
-	char API_label[NAME_STR_SIZE];
-	
-
-	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_root_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The parameter of component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, annotation);		
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	if (comp_id != -1)
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
 }
 
 
@@ -263,7 +252,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	initialize_CCPL_mgrs();
 
-	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_ROOT_COMP, "the root component", annotation);
+	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the root component", annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
 		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before %s", comp_comm_group_mgt_mgr->get_annotation_start());  // add debug information
@@ -273,7 +262,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		MPI_Init(NULL, NULL);
 	}
 
-	synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_ROOT_COMP, MPI_COMM_WORLD, "registering root component", annotation);
+	synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_COMP, MPI_COMM_WORLD, "registering root component", annotation);
 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
 
@@ -388,13 +377,14 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 
 
 extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, int *grid_type, const char *coord_unit, int *dim_size2,  
-	                                         int *dim_size3, const char *data_type, void *value1, void *value2, void *value3, void *value4, const char *annotation)
+	                                         int *dim_size3, const char *data_type, void *value1, void *value2, void *value3, const char *annotation)
 {
-	double temp_value1, *temp_value2, *temp_value3, temp_value4;
+	double temp_value1, *temp_value2, *temp_value3;
 	int API_id;
+	char API_label[NAME_STR_SIZE];
 
 		
-	switch(*grid_type) {
+	switch (*grid_type) {
 		case 1:
 			API_id = API_ID_GRID_MGT_REG_V1D_Z_GRID_VIA_MODEL;
 			break;	
@@ -408,11 +398,12 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 			EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in register_V1D_grid_with_data: wrong caller_label");
 			break;
 	}
-	
-	check_for_coupling_registration_stage(*comp_id, API_id, annotation);
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_id, "the C-Coupler grid", annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the C-Coupler API \"CCPL_register_V1D_grid_via_model_data\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: grid size is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s.", grid_name, annotation);
+	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_id, annotation);
+
+	get_API_hint(*comp_id, API_id, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 != 0 && *dim_size3 != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some parameters of array have not be allocated. Please verify the model code with the annotation \"%s\" (please make sure all the arrays of grid data have been allocated)", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: grid size is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s\".", API_label, grid_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Software error in register_V1D_grid_with_data: wrong data type");
 	temp_value2 = new double [*dim_size2];
 	temp_value3 = new double [*dim_size3];
@@ -420,16 +411,16 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 		transform_datatype_of_arrays((float*)value1, &temp_value1, 1);
 		transform_datatype_of_arrays((float*)value2, temp_value2, *dim_size2);
 		transform_datatype_of_arrays((float*)value3, temp_value3, *dim_size3);
-		transform_datatype_of_arrays((float*)value4, &temp_value4, 1);
 	}
 	else {
 		transform_datatype_of_arrays((double*)value1, &temp_value1, 1);
 		transform_datatype_of_arrays((double*)value2, temp_value2, *dim_size2);
 		transform_datatype_of_arrays((double*)value3, temp_value3, *dim_size3);
-		transform_datatype_of_arrays((double*)value4, &temp_value4, 1);
 	}
 
-	*grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, *comp_id, grid_name, *grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, temp_value4, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0 && is_array_in_sorting_order(temp_value3,*dim_size2) != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
+	*grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, *comp_id, grid_name, *grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, annotation);
 
 	delete [] temp_value2;
 	delete [] temp_value3;
@@ -449,12 +440,13 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 	else if (*static_or_dynamic_or_external == BOTTOM_FIELD_VARIATION_EXTERNAL) 
 		API_id = API_ID_GRID_MGT_SET_3D_GRID_EXTERNAL_BOT_FLD;
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in set_3d_grid_surface_field_: wrong value of static_or_dynamic_or_external");
-	get_API_hint(-1, API_id, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	get_API_hint(-1, API_id, API_label);	
+	check_for_component_registered(-1, API_id, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the bottom field of a 3-D grid: the components corresponding to the grid_id and field_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the components corresponding to the grid_id and field_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	}	
 	check_for_coupling_registration_stage(comp_id, API_id, annotation);
 	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
@@ -463,8 +455,7 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 
 extern "C" void register_md_grid_via_multi_grids_(int *comp_id, int *grid_id, const char *grid_name, int *sub_grid1_id, int *sub_grid2_id, int *sub_grid3_id, int *size_mask, int *mask, const char *annotation)
 {
-	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, annotation);
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, "the C-Coupler grid", annotation);
+	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, annotation);
 	*grid_id = original_grid_mgr->register_md_grid_via_multi_grids(*comp_id, grid_name, *sub_grid1_id, *sub_grid2_id, *sub_grid3_id, *size_mask, mask, annotation);
 }
 
@@ -472,8 +463,7 @@ extern "C" void register_md_grid_via_multi_grids_(int *comp_id, int *grid_id, co
 extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
 	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, void *center_lon, void *center_lat, int *mask, void *area, void *vertex_lon, void *vertex_lat, const char *annotation)
 {
-	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, annotation);
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, "the C-Coupler grid", annotation);
+	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA, annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
 												             *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												             API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA);
@@ -487,15 +477,18 @@ extern "C" void register_h2d_grid_with_data_(int *comp_id, int *grid_id, const c
 
 extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const char *grid_name, const char *data_file_name, const char *annotation)
 {
-	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
-	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, "the C-Coupler grid", annotation);
-	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, data_file_name, annotation);
+	char full_data_file_name[NAME_STR_SIZE];
+
+
+	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
+	sprintf(full_data_file_name, "%s/grids/%s", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), data_file_name);
+	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, full_data_file_name, annotation);
 }
 
 
 extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *grid_id, const char *grid_name, const char *annotation)
 {
-	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, annotation);
+	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, annotation);
 	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, "the C-Coupler grid", annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_comp(*comp_id, grid_name, annotation);
 }
@@ -503,9 +496,7 @@ extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *gri
 
 extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
 {
-	check_for_coupling_registration_stage(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, annotation);
-	synchronize_comp_processes_for_API(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid based on a CoR grid", annotation);
-	check_and_verify_name_format_of_string_for_API(*comp_id, CCPL_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the C-Coupler grid", annotation);
+	common_checking_for_grid_registration(*comp_id, CCPL_grid_name, NULL, API_ID_GRID_MGT_REG_GRID_VIA_COR, annotation);
 	check_and_verify_name_format_of_string_for_API(*comp_id, CoR_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the CoR grid", annotation);
 	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid", CCPL_grid_name, "CCPL_grid_name", annotation);
 	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid", CoR_grid_name, "CoR_grid_name", annotation);
@@ -548,7 +539,7 @@ extern "C" void get_h2d_grid_data_(int *grid_id, int *decomp_id, const char *lab
 
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_H2D_GRID_DATA, annotation);
 	get_API_hint(-1, API_ID_GRID_MGT_GET_H2D_GRID_DATA, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the grid_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the grid \"%s\" is not an H2D grid. Please verify the model code with the annotation \"%s.", API_label, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
 	EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), *decomp_id == -1 || decomps_info_mgr->is_decomp_id_legal(*decomp_id), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the decomp_id is wrong (must be -1 or a legal decomp_id). Please verify the model code with the annotation \"%s.", API_label, annotation);
 	if (*decomp_id != -1)
@@ -615,7 +606,7 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component", annotation);
-	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), "setting the time step of a component", *time_step_in_second, "the value of the time step (the unit is seconds)", annotation);
+	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), NULL, *time_step_in_second, "time step (the unit is seconds)", annotation);
 	components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
 }
 

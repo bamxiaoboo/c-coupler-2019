@@ -124,11 +124,11 @@
 
 
 
-   interface CCPL_register_H2D_grid_via_model_data; module procedure &
-        CCPL_register_H2D_grid_online_C1D_M1D_float, &
-        CCPL_register_H2D_grid_online_C1D_M1D_double , &
-        CCPL_register_H2D_grid_online_C2D_M2D_float, &
-        CCPL_register_H2D_grid_online_C2D_M2D_double
+   interface CCPL_register_H2D_grid_via_global_data; module procedure &
+        CCPL_register_H2D_grid_global_online_C1D_M1D_float, &
+        CCPL_register_H2D_grid_global_online_C1D_M1D_double , &
+        CCPL_register_H2D_grid_global_online_C2D_M2D_float, &
+        CCPL_register_H2D_grid_global_online_C2D_M2D_double
    end interface
 
 
@@ -164,7 +164,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -190,7 +190,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -216,7 +216,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -242,7 +242,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -268,7 +268,7 @@
    character *512                            :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -294,7 +294,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -320,7 +320,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -346,7 +346,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -372,7 +372,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -398,7 +398,7 @@
    character *512                            :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -424,7 +424,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -450,7 +450,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -476,7 +476,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -502,7 +502,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -528,7 +528,7 @@
    character *512                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
-   local_field_unit = ""
+   local_field_unit = "default_unit"
    if (present(field_unit)) then
        local_field_unit = field_unit
    endif
@@ -1636,7 +1636,7 @@
 
 
 
-   integer FUNCTION CCPL_get_CoR_defined_grid(comp_id, CCPL_grid_name, CoR_grid_name, annotation) 
+   integer FUNCTION CCPL_register_CoR_defined_grid(comp_id, CCPL_grid_name, CoR_grid_name, annotation) 
    implicit none
    integer, intent(in)                     :: comp_id
    character(len=*), intent(in)            :: CCPL_grid_name
@@ -1650,13 +1650,13 @@
        call register_cor_defined_grid(comp_id, trim(CCPL_grid_name)//char(0), trim(CoR_grid_name)//char(0), trim("")//char(0), grid_id)
    endif
 
-   CCPL_get_CoR_defined_grid = grid_id
+   CCPL_register_CoR_defined_grid = grid_id
 
-   END FUNCTION CCPL_get_CoR_defined_grid
+   END FUNCTION CCPL_register_CoR_defined_grid
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_via_data_file(comp_id, grid_name, data_file_name, annotation)
+   integer FUNCTION CCPL_register_H2D_grid_via_file(comp_id, grid_name, data_file_name, annotation)
    implicit none
    integer, intent(in)                     :: comp_id
    character(len=*), intent(in)            :: grid_name
@@ -1669,9 +1669,9 @@
    else 
       call register_H2D_grid_with_file(comp_id, grid_id, trim(grid_name)//char(0), trim(data_file_name)//char(0), trim("")//char(0)) 
    endif
-   CCPL_register_H2D_grid_via_data_file = grid_id
+   CCPL_register_H2D_grid_via_file = grid_id
 
-   END FUNCTION CCPL_register_H2D_grid_via_data_file
+   END FUNCTION CCPL_register_H2D_grid_via_file
 
 
 
@@ -1693,7 +1693,7 @@
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+   integer FUNCTION CCPL_register_H2D_grid_global_online_C1D_M1D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
                                                            center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
@@ -1748,15 +1748,15 @@
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
-   CCPL_register_H2D_grid_online_C1D_M1D_float = grid_id
+   CCPL_register_H2D_grid_global_online_C1D_M1D_float = grid_id
 
    deallocate(temp_int, temp_float_1d, temp_float_2d)
 
-   end FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_float
+   end FUNCTION CCPL_register_H2D_grid_global_online_C1D_M1D_float
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+   integer FUNCTION CCPL_register_H2D_grid_global_online_C1D_M1D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
                                                            center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
@@ -1812,15 +1812,15 @@
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
-   CCPL_register_H2D_grid_online_C1D_M1D_double = grid_id
+   CCPL_register_H2D_grid_global_online_C1D_M1D_double = grid_id
 
    deallocate(temp_int, temp_double_1d, temp_double_2d)
 
-   end FUNCTION CCPL_register_H2D_grid_online_C1D_M1D_double
+   end FUNCTION CCPL_register_H2D_grid_global_online_C1D_M1D_double
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+   integer FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
                                                            center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
@@ -1875,15 +1875,15 @@
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
-   CCPL_register_H2D_grid_online_C2D_M2D_float = grid_id
+   CCPL_register_H2D_grid_global_online_C2D_M2D_float = grid_id
 
    deallocate(temp_int, temp_float_2d, temp_float_3d)
 
-   end FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_float
+   end FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_float
 
 
 
-   integer FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
+   integer FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
                                                            center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
@@ -1939,11 +1939,11 @@
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
-   CCPL_register_H2D_grid_online_C2D_M2D_double = grid_id
+   CCPL_register_H2D_grid_global_online_C2D_M2D_double = grid_id
 
    deallocate(temp_int, temp_double_2d, temp_double_3d)
 
-   end FUNCTION CCPL_register_H2D_grid_online_C2D_M2D_double
+   end FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_double
 
 
 
@@ -1958,9 +1958,9 @@
    integer                                                 :: grid_id
 
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), trim("real8")//char(0), coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real8", coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), trim("real8")//char(0), coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
    endif
 
    CCPL_register_V1D_Z_grid_via_double_data = grid_id
@@ -1979,9 +1979,9 @@
    integer                                                 :: grid_id
 
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), trim("real4")//char(0), coord_values, coord_values, coord_values, coord_values, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), "real4", coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 1, trim(coord_unit)//char(0), size(coord_values), size(coord_values), trim("real4")//char(0), coord_values, coord_values, coord_values, coord_values, trim("")//char(0))
    endif
 
    CCPL_register_V1D_Z_grid_via_float_data = grid_id
@@ -1990,7 +1990,7 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_double_data(comp_id, grid_name, coord_unit, top_value, sigma_values, annotation, scale_factor)
+   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_double_data(comp_id, grid_name, coord_unit, top_value, sigma_values, annotation)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
@@ -1998,16 +1998,12 @@
    real(R8),         intent(in)                            :: top_value
    real(R8),         intent(in), dimension(:)              :: sigma_values
    character(len=*), intent(in),               optional    :: annotation
-   real(R8),         intent(in),               optional    :: scale_factor
    integer                                                 :: grid_id
-   real(R8)                                                :: local_scale_factor
 
-   local_scale_factor = 1.0
-   if (present(scale_factor)) local_scale_factor = scale_factor
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), trim("real8")//char(0), top_value, sigma_values, sigma_values, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real8", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), trim("real8")//char(0), top_value, sigma_values, sigma_values, trim("")//char(0))
    endif
 
    CCPL_register_V1D_SIGMA_grid_via_double_data = grid_id
@@ -2016,7 +2012,7 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_float_data(comp_id, grid_name, coord_unit, top_value, sigma_values, annotation, scale_factor)
+   integer FUNCTION CCPL_register_V1D_SIGMA_grid_via_float_data(comp_id, grid_name, coord_unit, top_value, sigma_values, annotation)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
@@ -2024,16 +2020,12 @@
    real(R4),         intent(in)                            :: top_value
    real(R4),         intent(in), dimension(:)              :: sigma_values
    character(len=*), intent(in),               optional    :: annotation
-   real(R4),         intent(in),               optional    :: scale_factor
    integer                                                 :: grid_id
-   real(R4)                                                :: local_scale_factor
 
-   local_scale_factor = 1.0
-   if (present(scale_factor)) local_scale_factor = scale_factor
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), trim("real4")//char(0), top_value, sigma_values, sigma_values, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), "real4", top_value, sigma_values, sigma_values, local_scale_factor, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 2, trim(coord_unit)//char(0), size(sigma_values), size(sigma_values), trim("real4")//char(0), top_value, sigma_values, sigma_values, trim("")//char(0))
    endif
 
    CCPL_register_V1D_SIGMA_grid_via_float_data = grid_id
@@ -2042,7 +2034,7 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_double_data(comp_id, grid_name, coord_unit, coef_A, coef_B, annotation, scale_factor_for_A, scale_factor_for_all)
+   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_double_data(comp_id, grid_name, coord_unit, top_value, coef_A, coef_B, annotation)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
@@ -2050,19 +2042,13 @@
    real(R8),         intent(in), dimension(:)              :: coef_A
    real(R8),         intent(in), dimension(:)              :: coef_B
    character(len=*), intent(in),               optional    :: annotation
-   real(R8),         intent(in),               optional    :: scale_factor_for_A
-   real(R8),         intent(in),               optional    :: scale_factor_for_all
+   real(R8),         intent(in)                            :: top_value
    integer                                                 :: grid_id
-   real(R8)                                                :: local_scale_factor_for_A, local_scale_factor_for_all
 
-   local_scale_factor_for_A = 1.0
-   local_scale_factor_for_all = 1.0
-   if (present(scale_factor_for_A)) local_scale_factor_for_A = scale_factor_for_A
-   if (present(scale_factor_for_all)) local_scale_factor_for_all = scale_factor_for_all
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real8", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real8")//char(0), top_value, coef_A, coef_B, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real8", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real8")//char(0), top_value, coef_A, coef_B, trim("")//char(0))
    endif
 
    CCPL_register_V1D_HYBRID_grid_via_double_data = grid_id
@@ -2071,7 +2057,7 @@
 
 
 
-   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data(comp_id, grid_name, coord_unit, coef_A, coef_B, annotation, scale_factor_for_A, scale_factor_for_all)
+   integer FUNCTION CCPL_register_V1D_HYBRID_grid_via_float_data(comp_id, grid_name, coord_unit, top_value, coef_A, coef_B, annotation)
    implicit none
    integer, intent(in)                                     :: comp_id
    character(len=*), intent(in)                            :: grid_name
@@ -2079,19 +2065,13 @@
    real(R4),         intent(in), dimension(:)              :: coef_A
    real(R4),         intent(in), dimension(:)              :: coef_B
    character(len=*), intent(in),               optional    :: annotation
-   real(R4),         intent(in),               optional    :: scale_factor_for_A
-   real(R4),         intent(in),               optional    :: scale_factor_for_all
+   real(R4),         intent(in)                            :: top_value
    integer                                                 :: grid_id
-   real(R4)                                                :: local_scale_factor_for_A, local_scale_factor_for_all
 
-   local_scale_factor_for_A = 1.0
-   local_scale_factor_for_all = 1.0
-   if (present(scale_factor_for_A)) local_scale_factor_for_A = scale_factor_for_A
-   if (present(scale_factor_for_all)) local_scale_factor_for_all = scale_factor_for_all
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real4", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real4")//char(0), top_value, coef_A, coef_B, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), "real4", local_scale_factor_for_A, coef_A, coef_B, scale_factor_for_all, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real4")//char(0), top_value, coef_A, coef_B, trim("")//char(0))
    endif
 
    CCPL_register_V1D_HYBRID_grid_via_float_data = grid_id
@@ -2187,11 +2167,11 @@
 
 
 
-   SUBROUTINE CCPL_register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, mask, annotation)
+   SUBROUTINE CCPL_register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_V1D_grid_id, mask, annotation)
    implicit none
    integer, intent(in)                                     :: level_3D_grid_id
    integer, intent(out)                                    :: mid_3D_grid_id
-   integer, intent(out)                                    :: mid_1D_grid_id
+   integer, intent(out)                                    :: mid_V1D_grid_id
    integer, intent(in),  dimension(:), target, optional    :: mask
    integer,              dimension(:),         pointer     :: temp_mask, temp_int
    character(len=*), intent(in),               optional    :: annotation
@@ -2206,9 +2186,9 @@
       size_mask = size(mask)
    endif
    if (present(annotation)) then
-      call register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, size_mask, temp_mask, trim(annotation)//char(0))
+      call register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_V1D_grid_id, size_mask, temp_mask, trim(annotation)//char(0))
    else
-      call register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, size_mask, temp_mask, trim("")//char(0))
+      call register_mid_point_grid(level_3D_grid_id, mid_3D_grid_id, mid_V1D_grid_id, size_mask, temp_mask, trim("")//char(0))
    endif
    deallocate(temp_int)
    END SUBROUTINE CCPL_register_mid_point_grid

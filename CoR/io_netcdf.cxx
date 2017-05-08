@@ -360,7 +360,11 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
         else {
             if (words_are_the_same(grid_field_type, GRID_VERTEX_LABEL))
                 sprintf(tmp_string , "%s_%s", grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
-            else sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
+            else {
+				sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
+				if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, "lat"))
+					sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
+            }
         }
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "IO field name is %s", tmp_string);
     }

@@ -211,3 +211,35 @@ int get_num_fields_in_config_file(const char *config_file_name, const char *conf
 }
 
 
+void check_for_coupling_registration_stage(int comp_id, int API_ID, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	
+
+	get_API_hint(-1, API_ID, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Error happens when calling the API \"%s\": The API \"CCPL_register_component\" has not been called before to register components. Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when calling the API \"%s\": The parameter of component ID is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, annotation);
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, annotation);		
+}
+
+
+void common_checking_for_grid_registration(int comp_id, const char *grid_name, const char *coord_unit, int API_id, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	Original_grid_info *existing_grid;
+
+	
+	get_API_hint(comp_id, API_id, API_label);
+	check_for_coupling_registration_stage(comp_id, API_id, annotation);
+	existing_grid = original_grid_mgr->search_grid_info(grid_name, comp_id);
+	if (existing_grid != NULL)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"%s\" to register a grid \"%s\": another grid with the same name has already been registered before (at the model code with the annotation \"%s\"). It cannot be registered again (at the model code with the annotation \"%s\"). Please verify.", API_label, grid_name, annotation_mgr->get_annotation(existing_grid->get_grid_id(), "grid_registration"), annotation);
+	original_grid_mgr->check_for_grid_definition(comp_id, grid_name, annotation);	
+	check_and_verify_name_format_of_string_for_API(comp_id, grid_name, API_id, "the C-Coupler grid", annotation);
+	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in grid registration");
+	synchronize_comp_processes_for_API(comp_id, API_id, comm, "registering a grid", annotation);
+	check_API_parameter_string(comp_id, API_id, comm, "registering a grid", grid_name, "grid_name", annotation);	
+	if (coord_unit != NULL)
+		check_API_parameter_string(comp_id, API_id, comm, "registering a grid", coord_unit, "coord_unit", annotation);
+}
+
