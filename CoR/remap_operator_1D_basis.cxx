@@ -210,6 +210,7 @@ void Remap_operator_1D_basis::initialize_1D_remap_operator()
 	use_logarithmic_coordinate = false;
 	set_use_logarithmic_coordinate = false;
 	extrapolation_approach = 0;
+	period = -999;
 
 	allocate_1D_remap_operator_common_arrays_space();
 }

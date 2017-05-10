@@ -3468,7 +3468,7 @@ Remap_grid_data_class *Remap_grid_class::generate_mid_point_grid_field(Remap_gri
 {
 	Remap_grid_data_class *mid_point_grid_field = interface_level_grid_field->duplicate_grid_data_field(mid_point_grid, 1, false, false);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(mid_point_grid_field->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "Software error in Remap_grid_class::generate_mid_point_grid_field: wrong data type");
-	for (int i = 0; i < mid_point_grid->num_dimensions; i ++)
+	for (int i = 0; i < mid_point_grid->grid_size; i ++)
 		((double*)mid_point_grid_field->get_grid_data_field()->data_buf)[i] = (((double*)interface_level_grid_field->get_grid_data_field()->data_buf)[i]+((double*)interface_level_grid_field->get_grid_data_field()->data_buf)[i+1]) / 2; 
 
 	return mid_point_grid_field;

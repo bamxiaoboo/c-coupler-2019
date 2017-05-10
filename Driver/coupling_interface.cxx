@@ -445,8 +445,8 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the field_id is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the components corresponding to the grid_id and field_id are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"field_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the components corresponding to the parameters of \"grid_id\" and \"field_id\" are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	}	
 	check_for_coupling_registration_stage(comp_id, API_id, annotation);
 	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
@@ -510,6 +510,7 @@ extern "C" void register_mid_point_grid_(int *level_3D_grid_id, int *mid_3D_grid
 
 
 	get_API_hint(-1, API_ID_GRID_MGT_REG_MID_POINT_GRID, API_label);	
+	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_REG_MID_POINT_GRID, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*level_3D_grid_id), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the grid ID of the interface-level grid (level_3D_grid_id) is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	check_for_coupling_registration_stage(original_grid_mgr->get_comp_id_of_grid(*level_3D_grid_id), API_ID_GRID_MGT_REG_MID_POINT_GRID, annotation);
 	original_grid_mgr->register_mid_point_grid(*level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, *size_mask, mask, annotation, API_label);

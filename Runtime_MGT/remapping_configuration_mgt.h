@@ -55,7 +55,7 @@ class Remapping_setting
 		Remapping_algorithm_specification *H2D_remapping_algorithm;
 		Remapping_algorithm_specification *V1D_remapping_algorithm;
 		Remapping_algorithm_specification *T1D_remapping_algorithm;
-		int field_specification_manner;    // 0 means all fields of a component; 1 means type; 2 means name
+		int field_specification_manner;    // 0 means default of a component; 1 means type; 2 means name
 		std::vector<const char *> fields_specification;
 
 	public:

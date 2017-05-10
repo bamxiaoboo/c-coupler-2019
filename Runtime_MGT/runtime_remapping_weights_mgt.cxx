@@ -65,9 +65,11 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
             remap_operator_V1D = new Remap_operator_linear("V1D_algorithm", 2, remap_grids);
         else if (words_are_the_same(cloned_remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_SPLINE_1D))
             remap_operator_V1D = new Remap_operator_spline_1D("V1D_algorithm", 2, remap_grids);
-        else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: wrong V1D algorithm");		
+        else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: wrong V1D algorithm");
+		printf("detect to generate V1D remapping algorithm %s: %d\n", cloned_remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), cloned_remapping_setting->get_V1D_remapping_algorithm()->get_num_parameters());
 		for (int i = 0; i < cloned_remapping_setting->get_V1D_remapping_algorithm()->get_num_parameters(); i ++) {
 			cloned_remapping_setting->get_V1D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
+			printf("set V1D remapping parameter %s vs %s\n", parameter_name, parameter_value);
 			remap_operator_V1D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_V1D;
@@ -186,10 +188,10 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 	}
 
 	if (dynamic_V1D_remap_weight_of_operator != NULL && get_dst_original_grid()->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL && get_dst_original_grid()->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET) {
-		printf("set bottom field of \"%s\" at %lx to %lx\n", dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_grid_name(), dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst(), memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());
+		printf("set surface field of \"%s\" at %lx to %lx\n", dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_grid_name(), dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst(), memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());
 		if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() != NULL)
-			EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() == memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the bottom field of the same grid has been set to different data fields");
-		else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->set_sigma_grid_dynamic_surface_value_field(memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());					
+			EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() == memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the surface field of the same grid has been set to different data fields");
+		else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->set_sigma_grid_dynamic_surface_value_field(memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());
 	}
 	
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after generating parallel remap weights for runtime_remap_algorithm");
@@ -214,13 +216,13 @@ void Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights()
 		src_bottom_value_specified = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid_surface_value_field_specified();
 		src_bottom_value_updated = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid_surface_value_field_updated();
 		if (src_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_STATIC)
-			EXECUTION_REPORT(REPORT_ERROR, src_original_grid->get_comp_id(), !src_bottom_value_updated || !src_bottom_value_specified, "The bottom field of the 3-D grid \"%s\" (registered in the component \"%s\") is updated while the bottom field has been specified as a static one. Please verify", src_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_original_grid->get_comp_id(),"in Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights")->get_full_name());
+			EXECUTION_REPORT(REPORT_ERROR, src_original_grid->get_comp_id(), !src_bottom_value_updated || !src_bottom_value_specified, "the surface field of the 3-D grid \"%s\" (registered in the component \"%s\") is updated while the surface field has been specified as a static one. Please verify", src_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_original_grid->get_comp_id(),"in Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights")->get_full_name());
 	}
 	if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid()) {
 		dst_bottom_value_specified = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid_surface_value_field_specified();
 		dst_bottom_value_updated = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid_surface_value_field_updated();
 		if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_STATIC)
-			EXECUTION_REPORT(REPORT_ERROR, dst_original_grid->get_comp_id(), !dst_bottom_value_updated || !dst_bottom_value_specified, "The bottom field of the 3-D grid \"%s\" is updated while the bottom field has been specified as a static one. Please verify", dst_original_grid->get_grid_name());
+			EXECUTION_REPORT(REPORT_ERROR, dst_original_grid->get_comp_id(), !dst_bottom_value_updated || !dst_bottom_value_specified, "the surface field of the 3-D grid \"%s\" is updated while the surface field has been specified as a static one. Please verify", dst_original_grid->get_grid_name());
 	}
 
 	if (src_bottom_value_updated)

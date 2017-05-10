@@ -211,7 +211,7 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, num_fields_section == 0, "When setting the remapping configuration in the XML file \"%s\", there are more than one section for specifying fields. That is not allowed. Please verify the XML file arround the line number %d", XML_file_name, detailed_element->Row());		
 			const char *specification_type = get_XML_attribute(comp_id, detailed_element, "specification", XML_file_name, line_number, "how to specify the fields corresponding to a remapping setting", "remapping configuration");
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(specification_type, "type") || words_are_the_same(specification_type, "all fields") || words_are_the_same(specification_type, "name"), "In the XML file \"%s\", the manner for how to specify fields must be \"type\", \"all fields\" or \"name\". Please verify the XML file arround the line number %d.", XML_file_name, line_number);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(specification_type, "type") || words_are_the_same(specification_type, "default") || words_are_the_same(specification_type, "name"), "In the XML file \"%s\", the manner for how to specify fields must be \"type\", \"default\" or \"name\". Please verify the XML file arround the line number %d.", XML_file_name, line_number);
 			if (words_are_the_same(specification_type, "type")) {
 				field_specification_manner = 1;
 				for (TiXmlNode *type_element_node = detailed_element_node->FirstChild(); type_element_node != NULL; type_element_node = type_element_node->NextSibling()) {
@@ -223,7 +223,7 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 				}
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_specification.size() > 0, "In the XML file \"%s\" for remapping configuration, no field type has been specified for a remapping setting. Please verify the XML file arround the line number %d.", XML_file_name, detailed_element->Row());
 			}
-			else if (words_are_the_same(specification_type, "all fields"))
+			else if (words_are_the_same(specification_type, "default"))
 				field_specification_manner = 0;
 			else {
 				field_specification_manner = 2;
@@ -276,7 +276,7 @@ void Remapping_setting::reset_remapping_setting()
 void Remapping_setting::detect_conflict(Remapping_setting *another_setting, const char *XML_file_name)
 {
 	if (this->field_specification_manner == 0 && another_setting->field_specification_manner == 0) 
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "In the XML file \%s\" that is for remapping configuration, there is conflict between the remapping settings starting from line %d and %d respectively: both settings specify all fields. Please verify. ", XML_file_name, another_setting->XML_start_line_number, this->XML_start_line_number);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "In the XML file \%s\" that is for remapping configuration, there is conflict between the remapping settings starting from line %d and %d respectively: both settings specify \"default\". Please verify. ", XML_file_name, another_setting->XML_start_line_number, this->XML_start_line_number);
 
 	if (this->field_specification_manner == 1 && another_setting->field_specification_manner == 1)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(this->fields_specification[0], another_setting->fields_specification[0]), "In the XML file \%s\" that is for remapping configuration, there is conflict (the same type of fields: \"%s\") between the remapping settings starting from line %d and %d respectively. Please verify. ", XML_file_name, this->fields_specification[0], another_setting->XML_start_line_number, this->XML_start_line_number);
@@ -407,7 +407,7 @@ bool Remapping_setting::is_the_same_as_another(Remapping_setting *another)
 
 Remapping_configuration::Remapping_configuration()
 {
-	comp_id = comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id();
+	comp_id = -1;
 	remapping_settings.push_back(new Remapping_setting(REMAP_OPERATOR_NAME_BILINEAR, "state"));
 	remapping_settings.push_back(new Remapping_setting(REMAP_OPERATOR_NAME_CONSERV_2D, "flux"));
 }
@@ -458,8 +458,6 @@ Remapping_configuration::~Remapping_configuration()
 
 bool Remapping_configuration::get_field_remapping_setting(Remapping_setting &field_remapping_configuration, const char *field_name)
 {
-	printf("get field remapping_setting at comp %s\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_name());
-
 	for (int i = 0; i < remapping_settings.size(); i ++) {
 		remapping_settings[i]->get_field_remapping_setting(field_remapping_configuration, field_name);
 		if (field_remapping_configuration.get_H2D_remapping_algorithm() != NULL && field_remapping_configuration.get_V1D_remapping_algorithm() != NULL && field_remapping_configuration.get_T1D_remapping_algorithm() != NULL)
@@ -521,6 +519,6 @@ void Remapping_configuration_mgt::get_field_remapping_setting(Remapping_setting 
 				return;
 			}
 	}
-	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Remapping_configuration_mgt::get_field_remapping_setting");
+	EXECUTION_REPORT(REPORT_ERROR, -1, remapping_configurations[0]->get_field_remapping_setting(field_remapping_setting, field_name), "Software error in Remapping_configuration_mgt::get_field_remapping_setting");
 }
 

@@ -765,13 +765,13 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	level_3D_grid = get_original_grid(level_3D_grid_id);
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(level_3D_grid->get_comp_id(), "in Original_grid_mgt::register_mid_point_grid");
 	synchronize_comp_processes_for_API(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", annotation);
+	check_API_parameter_string(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", level_3D_grid->get_grid_name(), "\"level_3D_grid_id\" (the name of the interface-level grid)", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), level_3D_grid->is_3D_grid(), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the grid specified by the parameter \"level_3D_grid_id\" is not a 3-D grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	if (level_3D_grid->get_mid_point_grid() != NULL)	
-		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the mid-point grid of the grid \"%s\" has been registered before (at the model code with the annotation \"%s\"). Please verify the model code with the annotation \"%s.", API_label, level_3D_grid->get_mid_point_grid()->get_annotation(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the mid-point grid of the grid \"%s\" has been registered before (at the model code with the annotation \"%s\"). Please verify the model code with the annotation \"%s\".", API_label, level_3D_grid->get_grid_name(), level_3D_grid->get_mid_point_grid()->get_annotation(), annotation);
 	if (level_3D_grid->get_interface_level_grid() != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the specified interface-level grid itself is a mid-point grid (registered at the model code with the annotation \"%s\") of the grid \"%s\". It cannot be used to register another mid-point grid. Please verify the model code with the annotation \"%s.", API_label, level_3D_grid->get_annotation(), level_3D_grid->get_interface_level_grid()->get_grid_name(), annotation);
-	check_API_parameter_string(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", level_3D_grid->get_grid_name(), "the name of the interface-level grid", annotation);
-	check_API_parameter_data_array(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", size_mask, sizeof(int), (const char*)mask, "mask of the mid-point grid", annotation);
+	check_API_parameter_data_array(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", size_mask, sizeof(int), (const char*)mask, "\"mask\"", annotation);
 	level_1D_CoR_grid = level_3D_grid->get_V1D_sub_CoR_grid();
 	level_H2D_CoR_grid = level_3D_grid->get_H2D_sub_CoR_grid(); 
 	EXECUTION_REPORT(REPORT_ERROR, -1, level_1D_CoR_grid != NULL && level_H2D_CoR_grid != NULL, "Software error in Original_grid_mgt::register_mid_point_grid: NULL level_1D_CoR_grid or NULL level_H2D_CoR_grid");
@@ -780,10 +780,12 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	sub_grids[1] = mid_1D_CoR_grid;
 	sprintf(grid_name, "mid_grid_for_%s", level_3D_grid->get_original_CoR_grid()->get_grid_name());
 	mid_3D_CoR_grid = new Remap_grid_class(grid_name, 2, sub_grids, 0);
+	remap_grid_manager->add_remap_grid(mid_3D_CoR_grid);
 	mid_1D_grid = search_grid_info(mid_1D_CoR_grid->get_grid_name(), level_3D_grid->get_comp_id());
 	if (mid_1D_grid == NULL) {
 		mid_1D_grid = new Original_grid_info(level_3D_grid->get_comp_id(), original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, mid_1D_CoR_grid->get_grid_name(), annotation, mid_1D_CoR_grid, true);
 		original_grids.push_back(mid_1D_grid);
+		remap_grid_manager->add_remap_grid(mid_1D_grid->get_original_CoR_grid());
 	}
 	*mid_1D_grid_id = mid_1D_grid->get_grid_id();
 	mid_3D_grid = search_grid_info(mid_3D_CoR_grid->get_grid_name(), level_3D_grid->get_comp_id());
@@ -793,7 +795,8 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	*mid_3D_grid_id = mid_3D_grid->get_grid_id();
 	level_3D_grid->set_mid_point_grid(mid_3D_grid);
 	if (size_mask > 0) {
-		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), size_mask == mid_3D_CoR_grid->get_grid_size(), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the size of the mask array is different from the size of the mid-point grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), size_mask == mid_3D_CoR_grid->get_grid_size(), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the array size of \"mask\" is different from the size of the mid-point grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), are_array_values_between_boundaries("integer", mask, size_mask, 0, 1, 0, false), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: some values of the parameter \"mask\" are wrong (not 0 and 1). Please check the model code related to the annotation \"%s\".", API_label, annotation);
 		mid_3D_CoR_grid->read_grid_data_from_array("mask", "mask", DATA_TYPE_INT, (const char*)mask, 0);
 	}
 }
