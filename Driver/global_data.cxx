@@ -34,6 +34,7 @@ Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr = NULL;
 Remapping_configuration_mgt *remapping_configuration_mgr = NULL;
 Coupling_generator *coupling_generator = NULL;
 Runtime_remapping_weights_mgt *runtime_remapping_weights_mgr = NULL;
+H2D_remapping_wgt_file_container *all_H2D_remapping_wgt_files_info = NULL;
 
 
 

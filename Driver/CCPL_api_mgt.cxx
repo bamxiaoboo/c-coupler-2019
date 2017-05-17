@@ -11,6 +11,34 @@
 #include "global_data.h"
 
 
+
+long calculate_checksum_of_array(const char *data_array, int array_size, int data_type_size, const char *original_data_type, const char *new_data_type)
+{
+	const char *local_buffer = data_array;
+	long total_checksum = 0, temp_checksum = 0;
+
+	
+	if (original_data_type != NULL) {
+		data_type_size = get_data_type_size(new_data_type);
+		if (words_are_the_same(original_data_type, DATA_TYPE_DOUBLE) && words_are_the_same(new_data_type, DATA_TYPE_FLOAT)) {
+			local_buffer = (char*)(new float [array_size]);
+			transform_datatype_of_arrays((double*) data_array, (float*) local_buffer, array_size);
+		}
+	}
+
+	for (int i = 0; i < array_size*data_type_size/sizeof(long); i ++)
+		total_checksum += ((const long*) local_buffer)[i] * (i+1);
+	for (int i = (array_size*data_type_size/sizeof(long))*sizeof(long); i < array_size*data_type_size; i ++) 
+		temp_checksum = (temp_checksum << 8) | local_buffer[i];
+	total_checksum += temp_checksum * ((array_size*data_type_size/sizeof(long))+1);
+
+	if (local_buffer != data_array)
+		delete [] local_buffer;
+
+	return total_checksum;
+}
+
+
 void get_API_hint(int comp_id, int API_id, char *API_label)
 {
 	switch(API_id) {
@@ -283,8 +311,8 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 
 void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, const char *hint, int array_size, int data_type_size, const char *array_value, const char *parameter_name, const char *annotation)
 {
-	long temp_checksum = 0, total_checksum = 0;
-	char API_label[NAME_STR_SIZE], temp_str[NAME_STR_SIZE];
+	long total_checksum = 0;
+	char API_label[NAME_STR_SIZE];
 
 
 	get_API_hint(comp_id, API_id, API_label);
@@ -295,13 +323,8 @@ void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, cons
 
 	if (array_size <= 0)
 		return;
-	
-	for (int i = 0; i < array_size*data_type_size/sizeof(long); i ++)
-		total_checksum += ((const long*) array_value)[i] * (i+1);
-	for (int i = (array_size*data_type_size/sizeof(long))*sizeof(long); i < array_size*data_type_size; i ++) 
-		temp_checksum = (temp_checksum << 8) | array_value[i];
-	total_checksum += temp_checksum * ((array_size*data_type_size/sizeof(long))+1);
 
+	total_checksum = calculate_checksum_of_array(array_value, array_size, data_type_size, NULL, NULL);
 	check_API_parameter_long(comp_id, API_id, comm, "array value", total_checksum, parameter_name, annotation);
 }
 

@@ -203,7 +203,7 @@ void Remap_operator_1D_basis::initialize_1D_remap_operator()
 	set_periodic = false;
 	set_period = false;
     periodic = false;
-	enable_extrapolate = false;
+	enable_extrapolate = true;
 	set_enable_extrapolation = false;
 	use_logarithmic_field_value = false;
 	set_use_logarithmic_field_value = false;

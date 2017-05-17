@@ -37,8 +37,6 @@
 #include "runtime_remapping_weights_mgt.h"
 
 
-#define C_COUPLER_CONFIG_DIR             "CCPL_configs"
-
 
 extern char software_name[];
 
@@ -64,6 +62,7 @@ extern Components_IO_output_procedures_mgt *components_IO_output_procedures_mgr;
 extern Remapping_configuration_mgt *remapping_configuration_mgr;
 extern Coupling_generator *coupling_generator;
 extern Runtime_remapping_weights_mgt *runtime_remapping_weights_mgr;
+extern H2D_remapping_wgt_file_container *all_H2D_remapping_wgt_files_info;
 
 
 #endif

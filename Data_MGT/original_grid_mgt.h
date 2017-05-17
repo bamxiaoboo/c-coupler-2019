@@ -40,6 +40,9 @@ class Original_grid_info
 		int bottom_field_variation_type;   // 0: static; 1: dynamic; 2: external
 		Original_grid_info *mid_point_grid;
 		Original_grid_info *interface_level_grid;
+		long checksum_center_lon;
+		long checksum_center_lat;
+		long checksum_H2D_mask;
 
 		void generate_remapping_grids();
 		
@@ -68,6 +71,9 @@ class Original_grid_info
 		Original_grid_info *get_interface_level_grid() { return interface_level_grid; }
 		Original_grid_info *get_mid_point_grid() { return mid_point_grid; }
 		void set_mid_point_grid(Original_grid_info*);
+		long get_checksum_center_lon() { return checksum_center_lon; }
+		long get_checksum_center_lat() { return checksum_center_lat; }
+		long get_checksum_H2D_mask() { return checksum_H2D_mask; }
 };
 
 

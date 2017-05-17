@@ -390,6 +390,9 @@ bool Runtime_trans_algorithm::run(bool bypass_timer)
 
 bool Runtime_trans_algorithm::send(bool bypass_timer)
 {
+	if (index_remote_procs_with_common_data.size() == 0)
+		return true;
+		
     preprocess();
 
     if (!is_remote_data_buf_ready())
@@ -440,52 +443,56 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 	bool received_data_ready = false;
 
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Begin to receive data from component \"%s\"", fields_routers[0]->get_src_comp_node()->get_comp_full_name());
-    preprocess();
 
-	while (!received_data_ready) {
-		receve_data_in_temp_buffer();
-		received_data_ready = last_history_receive_buffer_index != -1 && history_receive_buffer_status[last_history_receive_buffer_index];
-		if (!bypass_timer) {
-			while (received_data_ready && !sender_time_has_matched) {
-				bool time_matched = true;
-				for (int j = 0; j < num_transfered_fields; j ++)
-					if (transfer_process_on[j] && history_receive_sender_time[last_history_receive_buffer_index][j] != current_remote_fields_time[j])
-						time_matched = false;
-				if (time_matched)
-					sender_time_has_matched = true;
-				else {
-					history_receive_buffer_status[last_history_receive_buffer_index] = false;
-					last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
-					received_data_ready = history_receive_buffer_status[last_history_receive_buffer_index];
+	if (index_remote_procs_with_common_data.size() > 0) {
+		
+	    preprocess();
+
+		while (!received_data_ready) {
+			receve_data_in_temp_buffer();
+			received_data_ready = last_history_receive_buffer_index != -1 && history_receive_buffer_status[last_history_receive_buffer_index];
+			if (!bypass_timer) {
+				while (received_data_ready && !sender_time_has_matched) {
+					bool time_matched = true;
+					for (int j = 0; j < num_transfered_fields; j ++)
+						if (transfer_process_on[j] && history_receive_sender_time[last_history_receive_buffer_index][j] != current_remote_fields_time[j])
+							time_matched = false;
+					if (time_matched)
+						sender_time_has_matched = true;
+					else {
+						history_receive_buffer_status[last_history_receive_buffer_index] = false;
+						last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
+						received_data_ready = history_receive_buffer_status[last_history_receive_buffer_index];
+					}
 				}
 			}
 		}
+
+		if (!bypass_timer)
+			for (int j = 0; j < num_transfered_fields; j ++)
+				if (transfer_process_on[j]) {
+					EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_sender_time[last_history_receive_buffer_index][j] == current_remote_fields_time[j], "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_sender_time[last_history_receive_buffer_index][j], current_remote_fields_time[j]);
+					if (history_receive_usage_time[last_history_receive_buffer_index][j] != -999)
+						EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_usage_time[last_history_receive_buffer_index][j] == ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_usage_time[last_history_receive_buffer_index][j], ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second());
+				}	
+
+	    for (int i = 0; i < num_remote_procs; i ++) {
+	        if (transfer_size_with_remote_procs[i] == 0) 
+				continue;
+	        int offset = recv_displs_in_current_proc[i];
+	        for (int j = 0; j < num_transfered_fields; j ++)
+	            if (transfer_process_on[j]) {
+	                if (fields_routers[j]->get_num_dimensions() == 0) {
+						memcpy(fields_data_buffers[j], (char *) history_receive_data_buffer[last_history_receive_buffer_index] + offset, fields_data_type_sizes[j]);
+						offset += fields_data_type_sizes[j];
+	                }
+	                else unpack_MD_data(history_receive_data_buffer[last_history_receive_buffer_index], i, j, &offset);
+					fields_mem[j]->define_field_values(false);
+	            }
+
+	        EXECUTION_REPORT(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
+	    }
 	}
-
-	if (!bypass_timer)
-		for (int j = 0; j < num_transfered_fields; j ++)
-			if (transfer_process_on[j]) {
-				EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_sender_time[last_history_receive_buffer_index][j] == current_remote_fields_time[j], "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_sender_time[last_history_receive_buffer_index][j], current_remote_fields_time[j]);
-				if (history_receive_usage_time[last_history_receive_buffer_index][j] != -999)
-					EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_usage_time[last_history_receive_buffer_index][j] == ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_usage_time[last_history_receive_buffer_index][j], ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second());
-			}	
-
-    for (int i = 0; i < num_remote_procs; i ++) {
-        if (transfer_size_with_remote_procs[i] == 0) 
-			continue;
-        int offset = recv_displs_in_current_proc[i];
-        for (int j = 0; j < num_transfered_fields; j ++)
-            if (transfer_process_on[j]) {
-                if (fields_routers[j]->get_num_dimensions() == 0) {
-					memcpy(fields_data_buffers[j], (char *) history_receive_data_buffer[last_history_receive_buffer_index] + offset, fields_data_type_sizes[j]);
-					offset += fields_data_type_sizes[j];
-                }
-                else unpack_MD_data(history_receive_data_buffer[last_history_receive_buffer_index], i, j, &offset);
-				fields_mem[j]->define_field_values(false);
-            }
-
-        EXECUTION_REPORT(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
-    }
 
     for (int j = 0; j < num_transfered_fields; j ++)
         if (transfer_process_on[j]) {

@@ -79,6 +79,7 @@ class Remap_operator_basis
         int get_num_dimensions() { return num_dimensions; }
         bool get_is_sphere_grid() { return src_grid->get_is_sphere_grid(); }
         void add_weight_sparse_matrix(Remap_weight_sparse_matrix *sparse_matrix) { remap_weights_groups.push_back(sparse_matrix); }
+		void update_unique_weight_sparse_matrix(Remap_weight_sparse_matrix *);
 		void change_remap_operator_info(const char*, Remap_grid_class*, Remap_grid_class*);
 		void set_src_grid(Remap_grid_class *new_src_grid) { src_grid = new_src_grid; }
 		void set_dst_grid(Remap_grid_class *new_dst_grid) { dst_grid = new_dst_grid; }

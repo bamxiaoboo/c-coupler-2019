@@ -22,7 +22,6 @@ Runtime_remap_algorithm::Runtime_remap_algorithm(Runtime_remapping_weights *runt
 	specified_src_field_instance = src_field_instance;
 	specified_dst_field_instance = dst_field_instance;
 	this->runtime_remapping_weights = runtime_remapping_weights;
-	EXECUTION_REPORT(REPORT_ERROR, -1, runtime_remapping_weights->get_parallel_remapping_weights() != NULL, "Software error in Runtime_remap_algorithm::Runtime_remap_algorithm: parallel_remap_weights");
 	
 	if (words_are_the_same(src_field_instance->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT)) {
 		printf("remap field %lx to %lx\n", specified_src_field_instance, specified_dst_field_instance);
@@ -60,6 +59,9 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 	bool grid_dynamic_surface_field_updated;
 
 
+	if (runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
+		return;
+	
 	specified_src_field_instance->use_field_values("");
 	specified_src_field_instance->check_field_sum("before data interpolation");
 	if (transform_data_type)

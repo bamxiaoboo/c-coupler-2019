@@ -21,16 +21,6 @@
 int coupling_process_control_counter = 0;
 
 
-void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
-{
-	char API_label[NAME_STR_SIZE];
-	
-
-	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
-}
-
-
 void check_for_component_registered(int comp_id, int API_ID, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
@@ -237,6 +227,7 @@ extern "C" void initialize_CCPL_mgrs()
 	remapping_configuration_mgr = new Remapping_configuration_mgt();
 	routing_info_mgr = new Routing_info_mgt();
 	runtime_remapping_weights_mgr = new Runtime_remapping_weights_mgt();
+	all_H2D_remapping_wgt_files_info = new H2D_remapping_wgt_file_container();
 }
 
 
@@ -481,7 +472,7 @@ extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const c
 
 
 	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
-	sprintf(full_data_file_name, "%s/grids/%s", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), data_file_name);
+	sprintf(full_data_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), data_file_name);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, full_data_file_name, annotation);
 }
 

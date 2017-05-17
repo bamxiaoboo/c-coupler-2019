@@ -348,18 +348,20 @@ void Coupling_connection::add_bottom_field_coupling_info(int field_connection_in
 		original_grid_mgr->get_original_grid(V3D_remapping_weights->get_src_decomp_info()->get_grid_id()), original_grid_mgr->get_original_grid(V3D_remapping_weights->get_dst_decomp_info()->get_grid_id()), 
 		remapping_setting, V3D_remapping_weights->get_dst_decomp_info());
 
-	Remap_weight_of_operator_class *dynamic_V1D_remap_weight_of_operator = V3D_remapping_weights->get_parallel_remapping_weights()->get_dynamic_V1D_remap_weight_of_operator();
-	EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator != NULL, "Coupling_connection::add_bottom_field_coupling_info: do not have dynamic_V1D_remap_weight_of_operator");
-	
-	EXECUTION_REPORT(REPORT_ERROR, -1, bottom_field_coupling_info->bottom_field_inst->get_field_data()->get_coord_value_grid()->is_subset_of_grid(dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()) && bottom_field_coupling_info->bottom_field_inst->get_field_data()->get_coord_value_grid()->is_subset_of_grid(dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()), "Software error in Coupling_connection::add_bottom_field_coupling_info: wrong bottom field grid or wrong 2-D+1-D order");
-	if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->get_sigma_grid_dynamic_surface_value_field() != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->get_sigma_grid_dynamic_surface_value_field() == bottom_field_coupling_info->bottom_field_inst->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the bottom field of the same grid has been set to different data fields");
-	else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->set_sigma_grid_dynamic_surface_value_field(bottom_field_coupling_info->bottom_field_inst->get_field_data());
+	if (V3D_remapping_weights->get_parallel_remapping_weights() != NULL) {
+		Remap_weight_of_operator_class *dynamic_V1D_remap_weight_of_operator = V3D_remapping_weights->get_parallel_remapping_weights()->get_dynamic_V1D_remap_weight_of_operator();
+		EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator != NULL, "Coupling_connection::add_bottom_field_coupling_info: do not have dynamic_V1D_remap_weight_of_operator");
+		
+		EXECUTION_REPORT(REPORT_ERROR, -1, bottom_field_coupling_info->bottom_field_inst->get_field_data()->get_coord_value_grid()->is_subset_of_grid(dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()) && bottom_field_coupling_info->bottom_field_inst->get_field_data()->get_coord_value_grid()->is_subset_of_grid(dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()), "Software error in Coupling_connection::add_bottom_field_coupling_info: wrong surface field grid or wrong 2-D+1-D order");
+		if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->get_sigma_grid_dynamic_surface_value_field() != NULL)
+			EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->get_sigma_grid_dynamic_surface_value_field() == bottom_field_coupling_info->bottom_field_inst->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the surface field of the same grid has been set to different data fields");
+		else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->set_sigma_grid_dynamic_surface_value_field(bottom_field_coupling_info->bottom_field_inst->get_field_data());
 
-	if (V3D_remapping_weights->get_dst_original_grid()->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL) {
-		if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() != NULL)
-			EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() == bottom_field_coupling_info->bottom_field_inst->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the bottom field of the same grid has been set to different data fields");
-		else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->set_sigma_grid_dynamic_surface_value_field(bottom_field_coupling_info->bottom_field_inst->get_field_data());
+		if (V3D_remapping_weights->get_dst_original_grid()->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL) {
+			if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() != NULL)
+				EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() == bottom_field_coupling_info->bottom_field_inst->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the surface field of the same grid has been set to different data fields");
+			else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->set_sigma_grid_dynamic_surface_value_field(bottom_field_coupling_info->bottom_field_inst->get_field_data());
+		}
 	}
 
 	dst_bottom_fields_coupling_info.push_back(bottom_field_coupling_info);
@@ -419,13 +421,13 @@ void Coupling_connection::generate_interpolation()
 			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
 			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
-				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the bottom field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
-				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL, "Fail to generate interpolation from component \"%s\" to \"%s\": it is not allowed to set the bottom field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate to be an external field. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL, "Fail to generate interpolation from component \"%s\" to \"%s\": it is not allowed to set the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate to be an external field. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
 			}
 			if (dst_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
-				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), dst_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the bottom field of the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), dst_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the surface field of the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name());
 				if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL)
-					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate interpolation from component \"%s\" to \"%s\": when the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has external bottom field, the source 3-D grid \"%s\" must include SIGMA or HYBRID vertical coordinate. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
+					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate interpolation from component \"%s\" to \"%s\": when the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has external surface field, the source 3-D grid \"%s\" must include SIGMA or HYBRID vertical coordinate. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
 			}	
 			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid())
@@ -566,9 +568,9 @@ void Coupling_connection::exchange_bottom_fields_info()
 	}
 
 	if (dst_bottom_fields_coupling_info.size() > 0 || src_bottom_fields_coupling_info.size() > 0)
-		printf("have bottom field coupling1\n");
+		printf("have surface field coupling1\n");
 	if (dst_fields_info.size() > fields_name.size())
-		printf("have bottom field coupling2\n");
+		printf("have surface field coupling2\n");
 
 }
 

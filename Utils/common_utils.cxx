@@ -162,52 +162,13 @@ bool get_next_double_attr(char **line, double &value)
 }
 
 
-FILE *open_config_file(const char *config_file_name, const char *config_file_dir)
+void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
 {
-    FILE *cfg_fp;
-    char config_file_full_name[NAME_STR_SIZE];
-
+	char API_label[NAME_STR_SIZE];
 	
-    sprintf(config_file_full_name, "%s/%s\0", C_COUPLER_CONFIG_DIR, config_file_dir);
-    strcat(config_file_full_name, config_file_name);
 
-    EXECUTION_REPORT(REPORT_ERROR, -1, (cfg_fp = fopen(config_file_full_name, "rb")) != NULL, 
-		         "Config file %s under dir %s can not be opened\n", config_file_name, config_file_dir);
-
-    return cfg_fp;
-}
-
-
-FILE *open_config_file(const char *config_file_name)
-{
-    FILE *cfg_fp;
-
-
-    EXECUTION_REPORT(REPORT_ERROR, -1, (cfg_fp = fopen(config_file_name, "rb")) != NULL, 
-		         "Config file %s can not be opened\n", config_file_name);	    
-
-    return cfg_fp;
-}
-
-
-int get_num_fields_in_config_file(const char *config_file_name, const char *config_file_dir)
-{
-    FILE *cfg_fp;
-    char tmp[NAME_STR_SIZE];
-    int num_fields;
-
-
-	if (words_are_the_same(config_file_name, "NULL"))
-		return 0;
-	
-    cfg_fp = open_config_file(config_file_name, config_file_dir);
-    num_fields = 0;
-    while (get_next_line(tmp, cfg_fp))
-        num_fields ++;
-
-    fclose(cfg_fp);
-
-    return num_fields;
+	get_API_hint(-1, API_ID, API_label);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
 }
 
 
@@ -217,7 +178,7 @@ void check_for_coupling_registration_stage(int comp_id, int API_ID, const char *
 	
 
 	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Error happens when calling the API \"%s\": The API \"CCPL_register_component\" has not been called before to register components. Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	check_for_ccpl_managers_allocated(API_ID, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when calling the API \"%s\": The parameter of component ID is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, annotation);		
 }

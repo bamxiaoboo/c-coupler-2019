@@ -215,3 +215,16 @@ void Remap_operator_basis::change_remap_operator_info(const char *operator_name,
 	this->dst_grid = grid_dst;
 }
 
+
+void Remap_operator_basis::update_unique_weight_sparse_matrix(Remap_weight_sparse_matrix *new_sparse_matrix)
+{
+	if (remap_weights_groups.size() > 0) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_groups.size() == 1 && remap_weights_groups[0]->get_num_weights() == 0, "Software error in Remap_operator_basis::update_unique_weight_sparse_matrix");
+		delete remap_weights_groups[0];
+		remap_weights_groups.clear();
+	}
+
+	remap_weights_groups.push_back(new_sparse_matrix);
+}
+
+

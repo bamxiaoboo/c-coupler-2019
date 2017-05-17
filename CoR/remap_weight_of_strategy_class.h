@@ -103,7 +103,7 @@ class Remap_weight_of_strategy_class
 
     public:
         Remap_weight_of_strategy_class(const char*, const char*, const char*, const char*, const char*, const char*, bool);
-		Remap_weight_of_strategy_class(const char *, Remap_strategy_class *, Remap_grid_class *, Remap_grid_class *);
+		Remap_weight_of_strategy_class(const char *, Remap_strategy_class *, Remap_grid_class *, Remap_grid_class *, const char *);
 		void set_basic_fields(const char*, Remap_strategy_class*, Remap_grid_class*, Remap_grid_class*);
 		void initialize_object();
         Remap_weight_of_strategy_class() { initialize_object(); }

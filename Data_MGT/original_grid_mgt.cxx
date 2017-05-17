@@ -21,11 +21,25 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->bottom_field_variation_type = BOTTOM_FIELD_VARIATION_UNSET;
 	this->bottom_field_name[0] = '\0';
 	this->bottom_field_id = -1;
+	this->checksum_center_lon = -1;
+	this->checksum_center_lat = -1;
+	this->checksum_H2D_mask = -1;
 	this->mid_point_grid = NULL;
 	this->interface_level_grid = NULL;
 	strcpy(this->grid_name, grid_name);
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
+
+	if (H2D_sub_CoR_grid != NULL) {
+		char *grid_data = (char *) (new int [H2D_sub_CoR_grid->get_grid_size()]);
+		get_grid_data(-1, "lon", DATA_TYPE_FLOAT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
+		checksum_center_lon = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(float), NULL, NULL);
+		get_grid_data(-1, "lat", DATA_TYPE_FLOAT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
+		checksum_center_lat = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(float), NULL, NULL);
+		get_grid_data(-1, "mask", DATA_TYPE_INT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
+		checksum_H2D_mask = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(int), NULL, NULL);
+		delete [] grid_data;
+	}
 
 	if (model_registration && H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL) {
 		char nc_file_name[NAME_STR_SIZE];
@@ -157,7 +171,7 @@ void Original_grid_info::get_grid_data(int decomp_id, const char *label, const c
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_CoR_grid(decomps_info_mgr->get_decomp_info(decomp_id)->get_grid_id()) == original_CoR_grid, "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the grid_id and decomp_id do not correspond to the same H2D grid. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
 	}
 	else {
-		field_CoR_grid = original_CoR_grid;
+		field_CoR_grid = H2D_sub_CoR_grid;
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == field_CoR_grid->get_grid_size(), "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the array size of the parameter of \"grid_data\" is different from the size corresponding to the parallel decomposition. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
 	}
 
@@ -203,7 +217,7 @@ Original_grid_mgt::Original_grid_mgt()
 	if (strlen(CoR_script_name) != 0) {
 		char current_dir[NAME_STR_SIZE], grids_dir[NAME_STR_SIZE];
 		EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(current_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory for running the model");
-		sprintf(grids_dir, "%s/grids", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
+		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
 		EXECUTION_REPORT(REPORT_ERROR, -1, chdir(grids_dir) == 0, "Fail to access the directory of the CoR grid data files: \"%s\". Please verify.", grids_dir);
 		CoR_grids = new Remap_mgt(CoR_script_name);
 		chdir(current_dir);

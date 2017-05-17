@@ -19,6 +19,75 @@
 #include <vector>
 #include "tinyxml.h"
 #include "common_utils.h"
+#include "original_grid_mgt.h"
+
+
+class H2D_remapping_wgt_file_info
+{
+	private:
+		char wgt_file_name[NAME_STR_SIZE];
+		int src_grid_size;
+		int dst_grid_size;
+		long checksum_src_center_lon;
+		long checksum_src_center_lat;
+		long checksum_src_mask;
+		long checksum_dst_center_lon;
+		long checksum_dst_center_lat;
+		long checksum_dst_mask;
+		long num_wgts;
+		long *wgts_src_indexes;
+		long *wgts_dst_indexes;
+		double *wgts_values;
+
+
+	public:
+		H2D_remapping_wgt_file_info(const char*);
+		H2D_remapping_wgt_file_info(const char*, int*);
+		~H2D_remapping_wgt_file_info();
+		long get_grid_field_checksum_value(const char *, void *, int);
+		bool match_H2D_remapping_wgt(long, long, long, long, long, long);
+		const char *get_wgt_file_name() { return wgt_file_name; }
+		void write_remapping_wgt_file_info_into_array(char **, int &, int &);
+		void read_remapping_weights();
+		long get_num_wgts() { return num_wgts; }
+		long *get_wgts_src_indexes () { return wgts_src_indexes; }
+		long *get_wgts_dst_indexes () { return wgts_dst_indexes; }
+		double *get_wgts_values () { return wgts_values; }
+};
+
+
+class H2D_remapping_wgt_file_mgt
+{
+	private:
+		std::vector<H2D_remapping_wgt_file_info*> H2D_remapping_wgt_files;
+
+	public:
+		H2D_remapping_wgt_file_mgt() { }
+		H2D_remapping_wgt_file_mgt(TiXmlElement*, const char*);
+		H2D_remapping_wgt_file_mgt(const char *, int *);
+		~H2D_remapping_wgt_file_mgt() {}
+		H2D_remapping_wgt_file_info *search_remapping_weight_file(long, long, long, long, long, long);		
+		void append_remapping_weights(H2D_remapping_wgt_file_mgt *);
+		void print();
+		H2D_remapping_wgt_file_info *search_H2D_remapping_weight(Original_grid_info*, Original_grid_info*);
+		void write_remapping_wgt_files_info_into_array(char **, int &, int &);
+		bool is_the_same_as_another(H2D_remapping_wgt_file_mgt*);
+		H2D_remapping_wgt_file_mgt *clone();
+};
+
+
+class H2D_remapping_wgt_file_container
+{
+	private:
+		std::vector<H2D_remapping_wgt_file_info*> H2D_remapping_wgt_files;
+
+	public:
+		H2D_remapping_wgt_file_container() {}
+		~H2D_remapping_wgt_file_container();
+		H2D_remapping_wgt_file_info *search_wgt_file_info(const char*);
+		void add_wgt_file_info(H2D_remapping_wgt_file_info *);
+};
+
 
 
 class Remapping_algorithm_specification
@@ -55,6 +124,7 @@ class Remapping_setting
 		Remapping_algorithm_specification *H2D_remapping_algorithm;
 		Remapping_algorithm_specification *V1D_remapping_algorithm;
 		Remapping_algorithm_specification *T1D_remapping_algorithm;
+		H2D_remapping_wgt_file_mgt *H2D_remapping_wgt_file_mgr;
 		int field_specification_manner;    // 0 means default of a component; 1 means type; 2 means name
 		std::vector<const char *> fields_specification;
 
@@ -75,6 +145,8 @@ class Remapping_setting
 		void print();
 		Remapping_setting *clone();
 		bool is_the_same_as_another(Remapping_setting*);
+		void append_H2D_remapping_weights(Remapping_setting *);
+		H2D_remapping_wgt_file_info *search_H2D_remapping_weight(Original_grid_info *, Original_grid_info*);
 };
 
 

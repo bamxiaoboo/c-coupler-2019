@@ -113,7 +113,7 @@ void Remap_strategy_class::check_field_data_grid_center_values_for_remapping(Rem
 }
 
 
-void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_class *remap_weight_of_strategy)
+void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_class *remap_weight_of_strategy, const char *H2D_remapping_wgt_file)
 {
     int i, j;
     Remap_grid_class *remap_src_data_grid, *remap_dst_data_grid, *current_remap_src_data_grid;
@@ -193,12 +193,12 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
                                                                     remap_weight_of_strategy);
         if (execution_phase_number == 1) {
             for (runtime_remap_times_iter = 0; runtime_remap_times_iter < current_remap_src_data_grid_interchanged->get_grid_size()/runtime_remap_grid_src->get_grid_size(); runtime_remap_times_iter ++) {
-                current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter);
+                current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter, H2D_remapping_wgt_file);
             }
         }
 		if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
-		if (remap_operators[i]->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || remap_operators[i]->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid())
-			remap_weight_of_strategy->mark_empty_remap_weight();
+			if (remap_operators[i]->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || remap_operators[i]->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid())
+				remap_weight_of_strategy->mark_empty_remap_weight();
 
         delete runtime_remap_grid_src;
         delete runtime_remap_grid_dst;

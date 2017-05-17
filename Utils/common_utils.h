@@ -23,13 +23,11 @@ extern bool get_next_integer_attr(char **, int&);
 extern bool get_next_double_attr(char **line, double&);
 extern bool is_end_of_file(FILE *);
 
-extern FILE *open_config_file(const char *, const char *);
-extern FILE *open_config_file(const char *);
-extern int get_num_fields_in_config_file(const char *, const char *);
 extern void write_data_into_array_buffer(const void*, int, char **, int &, int &);
 extern void read_data_from_array_buffer(void*, int, const char*, int &);
 extern void check_for_coupling_registration_stage(int, int, const char *);
 extern void common_checking_for_grid_registration(int, const char *, const char *, int, const char *);
+extern void check_for_ccpl_managers_allocated(int, const char *);
 
 
 template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)

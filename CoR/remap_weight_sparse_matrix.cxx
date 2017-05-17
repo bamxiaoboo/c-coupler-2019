@@ -19,31 +19,34 @@ Remap_weight_sparse_matrix::Remap_weight_sparse_matrix(Remap_operator_basis *rem
                                                        long num_weights, long *cells_indexes_src, long *cells_indexes_dst, double *weight_values, 
                                                        long num_remaped_dst_cells_indexes, long *remaped_dst_cells_indexes)
 {
-    long i, last_start;
-
-    
     this->remap_operator = remap_operator;
     this->num_weights = num_weights;
     this->weight_arrays_size = num_weights;
-    this->num_remaped_dst_cells_indexes = num_remaped_dst_cells_indexes;
-    this->remaped_dst_cells_indexes_array_size = num_remaped_dst_cells_indexes;
     this->cells_indexes_src = cells_indexes_src;
     this->cells_indexes_dst = cells_indexes_dst;
     this->weight_values = weight_values;
     this->remaped_dst_cells_indexes = remaped_dst_cells_indexes;
+	this->num_remaped_dst_cells_indexes = num_remaped_dst_cells_indexes;
     
     if (remaped_dst_cells_indexes == NULL) {
-        this->remaped_dst_cells_indexes_array_size = 16;
-        this->remaped_dst_cells_indexes = new long [remaped_dst_cells_indexes_array_size];
-        this->num_weights = 0;
-        last_start = 0;
-        for (i = 0; i < num_weights; i ++) {
-            if (i == num_weights-1 || cells_indexes_dst[i+1] != cells_indexes_dst[i]) {
-                add_weights(cells_indexes_src+last_start, cells_indexes_dst[last_start], weight_values+last_start, i-last_start+1, false);
-                last_start = i+1;
-            }
-        }
+		int *mask = new int [remap_operator->get_dst_grid()->get_grid_size()];
+		for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
+			mask[i] = 0;
+		for (int i = 0; i < num_weights; i ++)
+			mask[cells_indexes_dst[i]] = 1;
+		this->num_remaped_dst_cells_indexes = 0;
+		for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
+			if (mask[i] == 1)
+				this->num_remaped_dst_cells_indexes ++;
+		this->remaped_dst_cells_indexes = new long [this->num_remaped_dst_cells_indexes];
+        this->num_remaped_dst_cells_indexes = 0;
+		for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
+			if (mask[i] == 1)
+				this->remaped_dst_cells_indexes[this->num_remaped_dst_cells_indexes ++] = i;
+		delete [] mask;
     }
+
+	this->remaped_dst_cells_indexes_array_size = this->num_remaped_dst_cells_indexes;
 }
 
 
@@ -198,6 +201,7 @@ Remap_weight_sparse_matrix *Remap_weight_sparse_matrix::generate_parallel_remap_
 
     if (decomp_original_grids[0]->get_num_dimensions() == 2) {
         for (i = 0; i < this->num_weights; i ++) {
+			printf("qiguai weight %d in %d: from %d to %d\n", i, this->num_weights, this->cells_indexes_src[i], this->cells_indexes_dst[i]);
             if (global_cells_local_indexes_in_decomps[1][this->cells_indexes_dst[i]] != -1) {
                 num_parallel_weights ++;
                 EXECUTION_REPORT(REPORT_ERROR, -1, global_cells_local_indexes_in_decomps[0][this->cells_indexes_src[i]] != -1, "Detect a very special case in generating parallel remapping weights. Please contact the C-Coupler team: liuli-cess@tsinghua.edu.cn\n");

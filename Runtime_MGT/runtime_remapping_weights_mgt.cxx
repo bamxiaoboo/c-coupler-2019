@@ -26,6 +26,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	Remapping_setting *cloned_remapping_setting = remapping_setting->clone();
 	char parameter_name[NAME_STR_SIZE], parameter_value[NAME_STR_SIZE];
 	int num_remap_operators = 0;
+	H2D_remapping_wgt_file_info *H2D_remapping_weight_file = NULL;
 
 	
 	this->src_comp_id = src_comp_id;
@@ -57,6 +58,13 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 			remap_operator_H2D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_H2D;
+		printf("field remapping setting is \n");
+		remapping_setting->print();
+		bool check_wgt_file = true;
+		if (src_original_grid->get_original_CoR_grid() != src_original_grid->get_H2D_sub_CoR_grid())
+			check_wgt_file = src_original_grid->get_original_CoR_grid()->get_grid_mask_field() == NULL && dst_original_grid->get_original_CoR_grid()->get_grid_mask_field() == NULL;
+		if (check_wgt_file)
+			H2D_remapping_weight_file = remapping_setting->search_H2D_remapping_weight(src_original_grid, dst_original_grid);
 	}
 	if (src_original_grid->get_V1D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_V1D_sub_CoR_grid();
@@ -93,7 +101,11 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
 	remapping_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "before generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
-	sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid());
+	if (H2D_remapping_weight_file != NULL) {
+		H2D_remapping_weight_file->read_remapping_weights();
+		sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name());
+	}	
+	else sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), NULL);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "after generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
 	execution_phase_number = 2;
 
@@ -110,7 +122,8 @@ Runtime_remapping_weights::~Runtime_remapping_weights()
 	delete remapping_setting;
 	delete remapping_strategy;
 	delete sequential_remapping_weights;
-	delete parallel_remapping_weights;
+	if (parallel_remapping_weights != NULL)
+		delete parallel_remapping_weights;
 }
 
 
@@ -148,6 +161,8 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 	src_decomp_info = decomps_info_mgr->generate_remap_weights_src_decomp(dst_decomp_info, src_original_grid, dst_original_grid, sequential_remapping_weights);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after generating remap_weights_src_decomp");
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before generating parallel remap weights for runtime_remap_algorithm");
+	if (src_decomp_info->get_num_local_cells() == 0)
+		return;
 
     decomp_original_grids[0] = src_original_grid->get_H2D_sub_CoR_grid();
     decomp_original_grids[1] = dst_original_grid->get_H2D_sub_CoR_grid();

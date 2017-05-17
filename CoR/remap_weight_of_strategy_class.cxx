@@ -352,7 +352,7 @@ Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *objec
 	generate_remapping_related_grids();
 
 	if (!read_from_io)
-		remap_strategy->calculate_remapping_weights(this);
+		remap_strategy->calculate_remapping_weights(this, NULL);
 	else {
 		if (words_are_the_same(weight_IO_format, "SCRIP")) 
 			((IO_netcdf*) (io_manager->search_IO_object(input_IO_file_name)))->read_remap_weights(this, remap_strategy, is_master_process_in_computing_node);
@@ -365,7 +365,7 @@ Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *objec
 
 
 Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *object_name, Remap_strategy_class *remap_strategy, 
-                                                               Remap_grid_class *data_grid_src, Remap_grid_class *data_grid_dst)
+                                                               Remap_grid_class *data_grid_src, Remap_grid_class *data_grid_dst, const char *H2D_remapping_wgt_file)
 {
 	initialize_object();
     strcpy(this->object_name, object_name);
@@ -376,7 +376,7 @@ Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *objec
 	EXECUTION_REPORT(REPORT_ERROR, -1, remap_strategy != NULL && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
 
 	generate_remapping_related_grids();
-	remap_strategy->calculate_remapping_weights(this);
+	remap_strategy->calculate_remapping_weights(this, H2D_remapping_wgt_file);
 }
 
 
