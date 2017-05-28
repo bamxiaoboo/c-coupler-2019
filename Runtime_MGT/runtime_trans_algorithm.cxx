@@ -390,19 +390,21 @@ bool Runtime_trans_algorithm::run(bool bypass_timer)
 
 bool Runtime_trans_algorithm::send(bool bypass_timer)
 {
-	if (index_remote_procs_with_common_data.size() == 0)
-		return true;
-		
-    preprocess();
+	if (index_remote_procs_with_common_data.size() > 0) {
+	    preprocess();
 
-    if (!is_remote_data_buf_ready())
-		return false;
+	    if (!is_remote_data_buf_ready())
+			return false;
+	}
 
     for (int j = 0; j < num_transfered_fields; j ++)
         if (transfer_process_on[j]) {
 			fields_mem[j]->check_field_sum("before sending data");
 			fields_mem[j]->use_field_values("before sending data");
         }  
+
+	if (index_remote_procs_with_common_data.size() == 0)
+		return true;
 
     int offset = 0;
     for (int i = 0; i < num_remote_procs; i ++) {

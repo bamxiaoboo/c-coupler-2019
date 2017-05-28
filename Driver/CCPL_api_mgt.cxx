@@ -60,8 +60,11 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP:
 			sprintf(API_label, "CCPL_get_num_process_in_component");
 			break;	
-        case API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA:
-			sprintf(API_label, "CCPL_register_H2D_grid_via_model_data");
+		case API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA:
+			sprintf(API_label, "CCPL_register_H2D_grid_via_local_data");
+			break;
+        case API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA:
+			sprintf(API_label, "CCPL_register_H2D_grid_via_global_data");
 			break;
         case API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE:
 			sprintf(API_label, "CCPL_register_H2D_grid_via_data_file");
@@ -309,6 +312,122 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 }
 
 
+char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm, const char *hint, int grid_size, int array_size, int data_type_size, char *array_value, 
+	                                                     const char *parameter_name, int num_local_cells, int *local_cells_global_index, int &grid_data_size, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	int local_process_id, num_processes, *counts_for_cell_index, *displs_for_cell_index, *counts_for_array, *displs_for_array;
+	int num_total_cells, total_array_size, *all_local_cells_global_index, num_point;
+	char *all_array_values, *grid_data;
+
+
+	grid_data_size = 0;
+	get_API_hint(comp_id, API_id, API_label);
+	
+	int parameter_specified = array_size >= 0 ? 1 : 0;
+	check_API_parameter_int(comp_id, API_id, comm, "specification (or not)", parameter_specified, parameter_name, annotation);
+	if (parameter_specified == 0)
+		return NULL;
+
+	check_API_parameter_int(comp_id, API_id, comm, "data type", data_type_size, parameter_name, annotation);
+	if (words_are_the_same(parameter_name, "vertex_lon") || words_are_the_same(parameter_name, "vertex_lat"))
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == 0 && num_local_cells == 0 || (array_size % num_local_cells) == 0, "Error happens when calling API \"%s\" for %s: the array size of parameter \"%s\" is not an integer multiple of parameter \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == num_local_cells, "Error happens when calling API \"%s\" for %s: the array size of parameter \"%s\" must be the same as \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);	
+
+	if (local_process_id == 0) {
+		counts_for_cell_index = new int [num_processes];
+		displs_for_cell_index = new int [num_processes];
+		counts_for_array = new int [num_processes];
+		displs_for_array = new int [num_processes];
+	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&num_local_cells, 1, MPI_INT, counts_for_cell_index, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&array_size, 1, MPI_INT, counts_for_array, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
+	if (local_process_id == 0) {
+		num_total_cells = 0;
+		total_array_size = 0;
+		for (int i = 0; i < num_processes; i ++) {
+			displs_for_cell_index[i] = num_total_cells;
+			displs_for_array[i] = total_array_size;
+			num_total_cells += counts_for_cell_index[i];
+			total_array_size += counts_for_array[i];
+		}
+		if (num_total_cells != 0)
+			all_local_cells_global_index = new int [num_total_cells];
+		else all_local_cells_global_index = new int [1];
+		if (total_array_size != 0)
+			all_array_values = new char [total_array_size*data_type_size];
+		else all_array_values = new char [8];
+	}
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(local_cells_global_index, num_local_cells, MPI_INT, all_local_cells_global_index, counts_for_cell_index, displs_for_cell_index, MPI_INT, 0, comm) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(array_value, array_size*data_type_size, MPI_CHAR, all_array_values, counts_for_array, displs_for_array, MPI_INT, 0, comm) == MPI_SUCCESS);
+	if (local_process_id == 0) {
+		if (words_are_the_same(parameter_name, "vertex_lon") || words_are_the_same(parameter_name, "vertex_lat")) {
+			num_point = 0;
+			for (int i = 0; i < num_processes; i ++) {
+				if (counts_for_cell_index[i] == 0)
+					continue;
+				if (num_point == 0)
+					num_point = counts_for_array[i] / counts_for_cell_index[i];
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, num_point == counts_for_array[i] / counts_for_cell_index[i], "Error happens when calling API \"%s\" for %s: the number of vertexes corresponding to parameter \"%s\" does not keep the same among the processes. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+			}
+
+		}
+		else num_point = 1;
+		if (num_point == 0) {
+			grid_data_size = 0;
+			grid_data = NULL;
+		}
+		else {
+			grid_data_size = grid_size * num_point;
+			grid_data = new char [grid_data_size*data_type_size];
+		}
+		if (grid_data_size > 0) {
+			memset(grid_data, 0, grid_data_size*data_type_size);
+			int *grid_data_mark = new int [grid_size];
+			memset(grid_data_mark, 0, grid_size*data_type_size);
+			for (int i = 0; i < num_processes; i ++)
+				for (int j = 0; j < counts_for_cell_index[i]; j ++) {
+					printf("qiguaiqiguai %d : %d: %d : %d : %d : %d \n", i, counts_for_cell_index[i], displs_for_cell_index[i], displs_for_cell_index[i]+j, num_total_cells, all_local_cells_global_index[displs_for_cell_index[i]+j]-1);
+					fflush(NULL);
+					int global_index = all_local_cells_global_index[displs_for_cell_index[i]+j]-1;
+					if (grid_data_mark[global_index] == 0) {
+						grid_data_mark[global_index] = 1;
+						memcpy(grid_data+global_index*num_point*data_type_size, all_array_values+(displs_for_array[i]+j*num_point)*data_type_size, num_point*data_type_size);
+					}
+					else {
+						bool is_the_same = memcmp(grid_data+global_index*num_point*data_type_size, all_array_values+(displs_for_array[i]+j*num_point)*data_type_size, num_point*data_type_size) == 0;
+						EXECUTION_REPORT(REPORT_ERROR, comp_id, is_the_same, "Error happens when calling API \"%s\" for %s: the grid data (\"%s\") of some common cells is not the same among the processes. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+					}
+				}
+			delete [] grid_data_mark;
+		}
+	}
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Bcast(&grid_data_size, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
+
+	if (grid_data_size == 0)
+		return NULL;
+
+	if (local_process_id != 0)
+		grid_data = new char [grid_data_size*data_type_size];
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(grid_data, grid_data_size*data_type_size, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+
+	if (local_process_id == 0) {
+		delete [] counts_for_cell_index;
+		delete [] displs_for_cell_index;
+		delete [] counts_for_array;
+		delete [] displs_for_array;
+		delete [] all_array_values;
+		delete [] all_local_cells_global_index;
+	}
+
+	return grid_data;
+}
+
+
 void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, const char *hint, int array_size, int data_type_size, const char *array_value, const char *parameter_name, const char *annotation)
 {
 	long total_checksum = 0;
@@ -318,6 +437,8 @@ void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, cons
 	get_API_hint(comp_id, API_id, API_label);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling API \"%s\" for %s: parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 
+	int parameter_specified = array_size >= 0 ? 1 : 0;
+	check_API_parameter_int(comp_id, API_id, comm, "specification (or not)", parameter_specified, parameter_name, annotation);
 	check_API_parameter_int(comp_id, API_id, comm, "array size", array_size, parameter_name, annotation);
 	check_API_parameter_int(comp_id, API_id, comm, "data type", data_type_size, parameter_name, annotation);
 

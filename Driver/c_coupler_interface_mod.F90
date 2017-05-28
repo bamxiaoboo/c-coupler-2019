@@ -132,6 +132,14 @@
    end interface
 
 
+
+   interface CCPL_register_H2D_grid_via_local_data; module procedure &
+        CCPL_register_H2D_grid_local_online_float, &
+        CCPL_register_H2D_grid_local_online_double 
+   end interface
+
+
+
    interface CCPL_get_H2D_grid_data; module procedure &
        CCPL_get_H2D_grid_integer_data, &
        CCPL_get_H2D_grid_float_data, &
@@ -971,19 +979,6 @@
 
 
 
- integer FUNCTION CCPL_get_field_size(data_buf, annotation)
-   implicit none  
-   real(R8),DIMENSION(:)        :: data_buf
-   character(len=*), intent(in), optional :: annotation
-   integer                      :: field_size
-
-   call coupling_get_field_size(data_buf, trim(annotation)//char(0), field_size)
-   CCPL_get_field_size = field_size
-
- END FUNCTION CCPL_get_field_size
-
-
-
  logical FUNCTION CCPL_is_first_restart_step
    implicit none
    logical is_first_restart_step
@@ -1563,9 +1558,9 @@
 
 
 
-   integer FUNCTION CCPL_get_component_id(comp_name, annotation)
+   integer FUNCTION CCPL_get_component_id(comp_full_name, annotation)
    implicit none
-   character(len=*), intent(in)            :: comp_name
+   character(len=*), intent(in)            :: comp_full_name
    character(len=*), intent(in), optional  :: annotation
    character *1024                         :: local_annotation
    integer                     :: comp_id
@@ -1575,7 +1570,7 @@
        local_annotation = annotation
    endif
  
-   call get_id_of_component(trim(comp_name)//char(0), trim(local_annotation)//char(0), comp_id)
+   call get_id_of_component(trim(comp_full_name)//char(0), trim(local_annotation)//char(0), comp_id)
    CCPL_get_component_id = comp_id
 
    end FUNCTION CCPL_get_component_id
@@ -1739,13 +1734,13 @@
    endif
 
    if (present(annotation)) then
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
-                                       trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                              trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                              center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
-                                       trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                              trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
+                                              center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
    CCPL_register_H2D_grid_global_online_C1D_M1D_float = grid_id
@@ -1803,11 +1798,11 @@
    endif
 
    if (present(annotation)) then
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                         trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
@@ -1866,11 +1861,11 @@
    endif
 
    if (present(annotation)) then
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
@@ -1930,11 +1925,11 @@
    endif
 
    if (present(annotation)) then
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                         trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
-      call register_H2D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+      call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
                                        center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
@@ -1945,6 +1940,156 @@
 
    end FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_double
 
+
+
+
+   integer FUNCTION CCPL_register_H2D_grid_local_online_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, grid_size, num_local_cells, local_cells_global_index, &
+                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation)
+   implicit none
+   integer, intent(in)                                              :: comp_id
+   character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
+   integer,          intent(in)                                     :: grid_size
+   integer,          intent(in)                                     :: num_local_cells
+   integer,          intent(in), dimension(:)                       :: local_cells_global_index(:)
+   real(R4),         intent(in), dimension(:)                       :: center_lon, center_lat
+   integer,          intent(in), dimension(:),   target, optional   :: mask
+   real(R4),         intent(in), dimension(:),   target, optional   :: area
+   real(R4),         intent(in), dimension(:,:), target, optional   :: vertex_lon, vertex_lat
+   character(len=*), intent(in),                         optional   :: decomp_name
+   integer,          intent(out),                        optional   :: decomp_id
+   character(len=*), intent(in),                         optional   :: annotation
+   integer,                      dimension(:),   pointer            :: temp_mask, temp_int
+   real(R4),                     dimension(:),   pointer            :: temp_area, temp_float_1d
+   real(R4),                     dimension(:,:), pointer            :: temp_vertex_lon, temp_vertex_lat, temp_float_2d
+   integer                                                          :: grid_id, local_decomp_id
+   integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+   character *512                                                   :: local_decomp_name, local_annotation
+   
+   size_center_lon = size(center_lon)
+   size_center_lat = size(center_lat)
+   size_mask = -1
+   size_area = -1
+   size_vertex_lon = -1
+   size_vertex_lat = -1
+   allocate(temp_int(1), temp_float_1d(1), temp_float_2d(1,1))
+   temp_mask => temp_int
+   temp_area => temp_float_1d
+   temp_vertex_lon => temp_float_2d
+   temp_vertex_lat => temp_float_2d
+
+   local_decomp_name = ""
+   if (present(decomp_name)) local_decomp_name = decomp_name
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   local_decomp_id = -1
+   if (present(decomp_id)) then
+       local_decomp_id = 0
+   endif
+
+   if (present(mask)) then
+      size_mask = size(mask)
+      temp_mask => mask
+   endif
+   if (present(area)) then
+      size_area = size(area)
+      temp_area => area
+   endif
+   if (present(vertex_lon)) then
+      size_vertex_lon = size(vertex_lon)
+      temp_vertex_lon => vertex_lon
+   endif
+   if (present(vertex_lat)) then
+      size_vertex_lat = size(vertex_lat)
+      temp_vertex_lat => vertex_lat
+   endif
+
+   call register_H2D_grid_with_local_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                          trim("real4")//char(0), grid_size, num_local_cells, size(local_cells_global_index), size_center_lon, size_center_lat, size_mask, size_area, &
+                                          size_vertex_lon, size_vertex_lat, local_cells_global_index, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, &
+                                          trim(local_decomp_name)//char(0), local_decomp_id, trim(local_annotation)//char(0))
+
+   CCPL_register_H2D_grid_local_online_float = grid_id
+
+   if (present(decomp_id)) decomp_id = local_decomp_id
+
+   deallocate(temp_int, temp_float_1d, temp_float_2d)
+
+   end FUNCTION CCPL_register_H2D_grid_local_online_float
+
+
+
+   integer FUNCTION CCPL_register_H2D_grid_local_online_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, grid_size, num_local_cells, local_cells_global_index, &
+                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation)
+   implicit none
+   integer, intent(in)                                              :: comp_id
+   character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
+   integer,          intent(in)                                     :: grid_size
+   integer,          intent(in)                                     :: num_local_cells
+   integer,          intent(in), dimension(:)                       :: local_cells_global_index(:)
+   real(R8),         intent(in), dimension(:)                       :: center_lon, center_lat
+   integer,          intent(in), dimension(:),   target, optional   :: mask
+   real(R8),         intent(in), dimension(:),   target, optional   :: area
+   real(R8),         intent(in), dimension(:,:), target, optional   :: vertex_lon, vertex_lat
+   character(len=*), intent(in),                         optional   :: decomp_name
+   integer,          intent(out),                        optional   :: decomp_id
+   character(len=*), intent(in),                         optional   :: annotation
+   integer,                      dimension(:),   pointer            :: temp_mask, temp_int
+   real(R8),                     dimension(:),   pointer            :: temp_area, temp_double_1d
+   real(R8),                     dimension(:,:), pointer            :: temp_vertex_lon, temp_vertex_lat, temp_double_2d
+   integer                                                          :: grid_id, local_decomp_id
+   integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
+   character *512                                                   :: local_decomp_name, local_annotation
+   
+   size_center_lon = size(center_lon)
+   size_center_lat = size(center_lat)
+   size_mask = -1
+   size_area = -1
+   size_vertex_lon = -1
+   size_vertex_lat = -1
+   allocate(temp_int(1), temp_double_1d(1), temp_double_2d(1,1))
+   temp_mask => temp_int
+   temp_area => temp_double_1d
+   temp_vertex_lon => temp_double_2d
+   temp_vertex_lat => temp_double_2d
+
+   local_decomp_name = ""
+   if (present(decomp_name)) local_decomp_name = decomp_name
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   local_decomp_id = -1
+   if (present(decomp_id)) then
+       local_decomp_id = 0
+   endif
+
+   if (present(mask)) then
+      size_mask = size(mask)
+      temp_mask => mask
+   endif
+   if (present(area)) then
+      size_area = size(area)
+      temp_area => area
+   endif
+   if (present(vertex_lon)) then
+      size_vertex_lon = size(vertex_lon)
+      temp_vertex_lon => vertex_lon
+   endif
+   if (present(vertex_lat)) then
+      size_vertex_lat = size(vertex_lat)
+      temp_vertex_lat => vertex_lat
+   endif
+
+   call register_H2D_grid_with_local_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
+                                          trim("real8")//char(0), grid_size, num_local_cells, local_cells_global_index, size_center_lon, size_center_lat, size_mask, size_area, &
+                                          size_vertex_lon, size_vertex_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(local_decomp_name)//char(0), &
+                                          local_decomp_id, trim(local_annotation)//char(0))
+
+   CCPL_register_H2D_grid_local_online_double = grid_id
+
+   if (present(decomp_id)) decomp_id = local_decomp_id
+
+   deallocate(temp_int, temp_double_1d, temp_double_2d)
+
+   end FUNCTION CCPL_register_H2D_grid_local_online_double
 
 
 
@@ -2286,20 +2431,20 @@
 
 
 
-   integer FUNCTION CCPL_register_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_indx, annotation) 
+   integer FUNCTION CCPL_register_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_index, annotation) 
    implicit none
    character(len=*), intent(in)                :: decomp_name
    character(len=*), intent(in), optional      :: annotation
    integer,          intent(in)                :: grid_id
    integer,          intent(in)                :: num_local_cells
-   integer,          intent(in), dimension(:)  :: local_cells_global_indx(:)
+   integer,          intent(in), dimension(:)  :: local_cells_global_index(:)
    integer                                     :: decomp_id
 
 
    if (present(annotation)) then
-       call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_indx), local_cells_global_indx, trim(decomp_name)//char(0), trim(annotation)//char(0))
+       call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_index), local_cells_global_index, trim(decomp_name)//char(0), trim(annotation)//char(0))
    else 
-       call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_indx), local_cells_global_indx, trim(decomp_name)//char(0), trim("")//char(0))
+       call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_index), local_cells_global_index, trim(decomp_name)//char(0), trim("")//char(0))
    endif
 
    CCPL_register_parallel_decomp = decomp_id

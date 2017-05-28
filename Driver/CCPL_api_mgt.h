@@ -21,7 +21,8 @@
 #define API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP     ((int)(0x00200008))
 #define API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP            ((int)(0x00200010))
 #define API_ID_COMP_MGT_GET_COMP_ID                     ((int)(0x00200020))
-#define API_ID_GRID_MGT_REG_H2D_GRID_VIA_MODEL_DATA     ((int)(0X00400001))
+#define API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA     ((int)(0X00400000))
+#define API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA    ((int)(0X00400001))
 #define API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE           ((int)(0X00400002))
 #define API_ID_GRID_MGT_REG_1D_GRID_ONLINE              ((int)(0X00400004))
 #define API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS     ((int)(0X00400008))
@@ -87,6 +88,7 @@ extern bool is_XML_setting_on(int, TiXmlElement*, const char*, const char*, cons
 extern void transfer_array_from_one_comp_to_another(int, int, int, int, MPI_Comm, char **, int &);
 extern void gather_array_in_one_comp(int, int, void *, int, int, int *, void **, MPI_Comm);
 extern long calculate_checksum_of_array(const char *, int, int, const char *, const char *);
+extern char *check_and_aggregate_local_grid_data(int, int, MPI_Comm, const char *, int, int, int, char *, const char *, int, int *, int &, const char *);
 
 #endif
 
