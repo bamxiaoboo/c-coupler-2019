@@ -27,7 +27,7 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 	
 
 	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	check_for_ccpl_managers_allocated(API_ID, annotation);
 	if (comp_id != -1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
 }
@@ -61,14 +61,14 @@ extern "C" void coupling_perturb_roundoff_errors_()
 extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
-    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_double_current_calendar_time(*shift_seconds);
+    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_double_current_calendar_time(*shift_seconds, annotation);
 }
 
 
 extern "C" void get_ccpl_float_current_calendar_time_(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
-    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds);
+    *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds, annotation);
 }
 
 
@@ -157,7 +157,7 @@ extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int
 extern "C" void get_ccpl_current_time_(int *comp_id, int *year, int *month, int *day, int *second, int *shift_second, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_TIME, annotation);
-	components_time_mgrs->get_time_mgr(*comp_id)->get_current_time(*year, *month, *day, *second, *shift_second);
+	components_time_mgrs->get_time_mgr(*comp_id)->get_current_time(*year, *month, *day, *second, *shift_second, annotation);
 }
 
 
@@ -202,7 +202,7 @@ extern "C" void coupling_check_sum_for_all_fields_()
 }
 
 
-extern "C" void initialize_CCPL_mgrs()
+extern "C" void initialize_ccpl_mgrs_()
 {
 	execution_phase_number = 1;
 	annotation_mgr = new Annotation_mgt();
@@ -223,6 +223,13 @@ extern "C" void initialize_CCPL_mgrs()
 }
 
 
+extern "C" void check_fortran_api_int_type_(int *fortran_int_size)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, *fortran_int_size == 4, "Error happens when using C-Coupler for model coupling: the size of an integer value in C-Coupler FORTRAN APIs is not 4 types. Please verify the compiler flag for C-Coupler and then recompile C-Coupler, to force the usage of 4-byte integer.");
+}
+
+
+
 extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
 										const char *executable_name)
 {
@@ -233,12 +240,10 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	char file_name[NAME_STR_SIZE];
 
 
-	initialize_CCPL_mgrs();
-
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the root component", annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
-		EXECUTION_REPORT(REPORT_ERROR,-1, comp_comm_group_mgt_mgr == NULL, "The root component has been initialized before %s", comp_comm_group_mgt_mgr->get_annotation_start());  // add debug information
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr == NULL, "Error happens when registering the root component (\"%s\") at the model code with the annotation \"%s\": the root compnent has been registered before at the model code with the annotation \"%s\"", comp_name, annotation, comp_comm_group_mgt_mgr->get_annotation_start());
 	MPI_Initialized(&flag);
 	if (flag == 0) {
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
@@ -316,12 +321,12 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
-	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_ID, annotation);
+	check_for_component_registered(-1, API_ID_COMP_MGT_GET_COMP_ID, annotation);
 
-	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_global_node(comp_name);
+	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_comp_with_comp_name(comp_name);
 
 	if (node == NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "no component named \"%s\" has been registerred. Please check the model code related to the annotation \"%s\"", comp_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling API \"CCPL_get_component_id\" to get the ID of component \"%s\": no component with the name of \"%s\" has been registerred. Please check the model code related to the annotation \"%s\"", comp_name, comp_name, annotation);
 		*comp_id = -1;
 	}
 	else *comp_id = node->get_local_node_id();
@@ -543,13 +548,19 @@ extern "C" void get_h2d_grid_data_(int *grid_id, int *decomp_id, const char *lab
 
 extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells >= 0, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is smaller than 0. Please check the model code related to \"%s\"",
-		             decomp_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, *num_local_cells <= *array_size, "Parallel decomposition \"%s\" cannot be registered because the number of local cells is larger than the size of the array of local cells' global indexes. Please check the model code related to \"%s\"",
-		             decomp_name, annotation);
-	EXECUTION_REPORT(REPORT_WARNING, -1, *num_local_cells == *array_size, "The number of local cells is different from the size of the array of local cells' global indexes when registering parallel decomposition \"%s\". Please check the model code related to \"%s\"",
-		             decomp_name, annotation);
 	check_for_ccpl_managers_allocated(API_ID_DECOMP_MGT_REG_DECOMP, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	int comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
+	check_for_coupling_registration_stage(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, annotation);
+	check_and_verify_name_format_of_string_for_API(comp_id, decomp_name, API_ID_DECOMP_MGT_REG_DECOMP, "the parallel decomposition", annotation);
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the grid \"%s\" corresponding to the parameter \"grid_id\" is not a horizontal grid. Please check the model code with the annotation \"%s\"", decomp_name, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the array size of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\". Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	int grid_size = original_grid_mgr->get_original_grid(*grid_id)->get_original_CoR_grid()->get_grid_size();
+	for (int i = 0; i < *num_local_cells; i ++)
+		if (local_cells_global_indx[i] != CCPL_NULL_INT)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 }
 
@@ -580,18 +591,18 @@ extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, i
 extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *del_count, const char *annotation)
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling API \"CCPL_define_single_timer\": the time step of the corresponding component has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
 }
 
 
-extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *or_or_and, const char *annotation)
+extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *array_size, int *or_or_and, const char *annotation)
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
-	*timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *or_or_and, annotation);
+	*timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *array_size, *or_or_and, annotation);
 }
 
 
@@ -607,7 +618,7 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Cannot all the C-Coupler API \"CCPL_advance_time\" at the model code with the annotation \"%s\" because the coupling procedures of interfaces have not been generated. Please call the C-Coupler API \"CCPL_end_coupling_configuration\" of all components before advancing the time of a component", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_advance_time\": the time of any component model cannot be advanced because root component models have not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", annotation);
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
@@ -632,7 +643,7 @@ extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotat
 extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_RUN_ENDED, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Cannot all the C-Coupler API \"CCPL_is_model_run_ended\" at the model code with the annotation \"%s\" because the coupling procedures of interfaces have not been generated. Please call the C-Coupler API \"CCPL_end_coupling_configuration\" of all components before checking whether model run of a component finishes", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_is_model_run_ended\": it cannot be called because root component models have not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", annotation);
 	if (components_time_mgrs->is_model_run_ended(*comp_id, annotation))
 		*is_ended = 1;
 	else *is_ended = 0;

@@ -84,7 +84,7 @@ class Timer_mgt
 		bool check_is_legal_timer_id(int);
 		Coupling_timer *get_timer(int);
 		int define_timer(int, const char*, int, int, const char*);
-		int define_timer(int, int*, int, int, const char*);
+		int define_timer(int, int*, int, int, int, const char*);
 		int define_timer(int, Coupling_timer*);
 		bool is_timer_on(int, const char*);
 };
@@ -162,8 +162,8 @@ class Time_mgt
 		bool is_time_advanced() { return time_advanced; }
         bool check_is_model_run_finished();
         bool check_is_coupled_run_restart_time();
-        double get_double_current_calendar_time(int);
-        float get_float_current_calendar_time(int);
+        double get_double_current_calendar_time(int, const char*);
+        float get_float_current_calendar_time(int, const char*);
         long get_start_full_time();
         long get_previous_full_time();
         long get_current_full_time();
@@ -178,7 +178,7 @@ class Time_mgt
         long calculate_elapsed_day(int, int, int);
 		void get_elapsed_days_from_start_date(int*, int*);
 		void get_elapsed_days_from_reference_date(int*, int*);
-		void get_current_time(int&, int&, int&, int&, int);
+		void get_current_time(int&, int&, int&, int&, int, const char*);
 		void reset_timer();
 		bool check_is_time_legal(int, int, int, int, const char*);
 		bool get_is_leap_year_on() { return leap_year_on; }

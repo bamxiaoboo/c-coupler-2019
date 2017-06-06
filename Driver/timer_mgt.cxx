@@ -59,12 +59,12 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, int *children_timers_i
 	this->timer_id = timer_id;
 	this->comp_id = comp_id;
 	this->or_or_and = or_or_and;
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_children_timers > 1, "The parameter of number of children timers must be larger than 1 when defining a complex timer. Please check the model code according to the annotation \"%s\"", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, or_or_and == 0 || or_or_and == 1, "The value of the parameter of \"OR_or_AND\" is wrong when defining a complex timer. Its value must be 0 (means OR) or 1 (means AND). Please check the model code according to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_children_timers > 1, "Error happens when calling API \"CCPL_define_complex_timer\": parameter num_children_timers cannot be smaller than 2. Please verify the model code corresponding to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, or_or_and == 0 || or_or_and == 1, "Error happens when calling API \"CCPL_define_complex_timer\": the value of the parameter \"OR_or_AND\" must be 0 (means or) or 1 (means and). Please verify the model code corresponding to the annotation \"%s\"", annotation);
 	for (int i = 0; i < num_children_timers; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->get_timer(children_timers_id[i]) != NULL, "The id of the %dth timer for defining a new timer is wrong. Please check the model code according to the annotation \"%s\"", i, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->get_timer(children_timers_id[i]) != NULL, "Error happens when calling API \"CCPL_define_complex_timer\": the %dth value in parameter \"children_timers_id\" is not a legal ID of a timer. Please verify the model code corresponding to the annotation \"%s\"", i, annotation);
 		children.push_back(timer_mgr->get_timer(children_timers_id[i]));
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, children[i]->get_comp_id() == comp_id, "All timers for defining a new timer must belong to the same component. Please check the model code of defining the current timer according to the annotation \"%s\", and the model code corresponding to the %dth timer according to the annotation \"%s\"", i, annotation, annotation_mgr->get_annotation(children[i]->get_timer_id(), "define timer"));
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, children[i]->get_comp_id() == comp_id, "Error happens when calling API \"CCPL_define_complex_timer\": all children timers (\"children_timers_id\") must be corresponding to the same component model with \"comp_id\". Please verify the model code corresponding to the annotation \"%s\"", annotation);
 	}
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "Software error in Coupling_timer::Coupling_timer, with annotation \"%s\"", annotation);
@@ -205,9 +205,9 @@ int Timer_mgt::define_timer(int comp_id, const char *freq_unit, int freq_count, 
 }
 
 
-int Timer_mgt::define_timer(int comp_id, int *timers_id, int num_timers, int or_or_and, const char *annotation)
+int Timer_mgt::define_timer(int comp_id, int *timers_id, int num_timers, int array_size, int or_or_and, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id for defining a timer is wrong. Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size >= num_timers, "Error happens when calling API \"CCPL_define_complex_timer\": the array size of \"children_timers_id\" cannot be smaller than \"num_children_timers\". Please check the model code with the annotation \"%s\"", annotation);
 	timers.push_back(new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), timers_id, num_timers, or_or_and, annotation));
 	return timers[timers.size()-1]->get_timer_id();
 }
@@ -327,8 +327,8 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			reference_day = 1;
 		}
 		const char *rest_freq_unit = get_XML_attribute(-1, XML_element, "rest_freq_unit", XML_file_name, line_number, "the unit of the frequency of writing restart data files", "the overall parameters to run the model");		
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, "seconds")|| words_are_the_same(rest_freq_unit, "days") || words_are_the_same(rest_freq_unit, "months") || words_are_the_same(rest_freq_unit, "years"),
-			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", \"seconds\", \"days\", \"months\", and \"years\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, "nseconds")|| words_are_the_same(rest_freq_unit, "ndays") || words_are_the_same(rest_freq_unit, "nmonths") || words_are_the_same(rest_freq_unit, "nyears"),
+			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", \"nseconds\", \"ndays\", \"nmonths\", and \"nyears\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->rest_freq_unit, rest_freq_unit);
 		this->rest_freq_count = 0;
 		if (!words_are_the_same(rest_freq_unit, "none")) {
@@ -561,12 +561,12 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
 }
 
 
-double Time_mgt::get_double_current_calendar_time(int shift_second)
+double Time_mgt::get_double_current_calendar_time(int shift_second, const char *annotation)
 {
 	double calday;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second>=-SECONDS_PER_DAY && shift_second<= SECONDS_PER_DAY, "The shift seconds for calculating calendar time must be between -SECONDS_PER_DAY and SECONDS_PER_DAY");
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling API \"CCPL_get_current_calendar_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
 
 	if (leap_year_on && is_a_leap_year(current_year)) {
 		calday = elapsed_days_on_start_of_month_of_leap_year[current_month-1] + current_day + ((double)(current_second+shift_second))/SECONDS_PER_DAY;
@@ -583,9 +583,9 @@ double Time_mgt::get_double_current_calendar_time(int shift_second)
 }
 
 
-float Time_mgt::get_float_current_calendar_time(int shift_second)
+float Time_mgt::get_float_current_calendar_time(int shift_second, const char *annotation)
 {
-    return (float) get_double_current_calendar_time(shift_second);
+    return (float) get_double_current_calendar_time(shift_second, annotation);
 }
 
 
@@ -666,8 +666,8 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
 	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
 	                 words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
-	                 "The frequency unit in a timer (the current unit is \"%s\") must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
-	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "The frquency count in timer must be larger than 0. Please check the model code with the annotation \"%s\"", annotation);
+	                 "The period unit in a timer (the current unit is \"%s\") must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
 	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, lag_count%time_step_in_second == 0, "The lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
@@ -720,19 +720,19 @@ void Time_mgt::get_elapsed_days_from_reference_date(int *num_days, int *num_seco
 }
 
 
-void Time_mgt::get_current_time(int &year, int &month, int &day, int &second, int shift_second)
+void Time_mgt::get_current_time(int &year, int &month, int &day, int &second, int shift_second, const char *annotation)
 {
 	int num_days_in_current_month;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second>=-SECONDS_PER_DAY && shift_second<= SECONDS_PER_DAY, "The shift seconds for calculating calendar time must be between -SECONDS_PER_DAY and SECONDS_PER_DAY");
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling API \"CCPL_get_current_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
 	
 	year = current_year;
 	month = current_month;
 	day = current_day;
 	second = current_second + shift_second;
 
-    if (second >= SECONDS_PER_DAY) {
+    while (second >= SECONDS_PER_DAY) {
 		second -= SECONDS_PER_DAY;
 		if (leap_year_on && is_a_leap_year(year)) 
 			num_days_in_current_month = num_days_of_month_of_leap_year[month-1];
@@ -819,11 +819,11 @@ void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 	else num_total_steps = -1;
 	if (restart_timer != NULL) {
 		long rest_freq;
-		if (words_are_the_same(rest_freq_unit, "days"))
+		if (words_are_the_same(rest_freq_unit, "ndays"))
 			rest_freq = SECONDS_PER_DAY * rest_freq_count;
-		else if (words_are_the_same(rest_freq_unit, "months") || words_are_the_same(rest_freq_unit, "years"))
+		else if (words_are_the_same(rest_freq_unit, "nmonths") || words_are_the_same(rest_freq_unit, "nyears"))
 			rest_freq = SECONDS_PER_DAY;
-		else if (words_are_the_same(rest_freq_unit, "seconds"))
+		else if (words_are_the_same(rest_freq_unit, "nseconds"))
 			rest_freq = rest_freq_count;
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
 	}	
@@ -838,7 +838,7 @@ bool Time_mgt::is_a_leap_year(int year)
 
 void Time_mgt::check_consistency_of_current_time(int date, int second, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, date==get_current_date() && second == get_current_second(), "the model time is different from the time managed by the C-Coupler. Please verify the model code according to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, date == get_current_date() && second == get_current_second(), "the model time is different from the time managed by C-Coupler. Please verify the model code according to the annotation \"%s\"", annotation);
 }
 
 
@@ -875,8 +875,8 @@ void Components_time_mgt::define_root_comp_time_mgr(int comp_id, const char *xml
 void Components_time_mgt::set_component_time_step(int comp_id, int time_step, const char *annotation)
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
-	if (comp_id, time_mgr->get_time_step_in_second() != -1)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, true, "The time step of the component \"%s\" has been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
+	if (time_mgr->get_time_step_in_second() != -1)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_time_step\": the time step of the component \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
 						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "get the local id of the current component in Components_time_mgt::set_component_time_step") == 0)

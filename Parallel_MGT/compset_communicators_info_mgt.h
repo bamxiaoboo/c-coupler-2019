@@ -125,6 +125,7 @@ class Comp_comm_group_mgt_mgr
 		void get_output_data_file_header(int, char*);
 		Comp_comm_group_mgt_node *search_global_node(int);
 		Comp_comm_group_mgt_node *search_global_node(const char*);
+		Comp_comm_group_mgt_node *search_comp_with_comp_name(const char*);
 		void read_global_node_from_XML(const TiXmlElement*);
 		void write_comp_comm_info_into_XML();
 		void read_comp_comm_info_from_XML();

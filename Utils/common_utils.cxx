@@ -168,7 +168,7 @@ void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
 	
 
 	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "No component has been registered. Please call the C-Coupler API \"CCPL_register_component\" before calling the C-Coupler API \"%s\". Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Error happens when calling the API \"%s\": the stage of registering coupling configurations has not been started. Please call the C-Coupler API \"CCPL_register_component\" for the registration of the root component model (parameter \"parent_id\" should be -1) to start the configuration stage. Please check the model code related to the annotation \"%s\".", API_label, annotation);
 }
 
 

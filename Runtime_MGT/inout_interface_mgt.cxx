@@ -17,7 +17,7 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 {
 	this->inout_interface = inout_interface;
 	this->timer = timer;
-	components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(current_year, current_month, current_day, current_second, 0);
+	components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(current_year, current_month, current_day, current_second, 0, "CCPL internal");
 	current_num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
 	this->time_step_in_second = time_step_in_second;
 	this->inst_or_aver = inst_or_aver;
@@ -147,7 +147,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			remote_fields_time_info = fields_time_info_dst[i];
 			lag_seconds = -remote_fields_time_info->lag_seconds;
 		}
-		time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0);
+		time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0, "CCPL internal");
 		local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();
 		if (local_fields_time_info->last_timer_num_elapsed_days != -1) 
 			EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
@@ -357,11 +357,11 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	}
 	if (interface_type == INTERFACE_TYPE_REGISTER)
 		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);	
-	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", num_fields, "num_fields", annotation);
+	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), NULL, num_fields, "num_fields", annotation);
 	for (int i = 0; i < num_fields; i ++)
 		check_API_parameter_field_instance(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", field_ids[i], "field instances ids (the information of the field instances)", annotation);
 	check_API_parameter_timer(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", timer_id, "timer id (the information of the timer)", annotation);
-	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", inst_or_aver, "inst_or_aver (the tag for specifying instantaneous or time averaged field value)", annotation);
+	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), NULL, inst_or_aver, "inst_or_aver (the tag for specifying instantaneous or time averaged field value)", annotation);
 	this->timer = timer_mgr->get_timer(timer_id);
 	this->inst_or_aver = inst_or_aver;
 	for (int i = 0; i < num_fields; i ++)
@@ -478,7 +478,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		if (bypass_timer)
 			bypass_timer_int = 0;
 		else bypass_timer_int = 1;
-		check_API_parameter_int(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", bypass_timer_int, "the value for specifying whether bypass timers", annotation);
+		check_API_parameter_int(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), NULL, bypass_timer_int, "the value for specifying whether bypass timers", annotation);
 		if (bypass_timer) {
 			execution_checking_status = execution_checking_status | 0x1;
 			annotation_mgr->add_annotation(interface_id, "bypassing timer", annotation);
@@ -498,7 +498,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	long current_execution_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + components_time_mgrs->get_time_mgr(comp_id)->get_current_second();
 	if (current_execution_time == last_execution_time) {
 		int current_year, current_month, current_day, current_second;
-		components_time_mgrs->get_time_mgr(comp_id)->get_current_time(current_year, current_month, current_day, current_second, 0);
+		components_time_mgrs->get_time_mgr(comp_id)->get_current_time(current_year, current_month, current_day, current_second, 0, "CCPL internal");
 		EXECUTION_REPORT(REPORT_WARNING, comp_id, false, "The import/export interface \"%s\", which is called at the model code with the annotation \"%s\", will not be executed again at the time step %04d-%02d-%02d-%05d, because it has been executed at the same time step before.",
 			             interface_name, annotation, current_year, current_month, current_day, current_second);
 		return;

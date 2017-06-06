@@ -3071,7 +3071,7 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
     this_lat_center_values = (double*) original_center_field_lat->get_grid_data_field()->data_buf;
     this_mask_values = (bool*) this->grid_mask_field->get_grid_data_field()->data_buf;
     for (i = 0; i < num_local_cells; i ++) {
-        if (local_cell_indexes[i] >= 0) {
+        if (local_cell_indexes[i] != CCPL_NULL_INT) {
             decomp_lon_center_values[i] = this_lon_center_values[local_cell_indexes[i]];
             decomp_lat_center_values[i] = this_lat_center_values[local_cell_indexes[i]];
             decomp_mask_values[i] = this_mask_values[local_cell_indexes[i]];

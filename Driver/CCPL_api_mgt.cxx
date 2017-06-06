@@ -362,7 +362,10 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 		else all_array_values = new char [8];
 	}
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(local_cells_global_index, num_local_cells, MPI_INT, all_local_cells_global_index, counts_for_cell_index, displs_for_cell_index, MPI_INT, 0, comm) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(array_value, array_size*data_type_size, MPI_CHAR, all_array_values, counts_for_array, displs_for_array, MPI_INT, 0, comm) == MPI_SUCCESS);
+	if (data_type_size == 4)
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(array_value, array_size, MPI_INT, all_array_values, counts_for_array, displs_for_array, MPI_INT, 0, comm) == MPI_SUCCESS);
+	else EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(array_value, array_size, MPI_DOUBLE, all_array_values, counts_for_array, displs_for_array, MPI_DOUBLE, 0, comm) == MPI_SUCCESS);
+		
 	if (local_process_id == 0) {
 		if (words_are_the_same(parameter_name, "vertex_lon") || words_are_the_same(parameter_name, "vertex_lat")) {
 			num_point = 0;
@@ -387,11 +390,9 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 		if (grid_data_size > 0) {
 			memset(grid_data, 0, grid_data_size*data_type_size);
 			int *grid_data_mark = new int [grid_size];
-			memset(grid_data_mark, 0, grid_size*data_type_size);
+			memset(grid_data_mark, 0, grid_size*sizeof(int));
 			for (int i = 0; i < num_processes; i ++)
 				for (int j = 0; j < counts_for_cell_index[i]; j ++) {
-					printf("qiguaiqiguai %d : %d: %d : %d : %d : %d \n", i, counts_for_cell_index[i], displs_for_cell_index[i], displs_for_cell_index[i]+j, num_total_cells, all_local_cells_global_index[displs_for_cell_index[i]+j]-1);
-					fflush(NULL);
 					int global_index = all_local_cells_global_index[displs_for_cell_index[i]+j]-1;
 					if (grid_data_mark[global_index] == 0) {
 						grid_data_mark[global_index] = 1;

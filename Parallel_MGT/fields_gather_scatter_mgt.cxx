@@ -26,7 +26,7 @@ template <class T> void Gather_scatter_rearrange_info::rearrange_gather_data(T *
 		rearrange_indexes_start = displs[m] / num_levels / num_points_in_each_cell;
 		for (k = 0; k < num_levels; k ++) 
 			for (i = 0; i < num_local_cells; i ++) {
-				if (rearrange_indexes[rearrange_indexes_start+i] < 0)
+				if (rearrange_indexes[rearrange_indexes_start+i] == CCPL_NULL_INT)
 					continue;
 				tmp_buf_src = buf_src + displs[m] + k*num_data_in_each_level + i*num_points_in_each_cell;
 				tmp_buf_dst = buf_dst + rearrange_indexes[rearrange_indexes_start+i]*num_points_in_each_cell + k*num_cells_in_fully_decomp*num_points_in_each_cell;
@@ -49,7 +49,7 @@ template <class T> void Gather_scatter_rearrange_info::rearrange_scatter_data(T 
 		rearrange_indexes_start = displs[m] / num_levels / num_points_in_each_cell;
 		for (k = 0; k < num_levels; k ++)
 			for (i = 0; i < num_local_cells; i ++) {
-				if (rearrange_indexes[rearrange_indexes_start+i] < 0)
+				if (rearrange_indexes[rearrange_indexes_start+i] == CCPL_NULL_INT)
 					continue;
 				tmp_buf_src = buf_src + rearrange_indexes[rearrange_indexes_start+i]*num_points_in_each_cell + k*num_cells_in_fully_decomp*num_points_in_each_cell; 
                 tmp_buf_dst = buf_dst + displs[m] + k*num_data_in_each_level + i*num_points_in_each_cell;

@@ -22,7 +22,7 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
 	int i;
 	
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(grid_id), "the grid_id for registering decomposition \"%s\" is wrong. Please check the model code related to the annotation \"%s\".", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(grid_id), "Software error in Decomp_info::Decomp_info: wrong grid_id");
 	
 	this->decomp_id = decomp_id;
 	this->grid_id = grid_id;
@@ -37,30 +37,24 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
 	strcpy(this->grid_name, original_grid_mgr->search_grid_info(grid_id)->get_grid_name());
 	annotation_mgr->add_annotation(decomp_id, "register decomposition", annotation);
 	is_registered = registered;
-	if (registered)
-		check_and_verify_name_format_of_string_for_API(host_comp_id, this->decomp_name, API_ID_DECOMP_MGT_REG_DECOMP, "the parallel decomposition", annotation);
 	synchronize_comp_processes_for_API(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", annotation);
-	if (registered)
-		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, annotation);
 	check_API_parameter_string(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", decomp_name, "decomp_name", annotation);
 	check_API_parameter_string(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", original_grid_mgr->get_name_of_grid(grid_id), "grid_id (the corresponding grid name)", annotation);	
 
 	CoR_grid = original_grid_mgr->search_grid_info(grid_id)->get_original_CoR_grid();
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, CoR_grid->get_is_sphere_grid(), "the grid \"%s\" for registering parallel decomposition \"%s\" is not a H2D grid. Please check the model code related to the annoation \"%s\"", CoR_grid->get_grid_name(), decomp_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, num_local_cells >= 0, "the parameter \"num_local_cells\" for registering decomposition \"%s\" cannot be a negative value. Please check the model code related to the annotation \"%s\".", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, CoR_grid->get_is_sphere_grid(), "Software error in Decomp_info::Decomp_info: not on sphere grid");
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_local_cells >= 0, "Software error in Decomp_info::Decomp_info: wrong num_local_cells");
 
     if (num_local_cells == 0)
         local_cell_global_indx = NULL;
     else {
-        EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "num local cells according to input decomp data is %d", num_local_cells);
+        EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "parallel decomposition \"%s\" on the grid \"%s\" has %d local grid cells", decomp_name, original_grid_mgr->search_grid_info(grid_id)->get_grid_name());
         local_cell_global_indx = new int [num_local_cells];
         for (i = 0; i < num_local_cells; i ++) {
-			if (cell_indexes_in_decomp[i] <= 0)
-				local_cell_global_indx[i] = -1;
+			if (cell_indexes_in_decomp[i] == CCPL_NULL_INT)
+				local_cell_global_indx[i] = CCPL_NULL_INT;
 			else {
-	            EXECUTION_REPORT(REPORT_ERROR, host_comp_id, cell_indexes_in_decomp[i] > 0 && cell_indexes_in_decomp[i] <= CoR_grid->get_grid_size(), 
-	                             "the cell index specified for registering parallel decompostion of %s is out of the bound of grid size. Please check the model code with the annotation \"%s\"",
-	                             decomp_name, annotation);
+	            EXECUTION_REPORT(REPORT_ERROR, -1, cell_indexes_in_decomp[i] > 0 && cell_indexes_in_decomp[i] <= CoR_grid->get_grid_size(), "Software error in Decomp_info::Decomp_info: wrong cell index");
 	            local_cell_global_indx[i] = cell_indexes_in_decomp[i] - 1;  // -1 because fortran array index starts from 1 but c/c++ starts from 0
 			}
         }
@@ -79,7 +73,8 @@ Decomp_info::~Decomp_info()
 void Decomp_info::check_local_cell_global_indx()
 {
     for (int i = 0; i < num_local_cells; i ++)
-        EXECUTION_REPORT(REPORT_ERROR,-1, local_cell_global_indx[i] >= -1 && local_cell_global_indx[i] < num_global_cells, "C-Coupler error in check_local_cell_global_indx\n");
+		if (local_cell_global_indx[i] != CCPL_NULL_INT)
+	        EXECUTION_REPORT(REPORT_ERROR,-1, local_cell_global_indx[i] >= 0 && local_cell_global_indx[i] < num_global_cells, "C-Coupler error in check_local_cell_global_indx\n");
 }
 
 
@@ -134,7 +129,8 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
 		decomp_map_dst[i] = 0;
 	for (j = 0; j < dst_decomp_info->get_num_local_cells(); j ++)
 		if (dst_decomp_info->get_local_cell_global_indx()[j] >= 0)
-			decomp_map_dst[dst_decomp_info->get_local_cell_global_indx()[j]] = 1;
+			if (dst_decomp_info->get_local_cell_global_indx()[j] != CCPL_NULL_INT)
+				decomp_map_dst[dst_decomp_info->get_local_cell_global_indx()[j]] = 1;
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
 	remap_weights->calculate_src_decomp(src_original_grid->get_H2D_sub_CoR_grid(), dst_original_grid->get_H2D_sub_CoR_grid(), decomp_map_src, decomp_map_dst);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
@@ -182,8 +178,8 @@ int Decomp_info_mgt::register_H2D_parallel_decomposition(const char *decomp_name
 	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), -1, grid_id, num_local_cells, cell_indexes_in_decomp, annotation, true);
 
 	if (search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)) != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, "The parallel decomposition \"%s\" corresponding to grid \"%s\" has been registered before. Please check the model code corresponding to annotations \"%s\" and \"%s\"",
-					     decomp_name, original_grid_mgr->get_name_of_grid(grid_id), annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id))->get_decomp_id(), "register decomposition"), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\" at the model code with the annotation \"%s\": a parallel decomposition with the same name has already been registered before at the model code with the annotations \"%s\". Please verify.",
+					     decomp_name, annotation, annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id))->get_decomp_id(), "register decomposition"), annotation);
 
 	decomps_info.push_back(new_decomp);
 

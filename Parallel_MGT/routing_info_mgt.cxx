@@ -230,15 +230,17 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
     
     for (j = 0; j < num_local_cells_local; j ++)
 		if (local_cells_global_indexes_local[j] >= 0)
-	    	logical_indx_lookup_table_local[local_cells_global_indexes_local[j]] = j;
+			if (local_cells_global_indexes_local[j] != CCPL_NULL_INT)
+		    	logical_indx_lookup_table_local[local_cells_global_indexes_local[j]] = j;
     for (j = 0; j < num_local_cells_remote; j ++)
 		if (local_cells_global_indexes_remote[j] >= 0)
-	        logical_indx_lookup_table_remote[local_cells_global_indexes_remote[j]] = j;
+			if (local_cells_global_indexes_remote[j] != CCPL_NULL_INT)
+		        logical_indx_lookup_table_remote[local_cells_global_indexes_remote[j]] = j;
 
     /* Compute the number of common cells and the number of segments of common cells */
     last_local_logical_indx = -100;
     for (j = 0; j < num_reference_cells; j ++) 
-        if (reference_cell_indx[j] >= 0 && logical_indx_lookup_table_local[reference_cell_indx[j]] != -1 && logical_indx_lookup_table_remote[reference_cell_indx[j]] != -1) {
+        if (reference_cell_indx[j] != CCPL_NULL_INT && logical_indx_lookup_table_local[reference_cell_indx[j]] != -1 && logical_indx_lookup_table_remote[reference_cell_indx[j]] != -1) {
             if (last_local_logical_indx + 1 != logical_indx_lookup_table_local[reference_cell_indx[j]]) 
                 routing_info->num_local_indx_segments ++;
             last_local_logical_indx = logical_indx_lookup_table_local[reference_cell_indx[j]];
@@ -254,7 +256,7 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
         routing_info->local_indx_segment_lengths = new int [routing_info->num_local_indx_segments];
         routing_info->num_local_indx_segments = 0;
         for (j = 0; j < num_reference_cells; j ++) 
-            if (reference_cell_indx[j] >= 0 && logical_indx_lookup_table_local[reference_cell_indx[j]] != -1 && logical_indx_lookup_table_remote[reference_cell_indx[j]] != -1) {
+            if (reference_cell_indx[j] != CCPL_NULL_INT && logical_indx_lookup_table_local[reference_cell_indx[j]] != -1 && logical_indx_lookup_table_remote[reference_cell_indx[j]] != -1) {
                 if (last_local_logical_indx + 1 != logical_indx_lookup_table_local[reference_cell_indx[j]]) {
                     routing_info->local_indx_segment_starts[routing_info->num_local_indx_segments] = logical_indx_lookup_table_local[reference_cell_indx[j]];
                     routing_info->local_indx_segment_lengths[routing_info->num_local_indx_segments] = 1;

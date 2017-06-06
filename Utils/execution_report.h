@@ -17,6 +17,9 @@
 #define REPORT_PROGRESS    ((int)4)
 
 
+#define CCPL_NULL_INT                                   ((int)(0x7FFFFFFF))
+
+
 extern void wtime(double *t);
 
 extern void EXECUTION_REPORT(int, int, bool);

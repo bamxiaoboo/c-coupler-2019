@@ -147,19 +147,65 @@
    end interface
 
 
+   REAL,    parameter, public  :: coupling_fill_value = 1.0e30 
+   integer, parameter, public  :: CCPL_NULL_INT       = 2147483647  
 
-   REAL, parameter, public :: coupling_fill_value = 1.0e30 
-   integer,parameter,private :: R16 = selected_real_kind(24) ! 16 byte real
-   integer,parameter,private :: R8  = selected_real_kind(12) ! 8 byte real
-   integer,parameter,private :: R4  = selected_real_kind( 6) ! 4 byte real
+
+   integer, parameter, private :: R16 = selected_real_kind(24) ! 16-byte real
+   integer, parameter, private :: R8  = selected_real_kind(12) ! 8-byte real
+   integer, parameter, private :: R4  = selected_real_kind( 6) ! 4-byte real
+   integer, parameter, private :: I2  = selected_int_kind(18)  ! 8-byte integer
+   integer, parameter, private :: I4  = selected_int_kind(9)   ! 4-byte integer
+   integer, parameter, private :: I8  = selected_int_kind(4)   ! 2-byte integer
 
    REAL(R16), allocatable, private :: reduce_buf_real16(:)
    integer,                private :: reduce_buf_real16_size
-   
+
+
+
+   interface check_CCPL_Fortran_API_int_type; module procedure &
+       check_CCPL_Fortran_API_int_type_I2, &
+       check_CCPL_Fortran_API_int_type_I4, &
+       check_CCPL_Fortran_API_int_type_I8
+   end interface
+
+
+
    contains   
+
 !   
 !  SUBROUTINE below
 ! 
+
+
+   SUBROUTINE check_CCPL_Fortran_API_int_type_I2(API_int)
+   implicit none
+   integer(I2), INTENT(IN) ::  API_int
+
+   call check_Fortran_API_int_type(2)
+   
+   END SUBROUTINE check_CCPL_Fortran_API_int_type_I2
+  
+
+
+   SUBROUTINE check_CCPL_Fortran_API_int_type_I4(API_int)
+   implicit none
+   integer(I4), INTENT(IN) ::  API_int
+
+   call check_Fortran_API_int_type(4)
+   
+   END SUBROUTINE check_CCPL_Fortran_API_int_type_I4
+
+
+
+   SUBROUTINE check_CCPL_Fortran_API_int_type_I8(API_int)
+   implicit none
+   integer(I8), INTENT(IN) ::  API_int
+
+   call check_Fortran_API_int_type(8)
+   
+   END SUBROUTINE check_CCPL_Fortran_API_int_type_I8
+
 
 
    integer FUNCTION CCPL_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
@@ -1143,32 +1189,33 @@
 
 
 
- SUBROUTINE CCPL_get_num_elapsed_days_from_reference(comp_id, days, seconds, annotation)
+ SUBROUTINE CCPL_get_num_elapsed_days_from_reference(comp_id, num_days, current_second, annotation)
    implicit none
    character(len=*), intent(in), optional :: annotation
-   integer,          intent(in) :: comp_id
-   integer                      :: days, seconds
+   integer,          intent(in)           :: comp_id
+   integer,          intent(out)          :: num_days, current_second
 
    if (present(annotation)) then
-      call get_ccpl_num_elapsed_days_from_reference_date(comp_id, days, seconds, trim(annotation)//char(0))
+      call get_ccpl_num_elapsed_days_from_reference_date(comp_id, num_days, current_second, trim(annotation)//char(0))
    else
-      call get_ccpl_num_elapsed_days_from_reference_date(comp_id, days, seconds, trim("")//char(0))
+      call get_ccpl_num_elapsed_days_from_reference_date(comp_id, num_days, current_second, trim("")//char(0))
    endif
 
  END SUBROUTINE CCPL_get_num_elapsed_days_from_reference
 
 
 
- SUBROUTINE CCPL_get_num_elapsed_days_from_start(comp_id, days, seconds, annotation)
+ SUBROUTINE CCPL_get_num_elapsed_days_from_start(comp_id, num_days, current_second, annotation)
    implicit none
    character(len=*), intent(in), optional :: annotation
-   integer,          intent(in) :: comp_id
-   integer                      :: days, seconds
+   integer,          intent(in)           :: comp_id
+   integer,          intent(out)          :: num_days, current_second
+
 
    if (present(annotation)) then
-      call get_ccpl_num_elapsed_days_from_start_date(comp_id, days, seconds, trim(annotation)//char(0))
+      call get_ccpl_num_elapsed_days_from_start_date(comp_id, num_days, current_second, trim(annotation)//char(0))
    else
-      call get_ccpl_num_elapsed_days_from_start_date(comp_id, days, seconds, trim("")//char(0))
+      call get_ccpl_num_elapsed_days_from_start_date(comp_id, num_days, current_second, trim("")//char(0))
    endif
 
  END SUBROUTINE CCPL_get_num_elapsed_days_from_start
@@ -1548,6 +1595,8 @@
    if (parent_id .eq. -1) then
       ierr = getcwd(root_working_dir)
       call getarg(0, exe_name)
+      call initialize_CCPL_mgrs
+      call check_CCPL_Fortran_API_int_type(parent_id)
       call register_root_component(comp_comm, trim(comp_name)//char(0), trim(comp_type)//char(0), trim(local_annotation)//char(0), comp_id, trim(exe_name)//char(0), trim(root_working_dir)//char(0))
    else
       call register_component(parent_id, trim(comp_name)//char(0), trim(comp_type)//char(0), comp_comm, trim(local_annotation)//char(0), comp_id)
@@ -1558,9 +1607,9 @@
 
 
 
-   integer FUNCTION CCPL_get_component_id(comp_full_name, annotation)
+   integer FUNCTION CCPL_get_component_id(comp_name, annotation)
    implicit none
-   character(len=*), intent(in)            :: comp_full_name
+   character(len=*), intent(in)            :: comp_name
    character(len=*), intent(in), optional  :: annotation
    character *1024                         :: local_annotation
    integer                     :: comp_id
@@ -1570,7 +1619,7 @@
        local_annotation = annotation
    endif
  
-   call get_id_of_component(trim(comp_full_name)//char(0), trim(local_annotation)//char(0), comp_id)
+   call get_id_of_component(trim(comp_name)//char(0), trim(local_annotation)//char(0), comp_id)
    CCPL_get_component_id = comp_id
 
    end FUNCTION CCPL_get_component_id
@@ -1589,7 +1638,7 @@
        local_annotation = annotation
    endif
 
-   call get_current_proc_id_in_comp(comp_id, proc_id, local_annotation)
+   call get_current_proc_id_in_comp(comp_id, proc_id, trim(local_annotation)//char(0))
    CCPL_get_current_process_id_in_component = proc_id
 
    END FUNCTION CCPL_get_current_process_id_in_component
@@ -2079,9 +2128,9 @@
    endif
 
    call register_H2D_grid_with_local_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
-                                          trim("real8")//char(0), grid_size, num_local_cells, local_cells_global_index, size_center_lon, size_center_lat, size_mask, size_area, &
-                                          size_vertex_lon, size_vertex_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(local_decomp_name)//char(0), &
-                                          local_decomp_id, trim(local_annotation)//char(0))
+                                          trim("real8")//char(0), grid_size, num_local_cells, size(local_cells_global_index), size_center_lon, size_center_lat, size_mask, size_area, &
+                                          size_vertex_lon, size_vertex_lat, local_cells_global_index, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, &
+                                          trim(local_decomp_name)//char(0), local_decomp_id, trim(local_annotation)//char(0))
 
    CCPL_register_H2D_grid_local_online_double = grid_id
 
@@ -2453,22 +2502,22 @@
 
 
 
-   integer FUNCTION CCPL_define_single_timer(comp_id, frequency_unit, frequency_count, delay_count, annotation) 
+   integer FUNCTION CCPL_define_single_timer(comp_id, period_unit, period_count, lag_count, annotation) 
    implicit none
    integer,          intent(in)                :: comp_id
-   character(len=*), intent(in)                :: frequency_unit
-   integer,          intent(in)                :: frequency_count
-   integer,          intent(in), optional      :: delay_count
+   character(len=*), intent(in)                :: period_unit
+   integer,          intent(in)                :: period_count
+   integer,          intent(in), optional      :: lag_count
    character(len=*), intent(in), optional      :: annotation
-   integer                                     :: local_delay_count
+   integer                                     :: local_lag_count
    integer                                     :: timer_id
  
-   local_delay_count = 0
-   if (present(delay_count)) local_delay_count = delay_count
+   local_lag_count = 0
+   if (present(lag_count)) local_lag_count = lag_count
    if (present(annotation)) then
-        call define_single_timer(comp_id, timer_id, frequency_unit, frequency_count, local_delay_count, trim(annotation)//char(0))
+        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, trim(annotation)//char(0))
    else
-        call define_single_timer(comp_id, timer_id, frequency_unit, frequency_count, local_delay_count, trim("")//char(0))
+        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, trim("")//char(0))
         
    endif
    CCPL_define_single_timer = timer_id
@@ -2477,7 +2526,7 @@
 
 
 
-   integer FUNCTION CCPL_define_complex_timer(comp_id, children_timers_id, num_children_timers, OR_or_AND, annotation)
+   integer FUNCTION CCPL_define_complex_timer(comp_id, num_children_timers, children_timers_id, OR_or_AND, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    character(len=*), intent(in), optional      :: annotation
@@ -2488,9 +2537,9 @@
 
 
    if (present(annotation)) then
-       call define_complex_timer(comp_id, timer_id, children_timers_id, num_children_timers, OR_or_AND, trim(annotation)//char(0))
+       call define_complex_timer(comp_id, timer_id, children_timers_id, num_children_timers, size(children_timers_id), OR_or_AND, trim(annotation)//char(0))
    else
-       call define_complex_timer(comp_id, timer_id, children_timers_id, num_children_timers, OR_or_AND, trim("")//char(0))
+       call define_complex_timer(comp_id, timer_id, children_timers_id, num_children_timers, size(children_timers_id), OR_or_AND, trim("")//char(0))
    endif
 
    CCPL_define_complex_timer = timer_id

@@ -113,14 +113,14 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		else {
 			char tmp_string[NAME_STR_SIZE];
 			sprintf(tmp_string, "for checking the given communicator for registering a child component \"%s\"", comp_name);
-			synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, tmp_string, annotation);
+			synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, tmp_string, annotation);			
+			check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, "registering a component model", parent->get_comp_name(), "\"parent_id\" (the corresponding component model)", annotation);
 		}	
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR,-1, parent != NULL, "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node for checking parent");
-		if (comp_comm_group_mgt_mgr->get_global_node_root() != parent)
-			synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "for checking the communicator of the current component for registering its children component", annotation);
-		else synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "for checking the communicator of the current component for registering its children component", annotation);
+		synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "for checking the communicator of the current component for registering its children component", annotation);
+		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "registering a component model", parent->get_comp_name(), "\"parent_id\" (the corresponding component model)", annotation);
 		parent_comm = parent->get_comm_group();
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
 			EXECUTION_REPORT(REPORT_PROGRESS, parent->comp_id, true, "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", parent->get_comp_name(), comp_name, annotation);
@@ -181,8 +181,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	strcpy(this->comp_type, comp_type);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(comp_type, COMP_TYPE_CPL) || words_are_the_same(comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_type, COMP_TYPE_ATM_CHEM) || words_are_the_same(comp_type, COMP_TYPE_OCN) ||
 		             words_are_the_same(comp_type, COMP_TYPE_LND) || words_are_the_same(comp_type, COMP_TYPE_SEA_ICE) || words_are_the_same(comp_type, COMP_TYPE_WAVE) || words_are_the_same(comp_type, COMP_TYPE_ROOT), 
-		             "cannot register component \"%s\" (the corresponding model code annotation is \"%s\") because its type \"%s\" is wrong", comp_name, annotation, comp_type);
-	
+		             "cannot register component \"%s\" (the corresponding model code annotation is \"%s\") because its type \"%s\" is wrong", comp_name, annotation, comp_type);	
 	if (parent != NULL) {
 		if (parent->get_parent() == NULL) {
 			sprintf(config_comp_dir, "%s/%s/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_type, comp_name);
@@ -212,6 +211,10 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		sprintf(config_comp_dir, "%s/../../../../config/CCPL_runtime/%s/%s", working_dir, comp_type, comp_name);
 		strcpy(working_dir+strlen(working_dir), "/../../../all/");
 	}
+
+	if (parent != NULL)
+		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm_group, "registering a component model", comp_type, "\"comp_type\"", annotation);
+	else check_API_parameter_string(-1, API_ID_COMP_MGT_REG_COMP, comm_group, "registering a component model", comp_type, "\"comp_type\"", annotation);
 }
 
 
@@ -525,8 +528,7 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 			break;
 		
 	if (i < global_node_array.size())
-		EXECUTION_REPORT(REPORT_ERROR, -1, i == global_node_array.size(),  
-						 "A component with the name \"%s\" has already been registered at the model code with the annotation \"%s\". The same name cannot be used for registerring another component at the model code with the annotation \"%s\"", comp_name, global_node_array[i]->get_annotation_start(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, i == global_node_array.size(),  "Error happens when registering a component model named \"%s\" at the model code with the annotation \"%s\": a component model with the same name has already been registered before at the model code with the annotation \"%s\".", comp_name, annotation, global_node_array[i]->get_annotation_start());
 
 	if (parent_local_id == -1) {
 		root_local_node = new Comp_comm_group_mgt_node("ROOT", COMP_TYPE_ROOT, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, annotation);
@@ -709,6 +711,16 @@ void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
 	TiXmlElement *XML_element = XML_file.FirstChildElement();
 	TiXmlElement *Online_Model = XML_element->FirstChildElement();
 	read_global_node_from_XML(Online_Model);
+}
+
+
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_comp_with_comp_name(const char *comp_name)
+{
+	for (int i = 0; i < global_node_array.size(); i ++)
+		if (words_are_the_same(global_node_array[i]->get_comp_name(), comp_name) && global_node_array[i]->get_current_proc_local_id() != -1)
+			return global_node_array[i];
+		
+	return NULL;	
 }
 
 
