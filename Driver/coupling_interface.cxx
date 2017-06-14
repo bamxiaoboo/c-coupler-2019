@@ -575,15 +575,24 @@ extern "C" void register_external_field_instance_(int *field_instance_id, const 
 
 extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, const char *field_IO_name, const char *annotation)
 {
-	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD, annotation);
+	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD_from_INST, annotation);
 	IO_fields_mgr->register_IO_field(*field_inst_id, field_IO_name, annotation);
+}
+
+
+extern "C" void register_io_fields_from_field_instances_(int *num_field_inst, int *size_field_inst_ids, int *field_inst_ids, const char *annotation)
+{
+	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_field_inst > 0, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"num_field_inst\" must be larger than 0. Please check the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *size_field_inst_ids > 0, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"field_inst_ids\" seems to be an empty array, which means it has not been allocated. Please check the model code with the annotation \"%s\".", annotation);
+	IO_fields_mgr->register_IO_fields(*num_field_inst, *size_field_inst_ids, field_inst_ids, annotation);
 }
 
 
 extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
 	                                    const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
-	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD, annotation);
+	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER, annotation);
 	IO_fields_mgr->register_IO_field(*comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
 }
 

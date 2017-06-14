@@ -40,9 +40,7 @@
 
 
 
-   interface CCPL_register_IO_field ; module procedure &
-        CCPL_register_one_IO_field_from_field_instance_new_name, &
-        CCPL_register_one_IO_field_from_field_instance_no_name, &
+   interface CCPL_register_IO_field_from_data_buffer ; module procedure &
         CCPL_register_new_IO_field_double_0D_data, &
         CCPL_register_new_IO_field_double_1D_data, &
         CCPL_register_new_IO_field_double_2D_data, &
@@ -598,10 +596,10 @@
 
 
 
-   SUBROUTINE CCPL_register_one_IO_field_from_field_instance_new_name(field_IO_name, field_inst_id, annotation)
+   SUBROUTINE CCPL_register_IO_field_from_field_instance(field_inst_id, field_IO_name, annotation)
    implicit none
-   character(len=*), intent(in)            :: field_IO_name
    integer,          intent(in)            :: field_inst_id
+   character(len=*), intent(in), optional  :: field_IO_name
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
@@ -610,27 +608,28 @@
        call register_an_io_field_from_field_instance(field_inst_id, trim(field_IO_name)//char(0), trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_register_one_IO_field_from_field_instance_new_name
+   END SUBROUTINE CCPL_register_IO_field_from_field_instance
 
 
 
-   SUBROUTINE CCPL_register_one_IO_field_from_field_instance_no_name(field_inst_id, annotation)
+   SUBROUTINE CCPL_register_IO_fields_from_field_instances(num_field_inst, field_inst_ids, annotation)
    implicit none
-   integer,          intent(in)            :: field_inst_id
-   character(len=*), intent(in), optional  :: annotation
+   integer,          intent(in)                :: num_field_inst
+   integer,          intent(in), dimension(:)  :: field_inst_ids
+   character(len=*), intent(in), optional      :: annotation
 
    if (present(annotation)) then
-       call register_an_io_field_from_field_instance(field_inst_id, trim("")//char(0), trim(annotation)//char(0))
+       call register_io_fields_from_field_instances(num_field_inst, size(field_inst_ids), field_inst_ids, trim(annotation)//char(0))
    else
-       call register_an_io_field_from_field_instance(field_inst_id, trim("")//char(0), trim("")//char(0))
+       call register_io_fields_from_field_instances(num_field_inst, size(field_inst_ids), field_inst_ids, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_register_one_IO_field_from_field_instance_no_name
+   END SUBROUTINE CCPL_register_IO_fields_from_field_instances
 
 
 
    SUBROUTINE CCPL_register_new_IO_field_double_0D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R8), INTENT(IN)                    :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -653,7 +652,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_double_1D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)      :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -676,7 +675,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_double_2D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)    :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -699,7 +698,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_double_3D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -722,7 +721,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_double_4D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:,:):: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -745,7 +744,7 @@
 
 
    subroutine CCPL_register_new_IO_field_float_0D_data(data_buf, field_io_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(r4), intent(in)                    :: data_buf
    character(len=*), intent(in)            :: field_io_name
@@ -768,7 +767,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_float_1D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)      :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -791,7 +790,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_float_2D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)    :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -814,7 +813,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_float_3D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -837,7 +836,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_float_4D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:,:):: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -860,7 +859,7 @@
 
 
    subroutine CCPL_register_new_IO_field_integer_0D_data(data_buf, field_io_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    integer, intent(in)                     :: data_buf
    character(len=*), intent(in)            :: field_io_name
@@ -883,7 +882,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_integer_1D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:)       :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -906,7 +905,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_integer_2D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:)     :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -929,7 +928,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_integer_3D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:)   :: data_buf
    character(len=*), intent(in)            :: field_IO_name
@@ -952,7 +951,7 @@
 
 
    SUBROUTINE CCPL_register_new_IO_field_integer_4D_data(data_buf, field_IO_name, &
-              field_long_name, field_unit, comp_or_grid_id, decomp_id, annotation)
+              field_long_name, field_unit, decomp_id, comp_or_grid_id, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:,:) :: data_buf
    character(len=*), intent(in)            :: field_IO_name

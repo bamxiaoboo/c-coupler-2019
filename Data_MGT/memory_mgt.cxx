@@ -426,7 +426,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 
 
 	if (buf_mark == BUF_MARK_IO_FIELD_REG)
-		API_id = API_ID_FIELD_MGT_REG_IO_FIELD;
+		API_id = API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER;
 	else API_id = API_ID_FIELD_MGT_REG_FIELD_INST;
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id) || original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "The parameter of \"comp_or_grid_id\" for registering an instance of coupling field of \"%s\" is wrong: not a grid id or a component id. Please check the model code with the annotation \"%s\"", field_name, annotation);

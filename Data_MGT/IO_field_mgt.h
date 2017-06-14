@@ -76,9 +76,10 @@ class IO_field_mgt
 		IO_field_mgt() {}
 		~IO_field_mgt();
 		int register_IO_field(int, const char *, const char *);
+		int register_IO_fields(int, int, int *, const char *);
 		int register_IO_field(int, int, int, void *, const char *, const char *, const char *, const char *, const char *);
 		IO_field *search_IO_field(int, const char*);
-		void check_for_registering_IO_field(IO_field *, const char *);
+		void check_for_registering_IO_field(IO_field *, const char *, int);
 };
 
 

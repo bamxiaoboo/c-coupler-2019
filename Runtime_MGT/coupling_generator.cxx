@@ -609,6 +609,8 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 	for (TiXmlNode *detailed_element_node = redirection_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		if (words_are_the_same(detailed_element->Value(), "fields")) {
+			if (!is_XML_setting_on(comp_id, detailed_element, XML_file_name, "the status of \"fields\"", "import interface configuration file"))
+				continue;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			fields_element = detailed_element;
 			const char *default_str = get_XML_attribute(comp_id, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file");
@@ -649,6 +651,8 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 			}
 		}
 		else if (words_are_the_same(detailed_element->Value(), "components")) {
+			if (!is_XML_setting_on(comp_id, detailed_element, XML_file_name, "the status of \"components\"", "import interface configuration file"))
+				continue;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, components_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 			components_element = detailed_element;
 			const char *default_str = get_XML_attribute(comp_id, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file");
@@ -772,7 +776,6 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Start to load the configuration of import interfaces from the XML file %s", XML_file_name);
 
 	TiXmlDocument XML_file(XML_file_name);
-	sprintf(XML_file_name, "%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
 	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
 	TiXmlElement *root_XML_element = XML_file.FirstChildElement();
 	TiXmlNode *root_XML_element_node = (TiXmlNode*) root_XML_element;

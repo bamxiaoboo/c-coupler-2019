@@ -207,8 +207,14 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER:
 			sprintf(API_label, "CCPL_define_complex_timer");
 			break;
-		case API_ID_FIELD_MGT_REG_IO_FIELD:
-			sprintf(API_label, "CCPL_register_IO_field");
+		case API_ID_FIELD_MGT_REG_IO_FIELD_from_INST:
+			sprintf(API_label, "CCPL_register_IO_field_from_field_instance");
+			break;
+		case API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs:
+			sprintf(API_label, "CCPL_register_IO_fields_from_field_instances");
+			break;
+		case API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER:
+			sprintf(API_label, "CCPL_register_IO_field_from_data_buffer");
 			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);

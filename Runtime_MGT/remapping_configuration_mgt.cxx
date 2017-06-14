@@ -474,19 +474,23 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 			for (TiXmlNode *algorithm_element_node = detailed_element_node->FirstChild(); algorithm_element_node != NULL; algorithm_element_node = algorithm_element_node->NextSibling()) {
 				TiXmlElement *algorithm_element = algorithm_element_node->ToElement();
 				if (words_are_the_same(algorithm_element->Value(), "H2D_algorithm")) {
+					if (!is_XML_setting_on(comp_id, algorithm_element, XML_file_name, "the status of the configuration of a section about H2D_algorithm", "remapping configuration"))
+						continue;
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, H2D_remapping_algorithm == NULL, "When setting the remapping configuration in the XML file \"%s\", H2D_algorithm has been set more than once. Please verify the XML file arround the line number %d", XML_file_name, detailed_element->Row());
 					H2D_remapping_algorithm = new Remapping_algorithm_specification(comp_id, algorithm_element, XML_file_name, REMAP_ALGORITHM_TYPE_H2D);
 				}
 				else if (words_are_the_same(algorithm_element->Value(), "V1D_algorithm")) {
+					if (!is_XML_setting_on(comp_id, algorithm_element, XML_file_name, "the status of the configuration of a section about V1D_algorithm", "remapping configuration"))
+						continue;
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, V1D_remapping_algorithm == NULL, "When setting the remapping configuration in the XML file \"%s\", V1D_algorithm has been set more than once. Please verify the XML file arround the line number %d", XML_file_name, detailed_element->Row());
 					V1D_remapping_algorithm = new Remapping_algorithm_specification(comp_id, algorithm_element, XML_file_name, REMAP_ALGORITHM_TYPE_V1D);
 				}
 				else if (words_are_the_same(algorithm_element->Value(), "H2D_weights")) {
-					if (is_XML_setting_on(comp_id, algorithm_element, XML_file_name, "the status of the configuration of a section about remapping weights files", "remapping configuration")) {
-						EXECUTION_REPORT(REPORT_ERROR, comp_id, num_remapping_weights_section == 0, "When setting the remapping configuration in the XML file \"%s\", there are more than one active section for specifying remapping weights files. That is not allowed. Please verify the XML file arround the line number %d", XML_file_name, detailed_element->Row());		
-						H2D_remapping_wgt_file_mgr = new H2D_remapping_wgt_file_mgt(algorithm_element, XML_file_name);
-						num_remapping_weights_section ++;
-					}
+					if (!is_XML_setting_on(comp_id, algorithm_element, XML_file_name, "the status of the configuration of a section about remapping weights files", "remapping configuration"))
+						continue;
+					EXECUTION_REPORT(REPORT_ERROR, comp_id, num_remapping_weights_section == 0, "When setting the remapping configuration in the XML file \"%s\", there are more than one active section for specifying remapping weights files. That is not allowed. Please verify the XML file arround the line number %d", XML_file_name, detailed_element->Row());		
+					H2D_remapping_wgt_file_mgr = new H2D_remapping_wgt_file_mgt(algorithm_element, XML_file_name);
+					num_remapping_weights_section ++;
 				}
 				else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "When setting the remapping configuration in the XML file \"%s\", \"%s\" is not a legal attribute of remapping algorithm. Please verify the XML file arround the line number %d", XML_file_name, algorithm_element->Value(), algorithm_element->Row());
 			}

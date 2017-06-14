@@ -20,7 +20,7 @@ IO_field::IO_field(int IO_field_id, int field_instance_id, const char *field_IO_
 	this->field_instance_id = field_instance_id;
 	if (strlen(field_IO_name) > 0) {
 		strcpy(this->field_IO_name, field_IO_name);
-		check_and_verify_name_format_of_string_for_API(this->comp_id, field_IO_name, API_ID_FIELD_MGT_REG_IO_FIELD, "name of the I/O field in the data file", annotation);
+		check_and_verify_name_format_of_string_for_API(this->comp_id, field_IO_name, API_ID_FIELD_MGT_REG_IO_FIELD_from_INST, "name of the I/O field in the data file", annotation);
 	}
 	else strcpy(this->field_IO_name, field_inst->get_field_name());
 	strcpy(this->field_long_name, fields_info->search_field_info(field_inst->get_field_name())->field_long_name);
@@ -34,7 +34,7 @@ IO_field::IO_field(int IO_field_id, int comp_or_grid_id, int decomp_id, int fiel
 
 
 	this->IO_field_id = IO_field_id;
-	check_and_verify_name_format_of_string_for_API(this->comp_id, field_IO_name, API_ID_FIELD_MGT_REG_IO_FIELD, "name of the I/O field in the data file", annotation);
+	check_and_verify_name_format_of_string_for_API(this->comp_id, field_IO_name, API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER, "name of the I/O field in the data file", annotation);
 	strcpy(this->field_IO_name, field_IO_name);
 	strcpy(this->field_unit, unit);
 	strcpy(this->field_long_name, long_name);
@@ -70,14 +70,14 @@ IO_field *IO_field_mgt::search_IO_field(int comp_id, const char *field_IO_name)
 }
 
 
-void IO_field_mgt::check_for_registering_IO_field(IO_field *new_IO_field, const char *annotation)
+void IO_field_mgt::check_for_registering_IO_field(IO_field *new_IO_field, const char *annotation, int API_id)
 {
 	IO_field *existing_field = search_IO_field(new_IO_field->get_comp_id(), new_IO_field->get_field_IO_name());
 	if (existing_field != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, new_IO_field->get_comp_id(), false, "IO field \"%s\" has been registered before (the corresponding model code annotation is \"%s\"). It cannot be registered again at the model code with the annotation \"%s\"",
 		                 new_IO_field->get_field_IO_name(), annotation_mgr->get_annotation(existing_field->get_IO_field_id(), "registering I/O field"), annotation);
 	annotation_mgr->add_annotation(new_IO_field->get_IO_field_id(), "registering I/O field", annotation);
-	synchronize_comp_processes_for_API(new_IO_field->get_comp_id(), API_ID_FIELD_MGT_REG_IO_FIELD, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", annotation);
+	synchronize_comp_processes_for_API(new_IO_field->get_comp_id(), API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", annotation);
 	IO_fields.push_back(new_IO_field);
 }
 
@@ -86,9 +86,28 @@ int IO_field_mgt::register_IO_field(int field_instance_id, const char *field_IO_
 {
 	int IO_field_id = TYPE_IO_FIELD_PREFIX | IO_fields.size();
 	IO_field *new_IO_field = new IO_field(IO_field_id, field_instance_id, field_IO_name, annotation);
-	check_for_registering_IO_field(new_IO_field, annotation);
-	check_API_parameter_field_instance(new_IO_field->get_comp_id(), API_ID_FIELD_MGT_REG_IO_FIELD, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", new_IO_field->get_field_instance_id(), "field instance id", annotation);
+	check_for_registering_IO_field(new_IO_field, annotation, API_ID_FIELD_MGT_REG_IO_FIELD_from_INST);
+	check_API_parameter_field_instance(new_IO_field->get_comp_id(), API_ID_FIELD_MGT_REG_IO_FIELD_from_INST, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", new_IO_field->get_field_instance_id(), "field instance id", annotation);
 	return IO_field_id;
+}
+
+
+int IO_field_mgt::register_IO_fields(int num_field_inst, int size_field_inst_ids, int *field_inst_ids, const char *annotation)
+{
+	int comp_id = memory_manager->get_field_instance(field_inst_ids[0])->get_comp_id();
+	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"");
+
+
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_field_inst <= size_field_inst_ids, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the array size of the parameter \"field_inst_ids\" cannot be smaller than the parameter \"num_field_inst\". Please check the model code with the annotation \"%s\".", annotation);
+	for (int i = 1; i < num_field_inst; i ++)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_inst_ids[i])->get_comp_id(), "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the field instances specified by the parameter \"field_inst_ids\" do not correspond to the same component model. Please check the model code with the annotation \"%s\".", annotation);
+	synchronize_comp_processes_for_API(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""), "registering I/O fields", annotation);
+	check_API_parameter_int(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, comm, NULL, num_field_inst, "\"num_field_inst\"", annotation);
+	for (int i = 0; i < num_field_inst; i ++)
+		check_API_parameter_field_instance(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, comm, "registering I/O fields", field_inst_ids[i], "field_inst_ids (detailed field instances)", annotation);	
+	for (int i = 0; i < num_field_inst; i ++)
+		IO_fields.push_back(new IO_field(TYPE_IO_FIELD_PREFIX|IO_fields.size(), field_inst_ids[i], memory_manager->get_field_instance(field_inst_ids[i])->get_field_name(), annotation));
 }
 
 
@@ -96,7 +115,7 @@ int IO_field_mgt::register_IO_field(int comp_or_grid_id, int decomp_id, int fiel
 {
 	int IO_field_id = TYPE_IO_FIELD_PREFIX | IO_fields.size();
 	IO_field *new_IO_field = new IO_field(IO_field_id, comp_or_grid_id, decomp_id, field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
-	check_for_registering_IO_field(new_IO_field, annotation);
+	check_for_registering_IO_field(new_IO_field, annotation, API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER);
 	return IO_field_id;
 }
 
