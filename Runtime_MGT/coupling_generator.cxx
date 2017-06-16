@@ -197,6 +197,7 @@ void Coupling_connection::generate_data_transfer()
 			dst_comp_id = dst_comp_node->get_comp_id();
 		}
 		transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), &temp_dst_decomp_name, content_size);
+		printf("search router %d from %s to %s: %s\n", i, src_comp_node->get_full_name(), dst_comp_node->get_full_name(), temp_dst_decomp_name);
 		fields_router[i] = routing_info_mgr->search_or_add_router(src_comp_node->get_comp_id(), dst_comp_id, src_fields_info[i]->decomp_name, temp_dst_decomp_name);
 		if (current_proc_id_src_comp != -1)
 			src_fields_mem[i] = export_procedure->get_data_transfer_field_instance(i);
@@ -252,6 +253,7 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	original_grid_status = 0;
 	if (sender_original_grid != NULL && receiver_original_grid != NULL && sender_original_grid->get_original_CoR_grid() == receiver_original_grid->get_original_CoR_grid())
 		original_grid_status = 1;
+	printf("original_grid_status is %d\n", original_grid_status);
 	MPI_Comm_size(union_comm, &num_processes);
 	all_original_grid_status = new int [num_processes];
 	MPI_Allgather(&original_grid_status, 1, MPI_INT, all_original_grid_status, 1, MPI_INT, union_comm);
@@ -417,7 +419,7 @@ void Coupling_connection::generate_interpolation()
 		exchange_remapping_setting(i, field_remapping_setting);
 //		exchange_grid(dst_comp_node, src_comp_node, dst_fields_info[i]->grid_name);
 		bool grid_different = exchange_grid(src_comp_node, dst_comp_node, src_fields_info[i]->grid_name);
-		if (grid_different && current_proc_id_dst_comp != -1) {
+		if (current_proc_id_dst_comp != -1) {
 			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
 			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
@@ -800,7 +802,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 				             interface_name, XML_file_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
 			continue;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_import_or_export() == 0, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
+		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_import_or_export_or_remap() == 0, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
 			             interface_name, XML_file_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name(), interface_name);
 		for (int i = 0; i < import_interfaces_configuration.size(); i ++)
 			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The redirection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
@@ -826,6 +828,14 @@ void Component_import_interfaces_configuration::get_interface_field_import_confi
 }
 
 
+void Coupling_generator::synchronize_latest_connection_id()
+{
+	int overall_latest_connection_id;
+	MPI_Allreduce(&latest_connection_id, &overall_latest_connection_id, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+	latest_connection_id = overall_latest_connection_id;
+}
+
+
 void Coupling_generator::generate_coupling_procedures()
 {
 	bool define_use_wrong = false;
@@ -835,6 +845,8 @@ void Coupling_generator::generate_coupling_procedures()
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 	
 
+	coupling_generator->synchronize_latest_connection_id();
+	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to generate coupling procedure");
 	inout_interface_mgr->merge_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
@@ -852,7 +864,7 @@ void Coupling_generator::generate_coupling_procedures()
 				import_interfaces_of_a_component[j]->get_fields_name(&import_fields_name);
 				for (int k = 0; k < import_fields_name.size(); k ++) {
 					std::vector<const char*> configuration_export_components_full_name;
-					coupling_connection = new Coupling_connection((all_coupling_connections.size())<<4);
+					coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_components_full_name);
 					strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Component_import_interfaces_configuration")->get_full_name());
 					strcpy(coupling_connection->dst_interface_name, import_interfaces_of_a_component[j]->get_interface_name());

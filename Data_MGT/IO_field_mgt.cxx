@@ -87,7 +87,7 @@ int IO_field_mgt::register_IO_field(int field_instance_id, const char *field_IO_
 	int IO_field_id = TYPE_IO_FIELD_PREFIX | IO_fields.size();
 	IO_field *new_IO_field = new IO_field(IO_field_id, field_instance_id, field_IO_name, annotation);
 	check_for_registering_IO_field(new_IO_field, annotation, API_ID_FIELD_MGT_REG_IO_FIELD_from_INST);
-	check_API_parameter_field_instance(new_IO_field->get_comp_id(), API_ID_FIELD_MGT_REG_IO_FIELD_from_INST, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", new_IO_field->get_field_instance_id(), "field instance id", annotation);
+	check_API_parameter_field_instance(new_IO_field->get_comp_id(), API_ID_FIELD_MGT_REG_IO_FIELD_from_INST, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_IO_field->get_comp_id(),""), "registering an I/O field", new_IO_field->get_field_instance_id(), "field_inst_id", annotation);
 	return IO_field_id;
 }
 
@@ -162,7 +162,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 	for (int i = 0; i < IO_fields.size(); i ++)
 		fields_id[i] = IO_fields[i]->get_field_instance_id();
 
-	export_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_output", 1, IO_fields.size(), fields_id, field_timer_id, inst_or_aver, "register default IO field to output for a component", INTERFACE_TYPE_IO_OUTPUT));
+	export_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_output", 1, IO_fields.size(), fields_id, IO_fields.size(), field_timer_id, inst_or_aver, "register default IO field to output for a component", INTERFACE_TYPE_IO_OUTPUT));
 
 	if (synchronized_IO) {
 		for (int i = 0; i < IO_fields.size(); i ++) {
@@ -175,7 +175,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 			fields_id[i] = mirror_field_instance->get_field_instance_id();
 			data_write_field_insts.push_back(mirror_field_instance);
 		}
-		import_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_write", 0, IO_fields.size(), fields_id, field_timer_id, inst_or_aver, "register default IO field to write for a component", INTERFACE_TYPE_IO_WRITE));
+		import_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_write", 0, IO_fields.size(), fields_id, IO_fields.size(), field_timer_id, inst_or_aver, "register default IO field to write for a component", INTERFACE_TYPE_IO_WRITE));
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "asynchronized IO is not supported yet");
@@ -228,7 +228,7 @@ Coupling_connection *IO_output_procedure::generate_coupling_connection(int conne
 	Coupling_connection *coupling_connection = NULL;
 	
 	if (import_interface != NULL && export_interface != NULL) {
-		coupling_connection = new Coupling_connection(connection_id<<4);
+		coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 		strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in IO_output_procedure::generate_coupling_connection")->get_full_name());
 		strcpy(coupling_connection->dst_interface_name, import_interface->get_interface_name());
 		std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;

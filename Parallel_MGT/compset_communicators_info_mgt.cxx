@@ -737,8 +737,10 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(const char
 Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(int global_node_id)
 {
 	for (int i = 0; i < global_node_array.size(); i ++)
-		if (global_node_array[i]->get_local_node_id() == global_node_id)
+		if (global_node_array[i]->get_local_node_id() == global_node_id) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, get_global_node_of_local_comp(global_node_id,"") == global_node_array[i], "Software error in Comp_comm_group_mgt_mgr::search_global_node");
 			return global_node_array[i];
+		}
 		
 	return NULL;
 }

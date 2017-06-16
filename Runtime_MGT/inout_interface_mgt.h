@@ -97,25 +97,29 @@ class Inout_interface
 		int interface_id;
 		int interface_type;
 		int comp_id;
-		int import_or_export;     // 0: import; 1: export;
+		int import_or_export_or_remap;     // 0: import; 1: export; 2: remap
 		Time_mgt *time_mgr;
 		Coupling_timer *timer;
 		int inst_or_aver;
 		std::vector<Field_mem_info *> fields_mem_registered;
 		std::vector<const char*> fields_name;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
+		std::vector<Inout_interface *> children_interfaces;           // only for remap interface 
 		int execution_checking_status;
 		long last_execution_time;
 
 	public:
 		Inout_interface(const char*, int&);
-		Inout_interface(const char*, int, int, int, int*, int, int, const char*, int);
+		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char *);
+		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, int, int);
 		~Inout_interface() {}
+		void initialize_data(const char *, int, int, int, int, int *, int, const char *);	
+		void common_checking_for_interface_registration(int, int *, int, int, int, int, const char *, int, int, const char *, const char *);
 		const char *get_interface_name() { return interface_name; }
 		int get_comp_id() { return comp_id; }
 		int get_interface_id() { return interface_id; }
 		int get_interface_type() { return interface_type; }
-		int get_import_or_export() { return import_or_export; }
+		int get_import_or_export_or_remap() { return import_or_export_or_remap; }
 		void report_common_field_instances(const Inout_interface*);
 		void get_fields_name(std::vector<const char*>*);
 		const char *get_field_name(int);
@@ -126,6 +130,7 @@ class Inout_interface
 		void add_coupling_procedure(Connection_coupling_procedure*);
 		int get_inst_or_aver() { return inst_or_aver; } 
 		void execute(bool, const char*);
+		Inout_interface *get_child_interface(int i);
 };
 
 
@@ -142,7 +147,8 @@ class Inout_interface_mgt
 		Inout_interface_mgt(const char*, int);
 		Inout_interface_mgt();
 		~Inout_interface_mgt();
-		int register_inout_interface(const char*, int, int, int*, int, int, const char*, int);
+		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, int);
+		int register_normal_remap_interface(const char *, int, int *, int *, int, int, int, int, const char *);
 		int get_next_interface_id();
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);

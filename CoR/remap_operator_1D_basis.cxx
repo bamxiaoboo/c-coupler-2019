@@ -290,12 +290,6 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 						 "the center coordinate values corresponding to the 1D grid %s are not sorted into ascending or descending order",
 						 src_grid->get_grid_name());
 	ascending_order = coord_values_dst[0] < coord_values_dst[1];
-	for (i = 1; i < dst_grid->get_grid_size() - 1; i ++) {
-		if (!(ascending_order == coord_values_dst[i] < coord_values_dst[i+1] || coord_values_dst[i] == coord_values_dst[i+1])) {
-			for (j = 0; j < dst_grid->get_grid_size(); j ++)
-				printf("dst lev %d: %lf\n", j, coord_values_dst[j]);
-		}
-	}
 
 	for (i = 1; i < dst_grid->get_grid_size() - 1; i ++) 
 		EXECUTION_REPORT(REPORT_ERROR, -1, ascending_order == coord_values_dst[i] < coord_values_dst[i+1] || coord_values_dst[i] == coord_values_dst[i+1], 

@@ -198,6 +198,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_INTERFACE_REG_EXPORT:
 			sprintf(API_label, "CCPL_register_export_interface");
 			break;
+		case API_ID_INTERFACE_REG_NORMAL_REMAP: 
+			sprintf(API_label, "CCPL_register_normal_remap_interface");
+			break;
 		case API_ID_INTERFACE_EXECUTE:
 			sprintf(API_label, "CCPL_execute_interface");
 			break;

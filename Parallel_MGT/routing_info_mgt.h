@@ -43,6 +43,8 @@ class Routing_info
 		Decomp_info *dst_decomp_info;
         Comp_comm_group_mgt_node * src_comp_node;
         Comp_comm_group_mgt_node * dst_comp_node;
+		int src_comp_node_id;
+		int dst_comp_node_id;
 		int current_proc_id_src_comp;
 		int current_proc_id_dst_comp;
         char remote_comp_name[NAME_STR_SIZE];

@@ -58,6 +58,7 @@ class Coupling_connection
 		friend class Coupling_generator;
 		friend class Connection_coupling_procedure;
 		friend class IO_output_procedure;
+		friend class Inout_interface_mgt;
 		int connection_id;
 		std::vector<const char*> fields_name;
 		std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > src_comp_interfaces;
@@ -167,15 +168,18 @@ class Coupling_generator
 		Dictionary<int> *export_field_index_lookup_table;
 		std::vector<Coupling_connection*> all_coupling_connections;
         std::vector<Coupling_connection*> all_IO_connections;
+		int latest_connection_id;
 		
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();
 
 	public:
-		Coupling_generator() {};
+		Coupling_generator() { latest_connection_id = 1; }
 		~Coupling_generator() {}
 		void generate_coupling_procedures();
         void generate_IO_procedures();
+		int apply_connection_id() {  return (++latest_connection_id); }
+		void synchronize_latest_connection_id();
 };
 
 

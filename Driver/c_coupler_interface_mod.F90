@@ -2647,6 +2647,28 @@
 
 
 
+   integer FUNCTION CCPL_register_normal_remap_interface(interface_name, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, annotation)
+   implicit none
+   character(len=*), intent(in)                :: interface_name
+   character(len=*), intent(in), optional      :: annotation
+   integer,          intent(in)                :: timer_ID
+   integer,          intent(in)                :: inst_or_aver
+   integer,          intent(in), dimension(:)  :: field_instance_IDs_source
+   integer,          intent(in), dimension(:)  :: field_instance_IDs_target
+   integer,          intent(in)                :: num_field_instances
+   integer                                     :: interface_id
+
+   if (present(annotation)) then
+       call register_normal_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs_source), size(field_instance_IDs_target))
+   else
+       call register_normal_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs_source), size(field_instance_IDs_target))
+   endif
+   CCPL_register_normal_remap_interface = interface_id;
+
+   END FUNCTION CCPL_register_normal_remap_interface
+
+
+
    integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name

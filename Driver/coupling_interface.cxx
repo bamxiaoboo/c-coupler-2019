@@ -220,6 +220,7 @@ extern "C" void initialize_ccpl_mgrs_()
 	routing_info_mgr = new Routing_info_mgt();
 	runtime_remapping_weights_mgr = new Runtime_remapping_weights_mgt();
 	all_H2D_remapping_wgt_files_info = new H2D_remapping_wgt_file_container();
+	coupling_generator = new Coupling_generator();
 }
 
 
@@ -356,7 +357,6 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	inout_interface_mgr->merge_inout_interface_fields_info(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
-		coupling_generator = new Coupling_generator();
 		coupling_generator->generate_coupling_procedures();
 		coupling_generator->generate_IO_procedures();
 	}
@@ -659,18 +659,22 @@ extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, cons
 }
 
 
+extern "C" void register_normal_remap_interface_(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1, int *array_size2)
+{
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_NORMAL_REMAP, annotation);	
+	*interface_id = inout_interface_mgr->register_normal_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, annotation);
+}
+
+
 extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, *array_size1 >= *num_fields, "When registering an import/export interface named \"%s\", the size of the array for the IDs of field instances is smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\"",
-		             interface_name, annotation);
-
 	if (*import_or_export == 0) {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *timer_id, *inst_or_aver, annotation, INTERFACE_TYPE_REGISTER);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, annotation, INTERFACE_TYPE_REGISTER);
 	}
 	else {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_EXPORT, annotation);
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *timer_id, 0, annotation, INTERFACE_TYPE_REGISTER);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, annotation, INTERFACE_TYPE_REGISTER);
 	}	
 }
 

@@ -2497,9 +2497,6 @@ void Remap_grid_class::check_center_fields_sorting_order()
 					have_set_sorting_order = true;
 					ascending_order = current_coord_values[k-1] < current_coord_values[k];
 				}
-				if (!(current_coord_values[k-1] == current_coord_values[k] || ascending_order == current_coord_values[k-1] < current_coord_values[k]))
-					for (int k = 0; k < sub_grids[0]->grid_size; k ++)
-						printf("wuwu %d: %lf\n", k, current_coord_values[k]);
                 EXECUTION_REPORT(REPORT_ERROR, -1, current_coord_values[k-1] == current_coord_values[k] || ascending_order == current_coord_values[k-1] < current_coord_values[k], "the center coordinate values of subgrid %s of grid %s are not sorted in ascending or descending order\n", sub_grids[0]->get_grid_name(), this->grid_name);
             }
         }
@@ -2977,10 +2974,6 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
                 current_lat_vertex_values[current_num_vertex] = current_lat_vertex_values[j];
                 current_num_vertex ++;
             }
-		printf("compute area for cell %d of %s: ", i, grid_name);
-		for (int i = 0; i < current_num_vertex; i ++) 
-			printf("(%lf %lf)  ", current_lon_vertex_values[i], current_lat_vertex_values[i]);
-		printf("\n");
         if (current_num_vertex > 0)
             area_or_volumn[i] = compute_area_of_sphere_cell(current_num_vertex, current_lon_vertex_values, current_lat_vertex_values);
     }
@@ -3357,10 +3350,8 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	for (int i = 0; i < temp_int; i ++) {
 		Remap_grid_class *child_grid = new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter);
 		Remap_grid_class *existing_grid = remap_grid_manager->search_remap_grid_with_grid_name(child_grid->get_grid_name());
-		if (existing_grid != child_grid) {
-			printf("duplicated transfered grid %s\n", child_grid->get_grid_name());
+		if (existing_grid != child_grid)
 			delete child_grid;
-		}
 		sub_grids.push_back(existing_grid);
 	}
 	
@@ -3376,7 +3367,6 @@ void Remap_grid_class::link_grids(Remap_grid_class *top_grid, const char *grid_n
 	if (first_super_grid_of_enable_setting_coord_value == NULL)
 		first_super_grid_of_enable_setting_coord_value = get_linked_grid_from_array(top_grid, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value);
 
-	printf("get linked grid of first_super_grid_of_enable_setting_coord_value for %s: %s %s %lx\n", grid_name, grid_name_suffix, name_first_super_grid_of_enable_setting_coord_value, first_super_grid_of_enable_setting_coord_value);
 	if (num_dimensions == 1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, first_super_grid_of_enable_setting_coord_value != NULL, "Software error in Remap_grid_class::link_grids");
 
@@ -3434,12 +3424,8 @@ bool Remap_grid_class::format_sub_grids(Remap_grid_class *top_grid)
 
 Remap_grid_class *Remap_grid_class::search_sub_grid(const char *grid_name)
 {
-	printf("qiguai %s vs %s: %d vs %d\n", this->grid_name, grid_name, strlen(this->grid_name), strlen(grid_name));
-	if (words_are_the_same(this->grid_name, grid_name)) {
-		printf("the same\n");
+	if (words_are_the_same(this->grid_name, grid_name))
 		return this;
-	}
-	printf("why why %s vs %s\n", this->grid_name, grid_name);
 
 	for (int i = 0; i < sub_grids.size(); i ++) {
 		Remap_grid_class *required_grid = sub_grids[i]->search_sub_grid(grid_name);

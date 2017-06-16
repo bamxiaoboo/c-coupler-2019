@@ -57,11 +57,11 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		runtime_datatype_transform_algorithms.push_back(NULL);
 		if (i < coupling_connection->fields_name.size())
 			fields_mem_registered.push_back(inout_interface->search_registered_field_instance(coupling_connection->fields_name[i]));
-		else fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_import_or_export() == 1, i-coupling_connection->fields_name.size()));
+		else fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_import_or_export_or_remap() == 1, i-coupling_connection->fields_name.size()));
 		transfer_process_on.push_back(false);
 		current_remote_fields_time.push_back(-1);
 		last_remote_fields_time.push_back(-1);
-		if (inout_interface->get_import_or_export() == 1) {
+		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
 			fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
 		}
@@ -77,19 +77,19 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		fields_time_info_src.push_back(field_time_info);
 		field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->dst_timer, coupling_connection->dst_time_step_in_second, coupling_connection->dst_inst_or_aver);
 		fields_time_info_dst.push_back(field_time_info);
-		if (inout_interface->get_import_or_export() == 1) {
+		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
 			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
 		}
 		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
-		if (inout_interface->get_import_or_export() == 1) {
+		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (!words_are_the_same(transfer_data_type, coupling_connection->src_fields_info[i]->data_type)) {
 				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "for field %s, add data type transformation at src from %s to %s\n", fields_mem_registered[i]->get_field_name(), coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
 			}	
 		}	
-		if (inout_interface->get_import_or_export() == 0) {
+		if (inout_interface->get_import_or_export_or_remap() == 0) {
 			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
 				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 			else {
@@ -105,7 +105,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 				else runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_remapped[i], fields_mem_datatype_transformed[i]);
 			}
 		}
-		if (inout_interface->get_import_or_export() == 1) {
+		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (fields_mem_remapped[i] != NULL)
 				fields_mem_transfer[i] = fields_mem_remapped[i];
 			else if (fields_mem_unit_transformed[i] != NULL)
@@ -137,7 +137,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 	transfer_data = false;
 	
 	for (int i = 0; i < fields_time_info_dst.size(); i ++) {
-		if (inout_interface->get_import_or_export() == 0) {
+		if (inout_interface->get_import_or_export_or_remap() == 0) {
 			local_fields_time_info = fields_time_info_dst[i];
 			remote_fields_time_info = fields_time_info_src[i];
 			lag_seconds = local_fields_time_info->lag_seconds;
@@ -172,7 +172,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		}
 	}
 	
-	if (inout_interface->get_import_or_export() == 0) { 
+	if (inout_interface->get_import_or_export_or_remap() == 0) { 
 		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->receve_data_in_temp_buffer();
 		for (int i = fields_time_info_dst.size() - 1; i >= 0; i --) {
 			if (bypass_timer) {
@@ -282,7 +282,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 
 void Connection_coupling_procedure::send_fields(bool bypass_timer)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface->get_import_or_export() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
+	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface->get_import_or_export_or_remap() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
 	finish_status = runtime_data_transfer_algorithm->run(bypass_timer);
 }
 
@@ -303,7 +303,7 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_cont
 	interface_id = 0;
 	read_data_from_array_buffer(comp_long_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&num_interfaces, sizeof(int), temp_array_buffer, buffer_content_iter);
 	for (int i = 0; i < num_interfaces; i ++) {
 		fields_name.push_back(temp_array_buffer+buffer_content_iter-NAME_STR_SIZE);
@@ -315,61 +315,82 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_cont
 }
 
 
-Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export, int num_fields, int *field_ids, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
+Inout_interface::Inout_interface(const char *interface_name, int interface_id, int num_fields, int *field_ids_src, int *field_ids_dst, int timer_id, int inst_or_aver, int array_size_src, int array_size_dst, const char *annotation)
 {
-	int API_id;
+	char child_interface_name[NAME_STR_SIZE];
 
-	
-	this->interface_id = interface_id;
-	this->import_or_export = import_or_export;
-	this->execution_checking_status = 0;
-	this->last_execution_time = -1;
-	this->comp_id = -1;
-	this->interface_type = interface_type;
-	EXECUTION_REPORT(REPORT_ERROR, -1, interface_type == INTERFACE_TYPE_REGISTER || interface_type == INTERFACE_TYPE_IO_OUTPUT || interface_type == INTERFACE_TYPE_IO_WRITE, "Software error in Inout_interface::Inout_interface: wrong interface_type");
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "The number of fields for registering an import/export interface \"%s\" is wrong (negative). Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, timer_mgr->check_is_legal_timer_id(timer_id), "Wrong timer id is detected when registering a import/export interface \"%s\". Please verify the model code related to the annotation \"%s\"", interface_name, annotation);
-	if (comp_id == -1)
-		comp_id = timer_mgr->get_timer(timer_id)->get_comp_id();
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Inconsistency is detected when registering an import/export interface \"%s\". The timer and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
-		             interface_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 1")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(timer_id)->get_comp_id(),"in Inout_interface::Inout_interface 2")->get_comp_name(), annotation);
 
-	for (int i = 0; i < num_fields; i ++) {
-		if (interface_type != INTERFACE_TYPE_IO_WRITE)
-			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Wrong field instance id is detected when registering a import/export interface. Please verify the model code related to the annotation \"%s\"", annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Inconsistency is detected when registering an import/export interface. The timer and field instances must belong to the same component (the two different components are \"%s\" and \"%s\"). Please verify the model code related to the annotation \"%s\"", 
-						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::Inout_interface 3")->get_comp_name(),comp_comm_group_mgt_mgr->get_global_node_of_local_comp(memory_manager->get_field_instance(field_ids[i])->get_comp_id(),"in Inout_interface::Inout_interface 4")->get_comp_name(), annotation);
-	}
+	sprintf(child_interface_name, "%s_child_export", interface_name);
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
+	sprintf(child_interface_name, "%s_child_import", interface_name);
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
+	initialize_data(interface_name, interface_id, 2, timer_id, inst_or_aver, field_ids_src, INTERFACE_TYPE_REGISTER, annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, inst_or_aver == USING_INSTANTANEOUS_VALUE || inst_or_aver == USING_AVERAGE_VALUE, "Wrong value of parameter \"inst_or_aver\" when registering an import interface \"%s\": value must be 0 (instantaneous) or 1 (average). Please verify the model code related to the annotation \"%s\"",
-	                 interface_name, annotation);
+	bool same_field_name = true;
+	for (int i = 0; i < num_fields; i ++) 
+		same_field_name = same_field_name && words_are_the_same(memory_manager->get_field_instance(field_ids_src[i])->get_field_name(),memory_manager->get_field_instance(field_ids_dst[i])->get_field_name());	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, same_field_name, "Error happens when calling API \"CCPL_register_normal_remap_interface\" to register an interface named \"%s\": the field instances specified by the parameter \"field_instance_IDs_source\" are not consistent with the field instances specified by the parameter \"field_instance_IDs_target\" (the ith source field instance must have the same field name with the ith target field instance). Please check the model code with the annotation \"%s\".", interface_name, annotation);	
+}
 
-	for (int i = 0; i < num_fields; i ++)
-		for (int j = i+1; j < num_fields; j ++)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_ids[i] != field_ids[j], "There are multiple copies of the same field instance when registering an import/export interface. Each field instance can have only one copy. Please verify the model code related to the annotation \"%s\"", annotation);
-	if (import_or_export == 0) {
-		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_REG_IMPORT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing field instances", annotation);
-		API_id = API_ID_INTERFACE_REG_IMPORT;
-	}
-	else {
-		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_REG_EXPORT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for exporting field instances", annotation);
-		API_id = API_ID_INTERFACE_REG_EXPORT;
-	}
-	if (interface_type == INTERFACE_TYPE_REGISTER)
-		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);	
-	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), NULL, num_fields, "num_fields", annotation);
-	for (int i = 0; i < num_fields; i ++)
-		check_API_parameter_field_instance(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", field_ids[i], "field instances ids (the information of the field instances)", annotation);
-	check_API_parameter_timer(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface for importing (or exporting) field instances", timer_id, "timer id (the information of the timer)", annotation);
-	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), NULL, inst_or_aver, "inst_or_aver (the tag for specifying instantaneous or time averaged field value)", annotation);
-	this->timer = timer_mgr->get_timer(timer_id);
-	this->inst_or_aver = inst_or_aver;
+
+Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *annotation, int API_id, int interface_type)
+{
+	common_checking_for_interface_registration(num_fields, field_ids, array_size, timer_id, inst_or_aver, import_or_export_or_remap, interface_name, API_id, interface_type, field_ids_parameter_name, annotation);
+	initialize_data(interface_name, interface_id, import_or_export_or_remap, timer_id, inst_or_aver, field_ids, interface_type, annotation);
+
 	for (int i = 0; i < num_fields; i ++)
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
-	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
+}
+
+
+void Inout_interface::initialize_data(const char *interface_name, int interface_id, int import_or_export_or_remap, int timer_id, int inst_or_aver, int *field_ids, int interface_type, const char *annotation)
+{
+	this->interface_id = interface_id;
+	this->import_or_export_or_remap = import_or_export_or_remap;
+	this->execution_checking_status = 0;
+	this->last_execution_time = -1;
+	this->timer = timer_mgr->get_timer(timer_id);
+	this->comp_id = this->timer->get_comp_id();
+	this->interface_type = interface_type;
 	strcpy(this->interface_name, interface_name);
+	this->inst_or_aver = inst_or_aver;
+	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
-	check_and_verify_name_format_of_string_for_API(this->comp_id, this->interface_name, API_id, "the interface", annotation);
+}
+
+
+void Inout_interface::common_checking_for_interface_registration(int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, int import_or_export_or_remap, const char *interface_name, int API_id, int interface_type, const char *field_ids_parameter_name, const char *annotation)
+{
+	int comp_id = -1;
+	char str[NAME_STR_SIZE], API_label[NAME_STR_SIZE];
+
+
+	get_API_hint(-1, API_id, API_label);
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling API \"%s\" to register an interface named \"%s\": the array size of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
+	for (int i = 0; i < num_fields; i ++) {
+		if (interface_type != INTERFACE_TYPE_IO_WRITE)
+			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"%s\" contains wrong field instance ID. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+		if (i == 0)
+			comp_id = memory_manager->get_field_instance(field_ids[i])->get_comp_id();
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the field instances specified via the parameter \"%s\" cannot correspond to different component models. Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
+	}
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+
+	sprintf(str, "registerring an interface named \"%s\"", interface_name);
+	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), str, annotation);
+	
+	if (interface_type == INTERFACE_TYPE_REGISTER)
+		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);	
+	check_and_verify_name_format_of_string_for_API(comp_id, interface_name, API_id, "the interface", annotation);
+	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), NULL, num_fields, "num_field_instances", annotation);
+	sprintf(str, "\"%s\" (the information of the field instances)", field_ids_parameter_name);
+	for (int i = 0; i < num_fields; i ++)
+		check_API_parameter_field_instance(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface", field_ids[i], str, annotation);
+	check_API_parameter_timer(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface", timer_id, "timer_ID (the information of the timer)", annotation);
+	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), "registerring an interface", inst_or_aver, "inst_or_aver (the tag for using instantaneous or time averaged field value)", annotation);
 }
 
 
@@ -378,7 +399,7 @@ void Inout_interface::report_common_field_instances(const Inout_interface *anoth
 	if (this->interface_type != INTERFACE_TYPE_REGISTER || another_interface->interface_type != INTERFACE_TYPE_REGISTER)
 		return;
 
-	if (this->import_or_export == 0 && another_interface->import_or_export == 0) {
+	if (this->import_or_export_or_remap == 0 && another_interface->import_or_export_or_remap == 0) {
 		for (int i = 0; i < this->fields_mem_registered.size(); i ++)
 			for (int j = 0; j < another_interface->fields_mem_registered.size(); j ++)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, this->fields_mem_registered[i]->get_data_buf() != another_interface->fields_mem_registered[j]->get_data_buf(), "Two import interfaces (\"%s\" and \"%s\") share the same data buffer of the field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
@@ -386,7 +407,7 @@ void Inout_interface::report_common_field_instances(const Inout_interface *anoth
 		return;
 	}
 
-	if (this->import_or_export != 1 || another_interface->import_or_export != 1)
+	if (this->import_or_export_or_remap != 1 || another_interface->import_or_export_or_remap != 1)
 		return;
 
 	for (int i = 0; i < this->fields_mem_registered.size(); i ++)
@@ -448,7 +469,7 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, i
 		write_data_into_array_buffer(fields_mem_registered[i]->get_field_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 	temp_int = fields_mem_registered.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::transform_interface_into_array")->get_full_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 }
@@ -506,7 +527,13 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 
 	last_execution_time = current_execution_time;
 
-	if (import_or_export == 1) {
+	if (import_or_export_or_remap == 2) {
+		children_interfaces[0]->execute(bypass_timer, annotation);
+		children_interfaces[1]->execute(bypass_timer, annotation);
+		return;
+	}
+
+	if (import_or_export_or_remap == 1) {
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			fields_mem_registered[i]->check_field_sum("before executing an export interface");
 	}
@@ -514,7 +541,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	for (int i = 0; i < coupling_procedures.size(); i ++)
 		coupling_procedures[i]->execute(bypass_timer);
 
-	if (import_or_export == 1) {
+	if (import_or_export_or_remap == 1) {
 		bool all_finish = false;
 		while (!all_finish) {
 			all_finish = true;
@@ -526,7 +553,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		}
 	}
 
-	if (import_or_export == 0) {
+	if (import_or_export_or_remap == 0) {
 		for (int i = 0; i < fields_mem_registered.size(); i ++) {
 			if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT))
 				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %f : %f\n", interface_name, fields_mem_registered[i]->get_field_name(), ((float*) fields_mem_registered[i]->get_data_buf())[0], ((float*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);
@@ -537,6 +564,14 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 			fields_mem_registered[i]->check_field_sum("after executing an export interface");
 		}
 	}
+}
+
+
+Inout_interface *Inout_interface::get_child_interface(int i)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, i >= 0 && i < children_interfaces.size(), "Software error in Inout_interface::get_child_interface");
+
+	return children_interfaces[i];
 }
 
 
@@ -567,9 +602,51 @@ Inout_interface_mgt::~Inout_interface_mgt()
 }
 
 
-int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export, int num_fields, int *field_ids, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
+int Inout_interface_mgt::register_normal_remap_interface(const char *interface_name, int num_fields, int *field_ids_src, int *field_ids_dst, int timer_id, int inst_or_aver, int array_size_src, int array_size_dst, const char *annotation)
 {
-	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export, num_fields, field_ids, timer_id, inst_or_aver, annotation, interface_type);
+	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), num_fields, field_ids_src, field_ids_dst, timer_id, inst_or_aver, array_size_src, array_size_dst, annotation);
+	Inout_interface *existing_interface = get_interface(new_interface->get_comp_id(), interface_name);
+	if (existing_interface != NULL)
+		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), existing_interface == NULL, "Error happens when calling API \"CCPL_register_normal_remap_interface\" to register an interface named \"%s\" at the model code model with the annotation \"%s\": an interface with the same name has already been registered at the model code with the annotation \"%s\". Please verify.", interface_name, annotation, annotation_mgr->get_annotation(existing_interface->get_interface_id(), "registering interface"));
+	interfaces.push_back(new_interface);
+
+	Coupling_connection *coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
+	Inout_interface *child_interface_export = new_interface->get_child_interface(0);
+	Inout_interface *child_interface_import = new_interface->get_child_interface(1);
+	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
+
+	strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(), "in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
+	strcpy(coupling_connection->dst_interface_name, child_interface_import->get_interface_name());
+	for (int i = 0; i < num_fields; i ++)
+		coupling_connection->fields_name.push_back(strdup(memory_manager->get_field_instance(field_ids_src[i])->get_field_name()));
+	strcpy(src_comp_interface.first, coupling_connection->dst_comp_full_name);
+	strcpy(src_comp_interface.second, child_interface_export->get_interface_name());
+	coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
+
+	printf("generate remap interface 1 for %s: %s\n", coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(), "in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
+
+	interfaces.push_back(child_interface_export);
+	interfaces.push_back(child_interface_import);
+
+	coupling_connection->generate_a_coupling_procedure();
+
+	printf("generate remap interface 2 for %s: %s\n", coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(), "in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
+
+	delete coupling_connection;
+
+	printf("generate remap interface 3 for %s: %s\n", coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(), "in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
+
+	interfaces.erase(interfaces.begin()+interfaces.size()-1);
+	interfaces.erase(interfaces.begin()+interfaces.size()-1);
+	
+	return new_interface->get_interface_id();
+}
+
+
+int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
+{
+	int API_id = import_or_export_or_remap == 0? API_ID_INTERFACE_REG_IMPORT : API_ID_INTERFACE_REG_EXPORT;
+	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export_or_remap, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", annotation, API_id, interface_type);
 	for (int i = 0; i < interfaces.size(); i ++) {
 		if (new_interface->get_comp_id() != interfaces[i]->get_comp_id())
 			continue;
@@ -680,7 +757,7 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 	import_interfaces.clear();
 
 	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export() == 0)
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() == 0)
 			import_interfaces.push_back(interfaces[i]);
 }
 
@@ -691,7 +768,7 @@ void Inout_interface_mgt::write_all_interfaces_fields_info()
 
 	
  	for (int i = 0; i < interfaces.size(); i ++) {
-		if (interfaces[i]->get_import_or_export() == 0)
+		if (interfaces[i]->get_import_or_export_or_remap() == 0)
 			printf("import interface \"%s\" of component \"%s\" has %d fields\n", interfaces[i]->get_interface_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(interfaces[i]->get_comp_id(),"in write_all_interfaces_fields_info")->get_comp_full_name(), interfaces[i]->get_num_fields());
 		else printf("export interface \"%s\" of component \"%s\" has %d fields\n", interfaces[i]->get_interface_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(interfaces[i]->get_comp_id(),"in write_all_interfaces_fields_info")->get_comp_full_name(), interfaces[i]->get_num_fields());
 		for (int i = 0; (field_name = interfaces[i]->get_field_name(i)) != NULL; i ++) {

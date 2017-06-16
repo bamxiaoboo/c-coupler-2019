@@ -72,6 +72,7 @@
 #define API_ID_TIME_MGT_IS_MODEL_RUN_ENDED              ((int)(0X02180000))
 #define API_ID_INTERFACE_REG_IMPORT                     ((int)(0X04000001))
 #define API_ID_INTERFACE_REG_EXPORT                     ((int)(0X04000002))
+#define API_ID_INTERFACE_REG_NORMAL_REMAP               ((int)(0X04000003))
 #define API_ID_INTERFACE_EXECUTE                        ((int)(0X04000004))
 
 
