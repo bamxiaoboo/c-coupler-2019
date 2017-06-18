@@ -378,6 +378,10 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 	}
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+	if (interface_type != INTERFACE_TYPE_IO_WRITE && import_or_export_or_remap == 1)
+		for (int i = 0; i < num_fields; i ++) 
+			for (int j = i+1; j < num_fields; j ++)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(memory_manager->get_field_instance(field_ids[i])->get_field_name(),memory_manager->get_field_instance(field_ids[j])->get_field_name()), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"%s\" is not allowed to include more than one instance of the field \"%s\". Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation, memory_manager->get_field_instance(field_ids[i])->get_field_name());			
 
 	sprintf(str, "registerring an interface named \"%s\"", interface_name);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), str, annotation);
@@ -653,7 +657,7 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), !words_are_the_same(interface_name, interfaces[i]->get_interface_name()), 
 		                 "cannot register the import/export interface named \"%s\" at the model code with the annotation \"%s\" because an interface with the same name has been registerred at the model code with the annotation \"%s\"",
 		                 interface_name, annotation, annotation_mgr->get_annotation(interfaces[i]->get_interface_id(), "registering interface"));
-		new_interface->report_common_field_instances(interfaces[i]);
+		//new_interface->report_common_field_instances(interfaces[i]);
 		
 	}
 	interfaces.push_back(new_interface);

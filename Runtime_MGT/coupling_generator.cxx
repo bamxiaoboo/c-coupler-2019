@@ -605,6 +605,7 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 	int comp_id = comp_comm_group_mgt_mgr->search_global_node(comp_full_name)->get_comp_id();
 	TiXmlElement *fields_element = NULL, *components_element = NULL, *remapping_element = NULL, *merge_element = NULL;
 	int i, line_number;
+	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> producer_info;
 
 
 	strcpy(this->interface_name, interface_name);
@@ -664,24 +665,27 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 				for (TiXmlNode *component_element_node = detailed_element->FirstChild(); component_element_node != NULL; component_element_node = component_element_node->NextSibling()) {
 					TiXmlElement *component_element = component_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
-					const char *full_name = get_XML_attribute(comp_id, component_element, "full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
-					char *full_name_str = strdup(full_name);				
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name_str) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name_str, line_number);
-					for (i = 0; i < components_full_name.size(); i ++)
-						if (words_are_the_same(components_full_name[i], full_name_str))
+					const char *full_name = get_XML_attribute(comp_id, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
+					EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
+					strcpy(producer_info.first, full_name);
+					const char *interface_name = component_element->Attribute("interface_name", &line_number);
+					if (interface_name == NULL)
+						producer_info.second[0] = '\0';
+					else strcpy(producer_info.second, interface_name);
+					for (i = 0; i < producers_info.size(); i ++)
+						if (words_are_the_same(producers_info[i].first, producer_info.first) && words_are_the_same(producers_info[i].second, producer_info.second))
 							break;
-					if (i == components_full_name.size())
-						components_full_name.push_back(full_name_str);				
+					if (i == producers_info.size())
+						producers_info.push_back(producer_info);				
 				}
 			}
 			else {
 				components_default_setting = 1;
 				const int *all_components_ids = comp_comm_group_mgt_mgr->get_all_components_ids();
 				for (i = 1; i < all_components_ids[0]; i ++) {
-					char *full_name_str = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Import_direction_setting()")->get_comp_full_name());
-					if (!words_are_the_same(full_name_str, comp_full_name))
-						components_full_name.push_back(full_name_str);
-					else delete [] full_name_str;
+					strcpy(producer_info.first, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Import_direction_setting()")->get_comp_full_name());
+					producer_info.second[0] = '\0';
+					producers_info.push_back(producer_info);
 				}
 			}
 		}
@@ -693,15 +697,13 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about fields is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, components_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about components is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 	for (i = 0; i < fields_name.size(); i ++)
-		for (int j = 0; j < components_full_name.size(); j ++)
-			interface_configuration->add_field_src_component(comp_id, fields_name[i], components_full_name[j]);
+		for (int j = 0; j < producers_info.size(); j ++)
+			interface_configuration->add_field_src_component(comp_id, fields_name[i], producers_info[j]);
 }
 
 
 Import_direction_setting::~Import_direction_setting()
 {
-	for (int i = 0; i < components_full_name.size(); i ++)
-		delete [] components_full_name[i];
 }
 
 
@@ -709,7 +711,7 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 {
 	int *fields_count, line_number;
 	Inout_interface *interface_ptr = all_interfaces_mgr->get_interface(comp_full_name, interface_name);
-	std::vector<const char*> components_long_names;
+	std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > producers_info;
 	
 	
 	strcpy(this->interface_name, interface_name);
@@ -719,7 +721,7 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 		fields_count[i] = 0;
 
 	for (int i = 0; i < fields_name.size(); i ++)
-		fields_src_components.push_back(components_long_names);
+		fields_src_producers_info.push_back(producers_info);
 
 	for (TiXmlNode *redirection_element_node = interface_element->FirstChild(); redirection_element_node != NULL; redirection_element_node = redirection_element_node->NextSibling()) {
 		TiXmlElement *redirection_element = redirection_element_node->ToElement();
@@ -731,26 +733,26 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 }
 
 
-void Import_interface_configuration::add_field_src_component(int comp_id, const char *field_name, const char *comp_full_name)
+void Import_interface_configuration::add_field_src_component(int comp_id, const char *field_name, std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> producer_info)
 {
 	int i;
 	for (i = 0; i < fields_name.size(); i ++)
 		if (words_are_the_same(field_name, fields_name[i]))
 			break;
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_name.size(), "Software error in Import_interface_configuration::add_field_src_component");
-	fields_src_components[i].push_back(comp_full_name);
+	fields_src_producers_info[i].push_back(producer_info);
 }
 
 
-void Import_interface_configuration::get_field_import_configuration(const char *field_name, std::vector<const char*> &components_full_name)
+void Import_interface_configuration::get_field_import_configuration(const char *field_name, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > &producers_info)
 {
 	int i;
 
 
 	for (i = 0; i < fields_name.size(); i ++)
 		if (words_are_the_same(fields_name[i], field_name)) {
-			for (int j = 0; j < fields_src_components[i].size(); j ++)
-				components_full_name.push_back(fields_src_components[i][j]);
+			for (int j = 0; j < fields_src_producers_info[i].size(); j ++)
+				producers_info.push_back(fields_src_producers_info[i][j]);
 			break;
 		}
 
@@ -819,12 +821,12 @@ Component_import_interfaces_configuration::~Component_import_interfaces_configur
 }
 
 
-void Component_import_interfaces_configuration::get_interface_field_import_configuration(const char *interface_name, const char *field_name, std::vector<const char*> &components_full_name)
+void Component_import_interfaces_configuration::get_interface_field_import_configuration(const char *interface_name, const char *field_name, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > &producers_info)
 {
-	components_full_name.clear();
+	producers_info.clear();
 	for (int i = 0; i < import_interfaces_configuration.size(); i ++)
 		if (words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), interface_name)) 
-			import_interfaces_configuration[i]->get_field_import_configuration(field_name, components_full_name);
+			import_interfaces_configuration[i]->get_field_import_configuration(field_name, producers_info);
 }
 
 
@@ -863,15 +865,15 @@ void Coupling_generator::generate_coupling_procedures()
 				std::vector<const char*> import_fields_name;
 				import_interfaces_of_a_component[j]->get_fields_name(&import_fields_name);
 				for (int k = 0; k < import_fields_name.size(); k ++) {
-					std::vector<const char*> configuration_export_components_full_name;
+					std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > configuration_export_producer_info;
 					coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
-					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_components_full_name);
+					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_producer_info);
 					strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Component_import_interfaces_configuration")->get_full_name());
 					strcpy(coupling_connection->dst_interface_name, import_interfaces_of_a_component[j]->get_interface_name());
 					coupling_connection->fields_name.push_back(strdup(import_fields_name[k]));					
 					int field_index = export_field_index_lookup_table->search(import_fields_name[k],false);
 					if (field_index != 0) {
-						if (configuration_export_components_full_name.size() == 0) {
+						if (configuration_export_producer_info.size() == 0) {
 							for (int l = 0; l < export_fields_dst_components[field_index].size(); l ++) {
 								if (words_are_the_same(export_fields_dst_components[field_index][l].first, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Component_import_interfaces_configuration")->get_full_name()))
 									continue;
@@ -881,12 +883,14 @@ void Coupling_generator::generate_coupling_procedures()
 							}
 						}
 						else {
-							for (int l = 0; l < configuration_export_components_full_name.size(); l ++) {
+							for (int l = 0; l < configuration_export_producer_info.size(); l ++) {
 								for (int m = 0; m < export_fields_dst_components[field_index].size(); m ++)
-									if (words_are_the_same(configuration_export_components_full_name[l], export_fields_dst_components[field_index][m].first)) {
-										strcpy(src_comp_interface.first, export_fields_dst_components[field_index][m].first);
-										strcpy(src_comp_interface.second, export_fields_dst_components[field_index][m].second);
-										coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
+									if (words_are_the_same(configuration_export_producer_info[l].first, export_fields_dst_components[field_index][m].first)) {
+										if (strlen(configuration_export_producer_info[l].second) == 0 || words_are_the_same(configuration_export_producer_info[l].second, export_fields_dst_components[field_index][m].second)) {
+											strcpy(src_comp_interface.first, export_fields_dst_components[field_index][m].first);
+											strcpy(src_comp_interface.second, export_fields_dst_components[field_index][m].second);
+											coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
+										}
 									}
 							}
 						}
