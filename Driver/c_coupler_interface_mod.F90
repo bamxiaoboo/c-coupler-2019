@@ -94,12 +94,6 @@
    end interface
 
 
-   interface CCPL_execute_interface ; module procedure &
-        CCPL_execute_interface_using_id, &
-        CCPL_execute_interface_using_name
-   end interface
-
-
 
    interface CCPL_register_V1D_Z_grid_via_model_data; module procedure &
         CCPL_register_V1D_Z_grid_via_double_data, &
@@ -2712,50 +2706,56 @@
 
 
 
-   SUBROUTINE CCPL_execute_interface_using_id(interface_id, bypass_timers, annotation)
+   logical FUNCTION CCPL_execute_interface_using_id(interface_id, bypass_timer, coupling_tag, annotation)
    implicit none
    integer,          intent(in)                :: interface_id
-   logical,          intent(in)                :: bypass_timers
+   logical,          intent(in)                :: bypass_timer
+   character(len=*), intent(in), optional      :: coupling_tag
    character(len=*), intent(in), optional      :: annotation
-   integer                                     :: local_bypass_timers
+   integer                                     :: local_bypass_timer
 
 
-   if (bypass_timers) then
-       local_bypass_timers = 1
+   if (bypass_timer) then
+       local_bypass_timer = 1
    else
-       local_bypass_timers = 0
+       local_bypass_timer = 0
    endif
    if (present(annotation)) then
-       call execute_inout_interface_with_id(interface_id, local_bypass_timers, trim(annotation)//char(0))
+       call execute_inout_interface_with_id(interface_id, local_bypass_timer, trim(annotation)//char(0))
    else 
-       call execute_inout_interface_with_id(interface_id, local_bypass_timers, trim("")//char(0))
+       call execute_inout_interface_with_id(interface_id, local_bypass_timer, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_execute_interface_using_id
+   CCPL_execute_interface_using_id = .true.
+
+   END FUNCTION CCPL_execute_interface_using_id
 
 
 
-   SUBROUTINE CCPL_execute_interface_using_name(component_id, interface_name, bypass_timers, annotation)
+   logical FUNCTION CCPL_execute_interface_using_name(component_id, interface_name, bypass_timer, coupling_tag, annotation)
    implicit none
    integer,          intent(in)                :: component_id
-   logical,          intent(in)                :: bypass_timers
+   logical,          intent(in)                :: bypass_timer
+   character(len=*), intent(in), optional      :: coupling_tag
    character(len=*), intent(in), optional      :: annotation
    character(len=*), intent(in)                :: interface_name
-   integer                                     :: local_bypass_timers
+   integer                                     :: local_bypass_timer
 
 
-   if (bypass_timers) then
-       local_bypass_timers = 1
+   if (bypass_timer) then
+       local_bypass_timer = 1
    else
-       local_bypass_timers = 0
+       local_bypass_timer = 0
    endif
    if (present(annotation)) then
-       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timers, trim(annotation)//char(0))
+       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timer, trim(annotation)//char(0))
    else 
-       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timers, trim("")//char(0))
+       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timer, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_execute_interface_using_name
+   CCPL_execute_interface_using_name = .true.
+
+   END FUNCTION CCPL_execute_interface_using_name
 
 
 

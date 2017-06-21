@@ -28,12 +28,17 @@ template <class T1, class T2> void do_ins_sort(T1 *sorted_values,
                                                long segment_start, 
                                                long segment_end)
 {
-    for (long i = segment_start+1; i <= segment_end; i ++)
-        for (long j = i; j > segment_start && (sorted_values[j] < sorted_values[j-1]); j--) {
+	long i, j;
+    for (i = segment_start+1; i <= segment_end; i ++) {
+        for (j = i; j > segment_start && (sorted_values[j] < sorted_values[j-1]); j--) {
             swap(sorted_values+j, sorted_values+j-1);
 			if (content_values != NULL)
 	            swap(content_values+j, content_values+j-1);
         }
+		if (content_values != NULL)
+			for (; j > segment_start && (sorted_values[j] == sorted_values[j-1]) && (content_values[j] < content_values[j-1]); j--)
+				swap(content_values+j, content_values+j-1);
+    }
 }
 
 
@@ -46,13 +51,14 @@ template <class T1, class T2> long partition(T1 *sorted_values,
     do {
         while (sorted_values[++segment_start] < pivot);
         while (segment_end > 0 && sorted_values[--segment_end] > pivot);
-        swap(sorted_values+segment_start, sorted_values+segment_end);
+		swap(sorted_values+segment_start, sorted_values+segment_end);
 		if (content_values != NULL)
 	        swap(content_values+segment_start, content_values+segment_end);
     } while (segment_start < segment_end);
-    swap(sorted_values+segment_start, sorted_values+segment_end);
+	swap(sorted_values+segment_start, sorted_values+segment_end);
 	if (content_values != NULL)
-	    swap(content_values+segment_start, content_values+segment_end);
+		swap(content_values+segment_start, content_values+segment_end);
+
     return segment_start;
 }
 
@@ -62,7 +68,7 @@ template <class T1, class T2> void do_quick_sort(T1 *sorted_values,
                                                  long segment_start, 
                                                  long segment_end)
 {
-    long pivotindex, partition_pos;
+    long pivotindex, partition_pos, i, j;
     
     
     if (segment_end-segment_start < QUICK_SORTHRESH) 
@@ -80,6 +86,12 @@ template <class T1, class T2> void do_quick_sort(T1 *sorted_values,
             do_quick_sort(sorted_values, content_values, segment_start, partition_pos-1);
         if(segment_end-partition_pos > 1) 
             do_quick_sort(sorted_values, content_values, partition_pos+1, segment_end);
+		if (content_values != NULL) {
+			for (i = partition_pos-1; i >= segment_start && sorted_values[i] == sorted_values[partition_pos]; i --);
+			for (j = partition_pos+1; j <= segment_end && sorted_values[j] == sorted_values[partition_pos]; j ++);
+			if ((++i) < (--j))
+				do_quick_sort(content_values, (long*)NULL, i, j);
+		}
     }
 }
 
