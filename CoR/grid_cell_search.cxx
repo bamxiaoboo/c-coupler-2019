@@ -620,7 +620,7 @@ void H2D_grid_cell_search_engine::recursively_search_initial_boundary(double cen
 	double new_dlon, new_dlat, min_lon, min_lat, new_center_lon, new_center_lat;
 
 	
-	seperate_cells_in_children_tiles(remap_grid->get_grid_size(), cells_ptr, center_lon, center_lat, dlon, dlat, num_cells_in_children, index_buffer);
+	seperate_cells_in_children_tiles(num_cells, cells_ptr, center_lon, center_lat, dlon, dlat, num_cells_in_children, index_buffer);
 	for (i = 0, num_children = 0; i < TILE_DIVIDE_FACTOR*TILE_DIVIDE_FACTOR; i ++)
 		if (num_cells_in_children[i] > 0) {
 			unique_child_indx = i;
@@ -726,6 +726,10 @@ void H2D_grid_cell_search_engine::search_overlapping_cells(int &num_overlapping_
 
 	num_overlapping_cells = 0;
 	root_tile->search_overlapping_cells(num_overlapping_cells, index_buffer, dst_cell, accurately_match, early_quit);
+	
+	if (early_quit)
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_overlapping_cells <= 1, "Software error2 in H2D_grid_cell_search_engine::search_overlapping_cells %d", num_overlapping_cells);
+		
 	for (int i = 0; i < num_overlapping_cells; i ++)
 		overlapping_cells_index[i] = index_buffer[i];
 

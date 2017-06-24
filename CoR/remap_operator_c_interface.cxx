@@ -129,7 +129,7 @@ void get_cell_vertex_coord_values_of_grid(Remap_operator_grid *grid, long cell_i
 void get_cell_vertex_coord_values_of_src_grid(long cell_index, int *num_vertex, double *vertex_values, bool check_consistency)
 {
     int temp_num_vertex;
-    double temp_vertex_values[256];
+    double temp_vertex_values[65536];
     bool should_rotate;
 
     
@@ -140,6 +140,7 @@ void get_cell_vertex_coord_values_of_src_grid(long cell_index, int *num_vertex, 
     }
     else {
         get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_src, cell_index, &temp_num_vertex, temp_vertex_values, check_consistency);
+		EXECUTION_REPORT(REPORT_ERROR, -1, temp_num_vertex <= 65536/2, "Software error in get_cell_vertex_coord_values_of_src_grid: too big number of vertexes: %d", temp_num_vertex);
         should_rotate = false;
         for (int i = 0; i < temp_num_vertex; i ++)
             if (fabs(temp_vertex_values[i*2+1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
@@ -156,7 +157,7 @@ void get_cell_vertex_coord_values_of_src_grid(long cell_index, int *num_vertex, 
 void get_cell_vertex_coord_values_of_dst_grid(long cell_index, int *num_vertex, double *vertex_values, bool check_consistency)
 {
     int temp_num_vertex;
-    double temp_vertex_values[256];
+    double temp_vertex_values[65536];
     bool should_rotate;
 
     
@@ -167,6 +168,7 @@ void get_cell_vertex_coord_values_of_dst_grid(long cell_index, int *num_vertex, 
     }
     else {
         get_cell_vertex_coord_values_of_grid(current_runtime_remap_operator_grid_dst, cell_index, &temp_num_vertex, temp_vertex_values, check_consistency);
+		EXECUTION_REPORT(REPORT_ERROR, -1, temp_num_vertex <= 65536/2, "Software error in get_cell_vertex_coord_values_of_dst_grid: too big number of vertexes: %d", temp_num_vertex);		
         should_rotate = false;
         for (int i = 0; i < temp_num_vertex; i ++)
             if (fabs(temp_vertex_values[i*2+1]) > SPHERE_GRID_ROTATION_LAT_THRESHOLD) {
@@ -388,10 +390,8 @@ bool do_two_cells_bounding_box_have_overlap(int num_vertexes_src,
     double cell_bounding_box_src[256*2], cell_bounding_box_dst[256*2];
 
     
-    compute_cell_bounding_box(num_vertexes_src, num_grid_dimensions, 
-                              vertex_coord_values_src, cell_bounding_box_src);
-    compute_cell_bounding_box(num_vertexes_dst, num_grid_dimensions, 
-                              vertex_coord_values_dst, cell_bounding_box_dst);
+    compute_cell_bounding_box(num_vertexes_src, num_grid_dimensions, vertex_coord_values_src, cell_bounding_box_src);
+    compute_cell_bounding_box(num_vertexes_dst, num_grid_dimensions, vertex_coord_values_dst, cell_bounding_box_dst);
     return two_bounding_boxes_have_overlap(cell_bounding_box_src, cell_bounding_box_dst, num_grid_dimensions);
 }
 
@@ -399,7 +399,7 @@ bool do_two_cells_bounding_box_have_overlap(int num_vertexes_src,
 bool src_cell_and_dst_cell_have_overlap(long cell_index_src, long cell_index_dst)
 {
     int num_vertexes_src, num_vertexes_dst, num_grid_dimensions;
-    double vertex_coord_values_src[256*4], vertex_coord_values_dst[256*4];
+    double vertex_coord_values_src[65536], vertex_coord_values_dst[65536];
     double center_coord_values_src[256], center_coord_values_dst[256];
 
 
@@ -407,18 +407,10 @@ bool src_cell_and_dst_cell_have_overlap(long cell_index_src, long cell_index_dst
     get_cell_center_coord_values_of_src_grid(cell_index_src, center_coord_values_src);
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, true);
     get_cell_vertex_coord_values_of_src_grid(cell_index_src, &num_vertexes_src, vertex_coord_values_src, true);    
-    num_grid_dimensions = current_runtime_remap_operator->get_num_dimensions();
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_src <= 65536/2, "Software error in src_cell_and_dst_cell_have_overlap: too big number of src vertexes: %d", num_vertexes_src);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in src_cell_and_dst_cell_have_overlap: too big number of dst vertexes: %d", num_vertexes_dst);
 
-	if (cell_index_dst == 8 && (cell_index_src == 26875 || cell_index_src == 27195 || cell_index_src == 27515)) {
-		printf("dst cell (%lf %lf): ", center_coord_values_dst[0], center_coord_values_dst[1]);
-		for (int i = 0; i < num_vertexes_dst; i ++)
-			printf("(%lf %lf) ", vertex_coord_values_dst[i*2], vertex_coord_values_dst[i*2+1]);
-		printf("\n");
-		printf("src cell (%lf %lf): ", center_coord_values_src[0], center_coord_values_src[1]);
-		for (int i = 0; i < num_vertexes_src; i ++)
-			printf("(%lf %lf) ", vertex_coord_values_src[i*2], vertex_coord_values_src[i*2+1]);
-		printf("\n");
-	}
+    num_grid_dimensions = current_runtime_remap_operator->get_num_dimensions();
 
     return do_two_cells_bounding_box_have_overlap(num_vertexes_src, 
                                                   num_vertexes_dst,
@@ -614,10 +606,11 @@ void get_all_vertexes_of_one_cell_in_other_cell(int num_vertexes_cell1,
                                                 double *coord1_values_vertexes_in_other_cell,
                                                 double *coord2_values_vertexes_in_other_cell)
 {
-    double temp_vertex_coord1_values[256], temp_vertex_coord2_values[256];
+    double temp_vertex_coord1_values[65536], temp_vertex_coord2_values[65536];
     int i;
 
 
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_cell2 <= 65536/2, "Software error in get_all_vertexes_of_one_cell_in_other_cell: too big number of num_vertexes_cell2: %d", num_vertexes_cell2);
     num_vertexes_in_other_cell = 0;
     for (i = 0; i < num_vertexes_cell2; i ++) {
         temp_vertex_coord1_values[i] = vertex_coord_values_cell2[i*2];
@@ -787,11 +780,13 @@ void sort_vertexes_of_sphere_cell(int num_vertexes,
                                   double *vertexes_lons,
                                   double *vertexes_lats)
 {
-    int i, index_array[256];
-    volatile double temp_vertexes_lons[256], temp_vertexes_lats[256];
-    double average_lon, average_lat, angles[256];
+    int i, index_array[65536];
+    volatile double temp_vertexes_lons[65536], temp_vertexes_lats[65536];
+    double average_lon, average_lat, angles[65536];
     bool cross_lon_360;
 
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes <= 65536, "Software error in sort_vertexes_of_sphere_cell: too big number of num_vertexes: %d", num_vertexes);
 
     for (i = 0; i < num_vertexes; i ++) 
         EXECUTION_REPORT(REPORT_ERROR, -1, vertexes_lons[i] != NULL_COORD_VALUE, "remap software error in sort_vertexes_of_sphere_cell\n");
@@ -880,19 +875,23 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
                                                          double *sub_cell_vertexes_lons, 
                                                          double *sub_cell_vertexes_lats)
 {
-    double vertex_coord_values_src[256*2], vertex_coord_values_dst[256*2];
-    double vertex_lons_src[256], vertex_lats_src[256], vertex_lons_dst[256], vertex_lats_dst[256];
+    double vertex_coord_values_src[65536], vertex_coord_values_dst[65536];
+    double vertex_lons_src[65536], vertex_lats_src[65536], vertex_lons_dst[65536], vertex_lats_dst[65536];
     int num_vertexes_src, num_vertexes_dst, num_grid_dimensions;
     int num_src_vertexes_in_dst_cell, num_dst_vertexes_in_src_cell;
     int i, j, k, next_i, num_arc_points_within_cell;
-    double lons_arc_points_within_cell[256], lats_arc_points_within_cell[256];
-    double lons_src_vertexes_in_dst_cell[256], lats_src_vertexes_in_dst_cell[256];
-    double lons_dst_vertexes_in_src_cell[256], lats_dst_vertexes_in_src_cell[256];
+    double lons_arc_points_within_cell[65536], lats_arc_points_within_cell[65536];
+    double lons_src_vertexes_in_dst_cell[65536], lats_src_vertexes_in_dst_cell[65536];
+    double lons_dst_vertexes_in_src_cell[65536], lats_dst_vertexes_in_src_cell[65536];
 
 
     num_sub_cell_vertexes = 0;
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, true);
     get_cell_vertex_coord_values_of_src_grid(cell_index_src, &num_vertexes_src, vertex_coord_values_src, true);
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_src <= 65536/2, "Software error in compute_common_sub_cell_of_src_cell_and_dst_cell_2D: too big number of num_vertexes_src: %d", num_vertexes_src);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in compute_common_sub_cell_of_src_cell_and_dst_cell_2D: too big number of num_vertexes_dst: %d", num_vertexes_dst);
+
     num_grid_dimensions = current_runtime_remap_operator->get_num_dimensions();
 
     EXECUTION_REPORT(REPORT_ERROR, -1, num_grid_dimensions == 2, "remap software error1 in compute_common_sub_cell_of_src_cell_and_dst_cell_2D\n");
@@ -997,7 +996,7 @@ void compute_common_sub_cell_of_src_cell_and_dst_cell_2D(long cell_index_src,
         num_sub_cell_vertexes = 0;
     }
     
-    double temp_vertex_lons[256], temp_vertex_lats[256];
+    double temp_vertex_lons[65536], temp_vertex_lats[65536];
     double area1, area2, area3;
     if (num_sub_cell_vertexes > 0) {
         for (i = 0; i < num_vertexes_src; i ++) {

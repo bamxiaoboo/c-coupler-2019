@@ -315,7 +315,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     double bilinear_wgt_values[4];
     double eps = 2.0e-7;
     int num_vertexes_dst;
-    double vertex_coord_values_dst[256*4];
+    double vertex_coord_values_dst[65536];
 	
 
     initialize_computing_remap_weights_of_one_cell();
@@ -330,6 +330,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
       */
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
 	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, vertex_coord_values_dst, true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell: too big number of num_vertexes_dst %d", num_vertexes_dst);
 
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;

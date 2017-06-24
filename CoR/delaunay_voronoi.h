@@ -39,46 +39,33 @@ class Point
 		Triangle *current_triangle;
 
 		Point(double lat = double(), double lon = double(), int id = -1);
-		Point(const Point &pt);
-		double calculate_distance(const Point &pt) const;
-		int position_to_edge(const Point &pt1, const Point&pt2) const;
+		double calculate_distance(const Point *pt) const;
+		int position_to_edge(const Point *pt1, const Point*pt2) const;
 		int position_to_triangle(const Triangle *) const;
-		Point& operator=(const Point &pt);
-		Point operator-(const Point &pt) const;
-
-		/* only compare lat and lon */
-		bool operator==(const Point &pt) const
-		{
-			return lat == pt.lat && lon == pt.lon;
-		}
-
-		/* only compare lat and lon */
-		bool operator!=(const Point &pt) const
-		{
-			return lat != pt.lat || lon != pt.lon;
-		}
-
+		Point(const Point *, const Point *);
 		void update_coord_values(double, double);
+		~Point() {}
 };
 
 
 class Triangle
 {
 	public:
-		Point v[3];	/* vertexes of triangle */
+		Point *v[3];	/* vertexes of triangle */
 		Point center;	/* circumcenter */
 		Edge *edge[3];
 		bool is_leaf;
 		bool visited;
-		unsigned reference_count;	/* reference count, used to destruct */
-		vector<Point> remained_points_in_triangle;
+		int reference_count;	/* reference count, used to destruct */
+		int legalize_count[3];
+		vector<Point*> remained_points_in_triangle;
 		vector<Triangle*> children;
 
 		Triangle();
-		Triangle(Point, Point, Point);
+		Triangle(Point*, Point*, Point*);
 		Triangle(Edge*, Edge*, Edge*);
 		~Triangle();
-		Point get_center_coordinates();
+		void get_center_coordinates();
 		int find_best_candidate_point();
 		void check_and_set_twin_edge_relationship(Triangle*);
 
@@ -91,7 +78,7 @@ class Triangle
 
 struct Cell
 {
-	Point center;
+	Point *center;
 	vector<double> vertexes_lons;
 	vector<double> vertexes_lats;
 };
@@ -100,20 +87,18 @@ struct Cell
 class Edge
 {
 	public:
-		Point head;
-		Point tail;	/* the tail of this edge, constant */
+		Point *head;
+		Point *tail;	/* the tail of this edge, constant */
 		Edge *twin_edge;			/* the twin_edge edge, whose tail is the head of this edge and head is the tail of this edge */
 		Edge *next_edge_in_triangle;			/* the next_edge_in_triangle edge, whose tail is the head of this edge but head isn't the tail of this edge */
 		Edge *prev_edge_in_triangle;			/* the prev_edge_in_triangle edge, whose head is the tail of this edge but tail isn't the head of this edge */
 		Triangle *triangle; /* the triangle which is composed by this edge and its next_edge_in_triangle and prev_edge_in_triangle */
 
-		Edge(const Point &head, const Point &tail);
+		Edge(Point *head, Point *tail);
 		~Edge();
 		Edge *generate_twins_edge();
 
 	private:
-		Edge(const Edge &edge);
-		Edge& operator=(const Edge &edge);
 };
 
 
@@ -122,20 +107,27 @@ class Delaunay_Voronoi
 	public:
 		Cell *cells;
 		vector<Triangle*> result_leaf_triangles;
+		vector<Triangle*> triangle_pool;
+		vector<Edge*> edge_pool;
 		bool is_global_grid;
+		int num_cells;
 
 		Delaunay_Voronoi(int, double*, double*, bool, double, double, double, double, bool*, double**, double**, int*);
 		~Delaunay_Voronoi();
-		static bool is_triangle_legal(const Point &pt, const Edge *edge);
-		void legalize_triangles(const Point &pt, Edge *edge, vector<Triangle*>*);
+		static bool is_triangle_legal(const Point *pt, const Edge *edge);
+		void legalize_triangles(Point *pt, Edge *edge, vector<Triangle*>*);
+		Edge *allocate_edge(Point *head, Point *tail);
+		Triangle *allocate_Triangle(Point*, Point*, Point*);
+		Triangle *allocate_Triangle(Edge*, Edge*, Edge*);
+
 
 	private:
 		void check_and_set_twin_edge_relationship(vector<Triangle*>*);
-		Point generate_boundary_point(double, double, Triangle*, bool);
-		void generate_initial_triangles(Triangle*, vector<Point>*, vector<Point>*, bool);
+		Point *generate_boundary_point(double, double, Triangle*, bool);
+		void generate_initial_triangles(Triangle*, vector<Point*>*, vector<Point*>*, bool);
 		void triangularization_process(Triangle*, bool);
-		void distribute_points_into_triangles(vector<Point>*, vector<Triangle*>*);
-		Triangle *search_triangle_with_point(Triangle*, const Point &pt);
+		void distribute_points_into_triangles(vector<Point*>*, vector<Triangle*>*);
+		Triangle *search_triangle_with_point(Triangle*, const Point *pt);
 		void generate_Voronoi_diagram();
 		void extract_vertex_coordinate_values(int, bool, double**, double**, int*);
 		void get_convex_set(int, double*, double*, double, double, int &, int **);

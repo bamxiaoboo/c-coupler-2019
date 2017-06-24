@@ -57,11 +57,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 			else netcdf_file_object->put_global_text("cyclic_or_acyclic", "acyclic");
 			delete netcdf_file_object;
 		}
-		printf("barrier 1\n");
-		fflush(NULL);
 		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "Original_grid_info::Original_grid_info"));
-		printf("barrier 2\n");
-		fflush(NULL);
 	}
 
 }
@@ -323,6 +319,7 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 	                                                                  int size_center_lat, int size_vertex_lon, int size_vertex_lat, int *mask, char *center_lon, char *center_lat, char *vertex_lon, char *vertex_lat, const char *annotation, int API_id)
 {
 	char API_label[NAME_STR_SIZE];
+	double eps = 1.0000001;
 
 	
 	get_API_hint(comp_id, API_id, API_label);
@@ -338,16 +335,16 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries("integer", mask, size_mask, 0, 1, 0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"mask\" are wrong (not 0 and 1). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	if (words_are_the_same(coord_unit, COORD_UNIT_DEGREES)) {		
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, (double) -360.0, (double) 360.0, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, (double) -360.0, (double) 360.0, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lat, size_center_lat, (double) -90.0, (double) 90.0, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lat\" are wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lat, size_vertex_lat, (double) -90.0, (double) 90.0, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lat\" are wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, (double) -360.0*eps, (double) 360.0*eps, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, (double) -360.0*eps, (double) 360.0*eps, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lat, size_center_lat, (double) -90.0*eps, (double) 90.0*eps, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lat\" are wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lat, size_vertex_lat, (double) -90.0*eps, (double) 90.0*eps, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lat\" are wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	}
 	else if (words_are_the_same(coord_unit, COORD_UNIT_RADIANS)) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, -((double)3.1416)*2, ((double)3.1416)*2, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, -((double)3.1416)*2, ((double)3.1416)*2, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lat, size_center_lat, -((double)3.1416)/2, ((double)3.1416)/2, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lat, size_vertex_lat, -((double)3.1416)/2, ((double)3.1416)/2, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lat, size_center_lat, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) -999.0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lat, size_vertex_lat, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) -999.0, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	}
 }
 
@@ -876,6 +873,8 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	sprintf(grid_name, "mid_grid_for_%s", level_3D_grid->get_original_CoR_grid()->get_grid_name());
 	mid_3D_CoR_grid = new Remap_grid_class(grid_name, 2, sub_grids, 0);
 	remap_grid_manager->add_remap_grid(mid_3D_CoR_grid);
+	mid_1D_CoR_grid->end_grid_definition_stage(NULL);
+	mid_3D_CoR_grid->end_grid_definition_stage(NULL);
 	mid_1D_grid = search_grid_info(mid_1D_CoR_grid->get_grid_name(), level_3D_grid->get_comp_id());
 	if (mid_1D_grid == NULL) {
 		mid_1D_grid = new Original_grid_info(level_3D_grid->get_comp_id(), original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, mid_1D_CoR_grid->get_grid_name(), annotation, mid_1D_CoR_grid, true);

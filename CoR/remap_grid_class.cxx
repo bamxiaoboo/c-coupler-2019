@@ -1929,10 +1929,14 @@ void Remap_grid_class::generate_voronoi_grid()
 
   
     EXECUTION_REPORT(REPORT_ERROR, -1, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
-    EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Failed to generate the voronoi grid\n", grid_name);
+    EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Default boundary area (global area) will be used to generate the voronoi grid\n", grid_name);
 
-	if (boundary_min_lon == NULL_COORD_VALUE)
-		return;
+	if (boundary_min_lon == NULL_COORD_VALUE) {
+		boundary_min_lat = -90;
+		boundary_max_lat = 90;
+		boundary_min_lon = 0;
+		boundary_max_lon = 360;
+	}
 	
     are_vertex_values_set_in_default = true;
 
@@ -2059,7 +2063,6 @@ bool Remap_grid_class::check_vertex_fields_completeness(Remap_operator_basis *re
     int num_leaf_grids;
     Remap_grid_class *leaf_grids[256];    
     int i;
-    bool require_vertex_values;
 
 
     if (this->grid_vertex_fields.size() == 1)
@@ -2069,19 +2072,13 @@ bool Remap_grid_class::check_vertex_fields_completeness(Remap_operator_basis *re
     if (this->grid_vertex_fields.size() > 0)
         EXECUTION_REPORT(REPORT_ERROR, -1, this->grid_center_fields.size() == this->grid_vertex_fields.size(), 
                      "when vertex values of some coordinates are set in grid \"%s\", the vertex values of all coordinates whose center values are set must be given by users\n",
-                     this->grid_name, this->grid_vertex_fields[0]->grid_data_field->field_name_in_application);    
-
-    if (remap_operator == NULL)
-        return true;
+                     this->grid_name, this->grid_vertex_fields[0]->grid_data_field->field_name_in_application);
     
     this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     
-    require_vertex_values = remap_operator->does_require_grid_vertex_values() || remap_operator->does_require_grid_cell_neighborhood();
-
-    if (require_vertex_values)
-        for (i = 0; i < num_leaf_grids; i ++)
-            if (leaf_grids[i]->get_grid_vertex_field() == NULL)
-                return false;
+    for (i = 0; i < num_leaf_grids; i ++)
+         if (leaf_grids[i]->get_grid_vertex_field() == NULL)
+             return false;
 
     return true;
 }
@@ -2510,8 +2507,10 @@ void Remap_grid_class::check_center_vertex_values_consistency_2D()
     Remap_grid_data_class *center_field1, *center_field2, *vertex_field1, *vertex_field2;
     long i, j;
     double lat_rotated, lon_rotated;
-    double center_coord1_value, center_coord2_value, vertex_coord1_values[256], vertex_coord2_values[256];
+    double center_coord1_value, center_coord2_value, vertex_coord1_values[65536], vertex_coord2_values[65536];
 
+
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes <= 65536, "Software error in Remap_grid_class::check_center_vertex_values_consistency_2D: too big num_vertexes of the grid", num_vertexes);
 
     if (are_vertex_values_set_in_default || grid_center_fields.size() != 2 || grid_vertex_fields.size() == 0)
         return;
@@ -2615,24 +2614,9 @@ void Remap_grid_class::end_grid_definition_stage(Remap_operator_basis *remap_ope
         }
 
     for (int i = 0; i < remap_grid_manager->remap_grids.size(); i ++)
-        if (remap_grid_manager->remap_grids[i]->is_subset_of_grid(this) && 
-            !remap_grid_manager->remap_grids[i]->check_vertex_fields_completeness(remap_operator)) {
-            if (remap_grid_manager->remap_grids[i]->get_num_dimensions() == 1 && remap_grid_manager->remap_grids[i]->get_super_grid_of_setting_coord_values() == NULL)
-                EXECUTION_REPORT(REPORT_ERROR, -1, false, 
-                         "the center values corresponding to grid \"%s\" must be given by users when using remap operator \"%s\"\n",
-                         remap_grid_manager->remap_grids[i]->get_grid_name(), remap_operator->get_object_name());    
-            if (remap_grid_manager->remap_grids[i]->get_num_dimensions() == 1 && remap_grid_manager->remap_grids[i]->get_super_grid_of_setting_coord_values()->get_is_sphere_grid())
-                continue;
-            else if (!remap_grid_manager->remap_grids[i]->get_is_sphere_grid())
-                EXECUTION_REPORT(REPORT_ERROR, -1, false, 
-                         "the vertex values corresponding to grid \"%s\" must be given by users when using remap operator \"%s\"\n",
-                         remap_grid_manager->remap_grids[i]->get_grid_name(), remap_operator->get_object_name());    
-            else {
-                EXECUTION_REPORT(REPORT_WARNING, -1, false, 
-                         "the vertex values corresponding to sphere grid \"%s\" will be generated automatically", 
-                         remap_grid_manager->remap_grids[i]->get_grid_name());
+        if (remap_grid_manager->remap_grids[i]->is_subset_of_grid(this) && remap_grid_manager->remap_grids[i]->get_is_sphere_grid() &&  !remap_grid_manager->remap_grids[i]->check_vertex_fields_completeness(remap_operator)) {
+            EXECUTION_REPORT(REPORT_WARNING, -1, false, "the vertex values corresponding to sphere grid \"%s\" will be generated automatically", remap_grid_manager->remap_grids[i]->get_grid_name());
                 remap_grid_manager->remap_grids[i]->generate_voronoi_grid();
-            }
         }
 
     similar_grid = get_similar_grids_setting_coord_values();
@@ -2753,8 +2737,30 @@ void Remap_grid_class::detect_redundant_cells()
 
     delete radix_sort;
     delete [] cell_index;    
-    for (i = 0; i < num_dimensions; i ++)
-        delete full_center_fields[i];
+
+	if (get_is_sphere_grid()) {
+		int north_pole_cell_index = -1, south_pole_cell_index = -1;
+		for (i = 0; i < grid_size; i ++) {
+			if (((float)full_center_coord_values[1][i]) == (float)90.0)
+				if (north_pole_cell_index == -1)
+					north_pole_cell_index = i;
+				else redundant_cell_mark[i] = true;
+			if (((float)full_center_coord_values[1][i]) == (float)(-90.0))
+				if (south_pole_cell_index == -1)
+					south_pole_cell_index = i;
+				else redundant_cell_mark[i] = true;
+		}
+	}
+
+	for (i = 0; i < num_dimensions; i ++)
+		delete full_center_fields[i];
+
+	int sum = 0;
+	for (i = 0; i < grid_size; i ++)
+		if (redundant_cell_mark[i])
+			sum ++;
+
+	printf("the number of redundant cells in grid %s is %d\n", grid_name, sum);
 }
 
 
@@ -2897,7 +2903,7 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
     Remap_grid_class *leaf_grids[256];
     int tmp_num_vertex, current_num_vertex, num_leaf_grids;
     double *lon_vertex_values, *lat_vertex_values;
-    double current_lon_vertex_values[256], current_lat_vertex_values[256], value1, value2;
+    double current_lon_vertex_values[65536], current_lat_vertex_values[65536], value1, value2;
     long i, j, k;
     bool should_rotate;
 
@@ -2916,7 +2922,7 @@ void Remap_grid_class::calculate_area_of_sphere_grid()
     lat_vertex_values = (double*) lat_vertex_field->get_grid_data_field()->data_buf;
     
     tmp_num_vertex = lon_vertex_field->get_grid_data_field()->read_data_size / this->grid_size;
-    EXECUTION_REPORT(REPORT_ERROR, -1, tmp_num_vertex == lat_vertex_field->get_grid_data_field()->read_data_size / this->grid_size && tmp_num_vertex >= 2,
+    EXECUTION_REPORT(REPORT_ERROR, -1, tmp_num_vertex == lat_vertex_field->get_grid_data_field()->read_data_size / this->grid_size && tmp_num_vertex >= 2 && tmp_num_vertex <= 65536,
                  "remap_software error2 in calculate_area_of_sphere_grid\n");
 
     area_or_volumn = new double [this->grid_size];

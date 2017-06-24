@@ -67,7 +67,7 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
 {
     bool successful = false, dst_cell_mask;
     long src_cell_index;
-    double sum_wgt_values, src_cell_center_values[256], dst_cell_center_values[256], dst_cell_vertex_values[256];
+    double sum_wgt_values, src_cell_center_values[256], dst_cell_center_values[256], dst_cell_vertex_values[65536];
     int i, num_points_within_threshold_dist, num_vertexes_dst;
 	double current_dist;
 
@@ -77,6 +77,7 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
         return;
 
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in compute_dist_remap_weights_of_one_dst_cell: too big number of dst vertexes: %d", num_vertexes_dst);
 	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, dst_cell_vertex_values, true);
 	
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))

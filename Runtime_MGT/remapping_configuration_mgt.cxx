@@ -735,6 +735,20 @@ H2D_remapping_wgt_file_info *Remapping_setting::search_H2D_remapping_weight(Orig
 }
 
 
+long Remapping_setting::calculate_checksum()
+{
+	char *temp_array = NULL;
+	int buffer_max_size, buffer_content_size;
+
+
+	write_remapping_setting_into_array(&temp_array, buffer_max_size, buffer_content_size);
+	long checksum = calculate_checksum_of_array(temp_array, buffer_content_size, 1, NULL, NULL);
+	delete [] temp_array;
+
+	return checksum;
+}
+
+
 Remapping_configuration::Remapping_configuration()
 {
 	comp_id = -1;

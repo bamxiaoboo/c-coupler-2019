@@ -33,16 +33,17 @@ int Remap_operator_conserv_2D::check_parameter(const char *parameter_name, const
 
 void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_index_dst)
 {
-    double center_coord_values_dst[2], vertex_coord_values_dst[256*2];
+    double center_coord_values_dst[2], vertex_coord_values_dst[65536];
     int num_vertexes_dst, num_grid_dimensions_dst, i;
     long cell_index_src, *overlapping_src_cells_indexes;
-    double common_sub_cell_vertexes_lons[256], common_sub_cell_vertexes_lats[256];
-    double common_sub_cell_area[4096], weight_values[4096], sum_area;
+    double common_sub_cell_vertexes_lons[65536], common_sub_cell_vertexes_lats[65536];
+    double common_sub_cell_area[65536], weight_values[65536], sum_area;
     int num_overlapping_src_cells, num_common_sub_cell_vertexes, num_weights;
 
 
     get_cell_center_coord_values_of_dst_grid(cell_index_dst, center_coord_values_dst);
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, false);    
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell: too big num_vertexes_dst: %d", num_vertexes_dst);
     num_grid_dimensions_dst = current_runtime_remap_operator_grid_src->get_num_grid_dimensions();
 
     for (i = 0; i < num_vertexes_dst; i ++) {
@@ -64,6 +65,7 @@ void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_
     for (i = 0, sum_area = 0, num_weights = 0; i < num_overlapping_src_cells; i ++) {
         compute_common_sub_cell_of_src_cell_and_dst_cell_2D(overlapping_src_cells_indexes[i], cell_index_dst, num_common_sub_cell_vertexes, 
                                                             common_sub_cell_vertexes_lons, common_sub_cell_vertexes_lats);
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_common_sub_cell_vertexes <= 65536/2, "Software error in Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell: too big num_common_sub_cell_vertexes: %d", num_common_sub_cell_vertexes);
         if (num_common_sub_cell_vertexes > 0) {
             common_sub_cell_area[num_weights] = compute_area_of_sphere_cell(num_common_sub_cell_vertexes, common_sub_cell_vertexes_lons, common_sub_cell_vertexes_lats);
             overlapping_src_cells_indexes[num_weights] = overlapping_src_cells_indexes[i];

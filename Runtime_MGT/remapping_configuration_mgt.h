@@ -147,6 +147,7 @@ class Remapping_setting
 		bool is_the_same_as_another(Remapping_setting*);
 		void append_H2D_remapping_weights(Remapping_setting *);
 		H2D_remapping_wgt_file_info *search_H2D_remapping_weight(Original_grid_info *, Original_grid_info*);
+		long calculate_checksum();
 };
 
 

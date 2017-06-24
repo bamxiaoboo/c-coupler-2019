@@ -24,7 +24,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	Remap_operator_basis *remap_operators[3];
 	Remap_grid_class *remap_grids[2];
 	Remapping_setting *cloned_remapping_setting = remapping_setting->clone();
-	char parameter_name[NAME_STR_SIZE], parameter_value[NAME_STR_SIZE];
+	char parameter_name[NAME_STR_SIZE], parameter_value[NAME_STR_SIZE], remap_weight_name[NAME_STR_SIZE];
 	int num_remap_operators = 0;
 	H2D_remapping_wgt_file_info *H2D_remapping_weight_file = NULL;
 
@@ -101,11 +101,12 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
 	remapping_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "before generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
+	sprintf(remap_weight_name, "runtime_remapping_weights_%lx", remapping_setting->calculate_checksum());
 	if (H2D_remapping_weight_file != NULL) {
 		H2D_remapping_weight_file->read_remapping_weights();
-		sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name());
+		sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name());
 	}	
-	else sequential_remapping_weights = new Remap_weight_of_strategy_class("runtime_remapping_weights", remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), NULL);
+	else sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), NULL);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "after generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
 	execution_phase_number = 2;
 
