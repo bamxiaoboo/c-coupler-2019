@@ -162,7 +162,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 	for (int i = 0; i < IO_fields.size(); i ++)
 		fields_id[i] = IO_fields[i]->get_field_instance_id();
 
-	export_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_output", 1, IO_fields.size(), fields_id, IO_fields.size(), field_timer_id, inst_or_aver, "register default IO field to output for a component", INTERFACE_TYPE_IO_OUTPUT));
+	export_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_output", 1, IO_fields.size(), fields_id, IO_fields.size(), field_timer_id, inst_or_aver, "", "register default IO field to output for a component", INTERFACE_TYPE_IO_OUTPUT));
 
 	if (synchronized_IO) {
 		for (int i = 0; i < IO_fields.size(); i ++) {
@@ -175,7 +175,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 			fields_id[i] = mirror_field_instance->get_field_instance_id();
 			data_write_field_insts.push_back(mirror_field_instance);
 		}
-		import_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_write", 0, IO_fields.size(), fields_id, IO_fields.size(), field_timer_id, inst_or_aver, "register default IO field to write for a component", INTERFACE_TYPE_IO_WRITE));
+		import_interface = inout_interface_mgr->get_interface(inout_interface_mgr->register_inout_interface("Default_IO_write", 0, IO_fields.size(), fields_id, IO_fields.size(), field_timer_id, inst_or_aver, "", "register default IO field to write for a component", INTERFACE_TYPE_IO_WRITE));
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "asynchronized IO is not supported yet");

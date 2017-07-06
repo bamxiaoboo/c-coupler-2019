@@ -94,7 +94,7 @@ class Coupling_connection
 		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, int, int, Coupling_timer **, int &, int &);
 		void exchange_connection_fields_info();
 		void exchange_bottom_fields_info();
-		void generate_interpolation();
+		void generate_interpolation(bool);
 		bool exchange_grid(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *, const char *);
 		void exchange_remapping_setting(int, Remapping_setting &);
 		void add_bottom_field_coupling_info(int, Runtime_remapping_weights*, Remapping_setting *);
@@ -102,7 +102,7 @@ class Coupling_connection
 
 	public:
 		Coupling_connection(int);
-		void generate_a_coupling_procedure();
+		void generate_a_coupling_procedure(bool);
         void create_union_comm();
 		void generate_data_transfer();
 		Field_mem_info *get_bottom_field(bool, int);
@@ -179,7 +179,12 @@ class Coupling_generator
 		void generate_coupling_procedures();
         void generate_IO_procedures();
 		int apply_connection_id() {  return (++latest_connection_id); }
-		void synchronize_latest_connection_id();
+		int get_latest_connection_id() { return latest_connection_id; }
+		void set_latest_connection_id(int connection_id) { latest_connection_id = connection_id; }
+		void synchronize_latest_connection_id(MPI_Comm);
+		void build_coupling_connections_for_unconnected_fixed_interfaces(std::vector<Inout_interface*> &, std::vector<Inout_interface*> &, std::vector<Coupling_connection*> &, bool);
+		void connect_fixed_interfaces_between_two_components(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node*, const char*);		
+		void transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &, Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *);
 };
 
 

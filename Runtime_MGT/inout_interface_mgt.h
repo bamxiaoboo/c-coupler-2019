@@ -86,6 +86,8 @@ class Connection_coupling_procedure
 		void execute(bool);
 		void send_fields(bool);
 		Field_mem_info *get_data_transfer_field_instance(int); 
+		int get_num_runtime_remap_algorithms() { return runtime_remap_algorithms.size(); }
+		Runtime_remap_algorithm *get_runtime_remap_algorithm(int i) { return runtime_remap_algorithms[i]; }
 		bool get_finish_status() { return finish_status; }
 };
 
@@ -94,6 +96,7 @@ class Inout_interface
 {
 	private:
 		char interface_name[NAME_STR_SIZE];
+		char comp_full_name[NAME_STR_SIZE];
 		int interface_id;
 		int interface_type;
 		int comp_id;
@@ -107,15 +110,18 @@ class Inout_interface
 		std::vector<Inout_interface *> children_interfaces;           // only for remap interface 
 		int execution_checking_status;
 		long last_execution_time;
+		char fixed_remote_comp_full_name[NAME_STR_SIZE];
+		char fixed_remote_interface_name[NAME_STR_SIZE];
 
 	public:
 		Inout_interface(const char*, int&);
-		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char *);
-		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, int, int);
+		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char*, const char *);
+		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, const char*, int, int);
 		~Inout_interface() {}
 		void initialize_data(const char *, int, int, int, int, int *, int, const char *);	
 		void common_checking_for_interface_registration(int, int *, int, int, int, int, const char *, int, int, const char *, const char *);
 		const char *get_interface_name() { return interface_name; }
+		const char *get_comp_full_name() { return comp_full_name; }
 		int get_comp_id() { return comp_id; }
 		int get_interface_id() { return interface_id; }
 		int get_interface_type() { return interface_type; }
@@ -131,6 +137,12 @@ class Inout_interface
 		int get_inst_or_aver() { return inst_or_aver; } 
 		void execute(bool, const char*);
 		Inout_interface *get_child_interface(int i);
+		const char *get_fixed_remote_comp_full_name() { return fixed_remote_comp_full_name; }
+		const char *get_fixed_remote_interface_name() { return fixed_remote_interface_name; }
+		int get_num_coupling_procedures() { return coupling_procedures.size(); }
+		void add_remappling_fraction_processing(void *, void *, int, int, const char *, const char *, const char *);		
+		void preprocessing_for_frac_based_remapping();
+		void postprocessing_for_frac_based_remapping();
 };
 
 
@@ -147,15 +159,18 @@ class Inout_interface_mgt
 		Inout_interface_mgt(const char*, int);
 		Inout_interface_mgt();
 		~Inout_interface_mgt();
-		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, int);
-		int register_normal_remap_interface(const char *, int, int *, int *, int, int, int, int, const char *);
+		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, const char*, int);
+		void generate_remapping_interface_connection(Inout_interface *, int, int *, bool);
+		int register_normal_remap_interface(const char *, int, int *, int *, int, int, int, int, const char *, const char *);
+		int register_frac_based_remap_interface(const char *, int, int *, int *, int, int, int, int, void *, void *, int, int, const char *, const char *, const char *);
 		int get_next_interface_id();
 		bool is_interface_id_legal(int);
 		Inout_interface *get_interface(int);
 		Inout_interface *get_interface(const char*, const char*);
 		Inout_interface *get_interface(int, const char*);
-		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, int);
-		void merge_inout_interface_fields_info(int);
+		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, int);	
+		void get_all_unconnected_fixed_interfaces(std::vector<Inout_interface*> &, int, int, const char*);
+		void merge_unconnected_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
 		const char *get_temp_array_buffer() { return temp_array_buffer; } 
 		int get_buffer_content_size()  { return buffer_content_size; }

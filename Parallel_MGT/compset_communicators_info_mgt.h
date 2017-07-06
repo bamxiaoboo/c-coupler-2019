@@ -29,6 +29,18 @@
 #define NULL_COMM                  ((int)-1)
 
 
+class Coupling_interface_tag
+{
+	public:
+		char interface_tag[NAME_STR_SIZE];
+		char comp_full_name[NAME_STR_SIZE];
+		char interface_name[NAME_STR_SIZE];
+
+		Coupling_interface_tag(TiXmlElement *, int, const char *);
+		~Coupling_interface_tag() {}
+};
+
+
 class Comp_comm_group_mgt_node
 {
 	private:
@@ -40,6 +52,7 @@ class Comp_comm_group_mgt_node
 		char annotation_start[NAME_STR_SIZE];
 		char annotation_end[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
+		std::vector<Coupling_interface_tag*> coupling_interface_tags;
 		std::vector<Comp_comm_group_mgt_node*> children;
 		MPI_Comm comm_group;
 		std::vector<int> local_processes_global_ids;
@@ -56,6 +69,7 @@ class Comp_comm_group_mgt_node
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
 		Comp_comm_group_mgt_node(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*, int &);
+		Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *, const char *, const char *);
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
 		int get_comp_id() const { return comp_id; }
@@ -90,6 +104,9 @@ class Comp_comm_group_mgt_node
 		int get_local_proc_global_id(int);
 		void confirm_coupling_configuration_active(int, const char*);
 		const char *get_full_name() { return full_name; }
+		Comp_comm_group_mgt_node *load_comp_info_from_XML(const char *);
+		void load_coupling_interface_tags();
+		bool search_coupling_interface_tag(const char*, char*, char*);
 };
 
 
@@ -104,6 +121,7 @@ class Comp_comm_group_mgt_mgr
 		char executable_name[NAME_STR_SIZE];
 		char root_working_dir[NAME_STR_SIZE];
 		char internal_H2D_grids_dir[NAME_STR_SIZE];
+		char components_processes_dir[NAME_STR_SIZE];
 		char comps_ending_config_status_dir[NAME_STR_SIZE];
 		char runtime_config_root_dir[NAME_STR_SIZE];
 		char coupling_flow_config_dir[NAME_STR_SIZE];
@@ -136,6 +154,7 @@ class Comp_comm_group_mgt_mgr
 		int get_num_total_global_procs() { return num_total_global_procs; }
 		const char *get_root_working_dir() { return root_working_dir; }
 		const char *get_internal_H2D_grids_dir() { return internal_H2D_grids_dir; }
+		const char *get_components_processes_dir() { return components_processes_dir; }
 		const char *get_comps_ending_config_status_dir() { return comps_ending_config_status_dir; }
 		const char *get_config_root_dir() { return runtime_config_root_dir; }
 		const char *get_config_root_comp_dir() { return global_node_array[1]->get_config_comp_dir(); }
@@ -146,6 +165,9 @@ class Comp_comm_group_mgt_mgr
 		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }
 		bool has_comp_ended_configuration(const char*);
+		bool search_coupling_interface_tag(int, const char*, char*, char*);
+		void push_comp_node(Comp_comm_group_mgt_node *);
+		Comp_comm_group_mgt_node *pop_comp_node();
 };
 
 

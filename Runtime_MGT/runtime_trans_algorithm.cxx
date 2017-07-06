@@ -89,7 +89,6 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
     num_remote_procs = remote_comp_node->get_num_procs();
-	printf("henqiguai0 %s vs %d %lx %lx\n", remote_comp_node->get_full_name(), num_remote_procs, time_mgr, comp_id);
 	num_local_procs = local_comp_node->get_num_procs();
     remote_proc_ranks_in_union_comm = new int [num_remote_procs];
     memcpy(remote_proc_ranks_in_union_comm, ranks, num_remote_procs*sizeof(int));
@@ -119,7 +118,6 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 	        else {
 				field_grids_num_lev[i] = original_grid_mgr->get_num_grid_levels(fields_mem[i]->get_grid_id());
 				only_have_no_decomp_data = false;
-				printf("henqiguai1 %d vs %d\n", j, num_remote_procs);
 				transfer_size_with_remote_procs[j] += fields_routers[i]->get_num_elements_transferred_with_remote_proc(send_or_receive, j) * fields_data_type_sizes[i] * field_grids_num_lev[i];
 				is_V1D_sub_grid_after_H2D_sub_grid[i] = original_grid_mgr->is_V1D_sub_grid_after_H2D_sub_grid(fields_mem[i]->get_grid_id());
 	        }	

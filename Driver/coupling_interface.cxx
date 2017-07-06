@@ -29,7 +29,7 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 	get_API_hint(-1, API_ID, API_label);
 	check_for_ccpl_managers_allocated(API_ID, annotation);
 	if (comp_id != -1)
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) && comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in check_for_component_registered") >= 0, "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
 }
 
 
@@ -327,7 +327,7 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_comp_with_comp_name(comp_name);
 
 	if (node == NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling API \"CCPL_get_component_id\" to get the ID of component \"%s\": no component with the name of \"%s\" has been registerred. Please check the model code related to the annotation \"%s\"", comp_name, comp_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling API \"CCPL_get_component_id\" to get the ID of component \"%s\": no component with the name of \"%s\" has been registerred. Please check the model code at the annotation \"%s\"", comp_name, comp_name, annotation);
 		*comp_id = -1;
 	}
 	else *comp_id = node->get_local_node_id();
@@ -353,9 +353,9 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
-	
+
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
-	inout_interface_mgr->merge_inout_interface_fields_info(*comp_id);
+	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
 		coupling_generator->generate_coupling_procedures();
 		coupling_generator->generate_IO_procedures();
@@ -659,22 +659,37 @@ extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, cons
 }
 
 
-extern "C" void register_normal_remap_interface_(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1, int *array_size2)
+extern "C" void register_normal_remap_interface_(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, int *array_size1, int *array_size2, const char *annotation)
 {
+	char API_label[NAME_STR_SIZE];
+
+	
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_NORMAL_REMAP, annotation);	
-	*interface_id = inout_interface_mgr->register_normal_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, annotation);
+	get_API_hint(-1, API_ID_INTERFACE_REG_NORMAL_REMAP, API_label);
+	*interface_id = inout_interface_mgr->register_normal_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, API_label, annotation);
 }
 
 
-extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1)
+extern "C" void register_frac_based_remap_interface_(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, int *array_size1, int *array_size2, void *frac_src, void *frac_dst, int *size_frac_src, int *size_frac_dst, const char *frac_data_type, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+	
+
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_FRAC_REMAP, annotation);	
+	get_API_hint(-1, API_ID_INTERFACE_REG_FRAC_REMAP, API_label);
+	*interface_id = inout_interface_mgr->register_frac_based_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, frac_src, frac_dst, *size_frac_src, *size_frac_dst, frac_data_type, API_label, annotation);
+}
+
+
+extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *interface_tag, const char *annotation, int *array_size1)
 {
 	if (*import_or_export == 0) {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, annotation, INTERFACE_TYPE_REGISTER);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, interface_tag, annotation, INTERFACE_TYPE_REGISTER);
 	}
 	else {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_EXPORT, annotation);
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, annotation, INTERFACE_TYPE_REGISTER);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, interface_tag, annotation, INTERFACE_TYPE_REGISTER);
 	}	
 }
 
@@ -690,5 +705,98 @@ extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *int
 {
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
 	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, annotation);
+	printf("finsh executing interface %s\n", interface_name);
+	fflush(NULL);
+}
+
+
+extern "C" void connect_fixed_interfaces_between_two_components_(const char *comp_full_name1, const char *comp_full_name2, const char *annotation)
+{
+	const char *comp_full_name_low, *comp_full_name_high;
+	Comp_comm_group_mgt_node *comp_node_low, *comp_node_high, *comp_node_low_pesudo = NULL, *comp_node_high_pesudo = NULL;
+
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_CONNECT_INTERFACES, annotation);
+	
+	if (strcmp(comp_full_name1, comp_full_name2) < 0) {
+		comp_full_name_low = comp_full_name1;
+		comp_full_name_high = comp_full_name2;
+	}
+	else {
+		comp_full_name_low = comp_full_name2;
+		comp_full_name_high = comp_full_name1;
+	}
+		
+	comp_node_low = comp_comm_group_mgt_mgr->search_global_node(comp_full_name_low);
+	comp_node_high = comp_comm_group_mgt_mgr->search_global_node(comp_full_name_high);
+	EXECUTION_REPORT(REPORT_ERROR, -1, (comp_node_low != NULL && comp_node_low->get_current_proc_local_id() >= 0) || (comp_node_high != NULL && comp_node_high->get_current_proc_local_id() >= 0),  "Error happens when calling API \"CCPL_connect_fixed_interfaces\" to connect the fixed interfaces between two component models \"%s\" and \"%s\": the full name of these two component models are wrong or the current process is not in both of these two component models. Please verify.", comp_full_name1, comp_full_name2);
+	if (comp_node_low != NULL && comp_node_low->get_current_proc_local_id() >= 0)
+		EXECUTION_REPORT(REPORT_ERROR, comp_node_low->get_comp_id(), !comp_node_low->is_definition_finalized(), "Error happens when calling API \"CCPL_connect_fixed_interfaces\" to connect the fixed interfaces between two component models \"%s\" and \"%s\": the coupling definition stage of \"%s\" has been finalized. Please check the model code at the annotation \"%s\".", comp_full_name1, comp_full_name2, comp_full_name_low, annotation);
+	if (comp_node_high != NULL && comp_node_high->get_current_proc_local_id() >= 0)
+		EXECUTION_REPORT(REPORT_ERROR, comp_node_high->get_comp_id(), !comp_node_high->is_definition_finalized(), "Error happens when calling API \"CCPL_connect_fixed_interfaces\" to connect the fixed interfaces between two component models \"%s\" and \"%s\": the coupling definition stage of \"%s\" has been finalized. Please check the model code at the annotation \"%s\".", comp_full_name1, comp_full_name2, comp_full_name_high, annotation);
+	
+	if (comp_node_low != NULL && comp_node_low->get_current_proc_local_id() >= 0) {
+		if (comp_node_low->get_current_proc_local_id() == 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_low->get_comp_id(), true, "The whole component model \"%s\" is waiting to load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_low, comp_full_name_high, annotation);
+		comp_node_high_pesudo = comp_node_low->load_comp_info_from_XML(comp_full_name_high);
+		if (comp_node_low->get_current_proc_local_id() == 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_low->get_comp_id(), true, "The whole component model \"%s\" successfully load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_low, comp_full_name_high, annotation);
+	}
+	if (comp_node_high != NULL && comp_node_high->get_current_proc_local_id() >= 0) {
+		if (comp_node_high->get_current_proc_local_id() == 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_high->get_comp_id(), true, "The whole component model \"%s\" is waiting to load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_high, comp_full_name_low, annotation);
+		comp_node_low_pesudo = comp_node_high->load_comp_info_from_XML(comp_full_name_low);
+		if (comp_node_high->get_current_proc_local_id() == 0)
+			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_high->get_comp_id(), true, "The whole component model \"%s\" successfully load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_high, comp_full_name_low, annotation);
+	}
+	if (comp_node_high == NULL) {
+		comp_node_high = comp_node_high_pesudo;
+		comp_comm_group_mgt_mgr->push_comp_node(comp_node_high_pesudo);
+	}
+	if (comp_node_low == NULL) {
+		comp_node_low = comp_node_low_pesudo;
+		comp_comm_group_mgt_mgr->push_comp_node(comp_node_low_pesudo);
+	}
+
+	coupling_generator->connect_fixed_interfaces_between_two_components(comp_node_high, comp_node_low, annotation);
+
+	if (comp_node_high == comp_node_high_pesudo) {
+		bool check = comp_node_high_pesudo == comp_comm_group_mgt_mgr->pop_comp_node();
+		EXECUTION_REPORT(REPORT_ERROR, -1, check, "Software error in connect_fixed_interfaces_between_two_components_");
+	}
+
+	if (comp_node_low == comp_node_low_pesudo) {
+		bool check = comp_node_low_pesudo == comp_comm_group_mgt_mgr->pop_comp_node();
+		EXECUTION_REPORT(REPORT_ERROR, -1, check, "Software error in connect_fixed_interfaces_between_two_components_");
+	}
+
+	if (comp_node_high_pesudo != NULL)
+		delete comp_node_high_pesudo;
+	if (comp_node_low_pesudo != NULL)
+		delete comp_node_low_pesudo;
+}
+
+
+extern "C" void get_comp_name_via_interface_tag_(int *comp_id, const char *interface_tag, char *comp_full_name, int *result, int *comp_full_name_size, const char *annotation)
+{
+	char local_comp_full_name[NAME_STR_SIZE], local_interface_name[NAME_STR_SIZE];
+
+	
+	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG, annotation); // cannot test the case of -1 comp_id
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_comp_name_via_interface_tag_")->search_coupling_interface_tag(interface_tag, local_comp_full_name, local_interface_name))
+		*result = 1;
+	else *result = 0;
+	if (*result == 1) {
+		EXECUTION_REPORT(REPORT_ERROR, *comp_id, *comp_full_name_size >= strlen(local_comp_full_name), "Error happens when calling the API \"CCPL_get_comp_name_via_interface_tag\": the parameter string \"comp_full_name\" is too short: only %d while the size of the component model full name is %d", *comp_full_name_size, strlen(local_comp_full_name));
+		strncpy(comp_full_name, local_comp_full_name, strlen(local_comp_full_name));
+	}	
+}
+
+
+extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, int *comp_full_name_size, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, annotation);
+	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_local_comp_full_name_")->get_full_name();
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *comp_full_name_size >= strlen(full_name), "Error happens when calling the API \"CCPL_get_local_comp_full_name\": the parameter string \"comp_full_name\" is too short: only %d while the size of the component model full name is %d", *comp_full_name_size, strlen(full_name));
+	strncpy(comp_full_name, full_name, strlen(full_name));
 }
 

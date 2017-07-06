@@ -146,6 +146,9 @@ void Original_grid_info::write_grid_into_array(char **temp_array_buffer, int &bu
 {
 	get_original_CoR_grid()->write_grid_into_array(temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&checksum_center_lon, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&checksum_center_lat, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&checksum_H2D_mask, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
 }
 
 
@@ -199,6 +202,23 @@ void Original_grid_info::set_mid_point_grid(Original_grid_info *new_grid)
 	new_grid->interface_level_grid = this;
 	if (this->bottom_field_variation_type != BOTTOM_FIELD_VARIATION_UNSET)
 		new_grid->set_unique_bottom_field(this->bottom_field_id, this->bottom_field_variation_type, annotation_mgr->get_annotation(this->grid_id,"set surface field"));
+}
+
+
+void Original_grid_info::set_grid_checksum(long checksum_lon, long checksum_lat, long checksum_mask)
+{
+	this->checksum_center_lon = checksum_lon;
+	this->checksum_center_lat = checksum_lat;
+	this->checksum_H2D_mask = checksum_mask;
+}
+
+
+bool Original_grid_info::is_H2D_grid_and_the_same_as_another_grid(Original_grid_info *another_grid)
+{
+	if (!this->is_H2D_grid() || !another_grid->is_H2D_grid())
+		return false;
+
+	return this->checksum_H2D_mask == another_grid->checksum_H2D_mask && this->checksum_center_lon == another_grid->checksum_center_lon && this->checksum_center_lat == another_grid->checksum_center_lat;
 }
 
 
@@ -257,18 +277,14 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 {
 	char XML_file_name[NAME_STR_SIZE], nc_file_name[NAME_STR_SIZE];
 	const char *another_comp_full_name = NULL, *another_comp_grid_name = NULL;
-	FILE *tmp_file;
 	int line_number;
 
 
 	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
-	tmp_file = fopen(XML_file_name, "r");
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, tmp_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
-	fclose(tmp_file);
+	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp"), false);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 
-	TiXmlDocument XML_file(XML_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file.LoadFile(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp")), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
-	TiXmlElement *root_XML_element = XML_file.FirstChildElement();
+	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
 	TiXmlNode *root_XML_element_node = (TiXmlNode*) root_XML_element;
 	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
 		root_XML_element = root_XML_element_node->ToElement();
@@ -286,6 +302,7 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 			}
 		}	
 	}
+	delete XML_file;
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 
@@ -381,7 +398,7 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 	char *global_vertex_lat = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_vertex_lat, data_type_size, (char*) vertex_lat, "vertex_lat", num_local_cells, local_cells_global_index, global_vertex_lat_size, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, global_vertex_lon_size == global_vertex_lat_size, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": \"vertex_lon\" or \"vertex_lat\" are not consistent with each other (not specified/unspecified at the same time or have different array sizes). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
 
-	int *global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_mask, data_type_size, (char*) mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
+	int *global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_mask, sizeof(int), (char*) mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
 	if (global_mask == NULL) {
 		int *active_mask = NULL;
 		if (num_local_cells > 0) {
@@ -389,12 +406,10 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 			for (int i = 0; i < num_local_cells; i ++)
 				active_mask[i] = 1;
 		}
-		global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, num_local_cells, data_type_size, (char*) active_mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
+		global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, num_local_cells, sizeof(int), (char*) active_mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
 		if (active_mask != NULL)
 			delete [] active_mask;
 	}
-
-	printf("check in register_H2D_grid_via_local_data %lx %lx %lx %lx %lx %lx\n", global_center_lon, global_center_lat, global_area, global_vertex_lon, global_vertex_lat, global_mask);
 	
 	int grid_id = create_H2D_grid_from_global_data(comp_id, grid_name, coord_unit, cyclic_or_acyclic, data_type, grid_size, 0, global_vertex_lon_size/grid_size, global_center_lon_size, global_center_lat_size, 
 	                                               global_mask_size, global_area_size, global_vertex_lon_size, global_vertex_lat_size, global_center_lon, global_center_lat, global_mask, global_area, global_vertex_lon, global_vertex_lat, annotation);
@@ -795,7 +810,9 @@ Remap_grid_class *Original_grid_mgt::get_original_CoR_grid(int grid_id) const
 
 Original_grid_info *Original_grid_mgt::get_original_grid(int grid_id) const
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_original_CoR_grid");
+	if (!is_grid_id_legal(grid_id))
+		return NULL;
+	
 	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK];
 }
 

@@ -38,10 +38,26 @@ void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool n
 }
 
 
+Coupling_interface_tag::Coupling_interface_tag(TiXmlElement *XML_element, int comp_id, const char *XML_file_name)
+{
+	int line_number; 
+
+
+	const char *XML_interface_tag = get_XML_attribute(comp_id, XML_element, "interface_tag", XML_file_name, line_number, "the \"interface_tag\" used to register an export/import interface", "interface configuration file");
+	const char *XML_comp_full_name = get_XML_attribute(comp_id, XML_element, "comp_full_name", XML_file_name, line_number, "the full name of the component model corresponding to the \"interface_tag\"", "interface configuration file");
+	const char *XML_interface_name = get_XML_attribute(comp_id, XML_element, "interface_name", XML_file_name, line_number, "the interface name corresponding to the \"interface_tag\"", "interface configuration file");
+	strcpy(interface_tag, XML_interface_tag);
+	strcpy(comp_full_name, XML_comp_full_name);
+	strcpy(interface_name, XML_interface_name);
+}
+
+
 Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 {
 	if (temp_array_buffer != NULL)
 		delete [] temp_array_buffer;
+	for (int i = 0; i < coupling_interface_tags.size(); i ++)
+		delete coupling_interface_tags[i];
 }
 
 
@@ -215,6 +231,71 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	if (parent != NULL)
 		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm_group, "registering a component model", comp_type, "\"comp_type\"", annotation);
 	else check_API_parameter_string(-1, API_ID_COMP_MGT_REG_COMP, comm_group, "registering a component model", comp_type, "\"comp_type\"", annotation);
+
+	if (current_proc_local_id == 0) {
+		char XML_file_name[NAME_STR_SIZE];
+		TiXmlDocument *XML_file = new TiXmlDocument;
+		TiXmlDeclaration *XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
+		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file != NULL, "Software error: cannot create an xml file");
+		XML_file->LinkEndChild(XML_declaration);
+		TiXmlElement *root_element = new TiXmlElement("Component");
+		XML_file->LinkEndChild(root_element);
+		write_node_into_XML(root_element);
+		sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), full_name);
+		XML_file->SaveFile(XML_file_name);
+		delete XML_file;
+	}
+}
+
+
+Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, const char *specified_full_name, const char *XML_file_name)
+{
+	int line_number, current_proc_global_id;
+
+
+	comp_id = -1;
+	temp_array_buffer = NULL;
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
+	const char *XML_comp_name = get_XML_attribute(comp_id, XML_element, "name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
+	const char *XML_full_name = get_XML_attribute(comp_id, XML_element, "full_name", XML_file_name, line_number, "the full_name of the component model", "internal configuration file of component information");
+	const char *XML_processes = get_XML_attribute(comp_id, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information");
+	strcpy(this->comp_name, XML_comp_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(specified_full_name, XML_full_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: the full name specified is different from the full name in XML file");
+	strcpy(this->full_name, XML_full_name);
+	int segment_start, segment_end;
+	for (int i = 1; i < strlen(XML_processes)+1; i ++) {
+		if (XML_processes[i-1] == ' ') {
+			segment_start = XML_processes[i]-'0';
+			segment_end = -1;
+			EXECUTION_REPORT(REPORT_ERROR, -1, segment_start >= 0 && segment_start <= 9, "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong format");
+		}
+		else if (XML_processes[i-1] == '~') {
+			segment_end = XML_processes[i]-'0';
+			EXECUTION_REPORT(REPORT_ERROR, -1, segment_end >= 0 && segment_end <= 9, "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong format");
+		}
+		else if (XML_processes[i] == ' ' || XML_processes[i] == '\0') {
+			if (segment_end == -1)
+				local_processes_global_ids.push_back(segment_start);
+			else {
+				for (int j = segment_start; j <= segment_end; j ++)
+					local_processes_global_ids.push_back(j);
+			}
+		}
+		else if (XML_processes[i] != '~') {
+			int digit = XML_processes[i] - '0';			
+			EXECUTION_REPORT(REPORT_ERROR, -1, digit >= 0 && digit <= 9, "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong format");
+			if (segment_end == -1)
+				segment_start = segment_start * 10 + digit;
+			else segment_end = segment_end * 10 + digit;
+		}
+	}
+	
+	printf("The processes of component model \"%s\" include: ", full_name);
+	for (int i = 0; i < local_processes_global_ids.size(); i ++)
+		printf(" %d", local_processes_global_ids[i]);
+	printf("\n");
+
+	current_proc_local_id = -1;
 }
 
 
@@ -412,6 +493,84 @@ int Comp_comm_group_mgt_node::get_local_proc_global_id(int local_indx)
 }
 
 
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_node::load_comp_info_from_XML(const char *comp_full_name)
+{
+	char XML_file_name[NAME_STR_SIZE];
+	TiXmlDocument *XML_file;
+	int i;
+
+
+	sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), comp_full_name);
+	XML_file = open_XML_file_to_read(comp_id, XML_file_name, comm_group, true);
+	TiXmlElement *XML_element = XML_file->FirstChildElement();
+	TiXmlElement *Online_Model = XML_element->FirstChildElement();
+	Comp_comm_group_mgt_node *pesudo_comp_node = new Comp_comm_group_mgt_node(Online_Model, comp_full_name, XML_file_name);
+	delete XML_file;
+		
+	return pesudo_comp_node;
+}
+
+
+void Comp_comm_group_mgt_node::load_coupling_interface_tags()
+{
+	char XML_file_name[NAME_STR_SIZE];
+
+	
+	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), full_name);
+	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comm_group, false);
+	if (XML_file == NULL)
+		return;
+	
+	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
+	TiXmlNode *root_XML_element_node = (TiXmlNode*) root_XML_element;
+	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+		root_XML_element = root_XML_element_node->ToElement();
+		if (words_are_the_same(root_XML_element->Value(),"component_interface_tags"))
+			break;
+	}
+
+	if (root_XML_element_node != NULL) {
+		for (TiXmlNode *XML_element_node = root_XML_element->FirstChild(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
+			TiXmlElement *XML_element = XML_element_node->ToElement();
+			if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status for setting an interface tag", "the redirection configuration file"))
+				continue;
+			coupling_interface_tags.push_back(new Coupling_interface_tag(XML_element, comp_id, XML_file_name));
+		}	
+	}
+	delete XML_file;
+}
+
+
+bool Comp_comm_group_mgt_node::search_coupling_interface_tag(const char *interface_tag, char *fixed_remote_comp_full_name, char *fixed_remote_interface_name)
+{
+	int i;
+
+
+	fixed_remote_comp_full_name[0] = '\0';
+	fixed_remote_interface_name[0] = '\0';
+	for (i = 0; i < strlen(interface_tag); i ++)
+		if (interface_tag[i] == '$')
+			break;
+	if (i < strlen(interface_tag)) {
+		strncpy(fixed_remote_comp_full_name, interface_tag, i);
+		fixed_remote_comp_full_name[i] = '\0';
+		strcpy(fixed_remote_interface_name, interface_tag+i+1);
+		return true;
+	}
+	
+	for (int i = 0; i < coupling_interface_tags.size(); i ++) {
+		printf("search_coupling_interface_tag: %s vs %s : %s vs %s\n", interface_tag, coupling_interface_tags[i]->interface_tag, coupling_interface_tags[i]->comp_full_name, coupling_interface_tags[i]->interface_name);
+		if (words_are_the_same(coupling_interface_tags[i]->interface_tag, interface_tag)) {
+			strcpy(fixed_remote_comp_full_name, coupling_interface_tags[i]->comp_full_name);
+			strcpy(fixed_remote_interface_name, coupling_interface_tags[i]->interface_name);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 {
 	int i, j;
@@ -439,6 +598,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
 	sprintf(internal_H2D_grids_dir, "%s/CCPL_dir/run/all/internal_H2D_grids", root_working_dir);
 	create_directory(internal_H2D_grids_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	sprintf(components_processes_dir, "%s/CCPL_dir/run/all/components_processes", root_working_dir);
+	create_directory(components_processes_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/all/comps_ending_config_status", root_working_dir);
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);
@@ -545,6 +706,11 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, global_node_array[true_parent_id], comm, annotation);
 		global_node_array.push_back(new_comp);
 	}
+
+	Comp_comm_group_mgt_node *temp_comp_node = new_comp->load_comp_info_from_XML(new_comp->get_full_name());
+	delete temp_comp_node;
+
+	new_comp->load_coupling_interface_tags();
 
 	return new_comp->get_local_node_id();
 }
@@ -678,6 +844,7 @@ void Comp_comm_group_mgt_mgr::write_comp_comm_info_into_XML()
 	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
 	
 	XML_file->SaveFile(XML_file_name);
+	delete XML_file;
 }
 
 
@@ -705,12 +872,12 @@ void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
 		return;
 
 	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
-	TiXmlDocument XML_file(XML_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(), "cannot open the components xml file: %s", XML_file_name);
+	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, false);
 	
-	TiXmlElement *XML_element = XML_file.FirstChildElement();
+	TiXmlElement *XML_element = XML_file->FirstChildElement();
 	TiXmlElement *Online_Model = XML_element->FirstChildElement();
 	read_global_node_from_XML(Online_Model);
+	delete XML_file;
 }
 
 
@@ -792,5 +959,26 @@ bool Comp_comm_group_mgt_mgr::has_comp_ended_configuration(const char *comp_full
 
 	fclose(status_file);
 	return true;
+}
+
+
+bool Comp_comm_group_mgt_mgr::search_coupling_interface_tag(int comp_id, const char *interface_tag, char *comp_full_name, char *interface_name)
+{
+	return comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Comp_comm_group_mgt_mgr::search_coupling_interface_tag")->search_coupling_interface_tag(interface_tag, comp_full_name, interface_name);
+}
+
+
+void Comp_comm_group_mgt_mgr::push_comp_node(Comp_comm_group_mgt_node *comp_node) 
+{
+	comp_node->reset_local_node_id(global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX);
+	global_node_array.push_back(comp_node); 
+}
+
+
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::pop_comp_node()
+{
+	Comp_comm_group_mgt_node *top_comp_node = global_node_array[global_node_array.size()-1];
+	global_node_array.erase(global_node_array.begin()+global_node_array.size()-1);
+	return top_comp_node;
 }
 

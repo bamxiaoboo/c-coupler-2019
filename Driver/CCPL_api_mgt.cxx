@@ -9,6 +9,7 @@
 
 #include "CCPL_api_mgt.h"
 #include "global_data.h"
+#include <unistd.h>
 
 
 
@@ -201,8 +202,20 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_INTERFACE_REG_NORMAL_REMAP: 
 			sprintf(API_label, "CCPL_register_normal_remap_interface");
 			break;
+		case API_ID_INTERFACE_REG_FRAC_REMAP:
+			sprintf(API_label, "CCPL_register_frac_based_remap_interface");
+			break;
 		case API_ID_INTERFACE_EXECUTE:
 			sprintf(API_label, "CCPL_execute_interface");
+			break;
+		case API_ID_INTERFACE_CONNECT_INTERFACES:
+			sprintf(API_label, "CCPL_connect_fixed_interfaces");
+			break;
+		case API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG:
+			sprintf(API_label, "CCPL_get_comp_name_via_interface_tag");
+			break;
+		case API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME:
+			sprintf(API_label, "CCPL_get_local_comp_full_name");
 			break;
 		case API_ID_TIME_MGT_DEFINE_SINGLE_TIMER:
 			sprintf(API_label, "CCPL_define_single_timer");
@@ -657,5 +670,56 @@ void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_i
 
     delete [] displs;
     delete [] counts;
+}
+
+
+TiXmlDocument *open_XML_file_to_read(int comp_id, const char *XML_file_name, MPI_Comm comm, bool wait_file)
+{
+	int local_process_id = 0, file_existing = 0;
+	TiXmlDocument *XML_file;
+	bool successful;
+
+
+	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Try to load the XML configuration file \"%s\"", XML_file_name);
+	if (comm != MPI_COMM_NULL)
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
+	if (local_process_id == 0) {
+		do {
+			FILE *tmp_file = fopen(XML_file_name, "r");
+			if (tmp_file != NULL) {
+				file_existing = 1;
+				fclose(tmp_file);
+				break;
+			}
+			else if (wait_file)
+				sleep(1);
+		} while (wait_file);
+	}
+
+	if (comm != MPI_COMM_NULL)
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Bcast(&file_existing, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
+	
+	if (file_existing == 0)
+		return NULL;
+
+	for (int i = 0; i < 10; i ++) {
+		XML_file = new TiXmlDocument(XML_file_name);
+		if (comm != MPI_COMM_NULL)
+			successful = XML_file->LoadFile(comm);
+		else successful = XML_file->LoadFile();
+		if (successful || !wait_file)
+			break;
+		delete XML_file;
+	} 
+
+	if (!successful) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to load the XML configuration file \"%s\": the file exists while the format of the content is not legal", XML_file_name);
+		delete XML_file;
+		return NULL;
+	}
+	
+	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Successfully load the XML configuration file \"%s\"", XML_file_name);
+
+	return XML_file;
 }
 

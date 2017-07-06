@@ -139,6 +139,12 @@
    end interface
 
 
+
+   interface CCPL_register_frac_based_remap_interface; module procedure &
+       CCPL_register_remap_interface_with_float_frac, &
+       CCPL_register_remap_interface_with_double_frac
+   end interface
+
    REAL,    parameter, public  :: coupling_fill_value = 1.0e30 
    integer, parameter, public  :: CCPL_NULL_INT       = 2147483647  
 
@@ -2653,9 +2659,9 @@
    integer                                     :: interface_id
 
    if (present(annotation)) then
-       call register_normal_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs_source), size(field_instance_IDs_target))
+       call register_normal_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, size(field_instance_IDs_source), size(field_instance_IDs_target), trim(annotation)//char(0))
    else
-       call register_normal_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs_source), size(field_instance_IDs_target))
+       call register_normal_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, size(field_instance_IDs_source), size(field_instance_IDs_target), trim("")//char(0))
    endif
    CCPL_register_normal_remap_interface = interface_id;
 
@@ -2663,21 +2669,101 @@
 
 
 
-   integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, annotation)
+   integer FUNCTION CCPL_register_remap_interface_with_float_frac(interface_name, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, frac_src, frac_dst, annotation)
+   implicit none
+   character(len=*), intent(in)                                 :: interface_name
+   character(len=*), intent(in), optional                       :: annotation
+   integer,          intent(in)                                 :: timer_ID
+   integer,          intent(in)                                 :: inst_or_aver
+   integer,          intent(in), dimension(:)                   :: field_instance_IDs_source
+   integer,          intent(in), dimension(:)                   :: field_instance_IDs_target
+   integer,          intent(in)                                 :: num_field_instances
+   integer                                                      :: interface_id, size_frac_dst
+   real(R4),         INTENT(IN), dimension(:)                   :: frac_src
+   real(R4),         intent(in), dimension(:), target, optional :: frac_dst
+   real(R4),                     dimension(:), pointer          :: temp_frac_dst, temp_float_1d
+   character *512                                               :: local_annotation
+   
+   allocate(temp_float_1d(1))
+   temp_frac_dst => temp_float_1d
+   size_frac_dst = -1
+   if (present(frac_dst)) then
+       temp_frac_dst => frac_dst
+       size_frac_dst = size(frac_dst)
+   endif
+   
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+
+   call register_frac_based_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, &
+                                            inst_or_aver, size(field_instance_IDs_source), size(field_instance_IDs_target), frac_src, temp_frac_dst, size(frac_src), &
+                                            size_frac_dst, trim("real4")//char(0), trim(local_annotation)//char(0))
+
+   deallocate(temp_float_1d)
+
+   CCPL_register_remap_interface_with_float_frac = interface_id
+
+   END FUNCTION CCPL_register_remap_interface_with_float_frac
+
+
+
+   integer FUNCTION CCPL_register_remap_interface_with_double_frac(interface_name, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, inst_or_aver, frac_src, frac_dst, annotation)
+   implicit none
+   character(len=*), intent(in)                                 :: interface_name
+   character(len=*), intent(in), optional                       :: annotation
+   integer,          intent(in)                                 :: timer_ID
+   integer,          intent(in)                                 :: inst_or_aver
+   integer,          intent(in), dimension(:)                   :: field_instance_IDs_source
+   integer,          intent(in), dimension(:)                   :: field_instance_IDs_target
+   integer,          intent(in)                                 :: num_field_instances
+   integer                                                      :: interface_id, size_frac_dst
+   real(R8),         INTENT(IN), dimension(:)                   :: frac_src
+   real(R8),         intent(in), dimension(:), target, optional :: frac_dst
+   real(R8),                     dimension(:), pointer          :: temp_frac_dst, temp_double_1d
+   character *512                                               :: local_annotation
+   
+   allocate(temp_double_1d(1))
+   temp_frac_dst => temp_double_1d
+   size_frac_dst = -1
+   if (present(frac_dst)) then
+       temp_frac_dst => frac_dst
+       size_frac_dst = size(frac_dst)
+   endif
+   
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+
+   call register_frac_based_remap_interface(trim(interface_name)//char(0), interface_id, num_field_instances, field_instance_IDs_source, field_instance_IDs_target, timer_ID, &
+                                            inst_or_aver, size(field_instance_IDs_source), size(field_instance_IDs_target), frac_src, temp_frac_dst, size(frac_src), &
+                                            size_frac_dst, trim("real8")//char(0), trim(local_annotation)//char(0))
+
+   deallocate(temp_double_1d)
+
+   CCPL_register_remap_interface_with_double_frac = interface_id
+
+   END FUNCTION CCPL_register_remap_interface_with_double_frac
+
+
+
+   integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, interface_tag, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name
    character(len=*), intent(in), optional      :: annotation
+   character(len=*), intent(in), optional      :: interface_tag
    integer,          intent(in)                :: timer_ID
    integer,          intent(in)                :: inst_or_aver
    integer,          intent(in), dimension(:)  :: field_instance_IDs
    integer,          intent(in)                :: num_field_instances
    integer                                     :: interface_id
+   character*512                               :: local_interface_tag
 
    
+   local_interface_tag = ""
+   if (present(interface_tag)) local_interface_tag=interface_tag
    if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(local_interface_tag)//char(0), trim(annotation)//char(0), size(field_instance_IDs))
    else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(local_interface_tag)//char(0), trim("")//char(0), size(field_instance_IDs))
    endif
    CCPL_register_import_interface = interface_id;
 
@@ -2685,20 +2771,25 @@
 
 
 
-   integer FUNCTION CCPL_register_export_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, annotation)
+   integer FUNCTION CCPL_register_export_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, interface_tag, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name
    character(len=*), intent(in), optional      :: annotation
+   character(len=*), intent(in), optional      :: interface_tag
    integer,          intent(in)                :: timer_ID
    integer,          intent(in), dimension(:)  :: field_instance_IDs
    integer,          intent(in)                :: num_field_instances
    integer                                     :: interface_id
+   character*512                               :: local_interface_tag
 
    
+   local_interface_tag = ""
+   if (present(interface_tag)) local_interface_tag=interface_tag
+
    if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(annotation)//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(local_interface_tag)//char(0), trim(annotation)//char(0), size(field_instance_IDs))
    else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim("")//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(local_interface_tag)//char(0), trim("")//char(0), size(field_instance_IDs))
    endif
    CCPL_register_export_interface = interface_id;
 
@@ -2758,5 +2849,59 @@
    END FUNCTION CCPL_execute_interface_using_name
 
 
+
+   SUBROUTINE CCPL_connect_fixed_interfaces(comp_full_name_or_tag1, comp_full_name_or_tag2, annotation)
+   implicit none
+   character(len=*), intent(in)                :: comp_full_name_or_tag1
+   character(len=*), intent(in)                :: comp_full_name_or_tag2
+   character(len=*), intent(in), optional      :: annotation
+
+
+   if (present(annotation)) then
+       call connect_fixed_interfaces_between_two_components(trim(comp_full_name_or_tag1)//char(0), trim(comp_full_name_or_tag2)//char(0), trim(annotation)//char(0))
+   else 
+       call connect_fixed_interfaces_between_two_components(trim(comp_full_name_or_tag1)//char(0), trim(comp_full_name_or_tag2)//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_connect_fixed_interfaces
+
+
+   
+   logical FUNCTION CCPL_get_comp_name_via_interface_tag(comp_id, interface_tag, comp_full_name, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in)                :: interface_tag
+   character(len=*), intent(inout)             :: comp_full_name
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: int_result
+   character(len=1024)                         :: local_comp_full_name
+
+   if (present(annotation)) then
+       call get_comp_name_via_interface_tag(comp_id, trim(interface_tag)//char(0), comp_full_name, int_result, len(comp_full_name), trim(annotation)//char(0))
+   else
+       call get_comp_name_via_interface_tag(comp_id, trim(interface_tag)//char(0), comp_full_name, int_result, len(comp_full_name), trim("")//char(0))
+   endif
+
+   CCPL_get_comp_name_via_interface_tag = (int_result .eq. 1)
+
+   END FUNCTION CCPL_get_comp_name_via_interface_tag
+
+
+
+   SUBROUTINE CCPL_get_local_comp_full_name(comp_id, comp_full_name, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(inout)             :: comp_full_name
+   character(len=*), intent(in), optional      :: annotation
+
+   if (present(annotation)) then
+       call get_local_comp_full_name(comp_id, comp_full_name, len(comp_full_name), trim(annotation)//char(0))
+   else
+       call get_local_comp_full_name(comp_id, comp_full_name, len(comp_full_name), trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_get_local_comp_full_name
+
+   
 
  END MODULE CCPL_interface_mod

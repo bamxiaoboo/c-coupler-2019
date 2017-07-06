@@ -2754,13 +2754,6 @@ void Remap_grid_class::detect_redundant_cells()
 
 	for (i = 0; i < num_dimensions; i ++)
 		delete full_center_fields[i];
-
-	int sum = 0;
-	for (i = 0; i < grid_size; i ++)
-		if (redundant_cell_mark[i])
-			sum ++;
-
-	printf("the number of redundant cells in grid %s is %d\n", grid_name, sum);
 }
 
 

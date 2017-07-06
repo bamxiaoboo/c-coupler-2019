@@ -70,7 +70,7 @@ void H2D_remapping_wgt_file_info::write_remapping_wgt_file_info_into_array(char 
 	write_data_into_array_buffer(&checksum_dst_center_lon, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_dst_center_lat, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_dst_mask, sizeof(long), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(wgt_file_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	write_string_into_array_buffer(wgt_file_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 }
 
 
@@ -99,10 +99,6 @@ long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *fiel
 bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(long checksum_src_center_lon, long checksum_src_center_lat, long checksum_src_mask,
  		                                                  long checksum_dst_center_lon, long checksum_dst_center_lat, long checksum_dst_mask)
 {
-	printf("H2D weight match (%lx %lx %lx %lx %lx %lx) vs (%lx %lx %lx %lx %lx %lx)\n", this->checksum_src_center_lon, this->checksum_src_center_lat, this->checksum_src_mask, 
-		this->checksum_dst_center_lon, this->checksum_dst_center_lat, this->checksum_dst_mask,
-		checksum_src_center_lon, checksum_src_center_lat, checksum_src_mask, 
-		checksum_dst_center_lon, checksum_dst_center_lat, checksum_dst_mask);
 	return this->checksum_src_center_lon == checksum_src_center_lon && this->checksum_src_center_lat == checksum_src_center_lat && this->checksum_src_mask == checksum_src_mask &&
 	       this->checksum_dst_center_lon == checksum_dst_center_lon && this->checksum_dst_center_lat == checksum_dst_center_lat && this->checksum_dst_mask == checksum_dst_mask;
 }
@@ -381,12 +377,12 @@ void Remapping_algorithm_specification::print()
 void Remapping_algorithm_specification::write_remapping_algorithm_specification_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
 {
 	for (int i = parameters_name.size()-1; i >= 0; i --) {
-		write_data_into_array_buffer(parameters_value[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-		write_data_into_array_buffer(parameters_name[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		write_string_into_array_buffer(parameters_value[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+		write_string_into_array_buffer(parameters_name[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 	}
 	int temp_int = parameters_name.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(algorithm_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	write_string_into_array_buffer(algorithm_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&type_id, sizeof(int), array, buffer_max_size, buffer_content_size);
 }
 
@@ -652,7 +648,6 @@ void Remapping_setting::print()
 
 void Remapping_setting::write_remapping_setting_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
 {
-	printf("%lx %lx %lx\n", H2D_remapping_algorithm, V1D_remapping_algorithm, T1D_remapping_algorithm);
 	EXECUTION_REPORT(REPORT_ERROR, -1, H2D_remapping_algorithm != NULL && V1D_remapping_algorithm != NULL && T1D_remapping_algorithm != NULL, "software error in Remapping_setting::write_remapping_setting_into_array");
 	T1D_remapping_algorithm->write_remapping_algorithm_specification_into_array(array, buffer_max_size, buffer_content_size);
 	V1D_remapping_algorithm->write_remapping_algorithm_specification_into_array(array, buffer_max_size, buffer_content_size);
@@ -757,12 +752,10 @@ Remapping_configuration::Remapping_configuration()
 }
 
 
-Remapping_configuration::Remapping_configuration(int comp_id, const char *XML_file_name)
+Remapping_configuration::Remapping_configuration(int comp_id, const char *XML_file_name, TiXmlDocument *XML_file)
 {
 	this->comp_id = comp_id;
-	TiXmlDocument XML_file(XML_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file.LoadFile(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration")), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
-	for (TiXmlNode *XML_element_node = XML_file.FirstChildElement(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
+	for (TiXmlNode *XML_element_node = XML_file->FirstChildElement(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
 		TiXmlElement *XML_element = XML_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(XML_element->Value(), "remapping_setting"), "\"%s\" is not a legal attribute (the legal is \"remapping_setting\") for defining a remapping setting. Please verify the XML file arround the line number %d.", XML_element->Value(), XML_element->Row());
 		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status of a remapping setting", "remapping configuration"))
@@ -820,23 +813,21 @@ Remapping_configuration_mgt::~Remapping_configuration_mgt()
 
 void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 {
-	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id()) {
-		printf("add default remapping configuration\n");
+	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
 		remapping_configurations.push_back(new Remapping_configuration());
-	}
 
 	char XML_file_name[NAME_STR_SIZE];
 	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration");
 	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
 		sprintf(XML_file_name, "%s/all/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
 	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
-	FILE *fp = fopen(XML_file_name, "r");
-	if (fp == NULL) {
+	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration"), false);
+	if (XML_file == NULL) {
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);
 		return;
 	}
-	fclose(fp);
-	remapping_configurations.push_back(new Remapping_configuration(comp_id, XML_file_name));
+	remapping_configurations.push_back(new Remapping_configuration(comp_id, XML_file_name, XML_file));
+	delete XML_file;
 }
 
 

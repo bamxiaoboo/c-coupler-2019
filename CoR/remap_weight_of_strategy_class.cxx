@@ -116,7 +116,6 @@ void Remap_weight_of_operator_class::calculate_src_decomp(long *decomp_map_src, 
 	    else if (i+1 < remap_weights_of_operator_instances.size())
 	        remap_end_iter = remap_weights_of_operator_instances[i+1]->remap_beg_iter;
 	    else remap_end_iter = field_data_grid_src->get_grid_size()/operator_grid_src->get_grid_size();
-		printf("calculate remapping weight based on operator %s %d: %d %d\n", remap_weights_of_operator_instances[i]->duplicated_remap_operator->get_operator_name(), i, remap_beg_iter, remap_end_iter);
 	    for (int j = remap_beg_iter; j < remap_end_iter; j ++) {
 			EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->duplicated_remap_operator != NULL, "C-Coupler error3 in do_remap of Remap_weight_of_operator_class");
 	        remap_weights_of_operator_instances[i]->duplicated_remap_operator->do_src_decomp_caculation(decomp_map_src, decomp_map_dst);
@@ -518,7 +517,6 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
 
 	tmp_field_data_dst = field_data_src;
 	tmp_field_data_src = NULL;
-	printf("remap operator number is %d\n", remap_weights_of_operators.size());
 	for (i = 0; i < remap_weights_of_operators.size(); i ++) {
 		if (tmp_field_data_src != NULL && tmp_field_data_src != field_data_src)
 			delete tmp_field_data_src;
@@ -529,7 +527,6 @@ void Remap_weight_of_strategy_class::do_remap(Remap_grid_data_class *field_data_
 						 "remap software error1 in do_remap of Remap_weight_of_strategy_class\n");
 		}	
 		else tmp_field_data_dst = field_data_src->duplicate_grid_data_field(remap_weights_of_operators[i]->field_data_grid_dst, 1, false, false);
-		printf("instance number of %d is %d\n", i, remap_weights_of_operators[i]->remap_weights_of_operator_instances.size());
 		remap_weights_of_operators[i]->do_remap(tmp_field_data_src, tmp_field_data_dst);
 	}
 

@@ -25,6 +25,7 @@
 #define BUF_MARK_IO_FIELD_MIRROR                 ((int)(0xF7100000))
 #define BUF_MARK_GATHER                          ((int)(0xF1000000))
 #define BUF_MARK_REMAP_NORMAL                    ((int)(0xF0000000))
+#define BUF_MARK_REMAP_FRAC                      ((int)(0xF2000000))
 #define BUF_MARK_REMAP_DATATYPE_TRANS_SRC        ((int)(0xF0110000))
 #define BUF_MARK_REMAP_DATATYPE_TRANS_DST        ((int)(0xF0750000))
 

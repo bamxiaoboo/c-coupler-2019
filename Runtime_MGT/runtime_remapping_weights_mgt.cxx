@@ -58,7 +58,6 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 			remap_operator_H2D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_H2D;
-		printf("field remapping setting is \n");
 		remapping_setting->print();
 		bool check_wgt_file = true;
 		if (src_original_grid->get_original_CoR_grid() != src_original_grid->get_H2D_sub_CoR_grid())
@@ -74,10 +73,8 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
         else if (words_are_the_same(cloned_remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), REMAP_OPERATOR_NAME_SPLINE_1D))
             remap_operator_V1D = new Remap_operator_spline_1D("V1D_algorithm", 2, remap_grids);
         else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: wrong V1D algorithm");
-		printf("detect to generate V1D remapping algorithm %s: %d\n", cloned_remapping_setting->get_V1D_remapping_algorithm()->get_algorithm_name(), cloned_remapping_setting->get_V1D_remapping_algorithm()->get_num_parameters());
 		for (int i = 0; i < cloned_remapping_setting->get_V1D_remapping_algorithm()->get_num_parameters(); i ++) {
 			cloned_remapping_setting->get_V1D_remapping_algorithm()->get_parameter(i, parameter_name, parameter_value);
-			printf("set V1D remapping parameter %s vs %s\n", parameter_name, parameter_value);
 			remap_operator_V1D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_V1D;
@@ -101,7 +98,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
 	remapping_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
 	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "before generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
-	sprintf(remap_weight_name, "runtime_remapping_weights_%lx", remapping_setting->calculate_checksum());
+	sprintf(remap_weight_name, "weights_%lx_%s(%lx)_to_%s(%lx)", remapping_setting->calculate_checksum(), src_original_grid->get_grid_name(), src_comp_id, dst_original_grid->get_grid_name(), dst_comp_id);
 	if (H2D_remapping_weight_file != NULL) {
 		H2D_remapping_weight_file->read_remapping_weights();
 		sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name());
@@ -204,7 +201,6 @@ void Runtime_remapping_weights::generate_parallel_remapping_weights()
 	}
 
 	if (dynamic_V1D_remap_weight_of_operator != NULL && get_dst_original_grid()->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL && get_dst_original_grid()->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET) {
-		printf("set surface field of \"%s\" at %lx to %lx\n", dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_grid_name(), dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst(), memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());
 		if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() != NULL)
 			EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->get_sigma_grid_dynamic_surface_value_field() == memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data(), "Software error in Coupling_connection::add_bottom_field_coupling_info: the surface field of the same grid has been set to different data fields");
 		else dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->set_sigma_grid_dynamic_surface_value_field(memory_manager->get_field_instance(get_dst_original_grid()->get_bottom_field_id())->get_field_data());
@@ -246,10 +242,8 @@ void Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights()
 	if (dst_bottom_value_updated)
 		dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->calculate_lev_sigma_values();
 
-	if (src_bottom_value_updated || dst_bottom_value_updated) {
-		printf("should renew V1D remapping weights for %s\n", parallel_remapping_weights->get_object_name());	
+	if (src_bottom_value_updated || dst_bottom_value_updated)
 		dynamic_V1D_remap_weight_of_operator->renew_vertical_remap_weights(runtime_V1D_remap_grid_src, runtime_V1D_remap_grid_dst);
-	}
 }
 
 

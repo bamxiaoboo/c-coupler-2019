@@ -23,7 +23,8 @@ extern bool get_next_integer_attr(char **, int&);
 extern bool get_next_double_attr(char **line, double&);
 extern bool is_end_of_file(FILE *);
 
-extern void write_data_into_array_buffer(const void*, int, char **, int &, int &);
+extern void write_string_into_array_buffer(const char*, int, char**, int&, int&);
+extern void write_data_into_array_buffer(const void*, int, char **, int&, int&);
 extern void read_data_from_array_buffer(void*, int, const char*, int &);
 extern void check_for_coupling_registration_stage(int, int, const char *);
 extern void common_checking_for_grid_registration(int, const char *, const char *, int, const char *);
@@ -34,6 +35,21 @@ template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *
 {
 	for (long i = 0; i < num_local_cells; i ++)
 		dst_array[i] = (T2) src_array[i];
+}
+
+
+template <typename T1, typename T2, typename T3> void arrays_multiplication_template(T1 *src_array1, T2 *src_array2, T3 *dst_array, int array_size)
+{
+	for (int i = 0; i < array_size; i ++)
+		dst_array[i] = ((T3)(src_array1[i])) * ((T3)(src_array2[i]));
+}
+
+
+template <typename T1, typename T2, typename T3> void arrays_division_template(T1 *src_array, T2 *divisor, T3 *dst_array, int array_size)
+{
+	for (int i = 0; i < array_size; i ++)
+		if (divisor[i] != (T2) 0)
+			dst_array[i] = ((T3)(src_array[i])) / ((T3)(divisor[i]));
 }
 
 

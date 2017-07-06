@@ -402,9 +402,6 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
         report_nc_error();
         io_data_size *= dimension_size;
     }
-	printf("okok %llx\n", interchange_grid);
-	if (interchange_grid != NULL)
-		printf("okok grid %s\n", interchange_grid->get_grid_name());
     EXECUTION_REPORT(REPORT_ERROR, -1, field_data->get_grid_data_field()->required_data_size == io_data_size, "C-Coupler error: the data size in field for writing and IO file must be the same: %ld : %ld", field_data->get_grid_data_field()->required_data_size, io_data_size);
     if (!is_grid_data && io_with_time_info) {
         for (i = num_dims; i > 0; i --) {

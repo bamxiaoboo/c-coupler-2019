@@ -201,7 +201,6 @@ Remap_weight_sparse_matrix *Remap_weight_sparse_matrix::generate_parallel_remap_
 
     if (decomp_original_grids[0]->get_num_dimensions() == 2) {
         for (i = 0; i < this->num_weights; i ++) {
-			printf("qiguai weight %d in %d: from %d to %d\n", i, this->num_weights, this->cells_indexes_src[i], this->cells_indexes_dst[i]);
             if (global_cells_local_indexes_in_decomps[1][this->cells_indexes_dst[i]] != -1) {
                 num_parallel_weights ++;
                 EXECUTION_REPORT(REPORT_ERROR, -1, global_cells_local_indexes_in_decomps[0][this->cells_indexes_src[i]] != -1, "Detect a very special case in generating parallel remapping weights. Please contact the C-Coupler team: liuli-cess@tsinghua.edu.cn\n");
@@ -242,8 +241,6 @@ Remap_weight_sparse_matrix *Remap_weight_sparse_matrix::generate_parallel_remap_
     else {
         EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error3 in generate_parallel_remap_weight_of_sparse_matrix\n");
     }
-
-	printf("parallel_remap_weight_of_sparse_matrix has %d remapping weights\n", parallel_remap_weight_of_sparse_matrix->get_num_weights());
 
     return parallel_remap_weight_of_sparse_matrix;
 }

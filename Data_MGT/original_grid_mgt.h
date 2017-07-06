@@ -57,6 +57,7 @@ class Original_grid_info
 		int get_bottom_field_variation_type() const { return bottom_field_variation_type; }
 		const char *get_bottom_field_name() const { return bottom_field_name; }
 		void set_bottom_field_variation_type(int type) { bottom_field_variation_type = type; }
+		void set_grid_checksum(long, long, long);
 		void set_unique_bottom_field(int field_id, int type, const char*);
 		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
@@ -74,6 +75,7 @@ class Original_grid_info
 		long get_checksum_center_lon() { return checksum_center_lon; }
 		long get_checksum_center_lat() { return checksum_center_lat; }
 		long get_checksum_H2D_mask() { return checksum_H2D_mask; }
+		bool is_H2D_grid_and_the_same_as_another_grid(Original_grid_info *);
 };
 
 

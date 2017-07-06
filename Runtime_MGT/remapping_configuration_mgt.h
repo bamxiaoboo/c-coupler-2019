@@ -159,7 +159,7 @@ class Remapping_configuration
 
 	public:
 		Remapping_configuration();
-		Remapping_configuration(int, const char*);
+		Remapping_configuration(int, const char*, TiXmlDocument *XML_file);
 		~Remapping_configuration();
 		int get_comp_id() { return comp_id; }
 		bool get_field_remapping_setting(Remapping_setting&, const char*);

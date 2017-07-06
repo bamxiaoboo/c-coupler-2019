@@ -216,7 +216,7 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
     
     /* Determine the reference cell index table according to the table size */
     if (num_local_cells_remote < num_local_cells_local ||
-        (num_local_cells_remote == num_local_cells_local && (src_comp_node->get_unified_global_id() < dst_comp_node->get_unified_global_id()))) {
+        (num_local_cells_remote == num_local_cells_local && strcmp(src_comp_node->get_full_name(), dst_comp_node->get_full_name()) < 0)) {
         reference_cell_indx = local_cells_global_indexes_remote;
         num_reference_cells = num_local_cells_remote;  
     }

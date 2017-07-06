@@ -52,7 +52,7 @@ void Field_info_mgt::add_field_info(const char *field_name, const char *field_lo
 	strcpy(local_attr.field_type, field_type);
 	local_attr.line_number = line_number;
 	fields_attr.push_back(local_attr);
-	EXECUTION_REPORT(REPORT_WARNING, -1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "field %s has been defined more than once\n", local_attr.field_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, search_field_info(local_attr.field_name) == &(fields_attr[fields_attr.size()-1]), "Software error in Field_info_mgt::add_field_info");
 }
 
 
@@ -63,21 +63,17 @@ Field_info_mgt::Field_info_mgt()
     field_attr local_attr;
 	
 
+	add_field_info("remap_frac", "fraction used for H2D remapping", "unitless", "H2D", "flux", -1);
+
 	sprintf(XML_file_name, "%s/all/public_field_attribute.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
-	FILE *tmp_file = fopen(XML_file_name, "r");
-	if (tmp_file == NULL) {
+	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_WORLD, false);
+	if (XML_file == NULL) {
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 			EXECUTION_REPORT(REPORT_WARNING, -1, true, "There is no configuration file public_field_attribute.xml under the directory \"%s/all\", which indicates that no fields will be coupled among component models.", comp_comm_group_mgt_mgr->get_config_root_dir());
 		return;
 	}
-	fclose(tmp_file);
-
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Start to load the attributes of public field from \"%s\"", XML_file_name);
 	
-	TiXmlDocument XML_file(XML_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(), "Fail to read the XML configuration file \"%s\", because the file is not in a legal XML format. Please check.", XML_file_name);
-	for (TiXmlNode *field_XML_node = XML_file.FirstChildElement(); field_XML_node != NULL; field_XML_node = field_XML_node->NextSibling()) {
+	for (TiXmlNode *field_XML_node = XML_file->FirstChildElement(); field_XML_node != NULL; field_XML_node = field_XML_node->NextSibling()) {
 		TiXmlElement *field_XML_element = field_XML_node->ToElement();
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_XML_element->Value(),"field"), "The XML element for specifying the attributes of a public field in the XML configuration file \"%s\" should be named \"field\". Please verify the XML file arround the line number %d.", XML_file_name, field_XML_element->Row());
@@ -93,6 +89,8 @@ Field_info_mgt::Field_info_mgt()
 		const char *field_type = get_XML_attribute(-1, field_XML_element, "type", XML_file_name, line_number, "default unit of a field", "configuration of the attributes of shared fields for coupling");
 		add_field_info(field_name, field_long_name, default_unit, field_dimensions, field_type, line_number);
 	}
+
+	delete XML_file;
 }
 
 
