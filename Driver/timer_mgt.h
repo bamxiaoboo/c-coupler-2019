@@ -46,7 +46,8 @@ class Coupling_timer
         friend class Time_mgt;
         char frequency_unit[NAME_STR_SIZE];
         int frequency_count;
-        int lag_count;
+		int local_lag_count;
+        int remote_lag_count;
 		int timer_id;
 		int comp_id;
 		std::vector<Coupling_timer*> children;
@@ -55,7 +56,7 @@ class Coupling_timer
         
     public:
 		Coupling_timer(int, int, int*, int, int, const char *);
-		Coupling_timer(int, int, const char*, int, int, const char*);
+		Coupling_timer(int, int, const char*, int, int, int, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
 		Coupling_timer(const char*, int &, int);
         ~Coupling_timer() {}
@@ -64,11 +65,12 @@ class Coupling_timer
 		int get_timer_id() { return timer_id; }
 		int get_comp_id() { return comp_id; }
 		int get_frequency_count() { return frequency_count; }
-		int get_lag_count() { return lag_count; }
+		int get_local_lag_count() { return local_lag_count; } 
+		int get_remote_lag_count() { return remote_lag_count; }
 		const char *get_frequency_unit() { return frequency_unit; }
 		void write_timer_into_array(char **, int &, int &);
 		void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
-		void reset_lag_count() { lag_count = 0; }
+		void reset_remote_lag_count() { remote_lag_count = 0; }
 		void check_timer_format();
 };
 
@@ -83,7 +85,7 @@ class Timer_mgt
 		~Timer_mgt();
 		bool check_is_legal_timer_id(int);
 		Coupling_timer *get_timer(int);
-		int define_timer(int, const char*, int, int, const char*);
+		int define_timer(int, const char*, int, int, int, const char*);
 		int define_timer(int, int*, int, int, int, const char*);
 		int define_timer(int, Coupling_timer*);
 		bool is_timer_on(int, const char*);
@@ -172,7 +174,7 @@ class Time_mgt
         long get_num_total_step() { return num_total_steps; }
         int get_comp_stop_latency_seconds() { return stop_latency_seconds; }
 		int get_current_num_days_in_year();
-        void check_timer_format(const char*, int, int, bool, const char*);
+        void check_timer_format(const char*, int, int, int, bool, const char*);
         Comps_transfer_time_info *allocate_comp_transfer_time_info(int);
 		bool check_time_consistency_between_components(long);
         long calculate_elapsed_day(int, int, int);

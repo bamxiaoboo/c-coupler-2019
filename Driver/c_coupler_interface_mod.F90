@@ -2501,22 +2501,23 @@
 
 
 
-   integer FUNCTION CCPL_define_single_timer(comp_id, period_unit, period_count, lag_count, annotation) 
+   integer FUNCTION CCPL_define_single_timer(comp_id, period_unit, period_count, local_lag_count, remote_lag_count, annotation) 
    implicit none
    integer,          intent(in)                :: comp_id
    character(len=*), intent(in)                :: period_unit
    integer,          intent(in)                :: period_count
-   integer,          intent(in), optional      :: lag_count
+   integer,          intent(in)                :: local_lag_count
+   integer,          intent(in), optional      :: remote_lag_count
    character(len=*), intent(in), optional      :: annotation
-   integer                                     :: local_lag_count
+   integer                                     :: temp_remote_lag_count
    integer                                     :: timer_id
  
-   local_lag_count = 0
-   if (present(lag_count)) local_lag_count = lag_count
+   temp_remote_lag_count = 0
+   if (present(remote_lag_count)) temp_remote_lag_count = remote_lag_count
    if (present(annotation)) then
-        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, trim(annotation)//char(0))
+        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, temp_remote_lag_count, trim(annotation)//char(0))
    else
-        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, trim("")//char(0))
+        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, temp_remote_lag_count, trim("")//char(0))
         
    endif
    CCPL_define_single_timer = timer_id

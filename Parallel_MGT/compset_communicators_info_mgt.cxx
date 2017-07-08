@@ -234,6 +234,8 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 
 	if (current_proc_local_id == 0) {
 		char XML_file_name[NAME_STR_SIZE];
+		sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), full_name);
+		EXECUTION_REPORT(REPORT_ERROR, -1, !does_file_exist(XML_file_name), "Error happens when registering a component model \"%s\": another componet model with the same has already been registered. Please check the model code related to the annotations \"%s\"", full_name, annotation);
 		TiXmlDocument *XML_file = new TiXmlDocument;
 		TiXmlDeclaration *XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
 		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file != NULL, "Software error: cannot create an xml file");
@@ -241,7 +243,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		TiXmlElement *root_element = new TiXmlElement("Component");
 		XML_file->LinkEndChild(root_element);
 		write_node_into_XML(root_element);
-		sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), full_name);
 		XML_file->SaveFile(XML_file_name);
 		delete XML_file;
 	}

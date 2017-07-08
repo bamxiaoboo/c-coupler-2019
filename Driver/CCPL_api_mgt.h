@@ -96,6 +96,7 @@ extern void transfer_array_from_one_comp_to_another(int, int, int, int, MPI_Comm
 extern void gather_array_in_one_comp(int, int, void *, int, int, int *, void **, MPI_Comm);
 extern long calculate_checksum_of_array(const char *, int, int, const char *, const char *);
 extern char *check_and_aggregate_local_grid_data(int, int, MPI_Comm, const char *, int, int, int, char *, const char *, int, int *, int &, const char *);
+extern bool does_file_exist(const char *);
 extern TiXmlDocument *open_XML_file_to_read(int, const char *, MPI_Comm, bool);
 
 

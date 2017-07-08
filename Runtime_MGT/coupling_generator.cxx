@@ -476,7 +476,7 @@ void Coupling_connection::exchange_connection_fields_info()
 	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id, &dst_timer, dst_inst_or_aver, dst_time_step_in_second);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_name.size() == src_fields_info.size() && fields_name.size() == dst_fields_info.size(), "Software error in Coupling_connection::exchange_connection_fields_info");
 
-	src_timer->reset_lag_count();
+	src_timer->reset_remote_lag_count();
 	
 	delete [] src_fields_info_array;
 	delete [] dst_fields_info_array;

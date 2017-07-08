@@ -77,8 +77,8 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
         return;
 
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in compute_dist_remap_weights_of_one_dst_cell: too big number of dst vertexes: %d", num_vertexes_dst);
 	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, dst_cell_vertex_values, true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in compute_dist_remap_weights_of_one_dst_cell: too big number of dst vertexes: %d", num_vertexes_dst);
 	
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;

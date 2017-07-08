@@ -88,8 +88,6 @@ void Remap_operator_linear::calculate_remap_weights()
 		return;
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Encounter a non-empty linear remapping operator instance");
-
 	temp_long_value = 0; 
 	temp_double_value = 0.0;
 	for (i = 0; i < array_size_src; i ++)

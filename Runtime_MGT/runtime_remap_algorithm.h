@@ -47,6 +47,7 @@ class Runtime_remap_algorithm
 
     public:	
 		Runtime_remap_algorithm(Runtime_remapping_weights *, Field_mem_info *, Field_mem_info *, int);
+		Runtime_remapping_weights *get_runtime_remapping_weights() { return runtime_remapping_weights; }
         bool run(bool);
 		void allocate_src_dst_fields(bool);
         ~Runtime_remap_algorithm();

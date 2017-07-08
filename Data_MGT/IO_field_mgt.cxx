@@ -144,17 +144,17 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in IO_output_procedure::IO_output_procedure: wrong comp id");
 	
 	if (default_field_timer == NULL)
-		field_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 1, 0, "default timer for I/O fields"));
+		field_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 1, 0, 0, "default timer for I/O fields"));
 	else {
 		field_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, default_field_timer));
-		field_timer->reset_lag_count();
+		field_timer->reset_remote_lag_count();
 	}
 	
 	if (default_file_timer == NULL)
-		file_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 10, 0, "default timer for I/O fields"));
+		file_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 10, 0, 0, "default timer for I/O fields"));
 	else {
 		file_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, default_file_timer));
-		file_timer->reset_lag_count();
+		file_timer->reset_remote_lag_count();
 	}
 
 	int *fields_id = new int [IO_fields.size()];

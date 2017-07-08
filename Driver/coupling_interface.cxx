@@ -597,12 +597,12 @@ extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, i
 }
 
 
-extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *del_count, const char *annotation)
+extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *local_lag_count, int *remote_lag_count, const char *annotation)
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling API \"CCPL_define_single_timer\": the time step of the corresponding component has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
-	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *del_count, annotation);
+	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *local_lag_count, *remote_lag_count, annotation);
 }
 
 

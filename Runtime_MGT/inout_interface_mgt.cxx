@@ -21,7 +21,7 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 	current_num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
 	this->time_step_in_second = time_step_in_second;
 	this->inst_or_aver = inst_or_aver;
-	if (components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->is_timer_on(timer->get_frequency_unit(), timer->get_frequency_count(), timer->get_lag_count())) {
+	if (components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->is_timer_on(timer->get_frequency_unit(), timer->get_frequency_count(), timer->get_local_lag_count())) {
 		last_timer_num_elapsed_days = current_num_elapsed_days;
 		last_timer_second = current_second;
 	}
@@ -33,8 +33,8 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 	next_timer_second = -1;
 	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
 	if (words_are_the_same(timer->get_frequency_unit(), FREQUENCY_UNIT_SECONDS))
-		lag_seconds = timer->get_lag_count();
-	else lag_seconds = timer->get_lag_count() * SECONDS_PER_DAY;
+		lag_seconds = timer->get_remote_lag_count();
+	else lag_seconds = timer->get_remote_lag_count() * SECONDS_PER_DAY;
 }
 
 
@@ -160,7 +160,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
 		                 "Please make sure that the import/export interface \"%s\" is called when the timer of any field is on. Please check the model code with the annotation \"%s\"", 
 		                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
-		if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_lag_count())) {
+		if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_local_lag_count())) {
 			if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {
 				local_fields_time_info->last_timer_num_elapsed_days = local_fields_time_info->next_timer_num_elapsed_days;
 				local_fields_time_info->last_timer_second = local_fields_time_info->next_timer_second;
@@ -172,7 +172,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 					remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
 				}	
 				time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
-			}
+			}			
 			remote_fields_time_info->get_time_of_next_timer_on(false);
 		}
 	}
@@ -192,6 +192,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				continue;
 			}
 			current_remote_fields_time[i] = ((long)fields_time_info_src[i]->last_timer_num_elapsed_days) * 100000 + fields_time_info_src[i]->last_timer_second; 
+			if (time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) || current_remote_fields_time[i] == last_remote_fields_time[i])
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld", last_remote_fields_time[i]);
 			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) && current_remote_fields_time[i] != last_remote_fields_time[i]) {  // restart related
 				transfer_process_on[i] = true;
 				last_remote_fields_time[i] = current_remote_fields_time[i];
@@ -318,6 +320,7 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_cont
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_full_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_node != NULL, "Software error in Inout_interface::Inout_interface");
 	comp_id = comp_node->get_local_node_id();
+	inversed_dst_fraction = NULL;
 }
 
 
@@ -333,6 +336,9 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	initialize_data(interface_name, interface_id, 2, timer_id, inst_or_aver, field_ids_src, INTERFACE_TYPE_REGISTER, annotation);
 	fixed_remote_comp_full_name[0] = '\0';
 	fixed_remote_interface_name[0] = '\0';
+	this->timer->reset_remote_lag_count();
+	children_interfaces[0]->timer->reset_remote_lag_count();
+	children_interfaces[1]->timer->reset_remote_lag_count();
 
 	bool same_field_name = true;
 	for (int i = 0; i < num_fields; i ++) 
@@ -366,14 +372,23 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	this->import_or_export_or_remap = import_or_export_or_remap;
 	this->execution_checking_status = 0;
 	this->last_execution_time = -1;
-	this->timer = timer_mgr->get_timer(timer_id);
+	Coupling_timer *existing_timer = timer_mgr->get_timer(timer_id);
+	this->timer = new Coupling_timer(existing_timer->get_comp_id(), -1, existing_timer);
 	this->comp_id = this->timer->get_comp_id();
 	this->interface_type = interface_type;
+	this->inversed_dst_fraction = NULL;
 	strcpy(this->interface_name, interface_name);
 	strcpy(this->comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::initialize_data")->get_full_name());
 	this->inst_or_aver = inst_or_aver;
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
+}
+
+
+Inout_interface::~Inout_interface()
+{
+	if (inversed_dst_fraction != NULL)
+		delete [] inversed_dst_fraction;
 }
 
 
@@ -522,17 +537,39 @@ void Inout_interface::preprocessing_for_frac_based_remapping()
 
 void Inout_interface::postprocessing_for_frac_based_remapping()
 {
+	Field_mem_info *dst_value_field, *dst_frac_field;
+
+	
 	if (!timer->is_timer_on())
 		return;
+
+	dst_frac_field = children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1];
+
+	if (words_are_the_same(dst_frac_field->get_data_type(), DATA_TYPE_FLOAT)) {
+		float *dst_frac_buf = (float*)dst_frac_field->get_data_buf();
+		for (int i = dst_frac_field->get_size_of_field()-1; i >= 0; i --)
+			if (dst_frac_buf[i] == (float) 0.0)
+				((float*) inversed_dst_fraction)[i] = dst_frac_buf[i];
+			else ((float*) inversed_dst_fraction)[i] = ((float)1.0) / dst_frac_buf[i];	
+	}
+	else {
+		double *dst_frac_buf = (double*)dst_frac_field->get_data_buf();
+		for (int i = dst_frac_field->get_size_of_field()-1; i >= 0; i --)
+			if (dst_frac_buf[i] == (double) 0.0)
+				((double*) inversed_dst_fraction)[i] = dst_frac_buf[i];
+			else ((double*) inversed_dst_fraction)[i] = ((double)1.0) / dst_frac_buf[i];	
+	}
 	
-	for (int i = 0; i < fields_mem_registered.size()-1; i ++)
-		if (words_are_the_same(children_interfaces[1]->fields_mem_registered[i]->get_data_type(), DATA_TYPE_FLOAT))
-			if (words_are_the_same(children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1]->get_data_type(), DATA_TYPE_FLOAT))
-				arrays_division_template((float*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), (float*)children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1]->get_data_buf(), (float*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), fields_mem_registered[i]->get_size_of_field());
-			else arrays_division_template((float*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), (double*)children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1]->get_data_buf(), (float*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), fields_mem_registered[i]->get_size_of_field());
-		else if (words_are_the_same(children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1]->get_data_type(), DATA_TYPE_FLOAT))
-			arrays_division_template((double*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), (float*)children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1]->get_data_buf(), (double*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), fields_mem_registered[i]->get_size_of_field());
-		else arrays_division_template((double*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), (double*)children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1]->get_data_buf(), (double*)children_interfaces[1]->fields_mem_registered[i]->get_data_buf(), fields_mem_registered[i]->get_size_of_field());
+	for (int i = 0; i < fields_mem_registered.size()-1; i ++) {
+		dst_value_field = children_interfaces[1]->fields_mem_registered[i];
+		if (words_are_the_same(dst_value_field->get_data_type(), DATA_TYPE_FLOAT))
+			if (words_are_the_same(dst_frac_field->get_data_type(), DATA_TYPE_FLOAT))
+				arrays_multiplication_template((float*)dst_value_field->get_data_buf(), (float*)inversed_dst_fraction, (float*)dst_value_field->get_data_buf(), dst_frac_field->get_size_of_field());
+			else arrays_multiplication_template((float*)dst_value_field->get_data_buf(), (double*)inversed_dst_fraction, (float*)dst_value_field->get_data_buf(), dst_frac_field->get_size_of_field());
+		else if (words_are_the_same(dst_frac_field->get_data_type(), DATA_TYPE_FLOAT))
+			arrays_multiplication_template((double*)dst_value_field->get_data_buf(), (float*)inversed_dst_fraction, (double*)dst_value_field->get_data_buf(), dst_frac_field->get_size_of_field());
+		else arrays_multiplication_template((double*)dst_value_field->get_data_buf(), (double*)inversed_dst_fraction, (double*)dst_value_field->get_data_buf(), dst_frac_field->get_size_of_field());
+	}	
 }
 
 
@@ -641,7 +678,8 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 		for (int i = 0; i < children_interfaces[j]->fields_mem_registered.size(); i ++) {
 			Original_grid_info *field_grid = original_grid_mgr->get_original_grid(children_interfaces[j]->fields_mem_registered[i]->get_grid_id());
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_grid != NULL && field_grid->is_H2D_grid(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": field \"%s\" is not on an horizontal grid. Please verify	the model code model with the annotation \"%s\"", API_label, interface_name, children_interfaces[j]->fields_mem_registered[i]->get_field_name(), annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i) == children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0), "Error happens when calling the API \"%s\" to register an interface named \"%s\": The fields to be remapped do not share the same remapping weights. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i) == NULL && children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0) == NULL || children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i) != NULL && children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0) != NULL && children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i)->get_runtime_remapping_weights() == children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0)->get_runtime_remapping_weights(), 
+				             "Error happens when calling the API \"%s\" to register an interface named \"%s\": The fields to be remapped do not share the same remapping weights. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
 		}
 	}
 	Field_mem_info *template_field_src = children_interfaces[0]->fields_mem_registered[0];
@@ -677,6 +715,9 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 		field_ids_src[i] = children_interfaces[0]->fields_mem_registered[i]->get_field_instance_id();
 	inout_interface_mgr->generate_remapping_interface_connection(this, num_fields, field_ids_src, true);
 	delete [] field_ids_src;
+
+	if (frac_field_dst->get_size_of_field() > 0)
+		inversed_dst_fraction = new char [frac_field_dst->get_size_of_field()*get_data_type_size(frac_field_dst->get_data_type())];
 }
 
 

@@ -112,12 +112,13 @@ class Inout_interface
 		long last_execution_time;
 		char fixed_remote_comp_full_name[NAME_STR_SIZE];
 		char fixed_remote_interface_name[NAME_STR_SIZE];
+		char *inversed_dst_fraction;
 
 	public:
 		Inout_interface(const char*, int&);
 		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char*, const char *);
 		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, const char*, int, int);
-		~Inout_interface() {}
+		~Inout_interface();
 		void initialize_data(const char *, int, int, int, int, int *, int, const char *);	
 		void common_checking_for_interface_registration(int, int *, int, int, int, int, const char *, int, int, const char *, const char *);
 		const char *get_interface_name() { return interface_name; }

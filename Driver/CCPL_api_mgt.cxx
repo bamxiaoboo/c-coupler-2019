@@ -493,7 +493,8 @@ void check_API_parameter_timer(int comp_id, int API_id, MPI_Comm comm, const cha
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Software error in check_API_parameter_timer");
 	timer = timer_mgr->get_timer(timer_id);
 	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_frequency_count(), parameter_name, annotation);
-	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_lag_count(), parameter_name, annotation);
+	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_local_lag_count(), parameter_name, annotation);
+	check_API_parameter_int(comp_id, API_id, comm, hint, timer->get_remote_lag_count(), parameter_name, annotation);
 	check_API_parameter_string(comp_id, API_id, comm, hint, timer->get_frequency_unit(), parameter_name, annotation);
 }
 
@@ -673,6 +674,15 @@ void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_i
 }
 
 
+bool does_file_exist(const char *file_name)
+{
+	FILE *tmp_file = fopen(file_name, "r");
+	if (tmp_file != NULL)
+		fclose(tmp_file);
+	return tmp_file != NULL;
+}
+
+
 TiXmlDocument *open_XML_file_to_read(int comp_id, const char *XML_file_name, MPI_Comm comm, bool wait_file)
 {
 	int local_process_id = 0, file_existing = 0;
@@ -685,13 +695,10 @@ TiXmlDocument *open_XML_file_to_read(int comp_id, const char *XML_file_name, MPI
 		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	if (local_process_id == 0) {
 		do {
-			FILE *tmp_file = fopen(XML_file_name, "r");
-			if (tmp_file != NULL) {
-				file_existing = 1;
-				fclose(tmp_file);
+			file_existing = does_file_exist(XML_file_name)? 1 : 0;
+			if (file_existing == 1)
 				break;
-			}
-			else if (wait_file)
+			if (wait_file)
 				sleep(1);
 		} while (wait_file);
 	}

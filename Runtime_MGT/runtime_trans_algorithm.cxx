@@ -443,7 +443,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 {
 	bool received_data_ready = false;
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Begin to receive data from component \"%s\"", fields_routers[0]->get_src_comp_node()->get_comp_full_name());
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Begin to receive data from component \"%s\": %ld", fields_routers[0]->get_src_comp_node()->get_comp_full_name(), current_remote_fields_time[0]);
 
 	if (index_remote_procs_with_common_data.size() > 0) {
 		

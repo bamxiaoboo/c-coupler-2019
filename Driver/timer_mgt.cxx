@@ -20,7 +20,7 @@ int num_days_of_month_of_leap_year[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 
 
 
 
-bool common_is_timer_on(const char *frequency_unit, int frequency_count, int lag_count, int current_year, 
+bool common_is_timer_on(const char *frequency_unit, int frequency_count, int local_lag_count, int current_year, 
 	                  int current_month, int current_day, int current_second, int current_num_elapsed_day,
 	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day, 
 	                  bool time_advanced)
@@ -50,7 +50,7 @@ bool common_is_timer_on(const char *frequency_unit, int frequency_count, int lag
     }
     else EXECUTION_REPORT(REPORT_ERROR,-1, false, "C-Coupler software error: frequency unit %s is unsupported\n", frequency_unit);
 
-    return num_elapsed_time >= lag_count && ((num_elapsed_time-lag_count)%frequency_count) == 0;
+    return num_elapsed_time >= local_lag_count && ((num_elapsed_time-local_lag_count)%frequency_count) == 0;
 }
 
 
@@ -72,23 +72,25 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, int *children_timers_i
 }
 
 
-Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit, int freq_count, int del_count, const char *annotation)
+Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit, int freq_count, int local_lag_count, int remote_lag_count, const char *annotation)
 {
     strcpy(frequency_unit, freq_unit);
-    frequency_count = freq_count;
-    lag_count = del_count;
+    this->frequency_count = freq_count;
+	this->local_lag_count = local_lag_count;
+    this->remote_lag_count = remote_lag_count;
 	this->timer_id = timer_id;
 	this->comp_id = comp_id;
 	this->or_or_and = -1;
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "Software error in Coupling_timer::Coupling_timer, with annotation \"%s\"", annotation);
-	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, true, annotation);
+	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, local_lag_count, remote_lag_count, true, annotation);
 	annotation_mgr->add_annotation(timer_id, "define timer", annotation);
 	if (words_are_the_same(freq_unit, FREQUENCY_UNIT_STEPS)) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr->get_time_step_in_second() > 0, "Software error in Coupling_timer::Coupling_timer: uninitialized time step");
 		strcpy(frequency_unit, FREQUENCY_UNIT_SECONDS);
 		frequency_count *= comp_time_mgr->get_time_step_in_second();
-		lag_count *= comp_time_mgr->get_time_step_in_second();
+		this->local_lag_count *= comp_time_mgr->get_time_step_in_second();
+		this->remote_lag_count *= comp_time_mgr->get_time_step_in_second();
 	}
 }
 
@@ -96,7 +98,8 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit,
 Coupling_timer::Coupling_timer(int comp_id, int timer_id, Coupling_timer *existing_timer)
 {
 	frequency_count = existing_timer->frequency_count;
-	lag_count = existing_timer->lag_count;
+	local_lag_count = existing_timer->local_lag_count;
+	remote_lag_count = existing_timer->remote_lag_count;
 	strcpy(frequency_unit, existing_timer->frequency_unit);
 	this->timer_id = timer_id;
 	this->comp_id = comp_id;
@@ -111,7 +114,8 @@ Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_ite
 	
 	read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&lag_count, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter);
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	for (int i = 0; i < num_children; i ++)
@@ -125,7 +129,8 @@ void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max
 	for (int i = num_children-1; i >= 0; i --)
 		children[i]->write_timer_into_array(array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&num_children, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&lag_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
 }
@@ -134,7 +139,7 @@ void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max
 bool Coupling_timer::is_timer_on(int current_year, int current_month, int current_day, int current_second, int current_num_elapsed_day,
 	                             int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day, bool time_advanced)
 {
-	return common_is_timer_on(frequency_unit, frequency_count, lag_count, current_year,  
+	return common_is_timer_on(frequency_unit, frequency_count, local_lag_count, current_year,  
 		                      current_month, current_day, current_second, current_num_elapsed_day,
 	                          start_year, start_month, start_day, start_second, start_num_elapsed_day,
 	                          time_advanced);
@@ -158,7 +163,7 @@ void Coupling_timer::get_time_of_next_timer_on(Time_mgt *time_mgr, int current_y
 bool Coupling_timer::is_timer_on()
 {
 	if (children.size() == 0)
-		return comp_time_mgr->is_timer_on(frequency_unit, frequency_count, lag_count);
+		return comp_time_mgr->is_timer_on(frequency_unit, frequency_count, local_lag_count);
 	else if (or_or_and == 0) { // or
 		for (int i = 0; i < children.size(); i ++)
 			if (children[i]->is_timer_on())
@@ -176,7 +181,7 @@ bool Coupling_timer::is_timer_on()
 
 void Coupling_timer::check_timer_format()
 { 
-	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, lag_count, false, NULL); 
+	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, local_lag_count, remote_lag_count, false, NULL); 
 }
 
 
@@ -198,9 +203,9 @@ Coupling_timer *Timer_mgt::get_timer(int timer_id)
 }
 
 
-int Timer_mgt::define_timer(int comp_id, const char *freq_unit, int freq_count, int del_count, const char *annotation)
+int Timer_mgt::define_timer(int comp_id, const char *freq_unit, int freq_count, int local_lag_count, int remote_lag_count, const char *annotation)
 {
-	timers.push_back(new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), freq_unit, freq_count, del_count, annotation));
+	timers.push_back(new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), freq_unit, freq_count, local_lag_count, remote_lag_count, annotation));
 	return timers[timers.size()-1]->get_timer_id();
 }
 
@@ -456,7 +461,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 void Time_mgt::build_restart_timer()
 {
 	if (!words_are_the_same(rest_freq_unit, "none"))
-		restart_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, rest_freq_unit, rest_freq_count, 0, "C-Coupler define restart timer"));
+		restart_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, rest_freq_unit, rest_freq_count, 0, 0, "C-Coupler define restart timer"));
 }
 
 
@@ -589,12 +594,12 @@ float Time_mgt::get_float_current_calendar_time(int shift_second, const char *an
 }
 
 
-bool Time_mgt::is_timer_on(const char *frequency_unit, int frequency_count, int lag_count)
+bool Time_mgt::is_timer_on(const char *frequency_unit, int frequency_count, int local_lag_count)
 {
     long num_elapsed_time;
 
 
-   	return common_is_timer_on(frequency_unit, frequency_count, lag_count, current_year,  
+   	return common_is_timer_on(frequency_unit, frequency_count, local_lag_count, current_year,  
 		                      current_month, current_day, current_second, current_num_elapsed_day,
 	                          start_year, start_month, start_day, start_second, start_num_elapsed_day,
 	                          time_advanced);
@@ -661,7 +666,7 @@ int Time_mgt::get_current_date()
 }
 
 
-void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int lag_count, bool check_value, const char *annotation)
+void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int local_lag_count, int remote_lag_count, bool check_value, const char *annotation)
 {
 	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
@@ -670,10 +675,13 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
 	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
-	        EXECUTION_REPORT(REPORT_ERROR, comp_id, lag_count%time_step_in_second == 0, "The lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
-	    }
-		if (lag_count != 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), "The lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, local_lag_count%time_step_in_second == 0, "The remote lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, remote_lag_count%time_step_in_second == 0, "The remote lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
+	    }	
+		if (local_lag_count != 0)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), "The local lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+		if (remote_lag_count != 0)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), "The remote lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 	}
 }
 

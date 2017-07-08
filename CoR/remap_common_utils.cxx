@@ -110,7 +110,7 @@ bool is_point_in_2D_sphere_coord_cell(double point_sphere_coord_value_lon,
                                       int num_vertexes)
 {
     double point_cartesian_coord_value_x, point_cartesian_coord_value_y, point_cartesian_coord_value_z;
-    double cell_vertex_cartesian_coord_values_x[256], cell_vertex_cartesian_coord_values_y[256], cell_vertex_cartesian_coord_values_z[256];
+    double cell_vertex_cartesian_coord_values_x[65536], cell_vertex_cartesian_coord_values_y[65536], cell_vertex_cartesian_coord_values_z[65536];
     double current_coord_value_x, current_coord_value_y, current_coord_value_z;
     double next_coord_value_x, next_coord_value_y, next_coord_value_z;
     double current_cross_product, last_cross_product;
@@ -119,7 +119,7 @@ bool is_point_in_2D_sphere_coord_cell(double point_sphere_coord_value_lon,
     int i, next_i;
 
     
-    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes <= 256, "remap software error in is_point_in_2D_sphere_coord_cell\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes <= 65536, "remap software error in is_point_in_2D_sphere_coord_cell: %d\n", num_vertexes);
     
     get_3D_cartesian_coord_of_sphere_coord(point_cartesian_coord_value_x,
                                            point_cartesian_coord_value_y,
