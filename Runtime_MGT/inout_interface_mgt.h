@@ -51,6 +51,7 @@ class Connection_field_time_info
 
 		Connection_field_time_info(Inout_interface*, Coupling_timer*, int, int);
 		void get_time_of_next_timer_on(bool);
+		void reset_last_timer_info() { last_timer_num_elapsed_days = -1; last_timer_second = -1; }
 };
 
 
@@ -113,6 +114,7 @@ class Inout_interface
 		char fixed_remote_comp_full_name[NAME_STR_SIZE];
 		char fixed_remote_interface_name[NAME_STR_SIZE];
 		char *inversed_dst_fraction;
+		long bypass_counter;
 
 	public:
 		Inout_interface(const char*, int&);
@@ -143,7 +145,8 @@ class Inout_interface
 		int get_num_coupling_procedures() { return coupling_procedures.size(); }
 		void add_remappling_fraction_processing(void *, void *, int, int, const char *, const char *, const char *);		
 		void preprocessing_for_frac_based_remapping();
-		void postprocessing_for_frac_based_remapping();
+		void postprocessing_for_frac_based_remapping(bool);
+		long get_bypass_counter() { return bypass_counter; } 
 };
 
 
@@ -151,6 +154,7 @@ class Inout_interface_mgt
 {
 	private:
 		std::vector<Inout_interface*> interfaces;
+		std::vector<Runtime_trans_algorithm*> all_runtime_receive_algorithms;
 		char *temp_array_buffer;
 		int buffer_max_size;
 		int buffer_content_size;
@@ -177,6 +181,9 @@ class Inout_interface_mgt
 		int get_buffer_content_size()  { return buffer_content_size; }
 		void execute_interface(int, bool, const char*);
 		void execute_interface(int, const char*, bool, const char*);
+		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
+		void runtime_receive_algorithms_receive_data();
+		
 };
 
 #endif

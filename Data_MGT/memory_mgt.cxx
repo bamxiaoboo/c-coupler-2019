@@ -130,6 +130,7 @@ Field_mem_info::~Field_mem_info()
 void Field_mem_info::reset_mem_buf(void * buf, bool is_restart_field)
 {
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, buf != NULL, "The data buffer corresponding to the field instance of \"%s\" is not allocated. Please verify the model code corresponding to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+	EXECUTION_REPORT(REPORT_ERROR, -1, !is_registered_model_buf, "Software error to release a registered buffer");
 
     if (grided_field_data->get_grid_data_field()->data_buf != NULL)
         delete [] grided_field_data->get_grid_data_field()->data_buf;

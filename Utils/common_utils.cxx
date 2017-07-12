@@ -15,8 +15,6 @@
 
 void write_string_into_array_buffer(const char *full_string, int array_size, char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
 {
-	printf("write %s\n", full_string);
-	fflush(NULL);
 	write_data_into_array_buffer(full_string, array_size, temp_array_buffer, buffer_max_size, buffer_content_size);
 	memset((*temp_array_buffer)+buffer_content_size-array_size+strlen(full_string), 0, array_size-strlen(full_string));
 }

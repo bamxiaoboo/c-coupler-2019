@@ -852,7 +852,7 @@ void Time_mgt::check_consistency_of_current_time(int date, int second, const cha
 
 bool Time_mgt::is_time_out_of_execution(long another_time)
 {
-	return another_time > ((long)stop_num_elapsed_day)*100000+stop_second;
+	return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time > ((long)stop_num_elapsed_day)*100000+stop_second;
 }
 
 

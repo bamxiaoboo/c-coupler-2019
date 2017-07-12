@@ -166,10 +166,12 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(TiXmlElement *XML_element
 		if (words_are_the_same(overall_XML_file_name, XML_file_name))
 			sprintf(full_file_name, "%s/all/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), short_file_name);
 		else sprintf(full_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), short_file_name);
-		if (all_H2D_remapping_wgt_files_info->search_wgt_file_info(full_file_name) == NULL) {
+		H2D_remapping_wgt_file_info *existing_wgt_file_info = all_H2D_remapping_wgt_files_info->search_wgt_file_info(full_file_name);
+		if (existing_wgt_file_info == NULL) {
 			H2D_remapping_wgt_files.push_back(new H2D_remapping_wgt_file_info(full_file_name));
 			all_H2D_remapping_wgt_files_info->add_wgt_file_info(H2D_remapping_wgt_files[H2D_remapping_wgt_files.size()-1]);
 		}
+		else H2D_remapping_wgt_files.push_back(existing_wgt_file_info);
 	}
 }
 

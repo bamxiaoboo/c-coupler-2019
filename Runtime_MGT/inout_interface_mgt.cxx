@@ -82,6 +82,9 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		fields_time_info_src.push_back(field_time_info);
 		field_time_info = new Connection_field_time_info(inout_interface, coupling_connection->dst_timer, coupling_connection->dst_time_step_in_second, coupling_connection->dst_inst_or_aver);
 		fields_time_info_dst.push_back(field_time_info);
+		if (inout_interface->get_import_or_export_or_remap() == 0)
+			fields_time_info_src[i]->reset_last_timer_info();
+		else fields_time_info_dst[i]->reset_last_timer_info();
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
 			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
@@ -183,7 +186,9 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			if (bypass_timer) {
 				transfer_process_on[i] = true;
 				current_remote_fields_time[i] = -1;
-				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+				if (inout_interface->get_bypass_counter() == 1)
+					EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
+				else EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == last_remote_fields_time[i] / ((long)10000000000), "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
 				transfer_data = true;
 				continue;
 			}
@@ -192,18 +197,20 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				continue;
 			}
 			current_remote_fields_time[i] = ((long)fields_time_info_src[i]->last_timer_num_elapsed_days) * 100000 + fields_time_info_src[i]->last_timer_second; 
-			if (time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) || current_remote_fields_time[i] == last_remote_fields_time[i])
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld", last_remote_fields_time[i]);
 			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) && current_remote_fields_time[i] != last_remote_fields_time[i]) {  // restart related
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Will receive remote data at %ld", current_remote_fields_time[i]);
 				transfer_process_on[i] = true;
 				last_remote_fields_time[i] = current_remote_fields_time[i];
 				transfer_data = true;
 			}
-			else transfer_process_on[i] = false;
+			else {
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld", last_remote_fields_time[i]);
+				transfer_process_on[i] = false;
+			}
 		}
 		if (transfer_data) {
 			runtime_data_transfer_algorithm->pass_transfer_parameters(transfer_process_on, current_remote_fields_time);
-			runtime_data_transfer_algorithm->run(bypass_timer);
+			runtime_data_transfer_algorithm->run(bypass_timer, inout_interface->get_bypass_counter());
 			for (int i = fields_time_info_dst.size() - 1; i >= 0; i --) {
 				if (transfer_process_on[i]) {
 					if (runtime_remap_algorithms[i] != NULL)
@@ -215,9 +222,17 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			}
 		}
 		finish_status = true;
-		if (bypass_timer) {
-			for (int i = fields_time_info_dst.size() - 1; i >= 0; i --)
-				last_remote_fields_time[i] = runtime_data_transfer_algorithm->get_history_receive_sender_time(i);
+		for (int i = fields_time_info_dst.size() - 1; i >= 0; i --) {
+			if (!transfer_process_on[i])
+				continue;
+			last_remote_fields_time[i] = runtime_data_transfer_algorithm->get_history_receive_sender_time(i);
+			long remote_bypass_counter = last_remote_fields_time[i] / ((long)10000000000);
+			if (bypass_timer) 
+				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
+			else {
+				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer non-bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
+				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time[i], "Software error: Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %d). Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, runtime_data_transfer_algorithm->get_history_receive_sender_time(i), current_remote_fields_time[i]);
+			}	
 		}
 		return;
 	}
@@ -230,12 +245,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 				transfer_data = true;
 				runtime_inner_averaging_algorithm[i]->run(true);
 				runtime_inter_averaging_algorithm[i]->run(true);
-				if (runtime_unit_transform_algorithms[i] != NULL)
-					runtime_unit_transform_algorithms[i]->run(true);
 				if (runtime_datatype_transform_algorithms[i] != NULL)
 					runtime_datatype_transform_algorithms[i]->run(true);
-				if (runtime_remap_algorithms[i] != NULL)
-					runtime_remap_algorithms[i]->run(true);
 			}
 			else {
 				Coupling_timer *dst_timer = fields_time_info_dst[i]->timer;
@@ -290,7 +301,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 void Connection_coupling_procedure::send_fields(bool bypass_timer)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface->get_import_or_export_or_remap() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
-	finish_status = runtime_data_transfer_algorithm->run(bypass_timer);
+	finish_status = runtime_data_transfer_algorithm->run(bypass_timer, inout_interface->get_bypass_counter());
 }
 
 
@@ -382,6 +393,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	this->inst_or_aver = inst_or_aver;
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
+	this->bypass_counter = 0;
 }
 
 
@@ -535,12 +547,12 @@ void Inout_interface::preprocessing_for_frac_based_remapping()
 }
 
 
-void Inout_interface::postprocessing_for_frac_based_remapping()
+void Inout_interface::postprocessing_for_frac_based_remapping(bool bypass_timer)
 {
 	Field_mem_info *dst_value_field, *dst_frac_field;
 
 	
-	if (!timer->is_timer_on())
+	if (!timer->is_timer_on() && !bypass_timer)
 		return;
 
 	dst_frac_field = children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1];
@@ -575,6 +587,11 @@ void Inout_interface::postprocessing_for_frac_based_remapping()
 
 void Inout_interface::execute(bool bypass_timer, const char *annotation)
 {
+	bool at_first_normal_step = false;
+
+	
+	if (bypass_timer)
+		bypass_counter ++;
 	if (time_mgr->check_is_model_run_finished()) {
 		EXECUTION_REPORT(REPORT_WARNING, comp_id, false, "The import/export interface \"%s\" (corresponding to the model code annotation \"%s\") will not execute at time %08d-%05d because the model run has finished",
 			             interface_name, annotation_mgr->get_annotation(interface_id, "registering interface"), time_mgr->get_current_date(), time_mgr->get_current_second());
@@ -582,8 +599,8 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	}
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0, "Cannot execute the interface \"%s\" corresponding to the model code with the annotation \"%s\" because the coupling procedures of this interface have not been generated. Please verify.", interface_name, annotation);
-	if (bypass_timer && (execution_checking_status & 0x1) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x1) == 0, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "bypassing timer"));
+	if (bypass_timer && (execution_checking_status & 0x2) != 0)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
 		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "software error")->get_comm_group(), "executing an import/export interface", annotation);
 		check_API_parameter_string(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", interface_name, "the corresponding interface name", annotation);
@@ -597,19 +614,14 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 			annotation_mgr->add_annotation(interface_id, "bypassing timer", annotation);
 		}
 		else {
+			at_first_normal_step = (execution_checking_status & 0x2) == 0;
 			execution_checking_status = execution_checking_status | 0x2;
 			annotation_mgr->add_annotation(interface_id, "using timer", annotation);
 		}
 	}
 
-	if (bypass_timer) {
-		if ((execution_checking_status & 0x2) != 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x2) == 0, "Cannot bypass the timers when executing import/export interface \"%s\" (the corrsponding code annotation is \"%s\") because this interface has been executed without bypassing timers before (the corrsponding code annotation is \"%s\")",
-			                 interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
-	}
-
 	long current_execution_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + components_time_mgrs->get_time_mgr(comp_id)->get_current_second();
-	if (current_execution_time == last_execution_time) {
+	if (current_execution_time == last_execution_time && !bypass_timer && !at_first_normal_step) {
 		int current_year, current_month, current_day, current_second;
 		components_time_mgrs->get_time_mgr(comp_id)->get_current_time(current_year, current_month, current_day, current_second, 0, "CCPL internal");
 		EXECUTION_REPORT(REPORT_WARNING, comp_id, false, "The import/export interface \"%s\", which is called at the model code with the annotation \"%s\", will not be executed again at the time step %04d-%02d-%02d-%05d, because it has been executed at the same time step before.",
@@ -625,7 +637,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		children_interfaces[0]->execute(bypass_timer, annotation);
 		children_interfaces[1]->execute(bypass_timer, annotation);
 		if (import_or_export_or_remap == 3)
-			postprocessing_for_frac_based_remapping();
+			postprocessing_for_frac_based_remapping(bypass_timer);
 		return;
 	}
 
@@ -689,9 +701,9 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	check_API_parameter_int(comp_id, API_ID_INTERFACE_REG_FRAC_REMAP, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in add_remappling_fraction_processing")->get_comm_group(), "specification (or not)", has_frac_dst, "frac_dst", annotation);
 	if (size_frac_dst != -1)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, template_field_dst->get_size_of_field() == size_frac_dst, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of the parameter \"frac_dst\" is different from the size of each target field instance. Please verify	the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
-	Field_mem_info *frac_field_src = memory_manager->alloc_mem("remap_frac", template_field_src->get_decomp_id(), template_field_src->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC, frac_data_type, "unitless", "source fraction for remapping", false);
+	Field_mem_info *frac_field_src = memory_manager->alloc_mem("remap_frac", template_field_src->get_decomp_id(), template_field_src->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "source fraction for remapping", false);
 	frac_field_src->reset_mem_buf(frac_src, true);
-	Field_mem_info *frac_field_dst = memory_manager->alloc_mem("remap_frac", template_field_dst->get_decomp_id(), template_field_dst->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC, frac_data_type, "unitless", "target fraction for remapping", false);
+	Field_mem_info *frac_field_dst = memory_manager->alloc_mem("remap_frac", template_field_dst->get_decomp_id(), template_field_dst->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "target fraction for remapping", false);
 	if (size_frac_dst != -1) 
 		frac_field_dst->reset_mem_buf(frac_dst, true);
 
@@ -966,5 +978,12 @@ void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_n
 	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, annotation);
 	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
+}
+
+
+void Inout_interface_mgt::runtime_receive_algorithms_receive_data()
+{
+	for (int i = 0; i < all_runtime_receive_algorithms.size(); i ++)
+		all_runtime_receive_algorithms[i]->receve_data_in_temp_buffer();
 }
 

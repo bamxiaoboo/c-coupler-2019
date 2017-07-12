@@ -84,6 +84,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 		local_comp_node = fields_routers[0]->get_dst_comp_node();
 		remote_comp_node = fields_routers[0]->get_src_comp_node();
     }
+	strcpy(remote_comp_full_name, remote_comp_node->get_comp_full_name());
     comp_id = local_comp_node->get_comp_id();
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
@@ -184,6 +185,9 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 	tag_buf = new long [tag_buf_size];	
 	for (int i = 0; i < tag_buf_size; i ++)
 		tag_buf[i] = -1;
+
+	for (int i = 0; i < num_transfered_fields; i ++)
+		last_receive_sender_time.push_back(-1);
 }
 
 
@@ -224,17 +228,21 @@ void Runtime_trans_algorithm::pass_transfer_parameters(std::vector <bool> &trans
 }
 
 
-bool Runtime_trans_algorithm::set_remote_tags(bool bypass_timer)
+bool Runtime_trans_algorithm::set_remote_tags(bool bypass_timer, long bypass_counter)
 {
 	long current_full_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second();
 
 	
 	for (int i = 0; i < num_transfered_fields; i ++)
 		if (transfer_process_on[i]) {
-			tag_buf[i] = current_full_time;
-			if (bypass_timer)
+			if (bypass_timer) {
+				tag_buf[i] = current_full_time + bypass_counter*((long)10000000000);
 				tag_buf[num_transfered_fields+i] = -999;
-			else tag_buf[num_transfered_fields+i] = current_remote_fields_time[i];
+			}
+			else {
+				tag_buf[i] = current_full_time;
+				tag_buf[num_transfered_fields+i] = current_remote_fields_time[i];
+			}
 		}
 
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
@@ -243,6 +251,9 @@ bool Runtime_trans_algorithm::set_remote_tags(bool bypass_timer)
        	MPI_Put(tag_buf, num_transfered_fields*2, MPI_LONG, remote_proc_id, num_transfered_fields*current_proc_local_id*2, num_transfered_fields*2, MPI_LONG, tag_win);
        	MPI_Win_unlock(remote_proc_id, tag_win);
     }
+
+	for (int i = 0; i < num_transfered_fields; i ++)
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[i], tag_buf[num_transfered_fields+i]);
 
     return true;
 }
@@ -375,20 +386,23 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
 	MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
 	memcpy(history_receive_data_buffer[empty_history_receive_buffer_index], data_buf, data_buf_size);
 	MPI_Win_unlock(current_proc_id_union_comm, data_win);	
-	
+
+	for (int i = 0; i < num_transfered_fields; i ++)
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %lld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time[i]);
+
 	set_local_tags();
 }
 
 
-bool Runtime_trans_algorithm::run(bool bypass_timer)
+bool Runtime_trans_algorithm::run(bool bypass_timer, long bypass_counter)
 {
     if (send_or_receive)
-        return send(bypass_timer);
-    else return recv(bypass_timer);
+        return send(bypass_timer, bypass_counter);
+    else return recv(bypass_timer, bypass_counter);
 }
 
 
-bool Runtime_trans_algorithm::send(bool bypass_timer)
+bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
 {
 	if (index_remote_procs_with_common_data.size() > 0) {
 	    preprocess();
@@ -431,19 +445,21 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
     }
 	EXECUTION_REPORT(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
 
-    set_remote_tags(bypass_timer);
+    set_remote_tags(bypass_timer, bypass_counter);
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", fields_routers[0]->get_dst_comp_node()->get_comp_full_name());
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", remote_comp_full_name);
 
     return true;
 }
 
 
-bool Runtime_trans_algorithm::recv(bool bypass_timer)
+bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
 {
 	bool received_data_ready = false;
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Begin to receive data from component \"%s\": %ld", fields_routers[0]->get_src_comp_node()->get_comp_full_name(), current_remote_fields_time[0]);
+	if (bypass_timer)
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time[0], bypass_counter);
+	else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld", remote_comp_full_name, current_remote_fields_time[0]);
 
 	if (index_remote_procs_with_common_data.size() > 0) {
 		
@@ -452,30 +468,9 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 		while (!received_data_ready) {
 			receve_data_in_temp_buffer();
 			received_data_ready = last_history_receive_buffer_index != -1 && history_receive_buffer_status[last_history_receive_buffer_index];
-			if (!bypass_timer) {
-				while (received_data_ready && !sender_time_has_matched) {
-					bool time_matched = true;
-					for (int j = 0; j < num_transfered_fields; j ++)
-						if (transfer_process_on[j] && history_receive_sender_time[last_history_receive_buffer_index][j] != current_remote_fields_time[j])
-							time_matched = false;
-					if (time_matched)
-						sender_time_has_matched = true;
-					else {
-						history_receive_buffer_status[last_history_receive_buffer_index] = false;
-						last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
-						received_data_ready = history_receive_buffer_status[last_history_receive_buffer_index];
-					}
-				}
-			}
+			if (!received_data_ready)
+				inout_interface_mgr->runtime_receive_algorithms_receive_data();
 		}
-
-		if (!bypass_timer)
-			for (int j = 0; j < num_transfered_fields; j ++)
-				if (transfer_process_on[j]) {
-					EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_sender_time[last_history_receive_buffer_index][j] == current_remote_fields_time[j], "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_sender_time[last_history_receive_buffer_index][j], current_remote_fields_time[j]);
-					if (history_receive_usage_time[last_history_receive_buffer_index][j] != -999)
-						EXECUTION_REPORT(REPORT_ERROR, -1, history_receive_usage_time[last_history_receive_buffer_index][j] == ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second(), "software error in Runtime_trans_algorithm::recv: %ld vs %ld", history_receive_usage_time[last_history_receive_buffer_index][j], ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second());
-				}	
 
 	    for (int i = 0; i < num_remote_procs; i ++) {
 	        if (transfer_size_with_remote_procs[i] == 0) 
@@ -499,14 +494,13 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
         if (transfer_process_on[j]) {
 			fields_mem[j]->check_field_sum("after receiving data");
 			fields_mem[j]->define_field_values(false);
+			last_receive_sender_time[j] = history_receive_sender_time[last_history_receive_buffer_index][j];
         }    
 
-	if (!bypass_timer) {
-		history_receive_buffer_status[last_history_receive_buffer_index] = false;
-		last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
-	}
+	history_receive_buffer_status[last_history_receive_buffer_index] = false;
+	last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", fields_routers[0]->get_src_comp_node()->get_comp_full_name());
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
 	
     return true;
 }
@@ -514,7 +508,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 
 long Runtime_trans_algorithm::get_history_receive_sender_time(int j)
 {
-	return history_receive_sender_time[last_history_receive_buffer_index][j];
+	return last_receive_sender_time[j];
 }
 
 

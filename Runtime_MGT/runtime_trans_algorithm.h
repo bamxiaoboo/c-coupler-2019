@@ -56,9 +56,11 @@ class Runtime_trans_algorithm
 		std::vector<long*> history_receive_sender_time;
 		std::vector<long*> history_receive_usage_time;
 		std::vector<void*> history_receive_data_buffer;
+		std::vector<long> last_receive_sender_time;
 		int last_history_receive_buffer_index;
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
+		char remote_comp_full_name[NAME_STR_SIZE];
 	    int current_proc_local_id;
     	int current_proc_global_id;	
         MPI_Comm union_comm;
@@ -66,11 +68,11 @@ class Runtime_trans_algorithm
         int current_proc_id_union_comm;
 		bool sender_time_has_matched;
 
-        bool send(bool);
-        bool recv(bool);
+        bool send(bool, long);
+        bool recv(bool, long);
 		long get_receive_data_time();
         bool is_remote_data_buf_ready();
-        bool set_remote_tags(bool);
+        bool set_remote_tags(bool, long);
         bool set_local_tags();
         void preprocess();
         void pack_MD_data(int, int, int *);
@@ -81,7 +83,7 @@ class Runtime_trans_algorithm
     public:
         Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *);
         ~Runtime_trans_algorithm();
-        bool run(bool);
+        bool run(bool, long);
         void * get_data_buf() {return data_buf;}
         long * get_tag_buf() {return tag_buf;}
         int get_data_buf_size() {return data_buf_size;}
