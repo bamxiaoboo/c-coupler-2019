@@ -110,7 +110,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 			int current_second = components_time_mgrs->get_time_mgr(comp_id)->get_current_second();
 			int current_step_id = components_time_mgrs->get_time_mgr(comp_id)->get_current_step_id();
 			sprintf(output_string+strlen(output_string)-2, " in the component model \"%s\" corresponding to the executable named \"%s\", at the current simulation time of %08d-%05d (the current step number is %d): ", 
-				    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"C-Coupler code in report_header for getting component management node")->get_comp_name(), comp_comm_group_mgt_mgr->get_executable_name(), current_date, current_second, current_step_id);
+				    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"execution report")->get_full_name(), comp_comm_group_mgt_mgr->get_executable_name(), current_date, current_second, current_step_id);
 		}
 	}
 #endif
@@ -128,9 +128,12 @@ void report_ender(int report_type, int comp_id, char *output_string)
 		fflush(NULL);
 	}
 	else {
-		char log_file_name[NAME_STR_SIZE];
-		comp_comm_group_mgt_mgr->get_log_file_name(comp_id, log_file_name);
+		const char *log_file_name =	comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
 		FILE *log_file = fopen(log_file_name, "a+");
+		fprintf(log_file, "%s\n\n", output_string);
+		fclose(log_file);
+		log_file_name =	comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
+		log_file = fopen(log_file_name, "a+");
 		fprintf(log_file, "%s\n\n", output_string);
 		fclose(log_file);
 		if (report_type == REPORT_ERROR)
@@ -140,9 +143,8 @@ void report_ender(int report_type, int comp_id, char *output_string)
 	printf("%s\n\n", output_string);
 	fflush(NULL);	
 #endif	
-	if (report_type == REPORT_ERROR) {
+	if (report_type == REPORT_ERROR)
 		assert(false);
-        }
 }
 
 

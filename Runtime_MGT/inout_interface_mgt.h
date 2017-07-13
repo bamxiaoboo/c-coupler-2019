@@ -84,7 +84,7 @@ class Connection_coupling_procedure
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
 		void add_data_transfer_algorithm(Runtime_trans_algorithm * runtime_algorithm) { runtime_data_transfer_algorithm = runtime_algorithm; }
-		void execute(bool);
+		void execute(bool, int*, const char*);
 		void send_fields(bool);
 		Field_mem_info *get_data_transfer_field_instance(int); 
 		int get_num_runtime_remap_algorithms() { return runtime_remap_algorithms.size(); }
@@ -132,13 +132,13 @@ class Inout_interface
 		void report_common_field_instances(const Inout_interface*);
 		void get_fields_name(std::vector<const char*>*);
 		const char *get_field_name(int);
-		int get_num_fields();
+		int get_num_dst_fields();
 		void transform_interface_into_array(char**, int&, int&);
 		Field_mem_info *search_registered_field_instance(const char*);
 		Coupling_timer *get_timer() { return timer; }
 		void add_coupling_procedure(Connection_coupling_procedure*);
 		int get_inst_or_aver() { return inst_or_aver; } 
-		void execute(bool, const char*);
+		void execute(bool, int*, int, const char*);
 		Inout_interface *get_child_interface(int i);
 		const char *get_fixed_remote_comp_full_name() { return fixed_remote_comp_full_name; }
 		const char *get_fixed_remote_interface_name() { return fixed_remote_interface_name; }
@@ -179,8 +179,8 @@ class Inout_interface_mgt
 		void write_all_interfaces_fields_info();
 		const char *get_temp_array_buffer() { return temp_array_buffer; } 
 		int get_buffer_content_size()  { return buffer_content_size; }
-		void execute_interface(int, bool, const char*);
-		void execute_interface(int, const char*, bool, const char*);
+		void execute_interface(int, bool, int*, int, int*, const char*);
+		void execute_interface(int, const char*, bool, int *, int, int*, const char*);
 		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
 		void runtime_receive_algorithms_receive_data();
 		

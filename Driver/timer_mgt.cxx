@@ -628,7 +628,7 @@ void Time_mgt::set_restart_time(long start_full_time, long restart_full_time)
 
 bool Time_mgt::check_is_model_run_finished()
 {
-    EXECUTION_REPORT(REPORT_LOG,-1, true, "check_is_model_run_finished %d %ld", current_step_id, num_total_steps);
+    EXECUTION_REPORT(REPORT_LOG, comp_id, true, "check_is_model_run_finished %d %ld", current_step_id, num_total_steps);
 	if (num_total_steps == -1)
 		return false;
     return current_step_id > num_total_steps;

@@ -55,6 +55,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_COMP_MGT_GET_COMP_ID:
 			sprintf(API_label, "CCPL_get_component_id");
 			break;
+		case API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP:
+			sprintf(API_label, "CCPL_is_current_process_in_component");
+			break;
 		case API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP:
 			sprintf(API_label, "CCPL_get_current_process_id_in_component");
 			break;

@@ -116,7 +116,7 @@ unsigned long Dictionary<T>::hash_function(const char *keyword)
 	h = 0;
   
 	for(us = (unsigned const char *) keyword; *us; us++) {
-		h = h * MULTIPLIER + *us;
+		h = (h << 6) + (h << 16) - h + *us;
 	}
 
 	return h % num_hashing_entries;

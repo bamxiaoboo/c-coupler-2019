@@ -135,7 +135,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 }
 
 
-void Connection_coupling_procedure::execute(bool bypass_timer)
+void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update_status, const char *annotation)
 {
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
 	Connection_field_time_info *local_fields_time_info, *remote_fields_time_info;
@@ -185,6 +185,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 		for (int i = fields_time_info_dst.size() - 1; i >= 0; i --) {
 			if (bypass_timer) {
 				transfer_process_on[i] = true;
+				field_update_status[i] = 1;
 				current_remote_fields_time[i] = -1;
 				if (inout_interface->get_bypass_counter() == 1)
 					EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
@@ -194,18 +195,21 @@ void Connection_coupling_procedure::execute(bool bypass_timer)
 			}
 			if (fields_time_info_dst[i]->current_num_elapsed_days != fields_time_info_dst[i]->last_timer_num_elapsed_days || fields_time_info_dst[i]->current_second != fields_time_info_dst[i]->last_timer_second) {
 				transfer_process_on[i] = false;
+				field_update_status[i] = 0;
 				continue;
 			}
 			current_remote_fields_time[i] = ((long)fields_time_info_src[i]->last_timer_num_elapsed_days) * 100000 + fields_time_info_src[i]->last_timer_second; 
 			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i]) && current_remote_fields_time[i] != last_remote_fields_time[i]) {  // restart related
 				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Will receive remote data at %ld", current_remote_fields_time[i]);
 				transfer_process_on[i] = true;
+				field_update_status[i] = 1;
 				last_remote_fields_time[i] = current_remote_fields_time[i];
 				transfer_data = true;
 			}
 			else {
 				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld", last_remote_fields_time[i]);
 				transfer_process_on[i] = false;
+				field_update_status[i] = 0;
 			}
 		}
 		if (transfer_data) {
@@ -352,7 +356,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	children_interfaces[1]->timer->reset_remote_lag_count();
 
 	bool same_field_name = true;
-	for (int i = 0; i < num_fields; i ++) 
+	for (int i = 0; i < num_fields; i ++)
 		same_field_name = same_field_name && words_are_the_same(memory_manager->get_field_instance(field_ids_src[i])->get_field_name(),memory_manager->get_field_instance(field_ids_dst[i])->get_field_name());	
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, same_field_name, "Error happens when calling API \"%s\" to register an interface named \"%s\": the field instances specified by the parameter \"field_instance_IDs_source\" are not consistent with the field instances specified by the parameter \"field_instance_IDs_target\" (the ith source field instance must have the same field name with the ith target field instance). Please check the model code with the annotation \"%s\".", API_label, interface_name, annotation);	
 }
@@ -412,7 +416,7 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 
 	get_API_hint(-1, API_id, API_label);
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0 && num_fields <= 1000, "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1 or larger than 1000. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling API \"%s\" to register an interface named \"%s\": the array size of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
 	for (int i = 0; i < num_fields; i ++) {
 		if (interface_type != INTERFACE_TYPE_IO_WRITE)
@@ -491,11 +495,18 @@ const char *Inout_interface::get_field_name(int number)
 }
 
 
-int Inout_interface::get_num_fields()
+int Inout_interface::get_num_dst_fields()
 {
-	if (fields_name.size() >= fields_mem_registered.size())
-		return fields_name.size();
-	return fields_mem_registered.size();
+	if (import_or_export_or_remap == 0)
+		return fields_mem_registered.size();
+	if (import_or_export_or_remap == 1)
+		return 0;
+	if (import_or_export_or_remap == 2)
+		return children_interfaces[1]->fields_mem_registered.size();
+	if (import_or_export_or_remap == 3)
+		return children_interfaces[1]->fields_mem_registered.size() - 1;
+	
+	return -1;
 }
 
 
@@ -585,10 +596,17 @@ void Inout_interface::postprocessing_for_frac_based_remapping(bool bypass_timer)
 }
 
 
-void Inout_interface::execute(bool bypass_timer, const char *annotation)
+void Inout_interface::execute(bool bypass_timer, int *field_update_status, int size_field_update_status, const char *annotation)
 {
 	bool at_first_normal_step = false;
 
+
+	if (import_or_export_or_remap == 0)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_mem_registered.size() <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
+	else if (import_or_export_or_remap == 2)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size()) <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
+	else if (import_or_export_or_remap == 3)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size())-1 <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
 	
 	if (bypass_timer)
 		bypass_counter ++;
@@ -598,7 +616,10 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 		return;
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0, "Cannot execute the interface \"%s\" corresponding to the model code with the annotation \"%s\" because the coupling procedures of this interface have not been generated. Please verify.", interface_name, annotation);
+	if (!(comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0))
+		if (strlen(fixed_remote_comp_full_name) > 0)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0, "Fail to execute the fixed interface \"%s\" (remote component model full name is \"%s\" and remote interface is \"%s\") corresponding to the model code with the annotation \"%s\" because the coupling procedures of this interface have not been generated. Please verify.", interface_name, fixed_remote_comp_full_name, fixed_remote_interface_name, annotation);
+		else EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0, "Fail execute the dynamic interface \"%s\" corresponding to the model code with the annotation \"%s\" because the coupling procedures of this interface have not been generated. Please verify.", interface_name, annotation);
 	if (bypass_timer && (execution_checking_status & 0x2) != 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
@@ -634,8 +655,8 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	if (import_or_export_or_remap >= 2) {
 		if (import_or_export_or_remap == 3)
 			preprocessing_for_frac_based_remapping();
-		children_interfaces[0]->execute(bypass_timer, annotation);
-		children_interfaces[1]->execute(bypass_timer, annotation);
+		children_interfaces[0]->execute(bypass_timer, field_update_status, size_field_update_status+1, annotation);
+		children_interfaces[1]->execute(bypass_timer, field_update_status, size_field_update_status+1, annotation);
 		if (import_or_export_or_remap == 3)
 			postprocessing_for_frac_based_remapping(bypass_timer);
 		return;
@@ -647,7 +668,7 @@ void Inout_interface::execute(bool bypass_timer, const char *annotation)
 	}
 	
 	for (int i = 0; i < coupling_procedures.size(); i ++)
-		coupling_procedures[i]->execute(bypass_timer);
+		coupling_procedures[i]->execute(bypass_timer, field_update_status, annotation);
 
 	if (import_or_export_or_remap == 1) {
 		bool all_finish = false;
@@ -936,24 +957,7 @@ void Inout_interface_mgt::get_all_unconnected_fixed_interfaces(std::vector<Inout
 }
 
 
-void Inout_interface_mgt::write_all_interfaces_fields_info()
-{
-	const char *field_name;
-
-	
- 	for (int i = 0; i < interfaces.size(); i ++) {
-		if (interfaces[i]->get_import_or_export_or_remap() == 0)
-			printf("import interface \"%s\" of component \"%s\" has %d fields\n", interfaces[i]->get_interface_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(interfaces[i]->get_comp_id(),"in write_all_interfaces_fields_info")->get_comp_full_name(), interfaces[i]->get_num_fields());
-		else printf("export interface \"%s\" of component \"%s\" has %d fields\n", interfaces[i]->get_interface_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(interfaces[i]->get_comp_id(),"in write_all_interfaces_fields_info")->get_comp_full_name(), interfaces[i]->get_num_fields());
-		for (int j = 0; (field_name = interfaces[i]->get_field_name(j)) != NULL; j ++) {
-			printf("            %s\n", field_name);
-		}
-		printf("\n\n");
-	}
-}
-
-
-void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer, const char *annotation)
+void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	Inout_interface *inout_interface;
 
@@ -962,12 +966,13 @@ void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer,
 	inout_interface = get_interface(interface_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface != NULL, "0x%x should be the ID of import/export interface. However, it is wrong as the corresponding interface is not found. Please check the model code with the annotation \"%s\"", interface_id, annotation);
 	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
-	inout_interface->execute(bypass_timer, annotation);
+	inout_interface->execute(bypass_timer, field_update_status, size_field_update_status, annotation);
+	*num_dst_fields = inout_interface->get_num_dst_fields();
 	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 
 
-void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_name, bool bypass_timer, const char *annotation)
+void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_name, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	Inout_interface *inout_interface;
 
@@ -976,7 +981,8 @@ void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_n
 	inout_interface = get_interface(comp_id, interface_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, inout_interface != NULL, "Registered interface of this component does not contain an import/export interface named \"%s\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
 	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
-	inout_interface->execute(bypass_timer, annotation);
+	inout_interface->execute(bypass_timer, field_update_status, size_field_update_status, annotation);
+	*num_dst_fields = inout_interface->get_num_dst_fields();
 	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 

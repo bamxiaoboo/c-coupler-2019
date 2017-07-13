@@ -857,7 +857,6 @@ void Coupling_generator::generate_coupling_procedures()
 	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
-		all_interfaces_mgr->write_all_interfaces_fields_info();
 		generate_interface_fields_source_dst(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
 		const int *all_components_ids = comp_comm_group_mgt_mgr->get_all_components_ids();
 		for (int i = 1; i < all_components_ids[0]; i ++) {

@@ -56,6 +56,7 @@ class IO_output_procedure
 		IO_netcdf *netcdf_file_object;
 		bool write_grid_name;
 		int inst_or_aver;
+		int *field_update_status;
 
 	public:
 		IO_output_procedure(int, int, Coupling_timer *, Coupling_timer *, bool);

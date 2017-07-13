@@ -25,6 +25,7 @@
 #define COMP_TYPE_LND              "lnd"
 #define COMP_TYPE_SEA_ICE          "sea_ice"
 #define COMP_TYPE_WAVE             "wave"
+#define COMP_TYPE_RUNOFF           "roff"
 #define COMP_TYPE_ROOT             "ROOT"
 #define NULL_COMM                  ((int)-1)
 
@@ -51,6 +52,10 @@ class Comp_comm_group_mgt_node
 		char comp_type[NAME_STR_SIZE];
 		char annotation_start[NAME_STR_SIZE];
 		char annotation_end[NAME_STR_SIZE];
+		char comp_log_file_name[NAME_STR_SIZE];
+		char exe_log_file_name[NAME_STR_SIZE];
+		char working_dir[NAME_STR_SIZE];
+		char config_comp_dir[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
 		std::vector<Coupling_interface_tag*> coupling_interface_tags;
 		std::vector<Comp_comm_group_mgt_node*> children;
@@ -63,8 +68,6 @@ class Comp_comm_group_mgt_node
 		int buffer_content_iter;
 		int buffer_max_size;
 		bool definition_finalized;
-		char working_dir[NAME_STR_SIZE];
-		char config_comp_dir[NAME_STR_SIZE];
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
@@ -107,6 +110,8 @@ class Comp_comm_group_mgt_node
 		Comp_comm_group_mgt_node *load_comp_info_from_XML(const char *);
 		void load_coupling_interface_tags();
 		bool search_coupling_interface_tag(const char*, char*, char*);
+		const char *get_comp_log_file_name() { return comp_log_file_name; } 
+		const char *get_exe_log_file_name() { return exe_log_file_name; } 
 };
 
 
@@ -139,7 +144,8 @@ class Comp_comm_group_mgt_mgr
 		MPI_Comm get_comm_group_of_local_comp(int, const char*);
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
-		void get_log_file_name(int, char*);
+		const char *get_comp_log_file_name(int);
+		const char *get_exe_log_file_name(int);
 		void get_output_data_file_header(int, char*);
 		Comp_comm_group_mgt_node *search_global_node(int);
 		Comp_comm_group_mgt_node *search_global_node(const char*);

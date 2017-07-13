@@ -18,6 +18,7 @@
 #define API_ID_FINALIZE                                 ((int)(0x00100001))
 #define API_ID_COMP_MGT_REG_COMP                        ((int)(0x00200002))
 #define API_ID_COMP_MGT_END_COMP_REG                    ((int)(0x00200004))
+#define API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP         ((int)(0x00200007))
 #define API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP     ((int)(0x00200008))
 #define API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP            ((int)(0x00200010))
 #define API_ID_COMP_MGT_GET_COMP_ID                     ((int)(0x00200020))

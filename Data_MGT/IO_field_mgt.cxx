@@ -122,6 +122,8 @@ int IO_field_mgt::register_IO_field(int comp_or_grid_id, int decomp_id, int fiel
 
 IO_output_procedure::~IO_output_procedure()
 {
+	if (field_update_status != NULL)
+		delete [] field_update_status;
 }
 
 
@@ -138,8 +140,12 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 
 	include_all_component_io_fields();
 
+	field_update_status = NULL;
+	
 	if (IO_fields.size() == 0)
 		return;
+
+	field_update_status = new int [IO_fields.size()];
 	
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in IO_output_procedure::IO_output_procedure: wrong comp id");
 	
@@ -188,10 +194,10 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 void IO_output_procedure::execute()
 {
 	if (export_interface != NULL)
-		export_interface->execute(false, "IO output procedure export interface execute");
+		export_interface->execute(false, field_update_status, IO_fields.size(), "IO output procedure export interface execute");
 
 	if (import_interface != NULL) {
-		import_interface->execute(false, "IO output procedure import interface execute");
+		import_interface->execute(false, field_update_status, IO_fields.size(), "IO output procedure import interface execute");
 		if (field_timer->is_timer_on()) {
 			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in IO_output_procedure::execute") == 0) {
 				if (netcdf_file_object == NULL || file_timer->is_timer_on()) {

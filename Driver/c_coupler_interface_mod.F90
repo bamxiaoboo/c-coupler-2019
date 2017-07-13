@@ -9,16 +9,75 @@
  MODULE CCPL_interface_mod
    
 
-   IMPLICIT none
-!
-!  PUBLIC: interfaces
-!
-   public :: CCPL_abort
-   public :: CCPL_get_current_date
+   implicit none
+   private
+
+
+   public :: CCPL_register_field_instance
+   public :: CCPL_register_IO_field_from_data_buffer
+   public :: CCPL_get_current_calendar_time
+   public :: CCPL_register_V1D_Z_grid_via_model_data
+   public :: CCPL_register_V1D_SIGMA_grid_via_model_data 
+   public :: CCPL_register_V1D_HYBRID_grid_via_model_data
+   public :: CCPL_register_H2D_grid_via_global_data 
+   public :: CCPL_register_H2D_grid_via_local_data
+   public :: CCPL_get_H2D_grid_data
+   public :: CCPL_register_frac_based_remap_interface
+   public :: CCPL_register_IO_field_from_field_instance 
+   public :: CCPL_register_IO_fields_from_field_instances 
+   public :: CCPL_get_number_of_current_step 
+   public :: CCPL_get_number_of_total_steps 
+   public :: CCPL_get_time_step
+   public :: CCPL_is_first_restart_step 
+   public :: CCPL_is_first_step
+   public :: CCPL_get_current_num_days_in_year
+   public :: CCPL_get_current_year 
+   public :: CCPL_get_current_date 
+   public :: CCPL_get_current_second 
+   public :: CCPL_get_start_time
+   public :: CCPL_get_stop_time
+   public :: CCPL_get_previous_time
    public :: CCPL_get_current_time
+   public :: CCPL_get_num_elapsed_days_from_reference 
    public :: CCPL_get_num_elapsed_days_from_start
+   public :: CCPL_is_end_current_day 
+   public :: CCPL_is_end_current_month
    public :: CCPL_allreduce_real16
-   public :: CCPL_check_sum_for_all_fields
+   public :: CCPL_abort
+   public :: CCPL_register_component
+   public :: CCPL_get_component_id
+   public :: CCPL_get_current_process_id_in_component
+   public :: CCPL_is_current_process_in_component
+   public :: CCPL_get_num_process_in_component
+   public :: CCPL_end_coupling_configuration
+   public :: CCPL_register_CoR_defined_grid
+   public :: CCPL_register_H2D_grid_via_file
+   public :: CCPL_register_H2D_grid_from_another_component
+   public :: CCPL_set_3D_grid_dynamic_surface_field
+   public :: CCPL_set_3D_grid_static_surface_field
+   public :: CCPL_set_3D_grid_external_surface_field
+   public :: CCPL_register_MD_grid_via_multi_grids
+   public :: CCPL_register_mid_point_grid
+   public :: CCPL_get_grid_size
+   public :: CCPL_get_grid_id
+   public :: CCPL_register_parallel_decomp 
+   public :: CCPL_define_single_timer
+   public :: CCPL_define_complex_timer 
+   public :: CCPL_set_time_step
+   public :: CCPL_advance_time
+   public :: CCPL_is_timer_on
+   public :: CCPL_check_current_time
+   public :: CCPL_finalize
+   public :: CCPL_is_model_run_ended
+   public :: CCPL_register_normal_remap_interface
+   public :: CCPL_register_import_interface 
+   public :: CCPL_register_export_interface 
+   public :: CCPL_execute_interface_using_id 
+   public :: CCPL_execute_interface_using_name
+   public :: CCPL_connect_fixed_interfaces 
+   public :: CCPL_get_comp_name_via_interface_tag 
+   public :: CCPL_get_local_comp_full_name 
+
 
    interface CCPL_register_field_instance ; module procedure &
         CCPL_register_model_double_0D_data, &
@@ -56,34 +115,6 @@
         CCPL_register_new_IO_field_integer_2D_data, &
         CCPL_register_new_IO_field_integer_3D_data, &
         CCPL_register_new_IO_field_integer_4D_data
-   end interface
-
-
-
-   interface CCPL_add_field_for_perturbing_roundoff_errors ; module procedure &
-        CCPL_add_field_for_perturbing_roundoff_errors_double_0D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_double_1D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_double_2D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_double_3D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_double_4D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_float_0D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_float_1D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_float_2D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_float_3D, &
-        CCPL_add_field_for_perturbing_roundoff_errors_float_4D
-   end interface
-
-   interface CCPL_perturb_roundoff_errors_for_an_array ; module procedure &
-        CCPL_perturb_roundoff_errors_for_an_array_double_0D, &
-        CCPL_perturb_roundoff_errors_for_an_array_double_1D, &
-        CCPL_perturb_roundoff_errors_for_an_array_double_2D, &
-        CCPL_perturb_roundoff_errors_for_an_array_double_3D, &
-        CCPL_perturb_roundoff_errors_for_an_array_double_4D, &
-        CCPL_perturb_roundoff_errors_for_an_array_float_0D, &
-        CCPL_perturb_roundoff_errors_for_an_array_float_1D, &
-        CCPL_perturb_roundoff_errors_for_an_array_float_2D, &
-        CCPL_perturb_roundoff_errors_for_an_array_float_3D, &
-        CCPL_perturb_roundoff_errors_for_an_array_float_4D
    end interface
 
 
@@ -169,7 +200,7 @@
 
 
 
-   contains   
+   CONTAINS 
 
 !   
 !  SUBROUTINE below
@@ -1333,13 +1364,6 @@
  
 
 
- SUBROUTINE CCPL_check_sum_for_all_fields
-   implicit none
-   CALL coupling_check_sum_for_all_fields
- END SUBROUTINE CCPL_check_sum_for_all_fields
-
-
-
  SUBROUTINE CCPL_abort(error_string)
    implicit none
    character(len=*),     intent(in)    ::  error_string
@@ -1348,224 +1372,6 @@
 
  END SUBROUTINE CCPL_abort
 
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_0D(data_buf)
-   implicit none
-   real(R8), INTENT(IN)         :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_0D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_1D(data_buf)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_1D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_2D(data_buf)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:)         :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_2D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_3D(data_buf)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:,:)       :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_3D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_4D(data_buf)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:,:,:)     :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_double_4D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_0D(data_buf)
-   implicit none
-   real(R4), INTENT(IN)         :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_0D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_1D(data_buf)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_1D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_2D(data_buf)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_2D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_3D(data_buf)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:,:)     :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_3D
-
-
-
-   SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_4D(data_buf)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:,:,:)   :: data_buf
-
-   call coupling_add_field_for_perturbing_roundoff_errors(data_buf)
-
-   END SUBROUTINE CCPL_add_field_for_perturbing_roundoff_errors_float_4D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_0D(data_buf, array_size)
-   implicit none
-   real(R8), INTENT(IN)         :: data_buf
-   integer, INTENT(IN)          :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_0D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_1D(data_buf, array_size)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:)         :: data_buf
-   integer, INTENT(IN)                        :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_1D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_2D(data_buf, array_size)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:)         :: data_buf
-   integer, INTENT(IN)                          :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_2D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_3D(data_buf, array_size)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:,:)       :: data_buf
-   integer, INTENT(IN)                          :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_3D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_4D(data_buf, array_size)
-   implicit none
-   real(R8), INTENT(IN), DIMENSION(:,:,:,:)     :: data_buf
-   integer, INTENT(IN)                          :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real8")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_double_4D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_0D(data_buf, array_size)
-   implicit none
-   real(R4), INTENT(IN)         :: data_buf
-   integer, INTENT(IN)          :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_0D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_1D(data_buf, array_size)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:)         :: data_buf
-   integer, INTENT(IN)                        :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_1D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_2D(data_buf, array_size)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:)       :: data_buf
-   integer, INTENT(IN)                        :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_2D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_3D(data_buf, array_size)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:,:)     :: data_buf
-   integer, INTENT(IN)                        :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_3D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_4D(data_buf, array_size)
-   implicit none
-   real(R4), INTENT(IN), DIMENSION(:,:,:,:)   :: data_buf
-   integer, INTENT(IN)                        :: array_size
-
-   call coupling_perturb_roundoff_errors_for_an_array(data_buf, trim("real4")//char(0), array_size)
-
-   END SUBROUTINE CCPL_perturb_roundoff_errors_for_an_array_float_4D
-
-
-
-   SUBROUTINE CCPL_perturb_roundoff_errors
-   implicit none
-
-   call coupling_perturb_roundoff_errors
-   
-   END SUBROUTINE CCPL_perturb_roundoff_errors
 
 
 
@@ -1625,6 +1431,23 @@
 
 
 
+   logical FUNCTION CCPL_is_current_process_in_component(comp_full_name, annotation)
+   implicit none
+   character(len=*), intent(in)            :: comp_full_name
+   integer                                 :: is_in_comp
+   character(len=*), intent(in), optional  :: annotation
+   character *1024                         :: local_annotation
+
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+
+   call is_current_process_in_component(trim(comp_full_name)//char(0), is_in_comp, trim(local_annotation)//char(0))
+   CCPL_is_current_process_in_component = (is_in_comp .eq. 1)
+
+   END FUNCTION CCPL_is_current_process_in_component
+
+
+
    integer FUNCTION CCPL_get_current_process_id_in_component(comp_id, annotation)
    implicit none
    integer, intent(in)                     :: comp_id
@@ -1633,9 +1456,7 @@
    integer                                 :: proc_id
    
    local_annotation = ""
-   if (present(annotation)) then
-       local_annotation = annotation
-   endif
+   if (present(annotation)) local_annotation = annotation
 
    call get_current_proc_id_in_comp(comp_id, proc_id, trim(local_annotation)//char(0))
    CCPL_get_current_process_id_in_component = proc_id
@@ -2798,13 +2619,15 @@
 
 
 
-   logical FUNCTION CCPL_execute_interface_using_id(interface_id, bypass_timer, coupling_tag, annotation)
+   logical FUNCTION CCPL_execute_interface_using_id(interface_id, bypass_timer, field_update_status, annotation)
    implicit none
-   integer,          intent(in)                :: interface_id
-   logical,          intent(in)                :: bypass_timer
-   character(len=*), intent(in), optional      :: coupling_tag
-   character(len=*), intent(in), optional      :: annotation
-   integer                                     :: local_bypass_timer
+   integer,          intent(in)                          :: interface_id
+   logical,          intent(in)                          :: bypass_timer
+   character(len=*), intent(in), optional                :: annotation
+   integer                                               :: local_bypass_timer
+   integer,          intent(out), dimension(:), optional :: field_update_status
+   integer                                               :: temp_field_update_status(4096), i, num_dst_fields
+   character *512                                        :: local_annotation
 
 
    if (bypass_timer) then
@@ -2812,10 +2635,16 @@
    else
        local_bypass_timer = 0
    endif
+   local_annotation = ""
    if (present(annotation)) then
-       call execute_inout_interface_with_id(interface_id, local_bypass_timer, trim(annotation)//char(0))
+       local_annotation = annotation
+   endif
+
+   if (present(field_update_status)) then
+       call execute_inout_interface_with_id(interface_id, local_bypass_timer, temp_field_update_status, size(field_update_status), num_dst_fields, trim(local_annotation)//char(0))
+       field_update_status(1:num_dst_fields) = temp_field_update_status(1:num_dst_fields)
    else 
-       call execute_inout_interface_with_id(interface_id, local_bypass_timer, trim("")//char(0))
+       call execute_inout_interface_with_id(interface_id, local_bypass_timer, temp_field_update_status, 4000, num_dst_fields, trim(local_annotation)//char(0))
    endif
 
    CCPL_execute_interface_using_id = .true.
@@ -2824,14 +2653,16 @@
 
 
 
-   logical FUNCTION CCPL_execute_interface_using_name(component_id, interface_name, bypass_timer, coupling_tag, annotation)
+   logical FUNCTION CCPL_execute_interface_using_name(component_id, interface_name, bypass_timer, field_update_status, annotation)
    implicit none
-   integer,          intent(in)                :: component_id
-   logical,          intent(in)                :: bypass_timer
-   character(len=*), intent(in), optional      :: coupling_tag
-   character(len=*), intent(in), optional      :: annotation
-   character(len=*), intent(in)                :: interface_name
-   integer                                     :: local_bypass_timer
+   integer,          intent(in)                          :: component_id
+   logical,          intent(in)                          :: bypass_timer
+   character(len=*), intent(in), optional                :: annotation
+   character(len=*), intent(in)                          :: interface_name
+   integer                                               :: local_bypass_timer
+   integer,          intent(out), dimension(:), optional :: field_update_status
+   integer                                               :: temp_field_update_status(4096), i, num_dst_fields
+   character *512                                        :: local_annotation
 
 
    if (bypass_timer) then
@@ -2839,10 +2670,16 @@
    else
        local_bypass_timer = 0
    endif
+   local_annotation = ""
    if (present(annotation)) then
-       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timer, trim(annotation)//char(0))
+       local_annotation = annotation
+   endif
+
+   if (present(field_update_status)) then
+       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timer, temp_field_update_status, size(field_update_status), num_dst_fields, trim(local_annotation)//char(0))
+       field_update_status(1:num_dst_fields) = temp_field_update_status(1:num_dst_fields)
    else 
-       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timer, trim("")//char(0))
+       call execute_inout_interface_with_name(component_id, trim(interface_name)//char(0), local_bypass_timer, temp_field_update_status, 4000, num_dst_fields, trim(local_annotation)//char(0))
    endif
 
    CCPL_execute_interface_using_name = .true.

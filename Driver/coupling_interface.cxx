@@ -33,31 +33,6 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 }
 
 
-extern "C" void coupling_initialize_ensemble_manager_(int *ensemble_id, int *have_random_seed_for_perturbation, int *root_random_seed_for_perturbation, const char *perturbation_type)
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, ensemble_mgr != NULL, "C-Coupler software error: ensemble_mgr is not created before the initialization");
-	ensemble_mgr->Initialize(*ensemble_id, *have_random_seed_for_perturbation, *root_random_seed_for_perturbation, perturbation_type);
-}
-
-
-extern "C" void coupling_add_field_for_perturbing_roundoff_errors_(void *data_buf)
-{
-	ensemble_mgr->register_a_field_for_perturbation(data_buf);
-}
-
-
-extern "C" void coupling_perturb_roundoff_errors_for_an_array_(void *field_data_buf, const char *data_type, int *field_size)
-{
-	ensemble_mgr->perturb_a_model_array(field_data_buf, data_type, *field_size);
-}
-
-
-extern "C" void coupling_perturb_roundoff_errors_()
-{
-	ensemble_mgr->run();
-}
-
-
 extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
@@ -195,13 +170,6 @@ extern "C" void coupling_abort_(const char *error_string)
 }
 
 
-extern "C" void coupling_check_sum_for_all_fields_()
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, memory_manager != NULL, "C-Coupler is not initialized when the component call the interface for checking sum of all fields managed by the C-Coupler");
-	memory_manager->check_sum_of_all_fields();
-}
-
-
 extern "C" void initialize_ccpl_mgrs_()
 {
 	execution_phase_number = 1;
@@ -332,6 +300,14 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 	}
 	else *comp_id = node->get_local_node_id();
 	
+}
+
+
+extern "C" void is_current_process_in_component_(const char *comp_full_name, int *is_in_comp, const char *annotation)
+{
+	check_for_component_registered(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, annotation);
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_full_name);
+	*is_in_comp = comp_node != NULL && comp_node->get_current_proc_local_id() != -1? 1 : 0;
 }
 
 
@@ -694,19 +670,17 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 }
 
 
-extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, const char *annotation)
+extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
-	inout_interface_mgr->execute_interface(*interface_id, *bypass_timer == 1, annotation);
+	inout_interface_mgr->execute_interface(*interface_id, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
 }
 
 
-extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *interface_name, int *bypass_timer, const char *annotation)
+extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *interface_name, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
-	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, annotation);
-	printf("finsh executing interface %s\n", interface_name);
-	fflush(NULL);
+	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
 }
 
 
