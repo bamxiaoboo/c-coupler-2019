@@ -31,7 +31,8 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 	}
 	next_timer_num_elapsed_days = -1;
 	next_timer_second = -1;
-	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
+	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
+		                             current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
 	if (words_are_the_same(timer->get_frequency_unit(), FREQUENCY_UNIT_SECONDS))
 		lag_seconds = timer->get_remote_lag_count();
 	else lag_seconds = timer->get_remote_lag_count() * SECONDS_PER_DAY;
@@ -40,7 +41,8 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 
 void Connection_field_time_info::get_time_of_next_timer_on(bool advance)
 {
-	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, advance);
+	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
+		                             current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, advance);
 }
 
 
@@ -52,7 +54,9 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 
 	for (int i = 0; i < coupling_connection->fields_name.size(); i ++)
 		for (int j=i+1; j < coupling_connection->fields_name.size(); j ++)
-			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(coupling_connection->fields_name[i], coupling_connection->fields_name[j]), "Software error in Connection_coupling_procedure::Connection_coupling_procedure: duplicated field name \"%s\" in a coonection", coupling_connection->fields_name[i]);
+			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(coupling_connection->fields_name[i], coupling_connection->fields_name[j]), 
+			                 "Software error in Connection_coupling_procedure::Connection_coupling_procedure: duplicated field name \"%s\" in a coonection", 
+			                 coupling_connection->fields_name[i]);
 
 	for (int i = 0; i < coupling_connection->src_fields_info.size(); i ++) {
 		runtime_inner_averaging_algorithm.push_back(NULL);
@@ -67,8 +71,10 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		current_remote_fields_time.push_back(-1);
 		last_remote_fields_time.push_back(-1);
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
-			fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
-			fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
+			fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, 
+				                                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
+			fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, 
+				                                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
 		}
 		else {
 			fields_mem_inner_step_averaged.push_back(NULL);
@@ -89,25 +95,37 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
 			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
 		}
-		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
+		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? 
+			                             coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (!words_are_the_same(transfer_data_type, coupling_connection->src_fields_info[i]->data_type)) {
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "for field %s, add data type transformation at src from %s to %s\n", fields_mem_registered[i]->get_field_name(), coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
-				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
+					             "For field %s, add data type transformation at src from %s to %s\n", 
+					             fields_mem_registered[i]->get_field_name(), coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
+				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, 
+					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
 			}	
 		}	
 		if (inout_interface->get_import_or_export_or_remap() == 0) {
 			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, 
+				                                                   inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 			else {
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), 
+					                                               coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, 
+					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), 
+					                                               BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", 
+					                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
 			}
 			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "for field %s, add data type transformation at dst from %s to %s\n", fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
-				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
+					             "for field %s, add data type transformation at dst from %s to %s\n", 
+					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
+				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, 
+					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 				if (fields_mem_remapped[i] == NULL)
 					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
 				else runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_remapped[i], fields_mem_datatype_transformed[i]);
@@ -170,7 +188,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				local_fields_time_info->get_time_of_next_timer_on(true);
 			}
 			while((((long)remote_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY))+remote_fields_time_info->current_second+lag_seconds <= (((long)local_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY)) + local_fields_time_info->current_second) {
-				if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day(), time_mgr->is_time_advanced())) {
+				if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, 
+					                                            time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day(), time_mgr->is_time_advanced())) {
 					remote_fields_time_info->last_timer_num_elapsed_days = remote_fields_time_info->current_num_elapsed_days;
 					remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
 				}	
@@ -436,7 +455,7 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), str, annotation);
 	
 	if (interface_type == INTERFACE_TYPE_REGISTER)
-		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);	
+		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, true, annotation);	
 	check_and_verify_name_format_of_string_for_API(comp_id, interface_name, API_id, "the interface", annotation);
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), NULL, num_fields, "num_field_instances", annotation);
 	sprintf(str, "\"%s\" (the information of the field instances)", field_ids_parameter_name);

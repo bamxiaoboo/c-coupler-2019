@@ -92,9 +92,7 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
 		num_levels = local_field->get_field_data()->get_coord_value_grid()->get_grid_size() / num_local_cells;
 	    num_points_in_each_cell = local_field->get_field_data()->get_grid_data_field()->required_data_size / num_local_cells / num_levels;
 	    EXECUTION_REPORT(REPORT_ERROR,-1, num_points_in_each_cell > 0, "C-Coupler software error in Gather_scatter_rearrange_info\n");
-		EXECUTION_REPORT(REPORT_ERROR,-1, local_field->get_field_data()->get_coord_value_grid()->get_grid_size()%num_local_cells == 0, 
-			         "c_coupler error in Gather_scatter_rearrange_info::Gather_scatter_rearrange_info\n");		
-		EXECUTION_REPORT(REPORT_LOG,-1, true, "num of levels and num of points in each cell in Gather_scatter_rearrange_info are %d and %d", num_levels, num_points_in_each_cell);
+		EXECUTION_REPORT(REPORT_ERROR,-1, local_field->get_field_data()->get_coord_value_grid()->get_grid_size()%num_local_cells == 0, "c_coupler error in Gather_scatter_rearrange_info::Gather_scatter_rearrange_info\n");		
 	}
 	else {
 		num_levels = -1;

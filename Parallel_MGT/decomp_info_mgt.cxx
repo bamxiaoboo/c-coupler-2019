@@ -49,7 +49,9 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
     if (num_local_cells == 0)
         local_cell_global_indx = NULL;
     else {
-        EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "parallel decomposition \"%s\" on the grid \"%s\" has %d local grid cells", decomp_name, original_grid_mgr->search_grid_info(grid_id)->get_grid_name());
+        EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, 
+			             "parallel decomposition \"%s\" on the grid \"%s\" has %d local grid cells", 
+			             decomp_name, original_grid_mgr->search_grid_info(grid_id)->get_grid_name());
         local_cell_global_indx = new int [num_local_cells];
         for (i = 0; i < num_local_cells; i ++) {
 			if (cell_indexes_in_decomp[i] == CCPL_NULL_INT)
@@ -65,7 +67,6 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
 
 Decomp_info::~Decomp_info()
 {
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "deleting decomposition %s", decomp_name);
     if (local_cell_global_indx != NULL)
         delete [] local_cell_global_indx;
 }
@@ -179,7 +180,8 @@ int Decomp_info_mgt::register_H2D_parallel_decomposition(const char *decomp_name
 	Decomp_info *new_decomp = new Decomp_info(decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), -1, grid_id, num_local_cells, cell_indexes_in_decomp, annotation, true);
 
 	if (search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)) != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\" at the model code with the annotation \"%s\": a parallel decomposition with the same name has already been registered before at the model code with the annotations \"%s\". Please verify.",
+		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, 
+		                 "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\" at the model code with the annotation \"%s\": a parallel decomposition with the same name has already been registered before at the model code with the annotations \"%s\". Please verify.",
 					     decomp_name, annotation, annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id))->get_decomp_id(), "register decomposition"), annotation);
 
 	decomps_info.push_back(new_decomp);

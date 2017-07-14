@@ -29,7 +29,9 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 	this->decomp_id = decomp_id;
 	strcpy(this->decomp_name, decomp->get_decomp_name());
 	this->original_grid = original_grid;
-    EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, "Generate decomposition grid for the grid \"%s\" on the parallel decomposition \"%s\"", original_grid->get_grid_name(), decomp_name);
+    EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, 
+		             "Generate decomposition grid for the grid \"%s\" on the parallel decomposition \"%s\"", 
+		             original_grid->get_grid_name(), decomp_name);
 
 	if (decomp->get_num_local_cells() == 0) {
 		this->decomp_grid = NULL;
@@ -38,7 +40,9 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 
     if (this->original_grid->get_is_sphere_grid()) {
         EXECUTION_REPORT(REPORT_ERROR, -1, decomp_info_grid == original_grid, "Software error in Decomp_grid_info::Decomp_grid_info: inconsistent H2D grid: %s  %s  %s", original_grid->get_grid_name(), decomp->get_grid_name(), decomp_name);
-		EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, "generate decomposition sphere grid (%s %s) with size %d", decomp_name, original_grid->get_grid_name(), decomp->get_num_local_cells());
+		EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, 
+			             "generate decomposition sphere grid (%s %s) with size %d", 
+			             decomp_name, original_grid->get_grid_name(), decomp->get_num_local_cells());
         this->decomp_grid = this->original_grid->generate_decomp_grid(decomp->get_local_cell_global_indx(), decomp->get_num_local_cells(), decomp_name);
     }
     else {
@@ -67,8 +71,6 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
         this->decomp_grid = new Remap_grid_class(decomp_grid_name, num_sub_grids, sub_grids, 0);
 		this->decomp_grid->set_decomp_name(decomp_name);
 		this->decomp_grid->set_original_grid(original_grid);
-		EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, "the size of decomp grid %s is %ld %d", this->decomp_grid->get_grid_name(), this->decomp_grid->get_grid_size(), num_sub_grids);
-		EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, "the size of decomp 2D grid %s is %ld vs %d", decomp_2D_grid->get_grid_name(), decomp_2D_grid->get_grid_size(), decomp->get_num_local_cells());
 		if (original_grid->has_grid_coord_label(COORD_LABEL_LEV))
 			this->decomp_grid->generate_3D_grid_decomp_sigma_values(original_grid, decomp_2D_grid, decomp->get_local_cell_global_indx(), decomp->get_num_local_cells());
     }

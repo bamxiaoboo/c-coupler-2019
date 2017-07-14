@@ -18,6 +18,7 @@
 #include <vector>
 
 
+#define COMP_TYPE_COUPLED          "coupled_system"
 #define COMP_TYPE_CPL              "cpl"
 #define COMP_TYPE_ATM              "atm"
 #define COMP_TYPE_ATM_CHEM         "atm_chem"
@@ -105,13 +106,14 @@ class Comp_comm_group_mgt_node
 		int get_num_procs() const { return local_processes_global_ids.size(); }
 		int get_root_proc_global_id() const { return local_processes_global_ids[0]; }
 		int get_local_proc_global_id(int);
-		void confirm_coupling_configuration_active(int, const char*);
+		void confirm_coupling_configuration_active(int, bool, const char*);
 		const char *get_full_name() { return full_name; }
 		Comp_comm_group_mgt_node *load_comp_info_from_XML(const char *);
 		void load_coupling_interface_tags();
 		bool search_coupling_interface_tag(const char*, char*, char*);
 		const char *get_comp_log_file_name() { return comp_log_file_name; } 
 		const char *get_exe_log_file_name() { return exe_log_file_name; } 
+		bool is_real_component_model();
 };
 
 
@@ -120,6 +122,7 @@ class Comp_comm_group_mgt_mgr
 	private:
 		std::vector<Comp_comm_group_mgt_node*> global_node_array;
 		Comp_comm_group_mgt_node *global_node_root;
+		Comp_comm_group_mgt_node *first_active_comp;
 		bool definition_finalized;
 		int current_proc_global_id;
 		int num_total_global_procs;
@@ -144,6 +147,7 @@ class Comp_comm_group_mgt_mgr
 		MPI_Comm get_comm_group_of_local_comp(int, const char*);
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
+		Comp_comm_group_mgt_node *get_root_component_model() { return global_node_array[1]; }
 		const char *get_comp_log_file_name(int);
 		const char *get_exe_log_file_name(int);
 		void get_output_data_file_header(int, char*);
@@ -163,11 +167,13 @@ class Comp_comm_group_mgt_mgr
 		const char *get_components_processes_dir() { return components_processes_dir; }
 		const char *get_comps_ending_config_status_dir() { return comps_ending_config_status_dir; }
 		const char *get_config_root_dir() { return runtime_config_root_dir; }
-		const char *get_config_root_comp_dir() { return global_node_array[1]->get_config_comp_dir(); }
+		const char *get_config_root_comp_dir() { return first_active_comp->get_config_comp_dir(); }
 		const char *get_coupling_flow_config_dir() { return coupling_flow_config_dir; }
-		void confirm_coupling_configuration_active(int, int, const char*);
+		void confirm_coupling_configuration_active(int, int, bool, const char*);
 		const int *get_all_components_ids();
 		void generate_sorted_comp_ids();
+		void set_first_active_comp(Comp_comm_group_mgt_node *);
+		Comp_comm_group_mgt_node *get_first_active_comp() { return first_active_comp; }
 		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }
 		bool has_comp_ended_configuration(const char*);

@@ -223,7 +223,6 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
     else {
         reference_cell_indx = local_cells_global_indexes_local;
         num_reference_cells = num_local_cells_local; 
-        //EXECUTION_REPORT(REPORT_LOG,-1, true, "use local index array in router (%s %s %s)", remote_comp_name, remote_decomp_name, local_decomp_name);
     }
 
     logical_indx_lookup_table_remote = new int [num_global_cells];
@@ -251,8 +250,6 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
             last_local_logical_indx = logical_indx_lookup_table_local[reference_cell_indx[j]];
             routing_info->num_elements_transferred ++;
         }
-
-    //EXECUTION_REPORT(REPORT_LOG,-1, true, "number of segments in router (%s %s %s) is %d", remote_comp_name, remote_decomp_name, local_decomp_name, routing_info->num_local_indx_segments);
 
     /* Compute the info of segments when there are common cells */
     last_local_logical_indx = -100;

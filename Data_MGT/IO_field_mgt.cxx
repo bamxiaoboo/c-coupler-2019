@@ -98,7 +98,7 @@ int IO_field_mgt::register_IO_fields(int num_field_inst, int size_field_inst_ids
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"");
 
 
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, annotation);
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, true, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_field_inst <= size_field_inst_ids, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the array size of the parameter \"field_inst_ids\" cannot be smaller than the parameter \"num_field_inst\". Please check the model code with the annotation \"%s\".", annotation);
 	for (int i = 1; i < num_field_inst; i ++)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_inst_ids[i])->get_comp_id(), "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the field instances specified by the parameter \"field_inst_ids\" do not correspond to the same component model. Please check the model code with the annotation \"%s\".", annotation);

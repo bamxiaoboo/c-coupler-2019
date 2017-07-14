@@ -179,7 +179,7 @@ void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
 }
 
 
-void check_for_coupling_registration_stage(int comp_id, int API_ID, const char *annotation)
+void check_for_coupling_registration_stage(int comp_id, int API_ID, bool require_real_model, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 	
@@ -187,7 +187,7 @@ void check_for_coupling_registration_stage(int comp_id, int API_ID, const char *
 	get_API_hint(-1, API_ID, API_label);
 	check_for_ccpl_managers_allocated(API_ID, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when calling the API \"%s\": The parameter of component ID is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, annotation);		
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, require_real_model, annotation);		
 }
 
 
@@ -198,7 +198,7 @@ void common_checking_for_grid_registration(int comp_id, const char *grid_name, c
 
 	
 	get_API_hint(comp_id, API_id, API_label);
-	check_for_coupling_registration_stage(comp_id, API_id, annotation);
+	check_for_coupling_registration_stage(comp_id, API_id, true, annotation);
 	existing_grid = original_grid_mgr->search_grid_info(grid_name, comp_id);
 	if (existing_grid != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"%s\" to register a grid \"%s\": another grid with the same name has already been registered before (at the model code with the annotation \"%s\"). It cannot be registered again (at the model code with the annotation \"%s\"). Please verify.", API_label, grid_name, annotation_mgr->get_annotation(existing_grid->get_grid_id(), "grid_registration"), annotation);

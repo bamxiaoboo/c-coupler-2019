@@ -128,11 +128,13 @@ void report_ender(int report_type, int comp_id, char *output_string)
 		fflush(NULL);
 	}
 	else {
-		const char *log_file_name =	comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
+		const char *log_file_name =	comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
+		printf("wrong comp id is %lx: %s\n", comp_id, log_file_name);
+		fflush(NULL);
 		FILE *log_file = fopen(log_file_name, "a+");
 		fprintf(log_file, "%s\n\n", output_string);
 		fclose(log_file);
-		log_file_name =	comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
+		log_file_name =	comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
 		log_file = fopen(log_file_name, "a+");
 		fprintf(log_file, "%s\n\n", output_string);
 		fclose(log_file);

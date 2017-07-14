@@ -449,7 +449,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Memory_mgt::register_external_field_instance: illegal component id from grid id");
 	}
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", annotation);
-	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, annotation);
+	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, true, annotation);
 	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", field_name, "field name", annotation);
 	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node")->get_comp_name(), "the component name specified by the corresponding ID", annotation);
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), NULL, buf_mark, "buf_mark", annotation);
