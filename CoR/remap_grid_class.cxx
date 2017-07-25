@@ -1109,9 +1109,7 @@ void Remap_grid_class::calculate_lev_sigma_values()
 				data_array_ptr[j] = (tmp_vertical_coord_values[j]+tmp_vertical_coord_values[j+1])/2;
 		}
     }
-	delete [] tmp_vertical_coord_values;
-	
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "calculate vertical grid coordinate values in a sigma 3D grid %s\n", grid_name);
+	delete [] tmp_vertical_coord_values;	
 }
 
 
@@ -3210,7 +3208,7 @@ bool Remap_grid_class::check_mask_values_consitency(const char *data_type, const
 }
 
 
-void Remap_grid_class::write_grid_field_into_array(Remap_grid_data_class *grid_field, char **array, int &buffer_max_size, int &buffer_content_size)
+void Remap_grid_class::write_grid_field_into_array(Remap_grid_data_class *grid_field, char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	int temp_int;
 
@@ -3224,7 +3222,7 @@ void Remap_grid_class::write_grid_field_into_array(Remap_grid_data_class *grid_f
 }
 
 
-void Remap_grid_class::read_grid_field_from_array(Remap_grid_data_class **grid_field, const char *array, int &buffer_content_iter)
+void Remap_grid_class::read_grid_field_from_array(Remap_grid_data_class **grid_field, const char *array, long &buffer_content_iter)
 {
 	int temp_int;
 
@@ -3235,7 +3233,7 @@ void Remap_grid_class::read_grid_field_from_array(Remap_grid_data_class **grid_f
 }
 
 
-void Remap_grid_class::write_grid_name_into_array(Remap_grid_class *grid, char **array, int &buffer_max_size, int &buffer_content_size)
+void Remap_grid_class::write_grid_name_into_array(Remap_grid_class *grid, char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	char temp_grid_name[NAME_STR_SIZE];
 
@@ -3263,7 +3261,7 @@ Remap_grid_class *Remap_grid_class::get_linked_grid_from_array(Remap_grid_class 
 
 
 
-void Remap_grid_class::write_grid_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+void Remap_grid_class::write_grid_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	int temp_int;
 
@@ -3304,7 +3302,7 @@ void Remap_grid_class::write_grid_into_array(char **array, int &buffer_max_size,
 }
 
 
-Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_name_suffix, const char *array, int &buffer_content_iter)
+Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_name_suffix, const char *array, long &buffer_content_iter)
 {
 	int temp_int;
 	char temp_grid_name[NAME_STR_SIZE];

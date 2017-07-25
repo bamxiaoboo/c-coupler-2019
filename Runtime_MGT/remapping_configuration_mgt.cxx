@@ -32,6 +32,9 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_na
 	checksum_dst_center_lat = get_grid_field_checksum_value("yc_b", netcdf_file_object, dst_grid_size);
 	checksum_dst_mask = get_grid_field_checksum_value("mask_b", netcdf_file_object, dst_grid_size);
 
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Checksum of the src grid of map file \"%s\" is: lon=%lx, lat=%lx, mask=%lx", wgt_file_name, checksum_src_center_lon, checksum_src_center_lat, checksum_src_mask);
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Checksum of the dst grid of map file \"%s\" is: lon=%lx, lat=%lx, mask=%lx", wgt_file_name, checksum_dst_center_lon, checksum_dst_center_lat, checksum_dst_mask);
+
 	delete netcdf_file_object;
 
 	num_wgts = 0;
@@ -41,7 +44,7 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_na
 }
 
 
-H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, int *buffer_content_iter)
+H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, long *buffer_content_iter)
 {	
 	read_data_from_array_buffer(wgt_file_name, NAME_STR_SIZE, array, *buffer_content_iter);
 	read_data_from_array_buffer(&checksum_dst_mask, sizeof(long), array, *buffer_content_iter);
@@ -60,7 +63,7 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, int 
 }
 
 
-void H2D_remapping_wgt_file_info::write_remapping_wgt_file_info_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+void H2D_remapping_wgt_file_info::write_remapping_wgt_file_info_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	write_data_into_array_buffer(&src_grid_size, sizeof(int), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_src_center_lon, sizeof(long), array, buffer_max_size, buffer_content_size);
@@ -165,7 +168,7 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(TiXmlElement *XML_element
 		char full_file_name[NAME_STR_SIZE];
 		if (words_are_the_same(overall_XML_file_name, XML_file_name))
 			sprintf(full_file_name, "%s/all/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), short_file_name);
-		else sprintf(full_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), short_file_name);
+		else sprintf(full_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_exe_dir(), short_file_name);
 		H2D_remapping_wgt_file_info *existing_wgt_file_info = all_H2D_remapping_wgt_files_info->search_wgt_file_info(full_file_name);
 		if (existing_wgt_file_info == NULL) {
 			H2D_remapping_wgt_files.push_back(new H2D_remapping_wgt_file_info(full_file_name));
@@ -176,7 +179,7 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(TiXmlElement *XML_element
 }
 
 
-H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(const char *array, int *buffer_content_iter)
+H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(const char *array, long *buffer_content_iter)
 {
 	int temp_int;
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter);
@@ -195,7 +198,7 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(const char *array, int *b
 }
 
 
-void H2D_remapping_wgt_file_mgt::write_remapping_wgt_files_info_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+void H2D_remapping_wgt_file_mgt::write_remapping_wgt_files_info_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	for (int i = H2D_remapping_wgt_files.size()-1; i >= 0; i --)
 		H2D_remapping_wgt_files[i]->write_remapping_wgt_file_info_into_array(array, buffer_max_size, buffer_content_size);
@@ -222,11 +225,16 @@ void H2D_remapping_wgt_file_mgt::append_remapping_weights(H2D_remapping_wgt_file
 }
 
 
-H2D_remapping_wgt_file_info *H2D_remapping_wgt_file_mgt::search_H2D_remapping_weight(Original_grid_info *src_H2D_grid, Original_grid_info *dst_H2D_grid)
+H2D_remapping_wgt_file_info *H2D_remapping_wgt_file_mgt::search_H2D_remapping_weight(Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid)
 {
+	if (src_original_grid->get_original_CoR_grid() != src_original_grid->get_H2D_sub_CoR_grid() && 
+		(src_original_grid->get_original_CoR_grid()->get_grid_mask_field() != NULL || dst_original_grid->get_original_CoR_grid()->get_grid_mask_field() != NULL))
+		return NULL;
+
 	for (int i = 0; i < H2D_remapping_wgt_files.size(); i ++)
-		if (H2D_remapping_wgt_files[i]->match_H2D_remapping_wgt(src_H2D_grid->get_checksum_center_lon(), src_H2D_grid->get_checksum_center_lat(), src_H2D_grid->get_checksum_H2D_mask(), dst_H2D_grid->get_checksum_center_lon(), dst_H2D_grid->get_checksum_center_lat(), dst_H2D_grid->get_checksum_H2D_mask()))
+		if (H2D_remapping_wgt_files[i]->match_H2D_remapping_wgt(src_original_grid->get_checksum_center_lon(), src_original_grid->get_checksum_center_lat(), src_original_grid->get_checksum_H2D_mask(), dst_original_grid->get_checksum_center_lon(), dst_original_grid->get_checksum_center_lat(), dst_original_grid->get_checksum_H2D_mask()))
 			return H2D_remapping_wgt_files[i];
+		
 	return NULL;	
 }
 
@@ -259,6 +267,15 @@ H2D_remapping_wgt_file_mgt *H2D_remapping_wgt_file_mgt::clone()
 		cloned_mgr->H2D_remapping_wgt_files.push_back(this->H2D_remapping_wgt_files[i]);
 
 	return cloned_mgr;
+}
+
+
+void H2D_remapping_wgt_file_mgt::shrink(Original_grid_info *src_grid, Original_grid_info *dst_grid)
+{
+	H2D_remapping_wgt_file_info *remapping_file = search_H2D_remapping_weight(src_grid, dst_grid);
+	H2D_remapping_wgt_files.clear();
+	if (remapping_file != NULL)
+		H2D_remapping_wgt_files.push_back(remapping_file);
 }
 
 
@@ -338,7 +355,7 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 }
 
 
-Remapping_algorithm_specification::Remapping_algorithm_specification(const char *array, int *buffer_content_iter)
+Remapping_algorithm_specification::Remapping_algorithm_specification(const char *array, long *buffer_content_iter)
 {
 	read_data_from_array_buffer(&type_id, sizeof(int), array, *buffer_content_iter);
 	read_data_from_array_buffer(algorithm_name, NAME_STR_SIZE, array, *buffer_content_iter);
@@ -376,7 +393,20 @@ void Remapping_algorithm_specification::print()
 }
 
 
-void Remapping_algorithm_specification::write_remapping_algorithm_specification_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+void Remapping_algorithm_specification::clean()
+{
+	for (int i = 0; i < parameters_name.size(); i ++) {
+		delete [] parameters_value[i];
+		delete [] parameters_name[i];
+	}
+	parameters_name.clear();
+	parameters_value.clear();
+	algorithm_name[0] = '\0';
+	type_id = -1;
+}
+
+
+void Remapping_algorithm_specification::write_remapping_algorithm_specification_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	for (int i = parameters_name.size()-1; i >= 0; i --) {
 		write_string_into_array_buffer(parameters_value[i], NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
@@ -648,7 +678,7 @@ void Remapping_setting::print()
 }
 
 
-void Remapping_setting::write_remapping_setting_into_array(char **array, int &buffer_max_size, int &buffer_content_size)
+void Remapping_setting::write_remapping_setting_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, H2D_remapping_algorithm != NULL && V1D_remapping_algorithm != NULL && T1D_remapping_algorithm != NULL, "software error in Remapping_setting::write_remapping_setting_into_array");
 	T1D_remapping_algorithm->write_remapping_algorithm_specification_into_array(array, buffer_max_size, buffer_content_size);
@@ -660,7 +690,7 @@ void Remapping_setting::write_remapping_setting_into_array(char **array, int &bu
 }
 
 
-void Remapping_setting::read_remapping_setting_from_array(const char *array, int &buffer_content_iter)
+void Remapping_setting::read_remapping_setting_from_array(const char *array, long &buffer_content_iter)
 {	
 	H2D_remapping_wgt_file_mgr = new H2D_remapping_wgt_file_mgt(array, &buffer_content_iter);
 	H2D_remapping_algorithm = new Remapping_algorithm_specification(array, &buffer_content_iter);
@@ -723,19 +753,19 @@ bool Remapping_setting::is_the_same_as_another(Remapping_setting *another)
 }
 
 
-H2D_remapping_wgt_file_info *Remapping_setting::search_H2D_remapping_weight(Original_grid_info *src_H2D_grid, Original_grid_info *dst_H2D_grid)
+H2D_remapping_wgt_file_info *Remapping_setting::search_H2D_remapping_weight(Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid)
 {
 	if (H2D_remapping_wgt_file_mgr == NULL)
 		return NULL;
 	
-	return H2D_remapping_wgt_file_mgr->search_H2D_remapping_weight(src_H2D_grid, dst_H2D_grid);
+	return H2D_remapping_wgt_file_mgr->search_H2D_remapping_weight(src_original_grid, dst_original_grid);
 }
 
 
 long Remapping_setting::calculate_checksum()
 {
 	char *temp_array = NULL;
-	int buffer_max_size, buffer_content_size;
+	long buffer_max_size, buffer_content_size;
 
 
 	write_remapping_setting_into_array(&temp_array, buffer_max_size, buffer_content_size);
@@ -743,6 +773,30 @@ long Remapping_setting::calculate_checksum()
 	delete [] temp_array;
 
 	return checksum;
+}
+
+
+void Remapping_setting::shrink(Original_grid_info *src_grid, Original_grid_info *dst_grid)
+{
+	printf("print remapping setting before shrink for %s\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_grid->get_comp_id(), "")->get_full_name());
+	print();
+	if (src_grid->get_V1D_sub_CoR_grid() == NULL)
+		V1D_remapping_algorithm->clean();
+	if (src_grid->get_T1D_sub_CoR_grid() == NULL)
+		T1D_remapping_algorithm->clean();
+	if (src_grid->get_H2D_sub_CoR_grid() == NULL)
+		H2D_remapping_algorithm->clean();
+	if (src_grid->get_H2D_sub_CoR_grid() == NULL && H2D_remapping_wgt_file_mgr != NULL)
+		H2D_remapping_wgt_file_mgr->clean();
+	if (H2D_remapping_wgt_file_mgr != NULL)
+		H2D_remapping_wgt_file_mgr->shrink(src_grid, dst_grid);
+	if (H2D_remapping_wgt_file_mgr != NULL && !H2D_remapping_wgt_file_mgr->is_empty()) {
+		delete H2D_remapping_algorithm;
+		H2D_remapping_algorithm = new Remapping_algorithm_specification(REMAP_OPERATOR_NAME_BILINEAR, REMAP_ALGORITHM_TYPE_H2D);
+	}
+
+	printf("print remapping setting after shrink for %s\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_grid->get_comp_id(), "")->get_full_name());	
+	print();
 }
 
 
@@ -822,7 +876,7 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration");
 	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
 		sprintf(XML_file_name, "%s/all/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
-	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
+	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_exe_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration"), false);
 	if (XML_file == NULL) {
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);

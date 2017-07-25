@@ -7,6 +7,7 @@
   ***************************************************************/
 
 
+#include <mpi.h>
 #include "global_data.h"
 #include "cor_global_data.h"
 #include "remap_mgt.h"
@@ -15,7 +16,6 @@
 #include <string.h>
 #include <sys/time.h>
 #include "coupling_interface.h"
-#include <mpi.h>
 
 
 int coupling_process_control_counter = 0;
@@ -192,23 +192,6 @@ extern "C" void initialize_ccpl_mgrs_()
 }
 
 
-void initialize_ccpl_mgrs2(int comp_id)
-{
-	char file_name[NAME_STR_SIZE];
-	
-
-	if (!(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in initialize_ccpl_mgrs2") == comp_comm_group_mgt_mgr->get_first_active_comp()))
-		return;
-	
-	sprintf(file_name, "%s/all/env_run.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
-	components_time_mgrs->define_root_comp_time_mgr(comp_id, file_name);
-	fields_info = new Field_info_mgt();
-	original_grid_mgr = new Original_grid_mgt();
-	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
-	remapping_configuration_mgr->add_remapping_configuration(comp_id);
-}
-
-
 extern "C" void check_fortran_api_int_type_(int *fortran_int_size)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, *fortran_int_size == 4, "Error happens when using C-Coupler for model coupling: the size of an integer value in C-Coupler FORTRAN APIs is not 4 types. Please verify the compiler flag for C-Coupler and then recompile C-Coupler, to force the usage of 4-byte integer.");
@@ -223,6 +206,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	MPI_Comm local_comm = -1;
 	int root_comp_id;
 	int current_proc_global_id;
+	char file_name[NAME_STR_SIZE];
 
 
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the root component", annotation);
@@ -276,7 +260,14 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	else *comm = local_comm;
 
 	*comp_id = root_comp_id;
-	initialize_ccpl_mgrs2(root_comp_id);
+
+	sprintf(file_name, "%s/all/env_run.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
+	components_time_mgrs->define_root_comp_time_mgr(root_comp_id, file_name);
+	fields_info = new Field_info_mgt();
+	original_grid_mgr = new Original_grid_mgt();
+	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(root_comp_id,"")->is_real_component_model())
+		remapping_configuration_mgr->add_remapping_configuration(root_comp_id);
 }
 
 
@@ -292,9 +283,9 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
 	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, annotation);
-	initialize_ccpl_mgrs2(*comp_id);
-	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in initialize_ccpl_mgrs2")->is_real_component_model() && comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in initialize_ccpl_mgrs2") != comp_comm_group_mgt_mgr->get_first_active_comp())
-		components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->is_real_component_model())
+		remapping_configuration_mgr->add_remapping_configuration(*comp_id);
+	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
 }
 
 
@@ -465,7 +456,7 @@ extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const c
 
 
 	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
-	sprintf(full_data_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_comp_dir(), data_file_name);
+	sprintf(full_data_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_exe_dir(), data_file_name);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, full_data_file_name, annotation);
 }
 
@@ -616,6 +607,8 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_advance_time\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr() != NULL, "Software error in advance_component_time_");
+	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr()->do_restart_write(annotation);
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 }
 

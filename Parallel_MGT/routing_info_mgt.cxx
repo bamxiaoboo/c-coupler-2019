@@ -146,7 +146,7 @@ void Routing_info::build_2D_router()
 								 sizeof(int), num_cells_each_dst_proc, (void**)(&cells_indx_each_dst_proc), dst_comp_node->get_comm_group());
     }
 
-	int temp_size = num_src_procs*sizeof(int);
+	long temp_size = num_src_procs*sizeof(int);
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&num_cells_each_src_proc), temp_size);
 	temp_size = num_dst_procs*sizeof(int);
 	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), (char**)(&num_cells_each_dst_proc), temp_size);
@@ -154,10 +154,10 @@ void Routing_info::build_2D_router()
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&num_global_src_cells), temp_size);	
 	if (current_proc_id_dst_comp != -1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, *num_global_src_cells == *num_global_dst_cells, "Software error in Routing_info::build_2D_router: different global decomp grid size: %d vs %d", *num_global_src_cells, *num_global_dst_cells);
-	int total_src_cells = 0;
+	long total_src_cells = 0;
 	for (int i = 0; i < num_src_procs; i ++) 
 		total_src_cells += num_cells_each_src_proc[i] * sizeof(int);
-	int total_dst_cells = 0;
+	long total_dst_cells = 0;
 	for (int i = 0; i < num_dst_procs; i ++) 
 		total_dst_cells += num_cells_each_dst_proc[i] * sizeof(int);
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&cells_indx_each_src_proc), total_src_cells);
@@ -167,7 +167,7 @@ void Routing_info::build_2D_router()
         int tmp_displs = 0;
         for (int i = 0; i < num_dst_procs; i ++) {
             routing_info = compute_routing_info_between_decomps(num_local_src_cells, src_decomp_info->get_local_cell_global_indx(), num_cells_each_dst_proc[i], cells_indx_each_dst_proc+tmp_displs, 
-                                                                src_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), dst_comp_node->get_local_proc_global_id(i));
+                                                                src_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), dst_comp_node->get_local_proc_global_id(i), true);
             tmp_displs += num_cells_each_dst_proc[i];
 			send_to_remote_procs_routing_info.push_back(routing_info);
         }
@@ -177,7 +177,7 @@ void Routing_info::build_2D_router()
         int tmp_displs = 0;
         for (int i = 0; i < num_src_procs; i ++) {
             routing_info = compute_routing_info_between_decomps(num_local_dst_cells, dst_decomp_info->get_local_cell_global_indx(), num_cells_each_src_proc[i], cells_indx_each_src_proc+tmp_displs, 
-                                                                dst_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i));        
+                                                                dst_decomp_info->get_num_global_cells(), comp_comm_group_mgt_mgr->get_current_proc_global_id(), src_comp_node->get_local_proc_global_id(i), false);
             tmp_displs += num_cells_each_src_proc[i];
 			recv_from_remote_procs_routing_info.push_back(routing_info);
         }
@@ -196,7 +196,7 @@ void Routing_info::build_2D_router()
 
 Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomps(int num_local_cells_local, const int *local_cells_global_indexes_local, 
                                                   int num_local_cells_remote, const int *local_cells_global_indexes_remote, 
-                                                  int num_global_cells, int local_proc_id, int remote_proc_id)
+                                                  int num_global_cells, int local_proc_id, int remote_proc_id, bool is_src)
 {
     Routing_info_with_one_process *routing_info;
     const int *reference_cell_indx;
@@ -215,8 +215,7 @@ Routing_info_with_one_process *Routing_info::compute_routing_info_between_decomp
 		return routing_info;
     
     /* Determine the reference cell index table according to the table size */
-    if (num_local_cells_remote < num_local_cells_local ||
-        (num_local_cells_remote == num_local_cells_local && strcmp(src_comp_node->get_full_name(), dst_comp_node->get_full_name()) < 0)) {
+    if (num_local_cells_remote < num_local_cells_local || (num_local_cells_remote == num_local_cells_local && is_src)) {
         reference_cell_indx = local_cells_global_indexes_remote;
         num_reference_cells = num_local_cells_remote;  
     }

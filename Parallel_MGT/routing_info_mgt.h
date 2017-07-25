@@ -76,7 +76,7 @@ class Routing_info
         
     private:
         void build_2D_router();
-        Routing_info_with_one_process *compute_routing_info_between_decomps(int, const int*, int, const int*, int, int, int);
+        Routing_info_with_one_process *compute_routing_info_between_decomps(int, const int*, int, const int*, int, int, int, bool);
 };
 
 

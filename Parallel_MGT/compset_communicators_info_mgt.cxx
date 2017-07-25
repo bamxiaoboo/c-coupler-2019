@@ -92,12 +92,12 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->working_dir[0] = '\0';
 	this->comp_log_file_name[0] = '\0';
 	this->exe_log_file_name[0] = '\0';
-	this->config_comp_dir[0] = '\0';
 	global_node_id ++;
 	this->parent = parent;
 	temp_array_buffer = NULL;
 	definition_finalized = true;
 	unified_global_id = 0;
+	restart_mgr = new Restart_mgt(comp_id);
 
 	read_data_from_array_buffer(&num_children, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter);
 	for (int i = 0; i < num_children; i ++)
@@ -116,7 +116,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	
 	strcpy(this->comp_name, comp_name);
 	strcpy(this->comp_type, comp_type);
-	while(ancestor != NULL && words_are_the_same(ancestor->get_comp_type(), COMP_TYPE_COUPLED)) 
+	while(ancestor != NULL && words_are_the_same(ancestor->get_comp_type(), COMP_TYPE_PSEUDO_COUPLED)) 
 		ancestor = ancestor->get_parent();
 	if (ancestor == NULL || words_are_the_same(ancestor->get_comp_name(), "ROOT"))
 		strcpy(this->full_name, this->comp_name);
@@ -130,6 +130,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->temp_array_buffer = new char [buffer_max_size];
 	this->definition_finalized = false;	
 	this->unified_global_id = 0;
+	restart_mgr = new Restart_mgt(comp_id);
 
 	if (comm != -1) {
 		comm_group = comm;
@@ -193,18 +194,20 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	}
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(comp_type, COMP_TYPE_CPL) || words_are_the_same(comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_type, COMP_TYPE_ATM_CHEM) || words_are_the_same(comp_type, COMP_TYPE_OCN) ||
-		             words_are_the_same(comp_type, COMP_TYPE_LND) || words_are_the_same(comp_type, COMP_TYPE_SEA_ICE) || words_are_the_same(comp_type, COMP_TYPE_WAVE) || words_are_the_same(comp_type, COMP_TYPE_ROOT) || words_are_the_same(comp_type, COMP_TYPE_COUPLED), 
+		             words_are_the_same(comp_type, COMP_TYPE_LND) || words_are_the_same(comp_type, COMP_TYPE_SEA_ICE) || words_are_the_same(comp_type, COMP_TYPE_WAVE) || words_are_the_same(comp_type, COMP_TYPE_ROOT) || 
+		             words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED) || words_are_the_same(comp_type, COMP_TYPE_ACTIVE_COUPLED) || words_are_the_same(comp_type, COMP_TYPE_GLC) || words_are_the_same(comp_type, COMP_TYPE_RUNOFF), 
 		             "cannot register component \"%s\" (the corresponding model code annotation is \"%s\") because its type \"%s\" is wrong", 
 		             comp_name, annotation, comp_type);	
-	if (parent != NULL && words_are_the_same(comp_type, COMP_TYPE_COUPLED))
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(parent->comp_type, COMP_TYPE_COUPLED) || words_are_the_same(parent->comp_type, COMP_TYPE_ROOT), 
-		                 "Error happens when calling API \"CCPL_register_component\" to register a component model \"%s\" of type \"coupled_system\": the type of its parent component model \"%s\" is \"%s\" but not \"coupled_system\". Please check the model code related to the annotation \"%s\". Please verify", 
+	if (parent != NULL && words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED))
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(parent->comp_type, COMP_TYPE_PSEUDO_COUPLED) || words_are_the_same(parent->comp_type, COMP_TYPE_ROOT), 
+		                 "Error happens when calling API \"CCPL_register_component\" to register a component model \"%s\" of type \"pesudo_coupled_system\": the type of its parent component model \"%s\" is \"%s\" but not \"pesudo_coupled_system\". Please check the model code related to the annotation \"%s\". Please verify", 
 		                 comp_name, parent->comp_name, parent->comp_type, annotation);
-	if (parent != NULL && words_are_the_same(parent->comp_type, COMP_TYPE_COUPLED) && parent->children.size() > 0)
+/*
+	if (parent != NULL && words_are_the_same(parent->comp_type, COMP_TYPE_PSEUDO_COUPLED) && parent->children.size() > 0)
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, 
-		                 "Error happens when calling API \"CCPL_register_component\" to register a component model \"%s\" at the model code with the annotation \"%s\": its parent \"%s\" is a coupled system (type is \"coupled_system\") that can only have one child in a process while it already has a child \"%s\" (registerd at the model code with the annotation \"%s\"). Please verify.", 
+		                 "Error happens when calling API \"CCPL_register_component\" to register a component model \"%s\" at the model code with the annotation \"%s\": its parent \"%s\" is a coupled system (type is \"pesudo_coupled_system\") that can only have one child in a process while it already has a child \"%s\" (registerd at the model code with the annotation \"%s\"). Please verify.", 
 		                 comp_name, annotation, parent->comp_name, parent->children[0]->comp_name, parent->children[0]->get_annotation_start());
-
+*/
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(comm_group, &current_proc_local_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(comm_group, &num_procs) == MPI_SUCCESS);
@@ -229,20 +232,18 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	
 	if (ancestor != NULL) {
 		if (ancestor->get_parent() == NULL) {
-			sprintf(config_comp_dir, "%s/%s/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_type, comp_name);
-			printf("critical ancestor is %s: %s %s: %s\n", ancestor->get_full_name(), parent->get_full_name(), get_full_name(), config_comp_dir);
 			sprintf(working_dir, "%s/CCPL_dir/run/data/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type);
 			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
 		}
 		if (is_real_component_model()) {
 			sprintf(working_dir, "%s/CCPL_dir/run/data/%s/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, full_name);
 			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
-			sprintf(dir, "%s/CCPL_dir/run/CCPL_logs/by_components/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type);
-			create_directory(dir, comm_group, get_current_proc_local_id() == 0, false);	
-			sprintf(dir, "%s/CCPL_dir/run/CCPL_logs/by_components/%s/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type,full_name);
-			create_directory(dir, comm_group, get_current_proc_local_id() == 0, false);		
-			MPI_Barrier(get_comm_group());
 		}
+		sprintf(dir, "%s/CCPL_dir/run/CCPL_logs/by_components/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type);
+		create_directory(dir, comm_group, get_current_proc_local_id() == 0, false);	
+		sprintf(dir, "%s/CCPL_dir/run/CCPL_logs/by_components/%s/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type,full_name);
+		create_directory(dir, comm_group, get_current_proc_local_id() == 0, false);		
+		MPI_Barrier(get_comm_group());
 		sprintf(comp_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_components/%s/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, full_name, get_comp_name(), get_current_proc_local_id());
 		sprintf(exe_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_executables/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_comm_group_mgt_mgr->get_executable_name(), comp_comm_group_mgt_mgr->get_executable_name(), get_current_proc_local_id());
 	}
@@ -267,9 +268,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		XML_file->SaveFile(XML_file_name);
 		delete XML_file;
 	}
-
-	if (is_real_component_model() && parent != NULL && !parent->is_real_component_model())
-		comp_comm_group_mgt_mgr->set_first_active_comp(this);
 }
 
 
@@ -321,6 +319,8 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	printf("\n");
 
 	current_proc_local_id = -1;
+	parent = NULL;
+	restart_mgr = NULL;
 }
 
 
@@ -352,7 +352,6 @@ void Comp_comm_group_mgt_node::reset_dir(Comp_comm_group_mgt_node *another_node)
 	strcpy(working_dir, another_node->working_dir);
 	strcpy(comp_log_file_name, another_node->comp_log_file_name);
 	strcpy(exe_log_file_name, another_node->exe_log_file_name);
-	strcpy(config_comp_dir, another_node->config_comp_dir);
 }
 
 
@@ -360,6 +359,7 @@ void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 {
 	int i, num_children_at_root, *num_children_for_all, *counts, *displs;
 	char *temp_buffer, status_file_name[NAME_STR_SIZE];
+	int int_buffer_content_size;
 	
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, !definition_finalized, 
@@ -393,7 +393,8 @@ void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 	}
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&num_children_at_root, 1, MPI_INT, num_children_for_all, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
+	int_buffer_content_size = buffer_content_size;
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&int_buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
 
 	if (current_proc_local_id == 0) {
 		displs[0] = 0;
@@ -418,7 +419,7 @@ void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
 		delete [] displs;
 	}
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(&buffer_content_size, 1, MPI_INT, 0, comm_group)  == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(&buffer_content_size, 1, MPI_LONG, 0, comm_group)  == MPI_SUCCESS);
 	if (current_proc_local_id != 0) {
 		delete [] temp_array_buffer;
 		temp_array_buffer = new char [buffer_content_size];
@@ -478,12 +479,17 @@ void Comp_comm_group_mgt_node::update_child(const Comp_comm_group_mgt_node *chil
 	int i;
 
 
-	for (i = 0; i < children.size(); i ++)
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(child_old->full_name, child_new->full_name), "software error in Comp_comm_group_mgt_node::update_child: children names are not the same");
+	for (i = 0; i < children.size(); i ++) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, children[i]->parent == this, "software error in Comp_comm_group_mgt_node::update_child: wrong parent1");
+		EXECUTION_REPORT(REPORT_ERROR, -1, children[i]->parent != children[i], "software error in Comp_comm_group_mgt_node::update_child: wrong parent2");
 		if (children[i] == child_old) {
+			EXECUTION_REPORT(REPORT_LOG, child_old->comp_id, true, "Link the parent of component \"%s\" to \"%s\"", child_old->full_name, child_old->parent->get_full_name());
 			child_new->parent = this;
 			children[i] = child_new;
 			break;
 		}
+	}
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, i < children.size(), "software error in Comp_comm_group_mgt_node::update_child");
 }
@@ -512,7 +518,7 @@ void Comp_comm_group_mgt_node::confirm_coupling_configuration_active(int API_id,
 		             API_label, annotation, comp_name, get_annotation_end());
 	if (require_real_model)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, is_real_component_model(), 
-			             "ERROR happens when calling the API \"%s\" at the model code with the annotation \"%s\": the corresponding component model \"%s\" cannot handle coupling configuration because it is a coupled system (its type is \"coupled_system\"). Please verify.", 
+			             "ERROR happens when calling the API \"%s\" at the model code with the annotation \"%s\": the corresponding component model \"%s\" cannot handle coupling configuration because it is a coupled system (its type is \"pesudo_coupled_system\"). Please verify.", 
 			             API_label, annotation, comp_name);
 }
 
@@ -578,7 +584,7 @@ void Comp_comm_group_mgt_node::load_coupling_interface_tags()
 
 bool Comp_comm_group_mgt_node::is_real_component_model()
 { 
-	return !words_are_the_same(comp_type, COMP_TYPE_COUPLED) && !words_are_the_same(comp_type, COMP_TYPE_ROOT); 
+	return !words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED) && !words_are_the_same(comp_type, COMP_TYPE_ROOT); 
 }
 
 
@@ -612,6 +618,16 @@ bool Comp_comm_group_mgt_node::search_coupling_interface_tag(const char *interfa
 }
 
 
+bool Comp_comm_group_mgt_node::have_local_process(int local_proc_global_id)
+{
+	for (int i = 0; i < local_processes_global_ids.size(); i ++)
+		if (local_proc_global_id == local_processes_global_ids[i])
+			return true;
+		
+	return false;
+}
+
+
 Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 {
 	int i, j, num_procs, proc_id;
@@ -621,7 +637,6 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	
 	global_node_array.clear();
 	global_node_root = NULL;
-	first_active_comp = NULL;
 	definition_finalized = false;
 	EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(root_working_dir,NAME_STR_SIZE) != NULL, 
 		             "Cannot get the current working directory for running the model");
@@ -631,7 +646,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 			break;
 	i ++;
 	EXECUTION_REPORT(REPORT_ERROR,-1, i < strlen(executable_name), "Software error1 in Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr");
-	strcpy(this->executable_name, executable_name+i);
+	strcpy(this->executable_name, executable_name+i);	
+	EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(this->executable_name, "all"), "Error happens when using the executable \"%s\" to run the coupled system: the name of any executable cannot be all");
 
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(MPI_COMM_WORLD, &num_total_global_procs) == MPI_SUCCESS);	
@@ -653,11 +669,11 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/data/all/comps_ending_config_status", root_working_dir);
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);
+	sprintf(config_exe_dir, "%s/%s", runtime_config_root_dir, this->executable_name);
 	sprintf(coupling_flow_config_dir, "%s/CCPL_dir/run/data/all/coupling_flow_config", root_working_dir);
 	create_directory(coupling_flow_config_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(temp_string, "%s/CCPL_dir/run/CCPL_logs/by_executables", root_working_dir);
 	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
-
 	
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(MPI_COMM_WORLD, &num_procs) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &proc_id) == MPI_SUCCESS);
@@ -706,7 +722,6 @@ void Comp_comm_group_mgt_mgr::transform_global_node_tree_into_array(Comp_comm_gr
 void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all_global_nodes, int num_global_node)
 {
 	int i, j, old_global_array_size;
-	bool find_new_global_node;
 
 
 	for (i = 0; i < num_global_node; i ++)
@@ -728,6 +743,10 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all
 		delete global_node_array[i];
 		global_node_array[i] = all_global_nodes[j];
 	}
+
+	for (j = 0; j < num_global_node; j ++)
+		if (all_global_nodes[j]->have_local_process(comp_comm_group_mgt_mgr->get_current_proc_global_id()))
+			EXECUTION_REPORT(REPORT_ERROR, -1, all_global_nodes[j]->get_current_proc_local_id() != -1, "Software error in Comp_comm_group_mgt_mgr::update_global_nodes: fail1 to use component %s to replace", all_global_nodes[j]->get_full_name());
 	
 	old_global_array_size = global_node_array.size();
 	for (i = 0; i < num_global_node; i ++) {
@@ -735,7 +754,9 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all
 			if (all_global_nodes[i] == global_node_array[j])
 				break;
 			if (j == old_global_array_size) {
+				EXECUTION_REPORT(REPORT_ERROR, -1, all_global_nodes[i]->get_comp_id() == -1 && !all_global_nodes[i]->have_local_process(comp_comm_group_mgt_mgr->get_current_proc_global_id()), "Software error in Comp_comm_group_mgt_mgr::update_global_nodes: fail2 to use component %s to replace", all_global_nodes[i]->get_full_name());
 				all_global_nodes[i]->reset_local_node_id(global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX);
+				printf("append component model node of %s\n", all_global_nodes[i]->get_full_name());
 				global_node_array.push_back(all_global_nodes[i]);
 			}
 	}
@@ -818,10 +839,8 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 	global_node->transfer_data_buffer(new_root);
 	update_global_nodes(all_global_nodes, global_node_id);
 	for (int i = 0; i < global_node_id; i ++)
-		if (all_global_nodes[i]->get_local_node_id() == -1) {
-			all_global_nodes[i]->reset_local_node_id(global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX);
-			global_node_array.push_back(all_global_nodes[i]);
-		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, all_global_nodes[i]->get_local_node_id() != -1, "Software error in Comp_comm_group_mgt_mgr::merge_comp_comm_info: wrong comp_id");
+
 	delete [] all_global_nodes;
 
 	global_node = global_node_array[true_local_id];
@@ -838,6 +857,8 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 
 	if (true_local_id == 1)
 		merge_comp_comm_info(global_node_array[0]->get_local_node_id(), annotation);
+
+	check_validation();
 }
 
 
@@ -908,7 +929,12 @@ const char *Comp_comm_group_mgt_mgr::get_exe_log_file_name(int comp_id)
 	int true_comp_id;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_exe_log_file_name");
+	if (comp_id == -1) {
+		if (global_node_array.size() < 2)
+			return NULL;
+		return global_node_array[1]->get_exe_log_file_name();
+	}
+
 	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
 	return global_node_array[true_comp_id]->get_exe_log_file_name();
 }
@@ -963,11 +989,8 @@ void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
 	char XML_file_name[NAME_STR_SIZE];
 
 
-	if (current_proc_global_id != 0)
-		return;
-
 	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
-	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, false);
+	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, true);
 	
 	TiXmlElement *XML_element = XML_file->FirstChildElement();
 	TiXmlElement *Online_Model = XML_element->FirstChildElement();
@@ -986,11 +1009,30 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_comp_with_comp_name(co
 }
 
 
-Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(const char *full_name)
+void Comp_comm_group_mgt_mgr::check_validation()
 {
+	for (int i = 0; i < global_node_array.size(); i ++) {		
+		EXECUTION_REPORT(REPORT_ERROR, -1, (global_node_array[i]->get_comp_id()&TYPE_ID_SUFFIX_MASK) == i, "Software error in Comp_comm_group_mgt_mgr::check_validation: wrong comp id does not match array index");
+		EXECUTION_REPORT(REPORT_ERROR, -1, search_global_node(global_node_array[i]->get_comp_id()) == global_node_array[i], "Software error in Comp_comm_group_mgt_mgr::check_validation: wrong comp id");
+		if (global_node_array[i]->get_parent() != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, (global_node_array[i]->get_comp_id()&TYPE_ID_SUFFIX_MASK) > (global_node_array[i]->get_parent()->get_comp_id()&TYPE_ID_SUFFIX_MASK), "Software error in Comp_comm_group_mgt_mgr::check_validation: wrong parent1: %s vs %s", global_node_array[i]->get_full_name(), global_node_array[i]->get_parent()->get_full_name());
+			char full_name[NAME_STR_SIZE];
+			if ( global_node_array[i]->get_parent()->is_real_component_model()) {
+				sprintf(full_name, "%s@%s", global_node_array[i]->get_parent()->get_full_name(), global_node_array[i]->get_comp_name());
+				EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(full_name, global_node_array[i]->get_full_name()), "Software error in Comp_comm_group_mgt_mgr::check_validation: wrong parent2: %s vs %s", global_node_array[i]->get_full_name(), global_node_array[i]->get_parent()->get_full_name());
+			}
+			EXECUTION_REPORT(REPORT_ERROR, -1, search_global_node(global_node_array[i]->get_parent()->get_full_name()) == global_node_array[i]->get_parent(), "Software error in Comp_comm_group_mgt_mgr::check_validation: wrong parent3: %s vs %s", global_node_array[i]->get_full_name(), global_node_array[i]->get_parent()->get_full_name());
+		}	
+	}	
+}
+
+
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(const char *full_name)
+{	
 	for (int i = 0; i < global_node_array.size(); i ++)
-		if (words_are_the_same(global_node_array[i]->get_full_name(), full_name))
+		if (words_are_the_same(global_node_array[i]->get_full_name(), full_name)) {
 			return global_node_array[i];
+		}
 		
 	return NULL;	
 }
@@ -1081,12 +1123,5 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::pop_comp_node()
 	Comp_comm_group_mgt_node *top_comp_node = global_node_array[global_node_array.size()-1];
 	global_node_array.erase(global_node_array.begin()+global_node_array.size()-1);
 	return top_comp_node;
-}
-
-
-void Comp_comm_group_mgt_mgr::set_first_active_comp(Comp_comm_group_mgt_node *comp_node)
-{
-	EXECUTION_REPORT(REPORT_ERROR, -1, first_active_comp == NULL, "Software error in Comp_comm_group_mgt_mgr::set_first_active_comp");
-	first_active_comp = comp_node;
 }
 

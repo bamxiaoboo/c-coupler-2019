@@ -62,7 +62,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		return;
 	
 	specified_src_field_instance->use_field_values("");
-	specified_src_field_instance->check_field_sum("before data interpolation");
+//	specified_src_field_instance->check_field_sum("before data interpolation");
 	if (transform_data_type)
 		for (int i = 0; i < specified_src_field_instance->get_size_of_field(); i ++)
 			((double*)true_src_field_instance->get_data_buf())[i] = ((float*)specified_src_field_instance->get_data_buf())[i];
@@ -72,7 +72,7 @@ void Runtime_remap_algorithm::do_remap(bool is_algorithm_in_kernel_stage)
 		for (int i = 0; i < specified_dst_field_instance->get_size_of_field(); i ++)
 			((float*)specified_dst_field_instance->get_data_buf())[i] = ((double*)true_dst_field_instance->get_data_buf())[i];
 	specified_dst_field_instance->define_field_values(true);
-	specified_dst_field_instance->check_field_sum("after data interpolation");
+//	specified_dst_field_instance->check_field_sum("after data interpolation");
 }
 
 

@@ -15,7 +15,16 @@
 #define FREQUENCY_UNIT_DAYS             "days"
 #define FREQUENCY_UNIT_MONTHS           "months"
 #define FREQUENCY_UNIT_YEARS            "years"
+#define FREQUENCY_UNIT_NSTEPS           "nsteps"
+#define FREQUENCY_UNIT_NSECONDS         "nseconds"
+#define FREQUENCY_UNIT_NDAYS            "ndays"
+#define FREQUENCY_UNIT_NMONTHS          "nmonths"
+#define FREQUENCY_UNIT_NYEARS           "nyears"
 
+#define RUNTYPE_INITIAL                 "initial"
+#define RUNTYPE_CONTINUE                "continue"
+#define RUNTYPE_BRANCH                  "branch"
+#define RUNTYPE_HYBRID                  "hybrid"
 
 #define SECONDS_PER_DAY                     86400
 #define NUM_MONTH_PER_YEAR                  12
@@ -28,16 +37,6 @@
 
 
 class Time_mgt;
-
-
-struct Comps_transfer_time_info
-{
-    int remote_comp_id;
-    int remote_comp_frequency;
-    long remote_comp_time;
-    long local_comp_time;
-    int counter;
-};
 
 
 class Coupling_timer
@@ -58,17 +57,17 @@ class Coupling_timer
 		Coupling_timer(int, int, int*, int, int, const char *);
 		Coupling_timer(int, int, const char*, int, int, int, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
-		Coupling_timer(const char*, int &, int);
+		Coupling_timer(const char*, long &, int);
         ~Coupling_timer() {}
         bool is_timer_on();
-		bool is_timer_on(int, int, int, int, int, int, int, int, int, int, bool);
+		bool is_timer_on(int, int, int, int, int, int, int, int, int, int);
 		int get_timer_id() { return timer_id; }
 		int get_comp_id() { return comp_id; }
 		int get_frequency_count() { return frequency_count; }
 		int get_local_lag_count() { return local_lag_count; } 
 		int get_remote_lag_count() { return remote_lag_count; }
 		const char *get_frequency_unit() { return frequency_unit; }
-		void write_timer_into_array(char **, int &, int &);
+		void write_timer_into_array(char **, long &, long &);
 		void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
 		void reset_remote_lag_count() { remote_lag_count = 0; }
 		void check_timer_format();
@@ -114,7 +113,6 @@ class Time_mgt
         int stop_month;
         int stop_day;
         int stop_second;
-        int stop_latency_seconds;
         int time_step_in_second; 
         int current_num_elapsed_day;
 		int start_num_elapsed_day;
@@ -123,9 +121,6 @@ class Time_mgt
         long num_total_steps;
         bool leap_year_on;
         Coupling_timer *restart_timer;
-		bool time_advanced;
-        std::vector<Comps_transfer_time_info*> comps_transfer_time_infos;
-
 		int comp_id;
 		char case_name[NAME_STR_SIZE];
 		char exp_model_name[NAME_STR_SIZE];
@@ -161,7 +156,6 @@ class Time_mgt
 		int get_stop_num_elapsed_day() { return stop_num_elapsed_day; }
         void set_restart_time(long, long);
         bool is_timer_on(const char *, int, int);
-		bool is_time_advanced() { return time_advanced; }
         bool check_is_model_run_finished();
         bool check_is_coupled_run_restart_time();
         double get_double_current_calendar_time(int, const char*);
@@ -172,10 +166,8 @@ class Time_mgt
         int get_current_date();
         int get_current_num_time_step();
         long get_num_total_step() { return num_total_steps; }
-        int get_comp_stop_latency_seconds() { return stop_latency_seconds; }
 		int get_current_num_days_in_year();
         void check_timer_format(const char*, int, int, int, bool, const char*);
-        Comps_transfer_time_info *allocate_comp_transfer_time_info(int);
 		bool check_time_consistency_between_components(long);
         long calculate_elapsed_day(int, int, int);
 		void get_elapsed_days_from_start_date(int*, int*);
@@ -193,6 +185,10 @@ class Time_mgt
 		void check_consistency_of_current_time(int, int, const char*);
 		int get_current_num_elapsed_day() { return current_num_elapsed_day; }
 		bool is_time_out_of_execution(long);
+		void write_time_mgt_into_array(char **, long &, long &);
+		void import_restart_data(const char*, long&, const char *, bool);
+		bool is_restart_timer_on() { return restart_timer->is_timer_on(); }
+		const char *get_case_name() { return case_name; }
 };
 
 

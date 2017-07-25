@@ -59,11 +59,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 		}
 		remap_operators[num_remap_operators++] = remap_operator_H2D;
 		remapping_setting->print();
-		bool check_wgt_file = true;
-		if (src_original_grid->get_original_CoR_grid() != src_original_grid->get_H2D_sub_CoR_grid())
-			check_wgt_file = src_original_grid->get_original_CoR_grid()->get_grid_mask_field() == NULL && dst_original_grid->get_original_CoR_grid()->get_grid_mask_field() == NULL;
-		if (check_wgt_file)
-			H2D_remapping_weight_file = remapping_setting->search_H2D_remapping_weight(src_original_grid, dst_original_grid);
+		H2D_remapping_weight_file = remapping_setting->search_H2D_remapping_weight(src_original_grid, dst_original_grid);
 	}
 	if (src_original_grid->get_V1D_sub_CoR_grid() != NULL) {
 		remap_grids[0] = src_original_grid->get_V1D_sub_CoR_grid();
@@ -256,6 +252,8 @@ Runtime_remapping_weights_mgt::~Runtime_remapping_weights_mgt()
 
 Runtime_remapping_weights *Runtime_remapping_weights_mgt::search_or_generate_runtime_remapping_weights(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
 {
+	remapping_setting->shrink(src_original_grid, dst_original_grid);
+	
 	for (int i = 0; i < runtime_remapping_weights.size(); i ++)
 		if (runtime_remapping_weights[i]->match_requirements(src_comp_id, dst_comp_id, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info))
 			return runtime_remapping_weights[i];

@@ -89,6 +89,7 @@ class Connection_coupling_procedure
 		Field_mem_info *get_data_transfer_field_instance(int); 
 		int get_num_runtime_remap_algorithms() { return runtime_remap_algorithms.size(); }
 		Runtime_remap_algorithm *get_runtime_remap_algorithm(int i) { return runtime_remap_algorithms[i]; }
+		Runtime_remapping_weights *get_runtime_remapping_weights(int i);
 		bool get_finish_status() { return finish_status; }
 };
 
@@ -117,7 +118,7 @@ class Inout_interface
 		long bypass_counter;
 
 	public:
-		Inout_interface(const char*, int&);
+		Inout_interface(const char*, long&);
 		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char*, const char *);
 		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, const char*, int, int);
 		~Inout_interface();
@@ -133,7 +134,7 @@ class Inout_interface
 		void get_fields_name(std::vector<const char*>*);
 		const char *get_field_name(int);
 		int get_num_dst_fields();
-		void transform_interface_into_array(char**, int&, int&);
+		void transform_interface_into_array(char**, long&, long&);
 		Field_mem_info *search_registered_field_instance(const char*);
 		Coupling_timer *get_timer() { return timer; }
 		void add_coupling_procedure(Connection_coupling_procedure*);
@@ -156,12 +157,12 @@ class Inout_interface_mgt
 		std::vector<Inout_interface*> interfaces;
 		std::vector<Runtime_trans_algorithm*> all_runtime_receive_algorithms;
 		char *temp_array_buffer;
-		int buffer_max_size;
-		int buffer_content_size;
-		int buffer_content_iter;
+		long buffer_max_size;
+		long buffer_content_size;
+		long buffer_content_iter;
 
 	public:
-		Inout_interface_mgt(const char*, int);
+		Inout_interface_mgt(const char*, long);
 		Inout_interface_mgt();
 		~Inout_interface_mgt();
 		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, const char*, int);

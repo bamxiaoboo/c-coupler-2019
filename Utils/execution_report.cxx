@@ -123,21 +123,21 @@ void report_ender(int report_type, int comp_id, char *output_string)
 	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
 
-	if (comp_id == -1 || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id)) {
+	if (comp_comm_group_mgt_mgr == NULL || (comp_id == -1 && comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id) == NULL)) {
 		printf("%s\n\n", output_string);
 		fflush(NULL);
 	}
 	else {
 		const char *log_file_name =	comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
-		printf("wrong comp id is %lx: %s\n", comp_id, log_file_name);
-		fflush(NULL);
 		FILE *log_file = fopen(log_file_name, "a+");
 		fprintf(log_file, "%s\n\n", output_string);
 		fclose(log_file);
-		log_file_name =	comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
-		log_file = fopen(log_file_name, "a+");
-		fprintf(log_file, "%s\n\n", output_string);
-		fclose(log_file);
+		if (comp_id != -1) {
+			log_file_name =	comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
+			log_file = fopen(log_file_name, "a+");
+			fprintf(log_file, "%s\n\n", output_string);
+			fclose(log_file);
+		}
 		if (report_type == REPORT_ERROR)
 			printf("ERROR happens. Please check the log file \"%s\"\n\n", log_file_name);
 	}
@@ -656,6 +656,22 @@ void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *
 		return;
 
 	sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2, value3);
+
+	report_ender(report_type, comp_id, output_string);
+}
+
+
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1) 
+{
+	char output_string[NAME_STR_SIZE*4];
+	
+
+	report_header(report_type, comp_id, condition, output_string);
+
+	if (!condition)
+		return;
+
+    sprintf(output_string+strlen(output_string), str1, str2, value1);
 
 	report_ender(report_type, comp_id, output_string);
 }

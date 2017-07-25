@@ -1082,7 +1082,6 @@
    else
       CCPL_is_first_step = .false.
    endif
-   CCPL_is_first_step = is_first_step
 
  END FUNCTION CCPL_is_first_step
 

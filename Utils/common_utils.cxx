@@ -13,14 +13,14 @@
 #include <stdlib.h>
 
 
-void write_string_into_array_buffer(const char *full_string, int array_size, char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
+void write_string_into_array_buffer(const char *full_string, long array_size, char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	write_data_into_array_buffer(full_string, array_size, temp_array_buffer, buffer_max_size, buffer_content_size);
 	memset((*temp_array_buffer)+buffer_content_size-array_size+strlen(full_string), 0, array_size-strlen(full_string));
 }
 
 
-void write_data_into_array_buffer(const void *data, int data_size, char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
+void write_data_into_array_buffer(const void *data, long data_size, char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	if (*temp_array_buffer == NULL) {
 		buffer_max_size = 2 * data_size;
@@ -42,7 +42,7 @@ void write_data_into_array_buffer(const void *data, int data_size, char **temp_a
 }
 
 
-void read_data_from_array_buffer(void *data, int data_size, const char *temp_array_buffer, int &buffer_content_iter)
+void read_data_from_array_buffer(void *data, long data_size, const char *temp_array_buffer, long &buffer_content_iter)
 {
 	EXECUTION_REPORT(REPORT_ERROR,-1, data_size <= buffer_content_iter, "Software error in read_data_from_array_buffer");
 	

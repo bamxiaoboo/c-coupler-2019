@@ -26,10 +26,17 @@ Coupling_connection::Coupling_connection(int id)
 }
 
 
+Coupling_connection::~Coupling_connection()
+{
+}
+
+
 void Coupling_connection::generate_a_coupling_procedure(bool has_frac_remapping)
 {
 	src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first);
 	dst_comp_node =comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, src_comp_node != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: Cannot find the src comp_node for \"%s\"", src_comp_interfaces[0].first);
+	EXECUTION_REPORT(REPORT_ERROR, -1, dst_comp_node != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: Cannot find the dst comp_node for \"%s\"", dst_comp_full_name);
 	current_proc_id_src_comp = src_comp_node->get_current_proc_local_id();
 	current_proc_id_dst_comp = dst_comp_node->get_current_proc_local_id();
 	src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
@@ -178,7 +185,8 @@ void Coupling_connection::generate_data_transfer()
 	Runtime_trans_algorithm * send_algorithm_object = NULL;
 	Runtime_trans_algorithm * recv_algorithm_object = NULL;
     MPI_Win data_win, tag_win;
-	int dst_comp_id, content_size = NAME_STR_SIZE;
+	int dst_comp_id;
+	long content_size = NAME_STR_SIZE;
 	char *temp_dst_decomp_name = new char [NAME_STR_SIZE];
 
 
@@ -243,7 +251,8 @@ void Coupling_connection::generate_data_transfer()
 bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_node, Comp_comm_group_mgt_node *receiver_comp_node, const char *grid_name)
 {
 	char *temp_array_buffer = NULL;
-	int buffer_max_size, buffer_content_size, original_grid_status, *all_original_grid_status, num_processes, bottom_field_variation_type;
+	long buffer_max_size, buffer_content_size;
+	int original_grid_status, *all_original_grid_status, num_processes, bottom_field_variation_type;
 	long checksum_lon, checksum_lat, checksum_mask;
 	bool should_exchange_grid = false;
 
@@ -325,7 +334,7 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 void Coupling_connection::exchange_remapping_setting(int i, Remapping_setting &field_remapping_setting)
 {
 	char *array = NULL;
-	int buffer_max_size, buffer_content_size;
+	long buffer_max_size, buffer_content_size;
 	
 	if (current_proc_id_src_comp != -1) {
 		remapping_configuration_mgr->get_field_remapping_setting(field_remapping_setting, src_comp_node->get_comp_id(), fields_name[i]);
@@ -377,7 +386,7 @@ void Coupling_connection::add_bottom_field_coupling_info(int field_connection_in
 void Coupling_connection::generate_src_bottom_field_coupling_info()
 {
 	int *bottom_fields_indx = NULL;
-	int buffer_max_size = 0, buffer_content_size = 0;
+	long buffer_max_size = 0, buffer_content_size = 0;
 
 
 	if (current_proc_id_dst_comp != -1)
@@ -462,7 +471,7 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 void Coupling_connection::exchange_connection_fields_info()
 {
 	char *src_fields_info_array = NULL, *dst_fields_info_array = NULL;
-	int src_fields_info_array_size, dst_fields_info_array_size, buffer_max_size, comp_id;
+	long src_fields_info_array_size, dst_fields_info_array_size, buffer_max_size, comp_id;
 
 
 	if (current_proc_id_dst_comp != -1)
@@ -484,7 +493,7 @@ void Coupling_connection::exchange_connection_fields_info()
 }
 
 
-void Coupling_connection::read_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter)
+void Coupling_connection::read_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, long buffer_content_iter)
 {
 	while (buffer_content_iter > 0) {
 		Interface_field_info *field_info = new Interface_field_info;
@@ -501,7 +510,7 @@ void Coupling_connection::read_fields_info_from_array(std::vector<Interface_fiel
 }
 
 
-void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, int buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
+void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, long buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
 	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
@@ -512,7 +521,7 @@ void Coupling_connection::read_connection_fields_info_from_array(std::vector<Int
 }
 
 
-void Coupling_connection::write_field_info_into_array(Field_mem_info *field, char **array, int &buffer_max_size,int &buffer_content_size)
+void Coupling_connection::write_field_info_into_array(Field_mem_info *field, char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	char tmp_string[NAME_STR_SIZE];
 
@@ -535,7 +544,7 @@ void Coupling_connection::write_field_info_into_array(Field_mem_info *field, cha
 }
  
 
-void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, int &buffer_max_size,int &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
+void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, long &buffer_max_size, long &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
 	char tmp_string[NAME_STR_SIZE];
 
@@ -556,7 +565,7 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 void Coupling_connection::exchange_bottom_fields_info()
 {
 	char *src_fields_info_array = NULL, *dst_fields_info_array = NULL;
-	int src_fields_info_array_size = 0, dst_fields_info_array_size = 0, buffer_max_size;
+	long src_fields_info_array_size = 0, dst_fields_info_array_size = 0, buffer_max_size;
 
 
 	if (current_proc_id_dst_comp != -1)
@@ -845,7 +854,8 @@ void Coupling_generator::generate_coupling_procedures()
 {
 	bool define_use_wrong = false;
 	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
-	int current_array_buffer_size, max_array_buffer_size, temp_int;	
+	long current_array_buffer_size, max_array_buffer_size;
+	int temp_int;	
 	Coupling_connection *coupling_connection;
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 	
@@ -969,12 +979,13 @@ void Coupling_generator::generate_coupling_procedures()
 	}
 	
 
-	MPI_Bcast(&current_array_buffer_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&current_array_buffer_size, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) 
 		temp_array_buffer = new char [current_array_buffer_size];
 	MPI_Bcast(temp_array_buffer, current_array_buffer_size, MPI_CHAR, 0, MPI_COMM_WORLD);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) {
-		int num_connections, num_fields, num_sources, buffer_content_iter = current_array_buffer_size;
+		int num_connections, num_fields, num_sources;
+		long buffer_content_iter = current_array_buffer_size;
 		read_data_from_array_buffer(&num_connections, sizeof(int), temp_array_buffer, buffer_content_iter);
 		for (int i = 0; i < num_connections; i ++) {
 			int connection_id;
@@ -1038,7 +1049,7 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 	export_field_index_lookup_table = new Dictionary<int>(1024);
 
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
-		int buffer_content_iter = buffer_content_size;
+		long buffer_content_iter = buffer_content_size;
 		int import_or_export, field_id_iter = 100, field_index, num_fields;
 		while (buffer_content_iter > 0) {
 			read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
@@ -1119,7 +1130,7 @@ void Coupling_generator::build_coupling_connections_for_unconnected_fixed_interf
 
 void Coupling_generator::transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &interfaces, Comp_comm_group_mgt_node *comp_node_src, Comp_comm_group_mgt_node *comp_node_dst)
 {
-	int buffer_max_size = 0, buffer_content_size = 0;
+	long buffer_max_size = 0, buffer_content_size = 0;
 	char *temp_array_buffer = NULL;
 
 	
@@ -1139,7 +1150,8 @@ void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_co
 {
 	std::vector<Inout_interface*> unconnected_fixed_interfaces_comp1, unconnected_fixed_interfaces_comp2;
 	std::vector<Inout_interface*> unconnected_fixed_import_interfaces, unconnected_fixed_export_interfaces;
-	int *connection_id_comp1 = NULL, *connection_id_comp2 = NULL, data_size;
+	int *connection_id_comp1 = NULL, *connection_id_comp2 = NULL;
+	long data_size;
 	
 
 	if (comp_node1->get_current_proc_local_id() == 0)
@@ -1187,7 +1199,7 @@ void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_co
 
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure(false);
-		delete all_coupling_connections[i];
+//		delete all_coupling_connections[i];
 	}	
 	all_coupling_connections.clear();
 

@@ -52,7 +52,7 @@ double det(const Point *pt1, const Point *pt2, const Point *pt3)
 
 vector<Point*>::iterator get_nearest_point(const Point *pt, vector<Point*> *points)
 {
-	double min_dist = 100000000000;
+	double min_dist = (double)1000000000000000;
 	int i, pos =-1;
 
 	

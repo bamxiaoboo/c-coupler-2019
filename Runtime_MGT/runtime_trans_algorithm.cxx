@@ -168,8 +168,10 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
             recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1];
     }
 
-	for (int i = 0; i < num_transfered_fields; i ++)
+	for (int i = 0; i < num_transfered_fields; i ++) {
+		current_receive_field_sender_time[i] = -1;
 		last_receive_field_sender_time[i] = -1;
+	}
 
     delete [] total_transfer_size_with_remote_procs;
 
@@ -236,7 +238,7 @@ bool Runtime_trans_algorithm::set_remote_tags(bool bypass_timer, long bypass_cou
 	for (int i = 0; i < num_transfered_fields; i ++)
 		if (transfer_process_on[i]) {
 			if (bypass_timer) {
-				tag_buf[i] = current_full_time + bypass_counter*((long)10000000000);
+				tag_buf[i] = current_full_time + bypass_counter*((long)100000000000000);
 				tag_buf[num_transfered_fields+i] = -999;
 			}
 			else {
@@ -316,6 +318,9 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
     bool is_ready = true, has_new_data = false;
 
 
+	if (index_remote_procs_with_common_data.size() == 0)
+		return;
+
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
 	for (int j = 0; j < num_transfered_fields; j ++)
 	    for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
@@ -388,7 +393,7 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
 	MPI_Win_unlock(current_proc_id_union_comm, data_win);	
 
 	for (int i = 0; i < num_transfered_fields; i ++)
-		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %lld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time[i]);
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time[i]);
 
 	set_local_tags();
 }
@@ -494,11 +499,17 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
         if (transfer_process_on[j]) {
 			fields_mem[j]->check_field_sum("after receiving data");
 			fields_mem[j]->define_field_values(false);
-			last_receive_sender_time[j] = history_receive_sender_time[last_history_receive_buffer_index][j];
+			if (index_remote_procs_with_common_data.size() > 0)
+				last_receive_sender_time[j] = history_receive_sender_time[last_history_receive_buffer_index][j];
+			else if (bypass_timer)
+				last_receive_sender_time[j] = bypass_counter*((long)100000000000000);
+			else last_receive_sender_time[j] = current_remote_fields_time[j];
         }    
 
-	history_receive_buffer_status[last_history_receive_buffer_index] = false;
-	last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
+	if (index_remote_procs_with_common_data.size() > 0) {
+		history_receive_buffer_status[last_history_receive_buffer_index] = false;
+		last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
+	}
 
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
 	

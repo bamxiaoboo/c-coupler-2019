@@ -66,7 +66,7 @@ class Original_grid_info
 		bool is_V1D_sub_grid_after_H2D_sub_grid();
 		bool is_3D_grid() { return H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid != NULL && T1D_sub_CoR_grid == NULL; }
 		bool is_H2D_grid() { return H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL; } 
-		void write_grid_into_array(char **, int &, int &);
+		void write_grid_into_array(char **, long &, long &);
 		int get_bottom_field_id() { return bottom_field_id; }		
 		void get_grid_data(int, const char*, const char*, int, char*, const char*, const char*);
 		Original_grid_info *get_interface_level_grid() { return interface_level_grid; }

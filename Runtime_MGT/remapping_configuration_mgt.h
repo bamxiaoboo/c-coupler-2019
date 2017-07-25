@@ -42,12 +42,12 @@ class H2D_remapping_wgt_file_info
 
 	public:
 		H2D_remapping_wgt_file_info(const char*);
-		H2D_remapping_wgt_file_info(const char*, int*);
+		H2D_remapping_wgt_file_info(const char*, long*);
 		~H2D_remapping_wgt_file_info();
 		long get_grid_field_checksum_value(const char *, void *, int);
 		bool match_H2D_remapping_wgt(long, long, long, long, long, long);
 		const char *get_wgt_file_name() { return wgt_file_name; }
-		void write_remapping_wgt_file_info_into_array(char **, int &, int &);
+		void write_remapping_wgt_file_info_into_array(char **, long &, long &);
 		void read_remapping_weights();
 		long get_num_wgts() { return num_wgts; }
 		long *get_wgts_src_indexes () { return wgts_src_indexes; }
@@ -64,15 +64,18 @@ class H2D_remapping_wgt_file_mgt
 	public:
 		H2D_remapping_wgt_file_mgt() { }
 		H2D_remapping_wgt_file_mgt(TiXmlElement*, const char*);
-		H2D_remapping_wgt_file_mgt(const char *, int *);
+		H2D_remapping_wgt_file_mgt(const char *, long *);
 		~H2D_remapping_wgt_file_mgt() {}
 		H2D_remapping_wgt_file_info *search_remapping_weight_file(long, long, long, long, long, long);		
 		void append_remapping_weights(H2D_remapping_wgt_file_mgt *);
 		void print();
+		void clean() { H2D_remapping_wgt_files.clear(); }
 		H2D_remapping_wgt_file_info *search_H2D_remapping_weight(Original_grid_info*, Original_grid_info*);
-		void write_remapping_wgt_files_info_into_array(char **, int &, int &);
+		void write_remapping_wgt_files_info_into_array(char **, long &, long &);
 		bool is_the_same_as_another(H2D_remapping_wgt_file_mgt*);
 		H2D_remapping_wgt_file_mgt *clone();
+		void shrink(Original_grid_info*, Original_grid_info*);
+		bool is_empty() { return H2D_remapping_wgt_files.size() == 0; } 
 };
 
 
@@ -102,12 +105,13 @@ class Remapping_algorithm_specification
 	public:
 		Remapping_algorithm_specification(const Remapping_algorithm_specification*);
 		Remapping_algorithm_specification(const char*, int);
-		Remapping_algorithm_specification(const char *, int*);
+		Remapping_algorithm_specification(const char *, long*);
 		Remapping_algorithm_specification(int, TiXmlElement*, const char*, int);
 		Remapping_algorithm_specification() {}
 		~Remapping_algorithm_specification();
 		void print();
-		void write_remapping_algorithm_specification_into_array(char **, int &, int &);
+		void clean();
+		void write_remapping_algorithm_specification_into_array(char **, long &, long &);
 		const char *get_algorithm_name() { return algorithm_name; }
 		int get_num_parameters() { return parameters_name.size(); }
 		void get_parameter(int, char *, char *);
@@ -140,14 +144,15 @@ class Remapping_setting
 		Remapping_algorithm_specification *get_H2D_remapping_algorithm() { return H2D_remapping_algorithm; }
 		Remapping_algorithm_specification *get_V1D_remapping_algorithm() { return V1D_remapping_algorithm; }
 		Remapping_algorithm_specification *get_T1D_remapping_algorithm() { return T1D_remapping_algorithm; }
-		void write_remapping_setting_into_array(char **, int &, int &);
-		void read_remapping_setting_from_array(const char *, int &);
+		void write_remapping_setting_into_array(char **, long &, long &);
+		void read_remapping_setting_from_array(const char *, long &);
 		void print();
 		Remapping_setting *clone();
 		bool is_the_same_as_another(Remapping_setting*);
 		void append_H2D_remapping_weights(Remapping_setting *);
 		H2D_remapping_wgt_file_info *search_H2D_remapping_weight(Original_grid_info *, Original_grid_info*);
 		long calculate_checksum();
+		void shrink(Original_grid_info*, Original_grid_info*);
 };
 
 

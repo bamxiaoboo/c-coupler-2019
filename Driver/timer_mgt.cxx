@@ -22,23 +22,22 @@ int num_days_of_month_of_leap_year[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 
 
 bool common_is_timer_on(const char *frequency_unit, int frequency_count, int local_lag_count, int current_year, 
 	                  int current_month, int current_day, int current_second, int current_num_elapsed_day,
-	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day, 
-	                  bool time_advanced)
+	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
 {
     long num_elapsed_time;
 
 
     EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
 
-    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS)) {
+    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NSECONDS)) {
         num_elapsed_time = ((long)(current_num_elapsed_day-start_num_elapsed_day))*SECONDS_PER_DAY + current_second - start_second;
     }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS)) {
+    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NDAYS)) {
         if (current_second != 0)
             return false;
         num_elapsed_time = current_num_elapsed_day-start_num_elapsed_day;
     }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS)) {
+    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS)) {
         if (current_second != 0 || current_day != 1)
             return false;
         num_elapsed_time = (current_year-start_year)*NUM_MONTH_PER_YEAR+current_month-start_month;
@@ -107,7 +106,7 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, Coupling_timer *existi
 }
 
 
-Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_iter, int comp_id)
+Coupling_timer::Coupling_timer(const char *array_buffer, long &buffer_content_iter, int comp_id)
 {
 	int num_children;
 
@@ -123,7 +122,7 @@ Coupling_timer::Coupling_timer(const char *array_buffer, int &buffer_content_ite
 }
 
 
-void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max_size, int &buffer_content_size)
+void Coupling_timer::write_timer_into_array(char **array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	int num_children = children.size();
 	for (int i = num_children-1; i >= 0; i --)
@@ -137,12 +136,11 @@ void Coupling_timer::write_timer_into_array(char **array_buffer, int &buffer_max
 
 
 bool Coupling_timer::is_timer_on(int current_year, int current_month, int current_day, int current_second, int current_num_elapsed_day,
-	                             int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day, bool time_advanced)
+	                             int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
 {
 	return common_is_timer_on(frequency_unit, frequency_count, local_lag_count, current_year,  
 		                      current_month, current_day, current_second, current_num_elapsed_day,
-	                          start_year, start_month, start_day, start_second, start_num_elapsed_day,
-	                          time_advanced);
+	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
 }
 
 
@@ -151,8 +149,7 @@ void Coupling_timer::get_time_of_next_timer_on(Time_mgt *time_mgr, int current_y
 	if (advance)
 		time_mgr->advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_step_in_second);
 	while (!is_timer_on(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_mgr->get_start_year(), 
-		                time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day(),
-		                time_mgr->is_time_advanced()))	
+		                time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day()))	
 		time_mgr->advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_days, time_step_in_second);
 
 	next_timer_num_elapsed_days = current_num_elapsed_days;
@@ -272,7 +269,6 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	this->comp_id = comp_id;
 	this->restart_timer = NULL;
 	this->advance_time_synchronized = false;
-	this->time_advanced = false;
 
 	{
 		int start_date, stop_date, reference_date, stop_n, rest_freq_count, time_step;
@@ -293,7 +289,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		}
 		EXECUTION_REPORT(REPORT_WARNING, -1, case_desc != NULL, "The description of the current simulation is unset or the format of the XML file is wrong. ");
 		const char *run_type = get_XML_attribute(-1, XML_element, "run_type", XML_file_name, line_number, "the type to run the model", "the overall parameters to run the model");
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(run_type, "initial") || words_are_the_same(run_type, "continue") || words_are_the_same(run_type, "branch") || words_are_the_same(run_type, "hybrid"),
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(run_type,RUNTYPE_INITIAL) || words_are_the_same(run_type,RUNTYPE_CONTINUE) || words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID),
 			             "Run_type is wrong. It must be one of the four options: \"initial\", \"continue\", \"branch\" and \"hybrid\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->run_type, run_type);
 		// to be added for how to settle the run type. 
@@ -332,8 +328,9 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			reference_day = 1;
 		}
 		const char *rest_freq_unit = get_XML_attribute(-1, XML_element, "rest_freq_unit", XML_file_name, line_number, "the unit of the frequency of writing restart data files", "the overall parameters to run the model");		
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, "nseconds")|| words_are_the_same(rest_freq_unit, "ndays") || words_are_the_same(rest_freq_unit, "nmonths") || words_are_the_same(rest_freq_unit, "nyears"),
-			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", \"nseconds\", \"ndays\", \"nmonths\", and \"nyears\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NSECONDS)|| words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NDAYS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NYEARS) ||
+			             words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_DAYS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS),
+			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", \"nseconds\" (\"seconds\"), \"ndays\" (\"days\"), \"nmonths\" (\"months\"), and \"nyears\" (\"years\"). Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->rest_freq_unit, rest_freq_unit);
 		this->rest_freq_count = 0;
 		if (!words_are_the_same(rest_freq_unit, "none")) {
@@ -343,7 +340,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			this->rest_freq_count = rest_freq_count;
 		}
 		const char *stop_option = get_XML_attribute(-1, XML_element, "stop_option", XML_file_name, line_number, "the option to specify the end of the simulation", "the overall parameters to run the model");
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(stop_option, "date") || words_are_the_same(stop_option, "nseconds") || words_are_the_same(stop_option, "nminutes") || words_are_the_same(stop_option, "nhours") || words_are_the_same(stop_option, "ndays") || words_are_the_same(stop_option, "nmonths") || words_are_the_same(stop_option, "nyears"),
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(stop_option, "date") || words_are_the_same(stop_option, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(stop_option, "nminutes") || words_are_the_same(stop_option, "nhours") || words_are_the_same(stop_option, FREQUENCY_UNIT_NDAYS) || words_are_the_same(stop_option, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(stop_option, FREQUENCY_UNIT_NYEARS),
 			             "Stop option is wrong. It must be one of the following options: \"date\", \"nseconds\", \"nminutes\", \"nhours\", \"ndays\", \"nmonths\" and \"nyears\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->stop_option, stop_option);
 		if (words_are_the_same(stop_option, "date")) {
@@ -365,7 +362,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			if (stop_n == -999 || stop_n <= 0)
 				stop_year = stop_month = stop_day = stop_second = -1;
 			else {
-				if (words_are_the_same(stop_option, "nyears")) {
+				if (words_are_the_same(stop_option,FREQUENCY_UNIT_NYEARS)) {
 					stop_year = start_year + stop_n;
 					stop_month = start_month;
 					stop_day = start_day;
@@ -373,7 +370,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 					if (start_month == 2 && start_day == 29 && !is_a_leap_year(stop_year))
 						stop_day = 28;
 				}
-				else if (words_are_the_same(stop_option, "nmonths")) {
+				else if (words_are_the_same(stop_option, FREQUENCY_UNIT_NMONTHS)) {
 					stop_year = start_year + stop_n/12;
 					if (start_month + (stop_n%12) > 12) {
 						stop_year ++;
@@ -389,7 +386,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 				}
 				else {
 					int num_days = 0, num_hours = 0, num_minutes = 0, num_seconds = 0;
-					if (words_are_the_same(stop_option, "ndays")) {
+					if (words_are_the_same(stop_option, FREQUENCY_UNIT_NDAYS)) {
 						num_days = stop_n;
 						num_total_seconds = stop_n * SECONDS_PER_DAY;
 					}
@@ -539,8 +536,6 @@ void Time_mgt::advance_time(int &current_year, int &current_month, int &current_
 		}
     }
 	current_second = current_second % SECONDS_PER_DAY;	
-	
-	time_advanced = true;
 }
 
 
@@ -601,8 +596,7 @@ bool Time_mgt::is_timer_on(const char *frequency_unit, int frequency_count, int 
 
    	return common_is_timer_on(frequency_unit, frequency_count, local_lag_count, current_year,  
 		                      current_month, current_day, current_second, current_num_elapsed_day,
-	                          start_year, start_month, start_day, start_second, start_num_elapsed_day,
-	                          time_advanced);
+	                          start_year, start_month, start_day, start_second, start_num_elapsed_day);
 }
 
 
@@ -669,33 +663,20 @@ int Time_mgt::get_current_date()
 void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int local_lag_count, int remote_lag_count, bool check_value, const char *annotation)
 {
 	if (time_step_in_second > 0) {
-	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
-	                 words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), 
-	                 "The period unit in a timer (the current unit is \"%s\") must be one of \"steps\", \"seconds\", \"days\", \"months\" and \"years\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
+	                     words_are_the_same(frequency_unit, FREQUENCY_UNIT_NDAYS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS), 
+	                 "The period unit in a timer (the current unit is \"%s\") must be one of \"steps\", \"seconds\" (\"nseconds\"), \"days\" (\"ndays\"), \"months\" (\"nmonths\") and \"years\" (\"nyears\"). Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
-	    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) && check_value) {
+	    if ((words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NSECONDS)) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, local_lag_count%time_step_in_second == 0, "The remote lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, remote_lag_count%time_step_in_second == 0, "The remote lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
 	    }	
 		if (local_lag_count != 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), "The local lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS), "The local lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 		if (remote_lag_count != 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS), "The remote lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS), "The remote lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 	}
-}
-
-
-Comps_transfer_time_info *Time_mgt::allocate_comp_transfer_time_info(int remote_comp_id)
-{
-    Comps_transfer_time_info *comps_transfer_time_info = new Comps_transfer_time_info;
-    comps_transfer_time_info->remote_comp_id = remote_comp_id;
-    comps_transfer_time_info->counter = 0;
-    comps_transfer_time_info->remote_comp_frequency = -1;
-    comps_transfer_time_info->remote_comp_time = -1;
-    comps_transfer_time_info->local_comp_time = -1;
-    comps_transfer_time_infos.push_back(comps_transfer_time_info);
-    return comps_transfer_time_info;
 }
 
 
@@ -793,14 +774,12 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->time_step_in_second = -1;
 	new_time_mgr->current_step_id = 0;
 	new_time_mgr->num_total_steps = 0;
-	new_time_mgr->stop_latency_seconds = this->stop_latency_seconds;
 	new_time_mgr->leap_year_on = this->leap_year_on;
 	new_time_mgr->comp_id = comp_id;
 	new_time_mgr->current_num_elapsed_day = this->current_num_elapsed_day;
 	new_time_mgr->start_num_elapsed_day = this->start_num_elapsed_day;
 	new_time_mgr->stop_num_elapsed_day = this->stop_num_elapsed_day;
 	new_time_mgr->advance_time_synchronized = false;
-	new_time_mgr->time_advanced = this->time_advanced;
 	strcpy(new_time_mgr->case_name, this->case_name);
 	strcpy(new_time_mgr->exp_model_name, this->exp_model_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);
@@ -827,11 +806,11 @@ void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 	else num_total_steps = -1;
 	if (restart_timer != NULL) {
 		long rest_freq;
-		if (words_are_the_same(rest_freq_unit, "ndays"))
+		if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NDAYS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_DAYS))
 			rest_freq = SECONDS_PER_DAY * rest_freq_count;
-		else if (words_are_the_same(rest_freq_unit, "nmonths") || words_are_the_same(rest_freq_unit, "nyears"))
+		else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NYEARS))
 			rest_freq = SECONDS_PER_DAY;
-		else if (words_are_the_same(rest_freq_unit, "nseconds"))
+		else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_SECONDS))
 			rest_freq = rest_freq_count;
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
 	}	
@@ -853,6 +832,90 @@ void Time_mgt::check_consistency_of_current_time(int date, int second, const cha
 bool Time_mgt::is_time_out_of_execution(long another_time)
 {
 	return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time > ((long)stop_num_elapsed_day)*100000+stop_second;
+}
+
+
+void Time_mgt::write_time_mgt_into_array(char **array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	write_data_into_array_buffer(&start_year, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&start_month, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&start_day, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&start_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);	
+	write_data_into_array_buffer(&previous_year, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&previous_month, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&previous_day, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&previous_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_year, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_month, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_day, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_step_id, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&leap_year_on, sizeof(bool), array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(case_name, NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
+void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name, bool check_existing_data)
+{
+	int restart_start_year, restart_start_month, restart_start_day, restart_start_second, restart_previous_year, restart_previous_month, restart_previous_day, restart_previous_second;
+	int restart_current_year, restart_current_month, restart_current_day, restart_current_second, restart_time_step_in_second, restart_current_step_id;
+	bool restart_leap_year_on;
+	char restart_comp_full_name[NAME_STR_SIZE], restart_case_name[NAME_STR_SIZE];
+
+
+	read_data_from_array_buffer(restart_case_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(restart_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_leap_year_on, sizeof(bool), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_current_step_id, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_current_second, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_current_day, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_current_month, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_current_year, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_previous_second, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_previous_day, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_previous_month, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_previous_year, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_start_second, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_start_day, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_start_month, sizeof(int), temp_array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&restart_start_year, sizeof(int), temp_array_buffer, buffer_content_iter);
+
+	if (check_existing_data) {
+		if (words_are_the_same(RUNTYPE_CONTINUE, run_type))
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(restart_case_name, case_name), "Error happens when importing the restart data from the file \"%s\": the current case name (\"%s\") is different from the case name (\"%s\") imported from the restart data when it is a \"continue\" run. Please verify.", file_name, case_name, restart_case_name);
+		if (words_are_the_same(RUNTYPE_CONTINUE, run_type) || words_are_the_same(RUNTYPE_BRANCH, run_type)) {
+			char str1[NAME_STR_SIZE], str2[NAME_STR_SIZE];
+			sprintf(str1, "%04d%02d%02d-%05d", start_year, start_month, start_day, start_second);
+			sprintf(str2, "%04d%02d%02d-%05d", restart_start_year, restart_start_month, restart_start_day, restart_start_second);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(str1,str2), "Error happens when importing the restart data from the file \"%s\": the current start time (%s) of the simulation is different from the start time (%s) imported from the restart data when it is a \"continue\" or \"branch\" run. Please verify.", file_name, str1, str2);
+			if (leap_year_on)
+				strcpy(str1, "on");
+			else strcpy(str1, "off");
+			if (restart_leap_year_on)
+				strcpy(str2, "on");
+			else strcpy(str2, "off");
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, leap_year_on == restart_leap_year_on, "Error happens when importing the restart data from the file \"%s\": the current setting of leap year (\"%s\") is different from the setting (\"%s\") imported from the restart data when it is a \"continue\" or \"branch\" run. Please verify. ", file_name, str1, str2);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second == restart_time_step_in_second, "Error happens when importing the restart data from the file \"%s\": the current setting of time step (%d) is different from the setting (%d) imported from the restart data when it is a \"continue\" or \"branch\" run. Please verify. ", file_name, time_step_in_second, restart_time_step_in_second);
+		}	
+	}
+
+	current_second = restart_current_second;
+	current_day = restart_current_day;
+	current_month = restart_current_month;
+	current_year = restart_current_year;
+	previous_second = restart_previous_second;
+	previous_day = restart_previous_day;
+	previous_month = restart_previous_month;
+	previous_year = restart_previous_year;
+	if (time_step_in_second == -1) {
+		time_step_in_second = restart_time_step_in_second;
+		annotation_mgr->add_annotation(comp_id, "setting time step", "C-Coupler read from restart file");
+	}
+    current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
+	current_step_id = (current_num_elapsed_day-start_num_elapsed_day) * (SECONDS_PER_DAY/time_step_in_second);
 }
 
 
@@ -883,7 +946,7 @@ void Components_time_mgt::define_root_comp_time_mgr(int comp_id, const char *xml
 void Components_time_mgt::set_component_time_step(int comp_id, int time_step, const char *annotation)
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
-	if (time_mgr->get_time_step_in_second() != -1)
+	if (time_mgr->get_time_step_in_second() != -1 && time_mgr->get_time_step_in_second() != time_step)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_time_step\": the time step of the component \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
 						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);

@@ -251,17 +251,17 @@ class Remap_grid_class
 		Remap_grid_data_class *get_unique_vertex_field();
 
         void set_coord_vertex_values_in_default();		
-		void write_grid_field_into_array(Remap_grid_data_class *, char **, int&, int&);
-		void read_grid_field_from_array(Remap_grid_data_class **, const char *, int &);
+		void write_grid_field_into_array(Remap_grid_data_class *, char **, long&, long&);
+		void read_grid_field_from_array(Remap_grid_data_class **, const char *, long &);
 		Remap_grid_class *get_linked_grid_from_array(Remap_grid_class *, const char *, char *);
 		void link_grids(Remap_grid_class *, const char *);
-		void write_grid_name_into_array(Remap_grid_class *, char **, int &, int &);
-		void write_grid_into_array(char **, int &, int &);
+		void write_grid_name_into_array(Remap_grid_class *, char **, long &, long &);
+		void write_grid_into_array(char **, long &, long &);
 		bool format_sub_grids(Remap_grid_class *);
 		bool is_sub_grid_of_grid(Remap_grid_class *);
 		Remap_grid_class *search_sub_grid(const char*);
 		Remap_grid_class *get_sphere_sub_grid();
-		Remap_grid_class(Remap_grid_class*, const char *, const char *, int &);
+		Remap_grid_class(Remap_grid_class*, const char *, const char *, long &);
 		Remap_grid_data_class *generate_mid_point_grid_field(Remap_grid_data_class *);
 		Remap_grid_class *generate_mid_point_grid();
 };

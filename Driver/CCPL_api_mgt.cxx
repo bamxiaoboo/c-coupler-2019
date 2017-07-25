@@ -621,31 +621,34 @@ const char *get_XML_attribute(int comp_id, TiXmlElement *XML_element, const char
 
 
 void transfer_array_from_one_comp_to_another(int current_proc_local_id_src_comp, int root_proc_global_id_src_comp, int current_proc_local_id_dst_comp, 
-	                                         int root_proc_global_id_dst_comp, MPI_Comm comm_dst_comp, char **array, int &array_size)
+	                                         int root_proc_global_id_dst_comp, MPI_Comm comm_dst_comp, char **array, long &array_size)
 {
 	MPI_Status status;
 
 	
 	if (current_proc_local_id_src_comp == 0 && current_proc_local_id_dst_comp != 0) {
-		MPI_Send(&array_size, 1, MPI_INT, root_proc_global_id_dst_comp, 0, MPI_COMM_WORLD);
+		MPI_Send(&array_size, 1, MPI_LONG, root_proc_global_id_dst_comp, 0, MPI_COMM_WORLD);
 		if (array_size > 0) {
 			EXECUTION_REPORT(REPORT_ERROR, -1, *array != NULL, "software error in transfer_array_from_one_comp_to_another");
 			MPI_Send(*array, array_size, MPI_CHAR, root_proc_global_id_dst_comp, 0, MPI_COMM_WORLD);
 		}
 	}
 	if (current_proc_local_id_src_comp != 0 && current_proc_local_id_dst_comp == 0) {
-		MPI_Recv(&array_size, 1, MPI_INT, root_proc_global_id_src_comp, 0, MPI_COMM_WORLD, &status);
+		MPI_Recv(&array_size, 1, MPI_LONG, root_proc_global_id_src_comp, 0, MPI_COMM_WORLD, &status);
 		if (array_size > 0) {
-			if (*array == NULL)
-				*array = new char [array_size];
+			if (*array != NULL)
+				delete [] *array;
+			*array = new char [array_size];
 			MPI_Recv(*array, array_size, MPI_CHAR, root_proc_global_id_src_comp, 0, MPI_COMM_WORLD, &status);
 		}
 	}
 
 	if (current_proc_local_id_dst_comp != -1) {
-		MPI_Bcast(&array_size, 1, MPI_INT, 0, comm_dst_comp);
+		MPI_Bcast(&array_size, 1, MPI_LONG, 0, comm_dst_comp);
 		if (array_size > 0) {
-			if (*array == NULL)
+			if (current_proc_local_id_dst_comp != 0 && *array != NULL)
+				delete [] *array;
+			if (current_proc_local_id_dst_comp != 0)
 				*array = new char [array_size];
 			MPI_Bcast(*array, array_size, MPI_CHAR, 0, comm_dst_comp);
 		}

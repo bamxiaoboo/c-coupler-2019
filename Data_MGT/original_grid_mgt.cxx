@@ -38,6 +38,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 		checksum_center_lat = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(float), NULL, NULL);
 		get_grid_data(-1, "mask", DATA_TYPE_INT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
 		checksum_H2D_mask = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(int), NULL, NULL);
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "H2D checksum for grid \"%s\" is: lon=%lx, lat=%lx, mask=%lx", grid_name, checksum_center_lon, checksum_center_lat, checksum_H2D_mask);
 		delete [] grid_data;
 	}
 
@@ -142,7 +143,7 @@ void Original_grid_info::set_unique_bottom_field(int field_id, int type, const c
 } 
 
 
-void Original_grid_info::write_grid_into_array(char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
+void Original_grid_info::write_grid_into_array(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	get_original_CoR_grid()->write_grid_into_array(temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
@@ -218,14 +219,15 @@ bool Original_grid_info::is_H2D_grid_and_the_same_as_another_grid(Original_grid_
 	if (!this->is_H2D_grid() || !another_grid->is_H2D_grid())
 		return false;
 
-	return this->checksum_H2D_mask == another_grid->checksum_H2D_mask && this->checksum_center_lon == another_grid->checksum_center_lon && this->checksum_center_lat == another_grid->checksum_center_lat;
+	return this->checksum_center_lon == another_grid->checksum_center_lon && this->checksum_center_lat == another_grid->checksum_center_lat;
+//	return this->checksum_H2D_mask == another_grid->checksum_H2D_mask && this->checksum_center_lon == another_grid->checksum_center_lon && this->checksum_center_lat == another_grid->checksum_center_lat;
 }
 
 
 Original_grid_mgt::Original_grid_mgt()
 {	
 	original_grids.clear();
-	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
+	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_exe_dir());
 	FILE *fp = fopen(CoR_script_name, "r");
 	if (fp == NULL)
 		CoR_script_name[0] = '\0';
@@ -233,7 +235,7 @@ Original_grid_mgt::Original_grid_mgt()
 	if (strlen(CoR_script_name) != 0) {
 		char current_dir[NAME_STR_SIZE], grids_dir[NAME_STR_SIZE];
 		EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(current_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory for running the model");
-		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
+		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_config_exe_dir());
 		EXECUTION_REPORT(REPORT_ERROR, -1, chdir(grids_dir) == 0, "Fail to access the directory of the CoR grid data files: \"%s\". Please verify.", grids_dir);
 		CoR_grids = new Remap_mgt(CoR_script_name);
 		chdir(current_dir);
@@ -747,7 +749,7 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	char CoR_script_file_name[NAME_STR_SIZE];
 
 	
-	sprintf(CoR_script_file_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_root_comp_dir());
+	sprintf(CoR_script_file_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_exe_dir());
 	original_CoR_grid = remap_grid_manager->search_remap_grid_with_grid_name(CoR_grid_name);
 	if (original_CoR_grid == NULL)
 		if (strlen(CoR_script_name) > 0)

@@ -23,9 +23,9 @@ extern bool get_next_integer_attr(char **, int&);
 extern bool get_next_double_attr(char **line, double&);
 extern bool is_end_of_file(FILE *);
 
-extern void write_string_into_array_buffer(const char*, int, char**, int&, int&);
-extern void write_data_into_array_buffer(const void*, int, char **, int&, int&);
-extern void read_data_from_array_buffer(void*, int, const char*, int &);
+extern void write_string_into_array_buffer(const char*, long, char**, long&, long&);
+extern void write_data_into_array_buffer(const void*, long, char **, long&, long&);
+extern void read_data_from_array_buffer(void*, long, const char*, long &);
 extern void check_for_coupling_registration_stage(int, int, bool, const char *);
 extern void common_checking_for_grid_registration(int, const char *, const char *, int, const char *);
 extern void check_for_ccpl_managers_allocated(int, const char *);

@@ -15,12 +15,15 @@
 #include "common_utils.h"
 #include "io_netcdf.h"
 #include "tinyxml.h"
+#include "restart_mgt.h"
 #include <vector>
 
 
-#define COMP_TYPE_COUPLED          "coupled_system"
+#define COMP_TYPE_PSEUDO_COUPLED   "pseudo_coupled_system"
+#define COMP_TYPE_ACTIVE_COUPLED   "active_coupled_system"
 #define COMP_TYPE_CPL              "cpl"
 #define COMP_TYPE_ATM              "atm"
+#define COMP_TYPE_GLC              "glc"
 #define COMP_TYPE_ATM_CHEM         "atm_chem"
 #define COMP_TYPE_OCN              "ocn"
 #define COMP_TYPE_LND              "lnd"
@@ -56,7 +59,6 @@ class Comp_comm_group_mgt_node
 		char comp_log_file_name[NAME_STR_SIZE];
 		char exe_log_file_name[NAME_STR_SIZE];
 		char working_dir[NAME_STR_SIZE];
-		char config_comp_dir[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
 		std::vector<Coupling_interface_tag*> coupling_interface_tags;
 		std::vector<Comp_comm_group_mgt_node*> children;
@@ -65,15 +67,16 @@ class Comp_comm_group_mgt_node
 		int current_proc_local_id;
 		int current_proc_global_id;
 		char *temp_array_buffer;
-		int buffer_content_size;
-		int buffer_content_iter;
-		int buffer_max_size;
+		long buffer_content_size;
+		long buffer_content_iter;
+		long buffer_max_size;
 		bool definition_finalized;
+		Restart_mgt *restart_mgr;
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, const char*);
 		Comp_comm_group_mgt_node(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*, int &);
-		Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *, const char *, const char *);
+		Comp_comm_group_mgt_node(TiXmlElement *, const char *, const char *);
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
 		int get_comp_id() const { return comp_id; }
@@ -90,7 +93,7 @@ class Comp_comm_group_mgt_node
 		int get_num_children() { return children.size(); }
 		int get_local_node_id() { return comp_id; }
 		Comp_comm_group_mgt_node *get_child(int indx) { return children[indx]; }
-		void reset_local_node_id(int new_id) { comp_id = new_id; }
+		void reset_local_node_id(int new_id) { comp_id = new_id; if (restart_mgr != NULL) restart_mgr->reset_comp_id(comp_id); }
 		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
 		void reset_dir(Comp_comm_group_mgt_node *);
@@ -100,7 +103,6 @@ class Comp_comm_group_mgt_node
 		Comp_comm_group_mgt_node *get_parent() const { return parent; }
 		void write_node_into_XML(TiXmlElement *);
 		const char *get_working_dir() const { return working_dir; }
-		const char *get_config_comp_dir() const { return config_comp_dir; }
 		void update_child(const Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*);
 		void transfer_data_buffer(Comp_comm_group_mgt_node*);
 		int get_num_procs() const { return local_processes_global_ids.size(); }
@@ -114,6 +116,8 @@ class Comp_comm_group_mgt_node
 		const char *get_comp_log_file_name() { return comp_log_file_name; } 
 		const char *get_exe_log_file_name() { return exe_log_file_name; } 
 		bool is_real_component_model();
+		Restart_mgt *get_restart_mgr() { return restart_mgr; }
+		bool have_local_process(int);
 };
 
 
@@ -122,7 +126,6 @@ class Comp_comm_group_mgt_mgr
 	private:
 		std::vector<Comp_comm_group_mgt_node*> global_node_array;
 		Comp_comm_group_mgt_node *global_node_root;
-		Comp_comm_group_mgt_node *first_active_comp;
 		bool definition_finalized;
 		int current_proc_global_id;
 		int num_total_global_procs;
@@ -133,6 +136,7 @@ class Comp_comm_group_mgt_mgr
 		char comps_ending_config_status_dir[NAME_STR_SIZE];
 		char runtime_config_root_dir[NAME_STR_SIZE];
 		char coupling_flow_config_dir[NAME_STR_SIZE];
+		char config_exe_dir[NAME_STR_SIZE];
 		int *sorted_comp_ids;
 
 	public:
@@ -166,20 +170,19 @@ class Comp_comm_group_mgt_mgr
 		const char *get_internal_H2D_grids_dir() { return internal_H2D_grids_dir; }
 		const char *get_components_processes_dir() { return components_processes_dir; }
 		const char *get_comps_ending_config_status_dir() { return comps_ending_config_status_dir; }
-		const char *get_config_root_dir() { return runtime_config_root_dir; }
-		const char *get_config_root_comp_dir() { return first_active_comp->get_config_comp_dir(); }
+		const char *get_config_root_dir() { return runtime_config_root_dir; }	
+		const char *get_config_exe_dir() const { return config_exe_dir; }
 		const char *get_coupling_flow_config_dir() { return coupling_flow_config_dir; }
 		void confirm_coupling_configuration_active(int, int, bool, const char*);
 		const int *get_all_components_ids();
 		void generate_sorted_comp_ids();
-		void set_first_active_comp(Comp_comm_group_mgt_node *);
-		Comp_comm_group_mgt_node *get_first_active_comp() { return first_active_comp; }
 		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }
 		bool has_comp_ended_configuration(const char*);
 		bool search_coupling_interface_tag(int, const char*, char*, char*);
 		void push_comp_node(Comp_comm_group_mgt_node *);
 		Comp_comm_group_mgt_node *pop_comp_node();
+		void check_validation();
 };
 
 

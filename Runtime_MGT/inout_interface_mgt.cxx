@@ -189,7 +189,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			}
 			while((((long)remote_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY))+remote_fields_time_info->current_second+lag_seconds <= (((long)local_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY)) + local_fields_time_info->current_second) {
 				if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, 
-					                                            time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day(), time_mgr->is_time_advanced())) {
+					                                            time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
 					remote_fields_time_info->last_timer_num_elapsed_days = remote_fields_time_info->current_num_elapsed_days;
 					remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
 				}	
@@ -208,7 +208,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				current_remote_fields_time[i] = -1;
 				if (inout_interface->get_bypass_counter() == 1)
 					EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
-				else EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == last_remote_fields_time[i] / ((long)10000000000), "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
+				else EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == last_remote_fields_time[i] / ((long)100000000000000), "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
 				transfer_data = true;
 				continue;
 			}
@@ -249,12 +249,15 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			if (!transfer_process_on[i])
 				continue;
 			last_remote_fields_time[i] = runtime_data_transfer_algorithm->get_history_receive_sender_time(i);
-			long remote_bypass_counter = last_remote_fields_time[i] / ((long)10000000000);
+			long remote_bypass_counter = last_remote_fields_time[i] / ((long)100000000000000);
+			EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
 			if (bypass_timer) 
 				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
 			else {
 				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer non-bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
-				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time[i], "Software error: Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %d). Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, runtime_data_transfer_algorithm->get_history_receive_sender_time(i), current_remote_fields_time[i]);
+				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time[i], 
+					             "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %ld). Please verify. ", 
+					             inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, runtime_data_transfer_algorithm->get_history_receive_sender_time(i), current_remote_fields_time[i]);
 			}	
 		}
 		return;
@@ -335,7 +338,13 @@ Field_mem_info *Connection_coupling_procedure::get_data_transfer_field_instance(
 }
 
 
-Inout_interface::Inout_interface(const char *temp_array_buffer, int &buffer_content_iter)
+Runtime_remapping_weights *Connection_coupling_procedure::get_runtime_remapping_weights(int i) 
+{
+	return coupling_connection->dst_fields_info[i]->runtime_remapping_weights; 
+}
+
+
+Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_content_iter)
 {
 	int num_interfaces;
 
@@ -539,7 +548,7 @@ Field_mem_info *Inout_interface::search_registered_field_instance(const char *fi
 }
 
 
-void Inout_interface::transform_interface_into_array(char **temp_array_buffer, int &buffer_max_size, int &buffer_content_size)
+void Inout_interface::transform_interface_into_array(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	int temp_int;
 
@@ -564,6 +573,13 @@ void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coup
 
 void Inout_interface::preprocessing_for_frac_based_remapping()
 {
+	if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remapping_weights(0) == NULL) {
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Does not pre-process the fraction becase the runtime alogrithm is NULL");		
+		return;
+	}
+
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Pre-process the fraction");
+	
 	for (int i = 0; i < fields_mem_registered.size()-1; i ++) {
 		if (words_are_the_same(fields_mem_registered[i]->get_data_type(), DATA_TYPE_FLOAT))
 			if (words_are_the_same(fields_mem_registered[fields_mem_registered.size()-1]->get_data_type(), DATA_TYPE_FLOAT))
@@ -581,9 +597,16 @@ void Inout_interface::postprocessing_for_frac_based_remapping(bool bypass_timer)
 {
 	Field_mem_info *dst_value_field, *dst_frac_field;
 
+
+	if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remap_algorithm(0) == NULL) {
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Does not post-process the fraction becase the runtime alogrithm is NULL");		
+		return;
+	}
 	
 	if (!timer->is_timer_on() && !bypass_timer)
 		return;
+
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Post-process the fraction"); 	
 
 	dst_frac_field = children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1];
 
@@ -731,7 +754,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 			Original_grid_info *field_grid = original_grid_mgr->get_original_grid(children_interfaces[j]->fields_mem_registered[i]->get_grid_id());
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_grid != NULL && field_grid->is_H2D_grid(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": field \"%s\" is not on an horizontal grid. Please verify	the model code model with the annotation \"%s\"", API_label, interface_name, children_interfaces[j]->fields_mem_registered[i]->get_field_name(), annotation);
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i) == NULL && children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0) == NULL || children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i) != NULL && children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0) != NULL && children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(i)->get_runtime_remapping_weights() == children_interfaces[j]->coupling_procedures[0]->get_runtime_remap_algorithm(0)->get_runtime_remapping_weights(), 
-				             "Error happens when calling the API \"%s\" to register an interface named \"%s\": The fields to be remapped do not share the same remapping weights. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
+				             "Error happens when calling the API \"%s\" to register an interface named \"%s\": The fields (\"%s\" and \"%s\") to be remapped do not share the same remapping weights. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, children_interfaces[j]->fields_mem_registered[0]->get_field_name(), children_interfaces[j]->fields_mem_registered[i]->get_field_name(), annotation);
 		}
 	}
 	Field_mem_info *template_field_src = children_interfaces[0]->fields_mem_registered[0];
@@ -740,20 +763,26 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	int has_frac_dst = size_frac_dst == -1? 0 : 1;
 	check_API_parameter_int(comp_id, API_ID_INTERFACE_REG_FRAC_REMAP, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in add_remappling_fraction_processing")->get_comm_group(), "specification (or not)", has_frac_dst, "frac_dst", annotation);
 	if (size_frac_dst != -1)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, template_field_dst->get_size_of_field() == size_frac_dst, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of the parameter \"frac_dst\" is different from the size of each target field instance. Please verify	the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, template_field_dst->get_size_of_field() == size_frac_dst, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of the parameter \"frac_dst\" is different from the size of each target field instance. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish checking for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
+
 	Field_mem_info *frac_field_src = memory_manager->alloc_mem("remap_frac", template_field_src->get_decomp_id(), template_field_src->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "source fraction for remapping", false);
 	frac_field_src->reset_mem_buf(frac_src, true);
 	Field_mem_info *frac_field_dst = memory_manager->alloc_mem("remap_frac", template_field_dst->get_decomp_id(), template_field_dst->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "target fraction for remapping", false);
 	if (size_frac_dst != -1) 
 		frac_field_dst->reset_mem_buf(frac_dst, true);
-
+	memset(frac_field_dst->get_data_buf(), 0, frac_field_dst->get_size_of_field()*get_data_type_size(frac_field_dst->get_data_type()));
 	import_or_export_or_remap = 3;
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_mem_registered.size() == 0, "Software error in Inout_interface::add_remappling_fraction_processing");
 	for (int i = 0; i < children_interfaces[0]->fields_mem_registered.size(); i ++) {
 		fields_mem_registered.push_back(children_interfaces[0]->fields_mem_registered[i]);
-		children_interfaces[0]->fields_mem_registered[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_REMAP_FRAC, coupling_generator->get_latest_connection_id(), fields_mem_registered[i]->get_data_type(), true);
+		if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remap_algorithm(0) != NULL)
+			children_interfaces[0]->fields_mem_registered[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_REMAP_FRAC, coupling_generator->get_latest_connection_id(), fields_mem_registered[i]->get_data_type(), true);
 	}
 	fields_mem_registered.push_back(frac_field_src);
+
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "After field instance allocation for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
 	
 	children_interfaces[0]->fields_mem_registered.push_back(frac_field_src);
 	children_interfaces[1]->fields_mem_registered.push_back(frac_field_dst);
@@ -765,6 +794,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	int *field_ids_src = new int [num_fields];
 	for (int i = 0; i < num_fields; i ++)
 		field_ids_src[i] = children_interfaces[0]->fields_mem_registered[i]->get_field_instance_id();
+	
 	inout_interface_mgr->generate_remapping_interface_connection(this, num_fields, field_ids_src, true);
 	delete [] field_ids_src;
 
@@ -773,7 +803,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 }
 
 
-Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, int buffer_content_iter)
+Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, long buffer_content_iter)
 {
 	this->temp_array_buffer = NULL;
 	while (buffer_content_iter > 0)
@@ -802,6 +832,8 @@ Inout_interface_mgt::~Inout_interface_mgt()
 
 void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interface *new_interface, int num_fields, int *field_ids_src, bool has_frac_remapping) 
 {
+	EXECUTION_REPORT(REPORT_LOG, new_interface->get_comp_id(), true, "start to generate the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
+	
 	Coupling_connection *coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 	Inout_interface *child_interface_export = new_interface->get_child_interface(0);
 	Inout_interface *child_interface_import = new_interface->get_child_interface(1);
@@ -820,10 +852,12 @@ void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interfac
 	interfaces.push_back(child_interface_import);
 
 	coupling_connection->generate_a_coupling_procedure(has_frac_remapping);
-	delete coupling_connection;
+//	delete coupling_connection;
 
 	interfaces.erase(interfaces.begin()+interfaces.size()-1);
 	interfaces.erase(interfaces.begin()+interfaces.size()-1);
+
+	EXECUTION_REPORT(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
 }
 
 
@@ -834,6 +868,8 @@ int Inout_interface_mgt::register_normal_remap_interface(const char *interface_n
 	if (existing_interface != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), existing_interface == NULL, "Error happens when calling API \"%s\" to register an interface named \"%s\" at the model code model with the annotation \"%s\": an interface with the same name has already been registered at the model code with the annotation \"%s\". Please verify.", API_label, interface_name, annotation, annotation_mgr->get_annotation(existing_interface->get_interface_id(), "registering interface"));
 	generate_remapping_interface_connection(new_interface, num_fields, field_ids_src, false);
+
+	EXECUTION_REPORT(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating a normal remapping interface \"%s\"", new_interface->get_interface_name());
 	
 	return new_interface->get_interface_id();
 }
@@ -843,7 +879,9 @@ int Inout_interface_mgt::register_frac_based_remap_interface(const char *interfa
 {
 	int new_remap_interface_id = register_normal_remap_interface(interface_name, num_fields, field_ids_src, field_ids_dst, timer_id, inst_or_aver, array_size_src, array_size_dst, API_label, annotation);
 	Inout_interface *new_remap_interface = get_interface(new_remap_interface_id);
+	EXECUTION_REPORT(REPORT_LOG, new_remap_interface->get_comp_id(), true, "Finish generating the normal part for a fraction based remapping interface \"%s\"", new_remap_interface->get_interface_name());
 	new_remap_interface->add_remappling_fraction_processing(frac_src, frac_dst, size_frac_src, size_frac_dst, frac_data_type, API_label, annotation);
+	EXECUTION_REPORT(REPORT_LOG, new_remap_interface->get_comp_id(), true, "Adding fraction process for the remapping interface \"%s\"", new_remap_interface->get_interface_name());
 	return new_remap_interface->get_interface_id();
 }
 
@@ -922,9 +960,10 @@ void Inout_interface_mgt::merge_unconnected_inout_interface_fields_info(int comp
 	int *counts = new int [num_local_procs];
 	int *displs = new int [num_local_procs];
 	char *temp_buffer;
+	int int_buffer_content_size = buffer_content_size;
 
 
-	MPI_Gather(&buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm);
+	MPI_Gather(&int_buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm);
 	if (local_proc_id == 0) {
 		displs[0] = 0;
 		for (int i = 1; i < num_local_procs; i ++)
