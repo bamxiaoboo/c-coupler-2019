@@ -220,8 +220,12 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
 			EXECUTION_REPORT(REPORT_ERROR, -1, wgt_file_info != NULL, "Software error in Runtime_remap_function::calculate_static_remapping_weights: empty wgt_matrix");
 	        Remap_weight_sparse_matrix *wgt_matrix = new Remap_weight_sparse_matrix(runtime_remap_operator, wgt_file_info->get_num_wgts(), wgt_file_info->get_wgts_src_indexes(), wgt_file_info->get_wgts_dst_indexes(), wgt_file_info->get_wgts_values(), 0, NULL);
 			runtime_remap_operator->update_unique_weight_sparse_matrix(wgt_matrix);
+			EXECUTION_REPORT(REPORT_LOG, -1, true, "should use remap weight file \"%s\" for operator from grid %s to grid %s\n", H2D_remapping_wgt_file, runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
 		}
-		else runtime_remap_operator->calculate_remap_weights();
+		else {
+			EXECUTION_REPORT(REPORT_LOG, -1, true, "should generate remap weight file for operator from grid %s to grid %s\n", runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
+			runtime_remap_operator->calculate_remap_weights();
+		}
         last_remapping_time_iter = current_remapping_time_iter;
         last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
     }

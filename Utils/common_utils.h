@@ -29,6 +29,7 @@ extern void read_data_from_array_buffer(void*, long, const char*, long &);
 extern void check_for_coupling_registration_stage(int, int, bool, const char *);
 extern void common_checking_for_grid_registration(int, const char *, const char *, int, const char *);
 extern void check_for_ccpl_managers_allocated(int, const char *);
+extern bool are_two_coord_arrays_same(double *, double *, int, int);
 
 
 template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)

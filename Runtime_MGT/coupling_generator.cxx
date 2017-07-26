@@ -306,8 +306,6 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		sprintf(temp_string, "%s%s", grid_name, sender_comp_node->get_full_name());
 		Remap_grid_class *mirror_grid = remap_grid_manager->search_remap_grid_with_grid_name(temp_string);
 		read_data_from_array_buffer(&checksum_mask, sizeof(long), temp_array_buffer, buffer_content_size);
-		read_data_from_array_buffer(&checksum_lat, sizeof(long), temp_array_buffer, buffer_content_size);
-		read_data_from_array_buffer(&checksum_lon, sizeof(long), temp_array_buffer, buffer_content_size);
 		read_data_from_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_content_size);
 		if (mirror_grid == NULL) {
 			mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
@@ -321,7 +319,7 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		if (receiver_original_grid->get_bottom_field_variation_type() != bottom_field_variation_type)
 			EXECUTION_REPORT(REPORT_ERROR, -1, receiver_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Software error in Coupling_connection::exchange_grid regarding bottom_field_variation_type");
 		receiver_original_grid->set_bottom_field_variation_type(bottom_field_variation_type);
-		receiver_original_grid->set_grid_checksum(checksum_lon, checksum_lat, checksum_mask);
+		receiver_original_grid->set_grid_checksum(checksum_mask);
 	}
 
 	if (temp_array_buffer != NULL)

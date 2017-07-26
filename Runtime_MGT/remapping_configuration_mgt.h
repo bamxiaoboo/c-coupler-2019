@@ -28,11 +28,11 @@ class H2D_remapping_wgt_file_info
 		char wgt_file_name[NAME_STR_SIZE];
 		int src_grid_size;
 		int dst_grid_size;
-		long checksum_src_center_lon;
-		long checksum_src_center_lat;
+		double *src_center_lon;
+		double *src_center_lat;
 		long checksum_src_mask;
-		long checksum_dst_center_lon;
-		long checksum_dst_center_lat;
+		double *dst_center_lon;
+		double *dst_center_lat;
 		long checksum_dst_mask;
 		long num_wgts;
 		long *wgts_src_indexes;
@@ -45,7 +45,7 @@ class H2D_remapping_wgt_file_info
 		H2D_remapping_wgt_file_info(const char*, long*);
 		~H2D_remapping_wgt_file_info();
 		long get_grid_field_checksum_value(const char *, void *, int);
-		bool match_H2D_remapping_wgt(long, long, long, long, long, long);
+		bool match_H2D_remapping_wgt(Original_grid_info*, Original_grid_info*);
 		const char *get_wgt_file_name() { return wgt_file_name; }
 		void write_remapping_wgt_file_info_into_array(char **, long &, long &);
 		void read_remapping_weights();
@@ -65,8 +65,7 @@ class H2D_remapping_wgt_file_mgt
 		H2D_remapping_wgt_file_mgt() { }
 		H2D_remapping_wgt_file_mgt(TiXmlElement*, const char*);
 		H2D_remapping_wgt_file_mgt(const char *, long *);
-		~H2D_remapping_wgt_file_mgt() {}
-		H2D_remapping_wgt_file_info *search_remapping_weight_file(long, long, long, long, long, long);		
+		~H2D_remapping_wgt_file_mgt() {}		
 		void append_remapping_weights(H2D_remapping_wgt_file_mgt *);
 		void print();
 		void clean() { H2D_remapping_wgt_files.clear(); }

@@ -18,14 +18,6 @@ long calculate_checksum_of_array(const char *data_array, int array_size, int dat
 	const char *local_buffer = data_array;
 	long total_checksum = 0, temp_checksum = 0;
 
-	
-	if (original_data_type != NULL) {
-		data_type_size = get_data_type_size(new_data_type);
-		if (words_are_the_same(original_data_type, DATA_TYPE_DOUBLE) && words_are_the_same(new_data_type, DATA_TYPE_FLOAT)) {
-			local_buffer = (char*)(new float [array_size]);
-			transform_datatype_of_arrays((double*) data_array, (float*) local_buffer, array_size);
-		}
-	}
 
 	for (int i = 0; i < array_size*data_type_size/sizeof(long); i ++)
 		total_checksum += ((const long*) local_buffer)[i] * (i+1);

@@ -40,8 +40,8 @@ class Original_grid_info
 		int bottom_field_variation_type;   // 0: static; 1: dynamic; 2: external
 		Original_grid_info *mid_point_grid;
 		Original_grid_info *interface_level_grid;
-		long checksum_center_lon;
-		long checksum_center_lat;
+		double *center_lon_values;
+		double *center_lat_values;
 		long checksum_H2D_mask;
 
 		void generate_remapping_grids();
@@ -51,13 +51,13 @@ class Original_grid_info
 		const char *get_annotation();
 		const char *get_grid_name() const { return grid_name; }
 		int get_local_grid_id() const { return grid_id; }
-		~Original_grid_info() {}
+		~Original_grid_info();
 		int get_comp_id() const { return comp_id; }
 		int get_grid_id() const { return grid_id; }
 		int get_bottom_field_variation_type() const { return bottom_field_variation_type; }
 		const char *get_bottom_field_name() const { return bottom_field_name; }
 		void set_bottom_field_variation_type(int type) { bottom_field_variation_type = type; }
-		void set_grid_checksum(long, long, long);
+		void set_grid_checksum(long);
 		void set_unique_bottom_field(int field_id, int type, const char*);
 		Remap_grid_class *get_original_CoR_grid() const { return original_CoR_grid; }
 		Remap_grid_class *get_H2D_sub_CoR_grid() { return H2D_sub_CoR_grid; }
@@ -72,10 +72,10 @@ class Original_grid_info
 		Original_grid_info *get_interface_level_grid() { return interface_level_grid; }
 		Original_grid_info *get_mid_point_grid() { return mid_point_grid; }
 		void set_mid_point_grid(Original_grid_info*);
-		long get_checksum_center_lon() { return checksum_center_lon; }
-		long get_checksum_center_lat() { return checksum_center_lat; }
 		long get_checksum_H2D_mask() { return checksum_H2D_mask; }
 		bool is_H2D_grid_and_the_same_as_another_grid(Original_grid_info *);
+		double *get_center_lon_values() { return center_lon_values; }
+		double *get_center_lat_values() { return center_lat_values; }
 };
 
 

@@ -13,34 +13,14 @@
 
 
 H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_name)
-{
-	int array_size, ndims;
-	char data_type_center_lon_src[NAME_STR_SIZE], data_type_center_lat_src[NAME_STR_SIZE], data_type_vertex_lon_src[NAME_STR_SIZE], data_type_vertex_lat_src[NAME_STR_SIZE], data_type_mask_src[NAME_STR_SIZE];
-	char data_type_center_lon_dst[NAME_STR_SIZE], data_type_center_lat_dst[NAME_STR_SIZE], data_type_vertex_lon_dst[NAME_STR_SIZE], data_type_vertex_lat_dst[NAME_STR_SIZE], data_type_mask_dst[NAME_STR_SIZE];
-
-	
+{	
 	strcpy(this->wgt_file_name, wgt_file_name);
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	src_grid_size = netcdf_file_object->get_dimension_size("n_a");
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), src_grid_size > 0, "Error happens when reading the remapping weights file \"%s\": fail to read the size of the source grid (dimension \"n_a\" in the file). Please verify.", wgt_file_name);
-	checksum_src_center_lon = get_grid_field_checksum_value("xc_a", netcdf_file_object, src_grid_size);
-	checksum_src_center_lat = get_grid_field_checksum_value("yc_a", netcdf_file_object, src_grid_size);
-	checksum_src_mask = get_grid_field_checksum_value("mask_a", netcdf_file_object, src_grid_size);
-	dst_grid_size = netcdf_file_object->get_dimension_size("n_b");
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), dst_grid_size > 0, "Error happens when reading the remapping weights file \"%s\": fail to read the size of the target grid (dimension \"n_a\" in the file). Please verify.", wgt_file_name);
-	checksum_dst_center_lon = get_grid_field_checksum_value("xc_b", netcdf_file_object, dst_grid_size);
-	checksum_dst_center_lat = get_grid_field_checksum_value("yc_b", netcdf_file_object, dst_grid_size);
-	checksum_dst_mask = get_grid_field_checksum_value("mask_b", netcdf_file_object, dst_grid_size);
-
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Checksum of the src grid of map file \"%s\" is: lon=%lx, lat=%lx, mask=%lx", wgt_file_name, checksum_src_center_lon, checksum_src_center_lat, checksum_src_mask);
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Checksum of the dst grid of map file \"%s\" is: lon=%lx, lat=%lx, mask=%lx", wgt_file_name, checksum_dst_center_lon, checksum_dst_center_lat, checksum_dst_mask);
-
-	delete netcdf_file_object;
-
 	num_wgts = 0;
 	wgts_src_indexes = NULL;
 	wgts_dst_indexes = NULL;
 	wgts_values = NULL;
+	checksum_src_mask = -1;
+	checksum_dst_mask = -1;
 }
 
 
@@ -48,12 +28,8 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, long
 {	
 	read_data_from_array_buffer(wgt_file_name, NAME_STR_SIZE, array, *buffer_content_iter);
 	read_data_from_array_buffer(&checksum_dst_mask, sizeof(long), array, *buffer_content_iter);
-	read_data_from_array_buffer(&checksum_dst_center_lat, sizeof(long), array, *buffer_content_iter);
-	read_data_from_array_buffer(&checksum_dst_center_lon, sizeof(long), array, *buffer_content_iter);
 	read_data_from_array_buffer(&dst_grid_size, sizeof(int), array, *buffer_content_iter);
 	read_data_from_array_buffer(&checksum_src_mask, sizeof(long), array, *buffer_content_iter);
-	read_data_from_array_buffer(&checksum_src_center_lat, sizeof(long), array, *buffer_content_iter);
-	read_data_from_array_buffer(&checksum_src_center_lon, sizeof(long), array, *buffer_content_iter);
 	read_data_from_array_buffer(&src_grid_size, sizeof(int), array, *buffer_content_iter);
 	
 	num_wgts = 0;
@@ -66,12 +42,8 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, long
 void H2D_remapping_wgt_file_info::write_remapping_wgt_file_info_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
 	write_data_into_array_buffer(&src_grid_size, sizeof(int), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&checksum_src_center_lon, sizeof(long), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&checksum_src_center_lat, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_src_mask, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&dst_grid_size, sizeof(int), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&checksum_dst_center_lon, sizeof(long), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&checksum_dst_center_lat, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_dst_mask, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_string_into_array_buffer(wgt_file_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 }
@@ -88,9 +60,8 @@ long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *fiel
 	((IO_netcdf*)netcdf_file_object)->read_file_field(field_name, (void**)(&data_buffer), &ndims, &dim_size, &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size > 0, "Error happens when reading the remapping weights file \"%s\": variable \"%s\" does not exist in the file. Please verify.", wgt_file_name, field_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == grid_size, "Error happens when reading the remapping weights file \"%s\": the array size of the variable \"%s\" is not the size of the corresponding grid. Please verify.", wgt_file_name, field_name);
-	if (words_are_the_same(data_type, DATA_TYPE_DOUBLE))
-		checksum = calculate_checksum_of_array(data_buffer, field_size, 0, data_type, DATA_TYPE_FLOAT);
-	else checksum = calculate_checksum_of_array(data_buffer, field_size, get_data_type_size(data_type), NULL, NULL);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_INT), "Software error in H2D_remapping_wgt_file_info::get_grid_field_checksum_value");
+	checksum = calculate_checksum_of_array(data_buffer, field_size, get_data_type_size(data_type), NULL, NULL);
 
 	delete [] data_buffer;
 	delete [] dim_size;
@@ -99,11 +70,22 @@ long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *fiel
 }
 
 
-bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(long checksum_src_center_lon, long checksum_src_center_lat, long checksum_src_mask,
- 		                                                  long checksum_dst_center_lon, long checksum_dst_center_lat, long checksum_dst_mask)
+bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid)
 {
-	return this->checksum_src_center_lon == checksum_src_center_lon && this->checksum_src_center_lat == checksum_src_center_lat && this->checksum_src_mask == checksum_src_mask &&
-	       this->checksum_dst_center_lon == checksum_dst_center_lon && this->checksum_dst_center_lat == checksum_dst_center_lat && this->checksum_dst_mask == checksum_dst_mask;
+	read_remapping_weights();
+	if (src_original_grid->get_checksum_H2D_mask() != this->checksum_src_mask || dst_original_grid->get_checksum_H2D_mask() != this->checksum_dst_mask)
+		return false;
+
+	if (!are_two_coord_arrays_same(src_original_grid->get_center_lon_values(), this->src_center_lon, src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->src_grid_size))
+		return false;
+
+	if (!are_two_coord_arrays_same(src_original_grid->get_center_lat_values(), this->src_center_lat, src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->src_grid_size))
+		return false;
+
+	if (!are_two_coord_arrays_same(dst_original_grid->get_center_lon_values(), this->dst_center_lon, dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->dst_grid_size))
+		return false;
+
+	return are_two_coord_arrays_same(dst_original_grid->get_center_lat_values(), this->dst_center_lat, dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->dst_grid_size);
 }
 
 			
@@ -118,6 +100,24 @@ void H2D_remapping_wgt_file_info::read_remapping_weights()
 		return;
 
 	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
+
+	src_grid_size = netcdf_file_object->get_dimension_size("n_a");
+	dst_grid_size = netcdf_file_object->get_dimension_size("n_b");
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), src_grid_size > 0, "Error happens when reading the remapping weights file \"%s\": fail to read the size of the source grid (dimension \"n_a\" in the file). Please verify.", wgt_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), dst_grid_size > 0, "Error happens when reading the remapping weights file \"%s\": fail to read the size of the target grid (dimension \"n_a\" in the file). Please verify.", wgt_file_name);
+	((IO_netcdf*)netcdf_file_object)->read_file_field("xc_a", (void**)(&src_center_lon), &ndims, &dim_size, &field_size, data_type);
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
+	((IO_netcdf*)netcdf_file_object)->read_file_field("yc_a", (void**)(&src_center_lat), &ndims, &dim_size, &field_size, data_type);
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"yc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
+	((IO_netcdf*)netcdf_file_object)->read_file_field("xc_b", (void**)(&dst_center_lon), &ndims, &dim_size, &field_size, data_type);
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == dst_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_b\" because of wrong array size (should be dimension of \"n_b\") or wrong data type (should be double). Please verify.", wgt_file_name);
+	((IO_netcdf*)netcdf_file_object)->read_file_field("yc_b", (void**)(&dst_center_lat), &ndims, &dim_size, &field_size, data_type);
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == dst_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"yc_b\" because of wrong array size (should be dimension of \"n_b\") or wrong data type (should be double). Please verify.", wgt_file_name);	
+	if (checksum_src_mask == -1) {
+		checksum_src_mask = get_grid_field_checksum_value("mask_a", netcdf_file_object, src_grid_size);
+		checksum_dst_mask = get_grid_field_checksum_value("mask_b", netcdf_file_object, dst_grid_size);
+	}
+
     num_wgts = netcdf_file_object->get_dimension_size("n_s");	
 	netcdf_file_object->read_file_field("col", (void**)(&temp_wgts_src_indexes), &ndims, &dim_size, &field_size, data_type);
 	delete [] dim_size;
@@ -150,6 +150,10 @@ H2D_remapping_wgt_file_info::~H2D_remapping_wgt_file_info()
 		delete [] wgts_src_indexes;
 		delete [] wgts_dst_indexes;
 		delete [] wgts_values;
+		delete [] src_center_lon;
+		delete [] src_center_lat;
+		delete [] dst_center_lon;
+		delete [] dst_center_lat;
 	}
 }
 
@@ -207,17 +211,6 @@ void H2D_remapping_wgt_file_mgt::write_remapping_wgt_files_info_into_array(char 
 }
 
 
-H2D_remapping_wgt_file_info *H2D_remapping_wgt_file_mgt::search_remapping_weight_file(long checksum_src_center_lon, long checksum_src_center_lat, long checksum_src_mask,
- 		                                                  long checksum_dst_center_lon, long checksum_dst_center_lat, long checksum_dst_mask)
-{
-	for (int i = 0; i < H2D_remapping_wgt_files.size(); i ++)
-		if (H2D_remapping_wgt_files[i]->match_H2D_remapping_wgt(checksum_src_center_lon, checksum_src_center_lat, checksum_src_mask, checksum_dst_center_lon, checksum_dst_center_lat, checksum_dst_mask))
-			return H2D_remapping_wgt_files[i];
-
-	return NULL;
-}
-
-
 void H2D_remapping_wgt_file_mgt::append_remapping_weights(H2D_remapping_wgt_file_mgt *another_mgr)
 {
 	for (int i = 0; i < another_mgr->H2D_remapping_wgt_files.size(); i ++)
@@ -232,7 +225,7 @@ H2D_remapping_wgt_file_info *H2D_remapping_wgt_file_mgt::search_H2D_remapping_we
 		return NULL;
 
 	for (int i = 0; i < H2D_remapping_wgt_files.size(); i ++)
-		if (H2D_remapping_wgt_files[i]->match_H2D_remapping_wgt(src_original_grid->get_checksum_center_lon(), src_original_grid->get_checksum_center_lat(), src_original_grid->get_checksum_H2D_mask(), dst_original_grid->get_checksum_center_lon(), dst_original_grid->get_checksum_center_lat(), dst_original_grid->get_checksum_H2D_mask()))
+		if (H2D_remapping_wgt_files[i]->match_H2D_remapping_wgt(src_original_grid, dst_original_grid))
 			return H2D_remapping_wgt_files[i];
 		
 	return NULL;	

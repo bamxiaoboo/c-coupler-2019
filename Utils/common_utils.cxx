@@ -11,6 +11,7 @@
 #include "common_utils.h"
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 
 void write_string_into_array_buffer(const char *full_string, long array_size, char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
@@ -209,5 +210,21 @@ void common_checking_for_grid_registration(int comp_id, const char *grid_name, c
 	check_API_parameter_string(comp_id, API_id, comm, "registering a grid", grid_name, "grid_name", annotation);	
 	if (coord_unit != NULL)
 		check_API_parameter_string(comp_id, API_id, comm, "registering a grid", coord_unit, "coord_unit", annotation);
+}
+
+
+bool are_two_coord_arrays_same(double *array1, double *array2, int array_size1, int array_size2)
+{
+	double eps = 0.00001;
+
+	
+	if (array_size1 != array_size2)
+		return false;
+
+	for (int i = 0; i < array_size1; i ++)
+		if (fabs(array1[i]-array2[i]) >= eps)
+			return false;
+
+	return true;
 }
 

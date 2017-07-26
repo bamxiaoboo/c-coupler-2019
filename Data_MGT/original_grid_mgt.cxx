@@ -21,24 +21,23 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->bottom_field_variation_type = BOTTOM_FIELD_VARIATION_UNSET;
 	this->bottom_field_name[0] = '\0';
 	this->bottom_field_id = -1;
-	this->checksum_center_lon = -1;
-	this->checksum_center_lat = -1;
 	this->checksum_H2D_mask = -1;
 	this->mid_point_grid = NULL;
 	this->interface_level_grid = NULL;
+	this->center_lon_values = NULL;
+	this->center_lat_values = NULL;
 	strcpy(this->grid_name, grid_name);
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
 
 	if (H2D_sub_CoR_grid != NULL) {
-		char *grid_data = (char *) (new int [H2D_sub_CoR_grid->get_grid_size()]);
-		get_grid_data(-1, "lon", DATA_TYPE_FLOAT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
-		checksum_center_lon = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(float), NULL, NULL);
-		get_grid_data(-1, "lat", DATA_TYPE_FLOAT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
-		checksum_center_lat = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(float), NULL, NULL);
+		center_lon_values = new double [H2D_sub_CoR_grid->get_grid_size()];
+		center_lat_values = new double [H2D_sub_CoR_grid->get_grid_size()];
+		char *grid_data = (char *) (new double [H2D_sub_CoR_grid->get_grid_size()]);
+		get_grid_data(-1, "lon", DATA_TYPE_DOUBLE, H2D_sub_CoR_grid->get_grid_size(), (char*) center_lon_values, "internal", "internal");
+		get_grid_data(-1, "lat", DATA_TYPE_DOUBLE, H2D_sub_CoR_grid->get_grid_size(), (char*) center_lat_values, "internal", "internal");
 		get_grid_data(-1, "mask", DATA_TYPE_INT, H2D_sub_CoR_grid->get_grid_size(), grid_data, "internal", "internal");
 		checksum_H2D_mask = calculate_checksum_of_array(grid_data, H2D_sub_CoR_grid->get_grid_size(), sizeof(int), NULL, NULL);
-		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "H2D checksum for grid \"%s\" is: lon=%lx, lat=%lx, mask=%lx", grid_name, checksum_center_lon, checksum_center_lat, checksum_H2D_mask);
 		delete [] grid_data;
 	}
 
@@ -61,6 +60,15 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "Original_grid_info::Original_grid_info"));
 	}
 
+}
+
+
+Original_grid_info::~Original_grid_info()
+{
+	if (center_lon_values != NULL) {
+		delete [] center_lon_values;
+		delete [] center_lat_values;
+	}
 }
 
 
@@ -147,8 +155,6 @@ void Original_grid_info::write_grid_into_array(char **temp_array_buffer, long &b
 {
 	get_original_CoR_grid()->write_grid_into_array(temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&checksum_center_lon, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&checksum_center_lat, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_H2D_mask, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
 }
 
@@ -206,10 +212,8 @@ void Original_grid_info::set_mid_point_grid(Original_grid_info *new_grid)
 }
 
 
-void Original_grid_info::set_grid_checksum(long checksum_lon, long checksum_lat, long checksum_mask)
+void Original_grid_info::set_grid_checksum(long checksum_mask)
 {
-	this->checksum_center_lon = checksum_lon;
-	this->checksum_center_lat = checksum_lat;
 	this->checksum_H2D_mask = checksum_mask;
 }
 
@@ -219,8 +223,10 @@ bool Original_grid_info::is_H2D_grid_and_the_same_as_another_grid(Original_grid_
 	if (!this->is_H2D_grid() || !another_grid->is_H2D_grid())
 		return false;
 
-	return this->checksum_center_lon == another_grid->checksum_center_lon && this->checksum_center_lat == another_grid->checksum_center_lat;
-//	return this->checksum_H2D_mask == another_grid->checksum_H2D_mask && this->checksum_center_lon == another_grid->checksum_center_lon && this->checksum_center_lat == another_grid->checksum_center_lat;
+	if (!are_two_coord_arrays_same(this->center_lon_values, another_grid->center_lon_values, this->get_H2D_sub_CoR_grid()->get_grid_size(), another_grid->get_H2D_sub_CoR_grid()->get_grid_size()))
+		return false;
+
+	return are_two_coord_arrays_same(this->center_lat_values, another_grid->center_lat_values, this->get_H2D_sub_CoR_grid()->get_grid_size(), another_grid->get_H2D_sub_CoR_grid()->get_grid_size());
 }
 
 
