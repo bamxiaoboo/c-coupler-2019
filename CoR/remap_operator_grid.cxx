@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "remap_operator_grid.h"
 #include "cor_global_data.h"
+#include "remap_operator_grid.h"
 #include "radix_sort.h"
 #include "remap_operator_c_interface.h"
 

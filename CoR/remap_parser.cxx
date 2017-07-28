@@ -7,9 +7,9 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_parser.h"
 #include "parse_special_words.h"
-#include "cor_global_data.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>

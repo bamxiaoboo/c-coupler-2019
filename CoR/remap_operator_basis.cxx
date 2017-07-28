@@ -7,11 +7,10 @@
   ***************************************************************/
 
 
-#include "remap_operator_basis.h"
 #include "cor_global_data.h"
+#include "remap_operator_basis.h"
 #include "quick_sort.h"
 #include <string.h>
-
 
 
 Remap_operator_basis::Remap_operator_basis()

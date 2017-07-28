@@ -21,13 +21,17 @@
 int coupling_process_control_counter = 0;
 
 
-void check_for_component_registered(int comp_id, int API_ID, const char *annotation)
+void check_for_component_registered(int comp_id, int API_ID, const char *annotation, bool enable_minus_1)
 {
 	char API_label[NAME_STR_SIZE];
 	
 
 	get_API_hint(-1, API_ID, API_label);
 	check_for_ccpl_managers_allocated(API_ID, annotation);
+
+	if (comp_id == -1)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, enable_minus_1, "The component ID (-1) is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
+	
 	if (comp_id != -1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) && comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in check_for_component_registered") >= 0, "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
 }
@@ -35,35 +39,35 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 
 extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation, false);
     *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_double_current_calendar_time(*shift_seconds, annotation);
 }
 
 
 extern "C" void get_ccpl_float_current_calendar_time_(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation, false);
     *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds, annotation);
 }
 
 
 extern "C" void get_ccpl_current_date_(int *comp_id, int *date, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_DATE, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_DATE, annotation, false);
     *date = components_time_mgrs->get_time_mgr(*comp_id)->get_current_date();
 }
 
 
 extern "C" void get_ccpl_current_second_(int *comp_id, int *second, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_SECOND, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_SECOND, annotation, false);
     *second = components_time_mgrs->get_time_mgr(*comp_id)->get_current_second();
 }
 
 
 extern "C" void is_comp_first_step_(int *comp_id, int *result, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_FIRST_STEP, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_FIRST_STEP, annotation, false);
 	*result = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step() == 0? 1 : 0;
 }
 
@@ -77,28 +81,28 @@ extern "C" void coupling_is_first_restart_step_(bool *result)
 
 extern "C" void get_ccpl_current_number_of_step_(int *comp_id, int *nstep, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_CURRENT_STEP, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_CURRENT_STEP, annotation, false);
 	*nstep = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step();
 }
 
 
 extern "C" void get_ccpl_num_total_step_(int *comp_id, int *nstep, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS, annotation, false);
 	*nstep = (int) components_time_mgrs->get_time_mgr(*comp_id)->get_num_total_step();
 }
 
 
 extern "C" void get_ccpl_time_step_(int *comp_id, int *time_step, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_TIME_STEP, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_TIME_STEP, annotation, false);
     *time_step = components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second();
 }
 
 
 extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_START_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_START_TIME, annotation, false);
 
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 1000000000;
 	*month = (components_time_mgrs->get_time_mgr(*comp_id)->get_start_full_time() / 10000000)%100;
@@ -109,7 +113,7 @@ extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *d
 
 extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *day, int *second, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_STOP_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_STOP_TIME, annotation, false);
 
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_year();
 	*month = components_time_mgrs->get_time_mgr(*comp_id)->get_stop_month();
@@ -120,7 +124,7 @@ extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *da
 
 extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_PREVIOUS_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_PREVIOUS_TIME, annotation, false);
 
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 1000000000;
 	*month = (components_time_mgrs->get_time_mgr(*comp_id)->get_previous_full_time() / 10000000)%100;
@@ -131,35 +135,35 @@ extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int
 
 extern "C" void get_ccpl_current_time_(int *comp_id, int *year, int *month, int *day, int *second, int *shift_second, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_TIME, annotation, false);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_current_time(*year, *month, *day, *second, *shift_second, annotation);
 }
 
 
 extern "C" void get_ccpl_current_num_days_in_year_(int *comp_id, int *days, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR, annotation, false);
 	*days = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_days_in_year();
 }
 
 
 extern "C" void get_ccpl_current_year_(int *comp_id, int *year, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_YEAR, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_YEAR, annotation, false);
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_current_year();
 }
 
 
 extern "C" void get_ccpl_num_elapsed_days_from_start_date_(int *comp_id, int *days, int *seconds, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_START, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_START, annotation, false);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_start_date(days, seconds);
 }
 
 
 extern "C" void get_ccpl_num_elapsed_days_from_reference_date_(int *comp_id, int *days, int *seconds, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_REF, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_REF, annotation, false);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_reference_date(days, seconds);
 }
 
@@ -292,7 +296,7 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
-	check_for_component_registered(-1, API_ID_COMP_MGT_GET_COMP_ID, annotation);
+	check_for_component_registered(-1, API_ID_COMP_MGT_GET_COMP_ID, annotation, true);
 
 	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_comp_with_comp_name(comp_name);
 
@@ -307,7 +311,7 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 
 extern "C" void is_current_process_in_component_(const char *comp_full_name, int *is_in_comp, const char *annotation)
 {
-	check_for_component_registered(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, annotation);
+	check_for_component_registered(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, annotation, true);
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_full_name);
 	*is_in_comp = comp_node != NULL && comp_node->get_current_proc_local_id() != -1? 1 : 0;
 }
@@ -315,21 +319,21 @@ extern "C" void is_current_process_in_component_(const char *comp_full_name, int
 
 extern "C" void get_current_proc_id_in_comp_(int *comp_id, int *proc_id, const char * annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP, annotation);
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP, annotation, false);
 	*proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(*comp_id, annotation);
 }
 
 
 extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP, annotation);
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP, annotation, false);
 	*num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
 }
 
 
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation);
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
 
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
@@ -407,7 +411,7 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 		API_id = API_ID_GRID_MGT_SET_3D_GRID_EXTERNAL_BOT_FLD;
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in set_3d_grid_surface_field_: wrong value of static_or_dynamic_or_external");
 	get_API_hint(-1, API_id, API_label);	
-	check_for_component_registered(-1, API_id, annotation);
+	check_for_component_registered(-1, API_id, annotation, true);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
@@ -604,7 +608,7 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation, false);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_advance_time\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr() != NULL, "Software error in advance_component_time_");
@@ -615,7 +619,7 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 
 extern "C" void check_ccpl_component_current_time_(int *comp_id, int *date, int *second, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_CHECK_CURRENT_TIME, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_CHECK_CURRENT_TIME, annotation, false);
 	components_time_mgrs->check_component_current_time(*comp_id, *date, *second, annotation);
 }
 
@@ -631,7 +635,7 @@ extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotat
 
 extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_RUN_ENDED, annotation);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_RUN_ENDED, annotation, false);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_is_model_run_ended\": it cannot be called because the corresponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	if (components_time_mgrs->is_model_run_ended(*comp_id, annotation))
 		*is_ended = 1;
@@ -759,7 +763,7 @@ extern "C" void get_comp_name_via_interface_tag_(int *comp_id, const char *inter
 	char local_comp_full_name[NAME_STR_SIZE], local_interface_name[NAME_STR_SIZE];
 
 	
-	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG, annotation); // cannot test the case of -1 comp_id
+	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG, annotation, false); // cannot test the case of -1 comp_id
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_comp_name_via_interface_tag_")->search_coupling_interface_tag(interface_tag, local_comp_full_name, local_interface_name))
 		*result = 1;
 	else *result = 0;
@@ -772,7 +776,7 @@ extern "C" void get_comp_name_via_interface_tag_(int *comp_id, const char *inter
 
 extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, int *comp_full_name_size, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, annotation);
+	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, annotation, false);
 	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_local_comp_full_name_")->get_full_name();
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *comp_full_name_size >= strlen(full_name), "Error happens when calling the API \"CCPL_get_local_comp_full_name\": the parameter string \"comp_full_name\" is too short: only %d while the size of the component model full name is %d", *comp_full_name_size, strlen(full_name));
 	strncpy(comp_full_name, full_name, strlen(full_name));

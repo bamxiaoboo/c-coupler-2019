@@ -7,9 +7,9 @@
   ***************************************************************/
 
 
+#include "io_netcdf.h"
 #include "io_mgt.h"
 #include "parse_special_words.h"
-#include "io_netcdf.h"
 #include "io_binary.h"
 #include "cor_global_data.h"
 #include <string.h>

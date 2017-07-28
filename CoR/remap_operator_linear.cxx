@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "remap_operator_linear.h"
 #include "cor_global_data.h"
+#include "remap_operator_linear.h"
 #include <string.h>
 #include <math.h>
 

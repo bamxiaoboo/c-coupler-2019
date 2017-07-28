@@ -15,6 +15,7 @@
 #define FILE_TYPE_BINARY        "binary"
 
 
+#include <mpi.h>
 #include "remap_statement_operand.h"
 #include "remap_grid_class.h"
 #include "remap_grid_data_class.h"

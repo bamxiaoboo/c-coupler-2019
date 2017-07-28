@@ -7,11 +7,11 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_weight_of_strategy_mgt.h"
 #include "remap_weight_sparse_matrix.h"
 #include "remap_common_utils.h"
 #include "parse_special_words.h"
-#include "cor_global_data.h"
 
 
 Remap_weight_of_operator_class *Remap_weight_of_operator_mgt::search_remap_weights_of_operator(Remap_grid_class *field_data_grid_src, Remap_grid_class *field_data_grid_dst, Remap_operator_basis *original_remap_operator)

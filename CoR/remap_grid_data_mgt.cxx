@@ -7,9 +7,9 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_grid_data_mgt.h"
 #include "parse_special_words.h"
-#include "cor_global_data.h"
 #include <string.h>
 #include <stdio.h>
 

@@ -7,11 +7,11 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_operator_bilinear.h"
 #include "remap_utils_nearest_points.h"
 #include "remap_common_utils.h"
 #include "quick_sort.h"
-#include "cor_global_data.h"
 #include <string.h>
 #include <math.h>
 

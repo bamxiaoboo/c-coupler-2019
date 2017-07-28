@@ -7,9 +7,9 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_weight_sparse_matrix.h"
 #include "remap_operator_basis.h"
-#include "cor_global_data.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>

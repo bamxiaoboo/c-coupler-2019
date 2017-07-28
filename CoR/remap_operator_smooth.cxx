@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "remap_operator_smooth.h"
 #include "cor_global_data.h"
+#include "remap_operator_smooth.h"
 #include <string.h>
 
 

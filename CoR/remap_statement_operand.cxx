@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "remap_statement_operand.h"
 #include "cor_global_data.h"
+#include "remap_statement_operand.h"
 #include <string.h>
 
 

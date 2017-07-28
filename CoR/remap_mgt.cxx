@@ -7,13 +7,12 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_mgt.h"
 #include "remap_parser.h"
 #include "parse_special_words.h"
 #include "execution_report.h"
-#include "cor_global_data.h"
 #include <string.h>
-
 
 
 void Remap_mgt::push_back_words(const char *type, const char *word)

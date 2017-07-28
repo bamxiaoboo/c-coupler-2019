@@ -8,9 +8,9 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_operator_spline_1D.h"
 #include "remap_common_utils.h"
-#include "cor_global_data.h"
 #include <string.h>
 #include <math.h>
 #include <assert.h>

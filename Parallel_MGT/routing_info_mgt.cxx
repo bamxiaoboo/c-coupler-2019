@@ -58,6 +58,8 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const c
     this->dst_comp_id = dst_comp_id;
     src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
     dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
+	strcpy(this->src_comp_full_name, src_comp_node->get_comp_full_name());
+	strcpy(this->dst_comp_full_name, dst_comp_node->get_comp_full_name());
 	if (dst_decomp_info != NULL)
 		dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_decomp_info->get_host_comp_id());
 	src_comp_node_id = src_comp_node->get_comp_id();
@@ -107,13 +109,11 @@ Routing_info::~Routing_info()
 
 bool Routing_info::match_router(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
-    src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_node_id);
-    dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_node_id);
+    src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
+    dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
 
-    return (this->src_comp_id == src_comp_id && 
-            this->dst_comp_id == dst_comp_id &&
-            words_are_the_same(this->src_decomp_name, src_decomp_name) &&
-            words_are_the_same(this->dst_decomp_name, dst_decomp_name));
+    return (words_are_the_same(src_comp_full_name, src_comp_node->get_full_name()) && words_are_the_same(dst_comp_full_name, dst_comp_node->get_full_name()) &&
+            words_are_the_same(this->src_decomp_name, src_decomp_name) && words_are_the_same(this->dst_decomp_name, dst_decomp_name));
 }
 
 

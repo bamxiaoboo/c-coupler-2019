@@ -49,22 +49,20 @@ void H2D_remapping_wgt_file_info::write_remapping_wgt_file_info_into_array(char 
 }
 
 
-long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *field_name, void *netcdf_file_object, int grid_size)
+long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *field_name, IO_netcdf *netcdf_file_object, int grid_size)
 {
 	char *data_buffer, data_type[NAME_STR_SIZE];
-	int ndims, field_size;
+	int field_size;
 	long checksum;
-	int *dim_size;
 
 
-	((IO_netcdf*)netcdf_file_object)->read_file_field(field_name, (void**)(&data_buffer), &ndims, &dim_size, &field_size, data_type);
+	netcdf_file_object->read_file_field(field_name, (void**)(&data_buffer), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size > 0, "Error happens when reading the remapping weights file \"%s\": variable \"%s\" does not exist in the file. Please verify.", wgt_file_name, field_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == grid_size, "Error happens when reading the remapping weights file \"%s\": the array size of the variable \"%s\" is not the size of the corresponding grid. Please verify.", wgt_file_name, field_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_INT), "Software error in H2D_remapping_wgt_file_info::get_grid_field_checksum_value");
 	checksum = calculate_checksum_of_array(data_buffer, field_size, get_data_type_size(data_type), NULL, NULL);
 
 	delete [] data_buffer;
-	delete [] dim_size;
 
 	return checksum;
 }
@@ -91,7 +89,7 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
 			
 void H2D_remapping_wgt_file_info::read_remapping_weights()
 {
-	int ndims, field_size, *dim_size;
+	int field_size;
 	char data_type[NAME_STR_SIZE];
 	int *temp_wgts_src_indexes, *temp_wgts_dst_indexes;
 
@@ -105,13 +103,13 @@ void H2D_remapping_wgt_file_info::read_remapping_weights()
 	dst_grid_size = netcdf_file_object->get_dimension_size("n_b");
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), src_grid_size > 0, "Error happens when reading the remapping weights file \"%s\": fail to read the size of the source grid (dimension \"n_a\" in the file). Please verify.", wgt_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), dst_grid_size > 0, "Error happens when reading the remapping weights file \"%s\": fail to read the size of the target grid (dimension \"n_a\" in the file). Please verify.", wgt_file_name);
-	((IO_netcdf*)netcdf_file_object)->read_file_field("xc_a", (void**)(&src_center_lon), &ndims, &dim_size, &field_size, data_type);
+	netcdf_file_object->read_file_field("xc_a", (void**)(&src_center_lon), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	((IO_netcdf*)netcdf_file_object)->read_file_field("yc_a", (void**)(&src_center_lat), &ndims, &dim_size, &field_size, data_type);
+	netcdf_file_object->read_file_field("yc_a", (void**)(&src_center_lat), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"yc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	((IO_netcdf*)netcdf_file_object)->read_file_field("xc_b", (void**)(&dst_center_lon), &ndims, &dim_size, &field_size, data_type);
+	netcdf_file_object->read_file_field("xc_b", (void**)(&dst_center_lon), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == dst_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_b\" because of wrong array size (should be dimension of \"n_b\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	((IO_netcdf*)netcdf_file_object)->read_file_field("yc_b", (void**)(&dst_center_lat), &ndims, &dim_size, &field_size, data_type);
+	netcdf_file_object->read_file_field("yc_b", (void**)(&dst_center_lat), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == dst_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"yc_b\" because of wrong array size (should be dimension of \"n_b\") or wrong data type (should be double). Please verify.", wgt_file_name);	
 	if (checksum_src_mask == -1) {
 		checksum_src_mask = get_grid_field_checksum_value("mask_a", netcdf_file_object, src_grid_size);
@@ -119,14 +117,11 @@ void H2D_remapping_wgt_file_info::read_remapping_weights()
 	}
 
     num_wgts = netcdf_file_object->get_dimension_size("n_s");	
-	netcdf_file_object->read_file_field("col", (void**)(&temp_wgts_src_indexes), &ndims, &dim_size, &field_size, data_type);
-	delete [] dim_size;
+	netcdf_file_object->read_file_field("col", (void**)(&temp_wgts_src_indexes), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == num_wgts && words_are_the_same(data_type, DATA_TYPE_INT), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"col\" because of wrong array size (should be dimension of \"n_s\") or wrong data type (should be integer). Please verify.", wgt_file_name);
-	netcdf_file_object->read_file_field("row", (void**)(&temp_wgts_dst_indexes), &ndims, &dim_size, &field_size, data_type);
-	delete [] dim_size;
+	netcdf_file_object->read_file_field("row", (void**)(&temp_wgts_dst_indexes), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == num_wgts && words_are_the_same(data_type, DATA_TYPE_INT), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"row\" because of wrong array size (should be dimension of \"n_s\") or wrong data type (should be integer). Please verify.", wgt_file_name);
-	netcdf_file_object->read_file_field("S", (void**)(&wgts_values), &ndims, &dim_size, &field_size, data_type);
-	delete [] dim_size;
+	netcdf_file_object->read_file_field("S", (void**)(&wgts_values), &field_size, data_type);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == num_wgts && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"S\" because of wrong array size (should be dimension of \"n_s\") or wrong data type (should be double). Please verify.", wgt_file_name);
 
 	wgts_src_indexes = new long [num_wgts];

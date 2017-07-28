@@ -7,6 +7,7 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_operator_mgt.h"
 #include "parse_special_words.h"
 #include "remap_operator_bilinear.h"
@@ -15,7 +16,6 @@
 #include "remap_operator_conserv_2D.h"
 #include "remap_operator_smooth.h"
 #include "remap_operator_spline_1D.h"
-#include "cor_global_data.h"
 #include <string.h>
 #include <stdio.h>
 

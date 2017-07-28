@@ -16,6 +16,7 @@
 #define REMAP_ALGORITHM_TYPE_T1D     3
 
 
+#include "io_netcdf.h"
 #include <vector>
 #include "tinyxml.h"
 #include "common_utils.h"
@@ -44,7 +45,7 @@ class H2D_remapping_wgt_file_info
 		H2D_remapping_wgt_file_info(const char*);
 		H2D_remapping_wgt_file_info(const char*, long*);
 		~H2D_remapping_wgt_file_info();
-		long get_grid_field_checksum_value(const char *, void *, int);
+		long get_grid_field_checksum_value(const char *, IO_netcdf *, int);
 		bool match_H2D_remapping_wgt(Original_grid_info*, Original_grid_info*);
 		const char *get_wgt_file_name() { return wgt_file_name; }
 		void write_remapping_wgt_file_info_into_array(char **, long &, long &);

@@ -12,8 +12,8 @@
 #define RUNTIME_REMAPPING_WEIGHTS_MGT_H
 
 
-#include <vector>
 #include "remapping_configuration_mgt.h"
+#include <vector>
 #include "remap_strategy_class.h"
 #include "original_grid_mgt.h"
 #include "decomp_info_mgt.h"

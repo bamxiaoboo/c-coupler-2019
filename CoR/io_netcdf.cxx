@@ -867,17 +867,17 @@ bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const ch
 }
 
 
-void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *num_dims, int **dim_size_ptr, int *field_size, char *data_type)
+void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *field_size, char *data_type)
 {
 	int i, variable_id, *dim_ids, *dim_size;
 	long total_size;
 	size_t dim_len;
 	nc_type nc_var_type;
 	char *data_array;
+	int num_dims;
 
 	*data_array_ptr = NULL;
-	*num_dims = 0;
-	*dim_size_ptr = NULL;
+	num_dims = 0;
 	*field_size = -1;
 	
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
@@ -888,13 +888,13 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 		report_nc_error();
 		return;
 	}
-	rcode = nc_inq_varndims(ncfile_id, variable_id, num_dims);
+	rcode = nc_inq_varndims(ncfile_id, variable_id, &num_dims);
 	report_nc_error();
-	dim_ids = new int [*num_dims];
-	dim_size = new int [*num_dims];
+	dim_ids = new int [num_dims];
+	dim_size = new int [num_dims];
 	rcode = nc_inq_vardimid(ncfile_id, variable_id, dim_ids);
 	report_nc_error();
-	for (i = 0; i < *num_dims; i ++) {
+	for (i = 0; i < num_dims; i ++) {
 		rcode = nc_inq_dimlen(ncfile_id, dim_ids[i], &dim_len);
 		report_nc_error();
 		dim_size[i] = dim_len;
@@ -904,17 +904,17 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 	datatype_from_netcdf_to_application(nc_var_type, data_type, field_name);
 
 	total_size = 1;
-	for (i = 0; i < *num_dims; i ++)
+	for (i = 0; i < num_dims; i ++)
 		total_size *= dim_size[i];
 	data_array = new char [total_size*get_data_type_size(data_type)];
 	rcode = nc_get_var(ncfile_id, variable_id, data_array);
 
 	*data_array_ptr = data_array;
-	*dim_size_ptr = dim_size;
 	if (total_size > 0)
 		*field_size = total_size;
 
 	delete [] dim_ids;
+	delete [] dim_size;
 
 	rcode = nc_close(ncfile_id);
 	report_nc_error();

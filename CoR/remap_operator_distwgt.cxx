@@ -7,9 +7,9 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_operator_distwgt.h"
 #include "remap_utils_nearest_points.h"
-#include "cor_global_data.h"
 #include <string.h>
 
 

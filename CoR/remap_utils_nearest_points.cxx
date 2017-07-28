@@ -7,12 +7,12 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_utils_nearest_points.h"
 #include "remap_grid_class.h"
 #include "remap_operator_c_interface.h"
 #include "quick_sort.h"
 #include "remap_common_utils.h"
-#include "cor_global_data.h"
 #include <math.h>
 
 

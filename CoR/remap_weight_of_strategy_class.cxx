@@ -7,10 +7,10 @@
   ***************************************************************/
 
 
+#include "cor_global_data.h"
 #include "remap_weight_of_strategy_class.h"
 #include "remap_strategy_class.h"
 #include "remap_operator_basis.h"
-#include "cor_global_data.h"
 #include "io_binary.h"
 #include "io_netcdf.h"
 #include <string.h>

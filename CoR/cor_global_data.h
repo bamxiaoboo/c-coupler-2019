@@ -10,8 +10,9 @@
 #ifndef COR_GLOBAL_DATA
 #define COR_GLOBAL_DATA
 
-#include "io_mgt.h"
+
 #include "io_netcdf.h"
+#include "io_mgt.h"
 #include "remap_strategy_mgt.h"
 #include "remap_grid_mgt.h"
 #include "remap_operator_mgt.h"

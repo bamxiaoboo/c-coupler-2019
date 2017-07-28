@@ -44,7 +44,7 @@ class IO_netcdf: public IO_basis
         void read_remap_weights(Remap_weight_of_strategy_class*, Remap_strategy_class*, bool);
         void put_global_text(const char*, const char*);
         void get_global_text(const char*, char*, int);
-		void read_file_field(const char*, void**, int*, int**, int*, char*);
+		void read_file_field(const char*, void**, int*, char*);
 		bool get_file_field_string_attribute(const char*, const char *, char*);
         void write_grid(Remap_grid_class*, bool);
 };

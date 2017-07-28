@@ -549,8 +549,7 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 	int size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat;
 	long dim_lon_size, dim_lat_size, dim_H2D_size, dim_size1, dim_size2;
 	char *center_lon, *center_lat, *vertex_lon, *vertex_lat, *area;
-	int ndims_for_center_lon, ndims_for_center_lat, ndims_for_vertex_lon, ndims_for_vertex_lat, ndims_for_mask, ndims_for_area;
-	int *mask, *dims_for_center_lon, *dims_for_center_lat, *dims_for_vertex_lon, *dims_for_vertex_lat, *dims_for_mask, *dims_for_area;
+	int *mask;
 	char data_type_for_center_lat[NAME_STR_SIZE], data_type_for_center_lon[NAME_STR_SIZE], data_type_for_vertex_lon[NAME_STR_SIZE], data_type_for_vertex_lat[NAME_STR_SIZE], data_type_for_mask[NAME_STR_SIZE], data_type_for_area[NAME_STR_SIZE];
 	char edge_type[NAME_STR_SIZE], cyclic_or_acyclic[NAME_STR_SIZE], unit_center_lon[NAME_STR_SIZE], unit_center_lat[NAME_STR_SIZE], unit_vertex_lon[NAME_STR_SIZE], unit_vertex_lat[NAME_STR_SIZE];
 	
@@ -561,12 +560,12 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 	dim_lon_size = netcdf_file_object->get_dimension_size(COORD_LABEL_LON);
 	dim_lat_size = netcdf_file_object->get_dimension_size(COORD_LABEL_LAT);
 	dim_H2D_size = netcdf_file_object->get_dimension_size("grid_size");
-	netcdf_file_object->read_file_field(COORD_LABEL_LON, (void**)(&center_lon), &ndims_for_center_lon, &dims_for_center_lon, &size_center_lon, data_type_for_center_lon);
-	netcdf_file_object->read_file_field(COORD_LABEL_LAT, (void**)(&center_lat), &ndims_for_center_lat, &dims_for_center_lat, &size_center_lat, data_type_for_center_lat);
-	netcdf_file_object->read_file_field("vertex_lon", (void**)(&vertex_lon), &ndims_for_vertex_lon, &dims_for_vertex_lon, &size_vertex_lon, data_type_for_vertex_lon);
-	netcdf_file_object->read_file_field("vertex_lat", (void**)(&vertex_lat), &ndims_for_vertex_lat, &dims_for_vertex_lat, &size_vertex_lat, data_type_for_vertex_lat);
-	netcdf_file_object->read_file_field("area", (void**)(&area), &ndims_for_area, &dims_for_area, &size_area, data_type_for_area);
-	netcdf_file_object->read_file_field("mask", (void**)(&mask), &ndims_for_mask, &dims_for_mask, &size_mask, data_type_for_mask);
+	netcdf_file_object->read_file_field(COORD_LABEL_LON, (void**)(&center_lon), &size_center_lon, data_type_for_center_lon);
+	netcdf_file_object->read_file_field(COORD_LABEL_LAT, (void**)(&center_lat), &size_center_lat, data_type_for_center_lat);
+	netcdf_file_object->read_file_field("vertex_lon", (void**)(&vertex_lon), &size_vertex_lon, data_type_for_vertex_lon);
+	netcdf_file_object->read_file_field("vertex_lat", (void**)(&vertex_lat), &size_vertex_lat, data_type_for_vertex_lat);
+	netcdf_file_object->read_file_field("area", (void**)(&area), &size_area, data_type_for_area);
+	netcdf_file_object->read_file_field("mask", (void**)(&mask), &size_mask, data_type_for_mask);
 	if (dim_lon_size > 0 && dim_lat_size > 0 && dim_H2D_size > 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size == dim_lon_size*dim_lat_size, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the size of dimension \"grid_size\" is different from the multiple of sizes of dimensions \"lon\" and \"lat\"", grid_name, annotation, data_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size > 0 || (dim_lon_size > 0 && dim_lat_size > 0), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: the dimension size (dimensions \"lon\" and \"lat\" in the file) or the grid size (dimension \"grid_size\" in the file) is not correctly specified in the file \"%s\". Please verify.", grid_name, annotation, data_file_name);
@@ -614,23 +613,15 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 										 size_mask, size_area, size_vertex_lon, size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE);
 
 	delete [] center_lon;
-	delete [] dims_for_center_lon;
 	delete [] center_lat;
-	delete [] dims_for_center_lat;
 	if (vertex_lon != NULL) {
 		delete [] vertex_lon;
 		delete [] vertex_lat;
-		delete [] dims_for_vertex_lon;
-		delete [] dims_for_vertex_lat;
 	}
-	if (mask != NULL) {
+	if (mask != NULL)
 		delete [] mask;
-		delete [] dims_for_mask;
-	}
-	if (area != NULL) {
+	if (area != NULL)
 		delete [] area;
-		delete [] dims_for_area;
-	}
 
 	return grid_id;
 }

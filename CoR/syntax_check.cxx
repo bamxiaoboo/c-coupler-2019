@@ -7,8 +7,8 @@
   ***************************************************************/
 
 
-#include "syntax_check.h"
 #include "cor_global_data.h"
+#include "syntax_check.h"
 #include "parse_special_words.h"
 #include <string.h>
 

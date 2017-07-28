@@ -32,12 +32,14 @@ distribution.
 #pragma warning( disable : 4786 )
 #endif
 
+
+#include <mpi.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <mpi.h>
 #include <stdio.h>
+
 
 // Help out windows:
 #if defined( _DEBUG ) && !defined( DEBUG )

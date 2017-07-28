@@ -35,6 +35,8 @@ class Routing_info
     private:
         int src_comp_id;
         int dst_comp_id;
+		char src_comp_full_name[NAME_STR_SIZE];
+        char dst_comp_full_name[NAME_STR_SIZE];
         char src_decomp_name[NAME_STR_SIZE];
         char dst_decomp_name[NAME_STR_SIZE];
         int src_decomp_size;
