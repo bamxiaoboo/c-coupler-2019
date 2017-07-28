@@ -213,6 +213,8 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	char file_name[NAME_STR_SIZE];
 
 
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "start to register the root component model");
+
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the root component", annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
@@ -272,11 +274,15 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(root_comp_id,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(root_comp_id);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering the root component model");
 }
 
 
 extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "start to register component model \%s\"", comp_name);
+
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
 	check_for_coupling_registration_stage(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, false, annotation);
 
@@ -290,6 +296,8 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
 
@@ -334,6 +342,9 @@ extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * 
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "start to end the coupling registration for the component model %s", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
 
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
@@ -343,6 +354,8 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 		coupling_generator->generate_IO_procedures();
 	}
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish ending the coupling registration for the component model %s", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
 
@@ -353,6 +366,8 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 	int API_id;
 	char API_label[NAME_STR_SIZE];
 
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "start to register V1D grid %s", grid_name);
 		
 	switch (*grid_type) {
 		case 1:
@@ -394,6 +409,8 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 
 	delete [] temp_value2;
 	delete [] temp_value3;
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finsh registering V1D grid %s", grid_name);
 }
 
 
@@ -413,6 +430,9 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 	get_API_hint(-1, API_id, API_label);	
 	check_for_component_registered(-1, API_id, annotation, true);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to set surface field for the 3D grid %s", original_grid_mgr->get_name_of_grid(*grid_id));
+	
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"field_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
@@ -420,13 +440,19 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 	}	
 	check_for_coupling_registration_stage(comp_id, API_id, true, annotation);
 	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish to setting surface field for the 3D grid %s", original_grid_mgr->get_name_of_grid(*grid_id));
 }
 
 
 extern "C" void register_md_grid_via_multi_grids_(int *comp_id, int *grid_id, const char *grid_name, int *sub_grid1_id, int *sub_grid2_id, int *sub_grid3_id, int *size_mask, int *mask, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an MD grid %s", grid_name);
+
 	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_MD_GRID_VIA_MULTI_GRIDS, annotation);
 	*grid_id = original_grid_mgr->register_md_grid_via_multi_grids(*comp_id, grid_name, *sub_grid1_id, *sub_grid2_id, *sub_grid3_id, *size_mask, mask, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an MD grid %s", grid_name);
 }
 
 
@@ -434,6 +460,9 @@ extern "C" void register_h2d_grid_with_global_data_(int *comp_id, int *grid_id, 
 	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *annotation)
 {
 	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
+
 	*grid_id = original_grid_mgr->register_H2D_grid_via_global_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
 												                    *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												                    API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA);
@@ -442,15 +471,21 @@ extern "C" void register_h2d_grid_with_global_data_(int *comp_id, int *grid_id, 
 	char temp_grid_name[NAME_STR_SIZE];
 	sprintf(temp_grid_name, "%s_temp", grid_name);
 	original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);
 }
 
 
 extern "C" void register_h2d_grid_with_local_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *grid_size, int *num_local_cells, int *size_local_cells_global_index, int *size_center_lon, int *size_center_lat, 
 	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, int *local_cells_global_index, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *decomp_name, int *decomp_id, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
+
 	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA, annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_local_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *grid_size, *num_local_cells, *size_local_cells_global_index, *size_center_lon, *size_center_lat, *size_mask, *size_area, 
 	                                                               *size_vertex_lon, *size_vertex_lat, local_cells_global_index, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation, API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);
 }
 
 
@@ -459,27 +494,39 @@ extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const c
 	char full_data_file_name[NAME_STR_SIZE];
 
 
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
+
 	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
 	sprintf(full_data_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_exe_dir(), data_file_name);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, full_data_file_name, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);
 }
 
 
 extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *grid_id, const char *grid_name, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
+
 	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, annotation);
 	check_and_verify_name_format_of_string_for_API(*comp_id, grid_name, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, "the C-Coupler grid", annotation);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_comp(*comp_id, grid_name, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);
 }
 
 
 extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register a CoR grid %s", CCPL_grid_name);
+
 	common_checking_for_grid_registration(*comp_id, CCPL_grid_name, NULL, API_ID_GRID_MGT_REG_GRID_VIA_COR, annotation);
 	check_and_verify_name_format_of_string_for_API(*comp_id, CoR_grid_name, API_ID_GRID_MGT_REG_GRID_VIA_COR, "the CoR grid", annotation);
 	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid", CCPL_grid_name, "CCPL_grid_name", annotation);
 	check_API_parameter_string(*comp_id, API_ID_GRID_MGT_REG_GRID_VIA_COR, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_cor_defined_grid for getting component management node"), "registering a grid", CoR_grid_name, "CoR_grid_name", annotation);
 	*grid_id = original_grid_mgr->get_CoR_defined_grid(*comp_id, CCPL_grid_name, CoR_grid_name, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering a CoR grid %s", CCPL_grid_name);
 }
 
 
@@ -488,11 +535,15 @@ extern "C" void register_mid_point_grid_(int *level_3D_grid_id, int *mid_3D_grid
 	char API_label[NAME_STR_SIZE];
 
 
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register a middle level grid");
+
 	get_API_hint(-1, API_ID_GRID_MGT_REG_MID_POINT_GRID, API_label);	
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_REG_MID_POINT_GRID, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*level_3D_grid_id), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the grid ID of the interface-level grid (level_3D_grid_id) is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	check_for_coupling_registration_stage(original_grid_mgr->get_comp_id_of_grid(*level_3D_grid_id), API_ID_GRID_MGT_REG_MID_POINT_GRID, true, annotation);
 	original_grid_mgr->register_mid_point_grid(*level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, *size_mask, mask, annotation, API_label);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register a middle level grid");
 }
 
 
@@ -530,6 +581,8 @@ extern "C" void get_h2d_grid_data_(int *grid_id, int *decomp_id, const char *lab
 
 extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register a parallel decomp %s", decomp_name);
+	
 	check_for_ccpl_managers_allocated(API_ID_DECOMP_MGT_REG_DECOMP, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	int comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
@@ -544,76 +597,111 @@ extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, i
 		if (local_cells_global_indx[i] != CCPL_NULL_INT)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering a parallel decomp %s", decomp_name);
 }
 
 
 extern "C" void register_external_field_instance_(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
 	                                             int *buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register a field instance %s", field_name);
+
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_FIELD_INST, annotation);
 	*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering a field instance %s", field_name);
 }
 
 
 extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, const char *field_IO_name, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an I/O field %s", field_IO_name);
+
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD_from_INST, annotation);
 	IO_fields_mgr->register_IO_field(*field_inst_id, field_IO_name, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an I/O field %s", field_IO_name);
 }
 
 
 extern "C" void register_io_fields_from_field_instances_(int *num_field_inst, int *size_field_inst_ids, int *field_inst_ids, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register I/O fields");
+
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_field_inst > 0, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"num_field_inst\" must be larger than 0. Please check the model code with the annotation \"%s\".", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, *size_field_inst_ids > 0, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"field_inst_ids\" seems to be an empty array, which means it has not been allocated. Please check the model code with the annotation \"%s\".", annotation);
 	IO_fields_mgr->register_IO_fields(*num_field_inst, *size_field_inst_ids, field_inst_ids, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering I/O fields");
 }
 
 
 extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
 	                                    const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register an I/O field %s", field_IO_name);
+
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER, annotation);
 	IO_fields_mgr->register_IO_field(*comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering an I/O field %s", field_IO_name);
 }
 
 
 extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *local_lag_count, int *remote_lag_count, const char *annotation)
-{
+{	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to define a timer");
+	
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, true, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling API \"CCPL_define_single_timer\": the time step of the corresponding component has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *local_lag_count, *remote_lag_count, annotation);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish defining a timer");
 }
 
 
 extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *array_size, int *or_or_and, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to define a timer");
+
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, true, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
 		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *array_size, *or_or_and, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish defining a timer");
 }
 
 
 extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second, const char *annotation)
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, true, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to set the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+		
 	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component", annotation);
 	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), NULL, *time_step_in_second, "time step (the unit is seconds)", annotation);
 	components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finsh setting the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
 
 extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to advance time");
+	
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation, false);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_advance_time\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr() != NULL, "Software error in advance_component_time_");
 	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr()->do_restart_write(annotation);
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish advancing time");
 }
 
 
@@ -648,9 +736,12 @@ extern "C" void register_normal_remap_interface_(const char *interface_name, int
 	char API_label[NAME_STR_SIZE];
 
 	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register remap interface");
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_NORMAL_REMAP, annotation);	
 	get_API_hint(-1, API_ID_INTERFACE_REG_NORMAL_REMAP, API_label);
 	*interface_id = inout_interface_mgr->register_normal_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, API_label, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering remap interface");
 }
 
 
@@ -659,14 +750,20 @@ extern "C" void register_frac_based_remap_interface_(const char *interface_name,
 	char API_label[NAME_STR_SIZE];
 	
 
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register fraction based remap interface");
+
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_FRAC_REMAP, annotation);	
 	get_API_hint(-1, API_ID_INTERFACE_REG_FRAC_REMAP, API_label);
 	*interface_id = inout_interface_mgr->register_frac_based_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, frac_src, frac_dst, *size_frac_src, *size_frac_dst, frac_data_type, API_label, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering fraction based remap interface");
 }
 
 
 extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *interface_tag, const char *annotation, int *array_size1)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to register import/export interface");
+
 	if (*import_or_export == 0) {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
 		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, interface_tag, annotation, INTERFACE_TYPE_REGISTER);
@@ -675,20 +772,30 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_EXPORT, annotation);
 		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, interface_tag, annotation, INTERFACE_TYPE_REGISTER);
 	}	
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish register import/export interface");
 }
 
 
 extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to execute an interface");
+
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
 	inout_interface_mgr->execute_interface(*interface_id, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish executing an interface");
 }
 
 
 extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *interface_name, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to execute an interface");
+
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
 	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish executing an interface");
 }
 
 
@@ -696,6 +803,9 @@ extern "C" void connect_fixed_interfaces_between_two_components_(const char *com
 {
 	const char *comp_full_name_low, *comp_full_name_high;
 	Comp_comm_group_mgt_node *comp_node_low, *comp_node_high, *comp_node_low_pesudo = NULL, *comp_node_high_pesudo = NULL;
+
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to connect two component models");
 
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_CONNECT_INTERFACES, annotation);
 	
@@ -755,6 +865,8 @@ extern "C" void connect_fixed_interfaces_between_two_components_(const char *com
 		delete comp_node_high_pesudo;
 	if (comp_node_low_pesudo != NULL)
 		delete comp_node_low_pesudo;
+	
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish connecting two component models");
 }
 
 
@@ -763,7 +875,7 @@ extern "C" void get_comp_name_via_interface_tag_(int *comp_id, const char *inter
 	char local_comp_full_name[NAME_STR_SIZE], local_interface_name[NAME_STR_SIZE];
 
 	
-	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG, annotation, false); // cannot test the case of -1 comp_id
+	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG, annotation, false);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_comp_name_via_interface_tag_")->search_coupling_interface_tag(interface_tag, local_comp_full_name, local_interface_name))
 		*result = 1;
 	else *result = 0;
