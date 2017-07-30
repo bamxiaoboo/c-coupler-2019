@@ -90,7 +90,7 @@ IO_basis *IO_mgt::search_IO_object(const char *object_name)
 
 /* Function get_dimension_size reads a dimension size from IO file, according to IO 
     object name and dimension name */
-long IO_mgt::get_dimension_size(const char *object_name, const char *dim_name)
+long IO_mgt::get_dimension_size(const char *object_name, const char *dim_name, MPI_Comm comm, bool is_root_proc)
 {
     IO_basis *IO_object;
 
@@ -99,7 +99,7 @@ long IO_mgt::get_dimension_size(const char *object_name, const char *dim_name)
     EXECUTION_REPORT(REPORT_ERROR, -1, IO_object != NULL,
                  "\"%s\" must be an defined IO object\n",
                  object_name);
-    return IO_object->get_dimension_size(dim_name);
+    return IO_object->get_dimension_size(dim_name, comm, is_root_proc);
 }
 
 

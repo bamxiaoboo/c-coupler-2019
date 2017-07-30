@@ -552,20 +552,22 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 	int *mask;
 	char data_type_for_center_lat[NAME_STR_SIZE], data_type_for_center_lon[NAME_STR_SIZE], data_type_for_vertex_lon[NAME_STR_SIZE], data_type_for_vertex_lat[NAME_STR_SIZE], data_type_for_mask[NAME_STR_SIZE], data_type_for_area[NAME_STR_SIZE];
 	char edge_type[NAME_STR_SIZE], cyclic_or_acyclic[NAME_STR_SIZE], unit_center_lon[NAME_STR_SIZE], unit_center_lat[NAME_STR_SIZE], unit_vertex_lon[NAME_STR_SIZE], unit_vertex_lat[NAME_STR_SIZE];
+	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_file");
+	bool is_root_proc = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_H2D_grid_via_file") == 0;
 	
 
-	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_file"), "registering an H2D grid", data_file_name, "data_file_name", annotation);
+	check_API_parameter_string(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, comm, "registering an H2D grid", data_file_name, "data_file_name", annotation);
 
 	IO_netcdf *netcdf_file_object = new IO_netcdf("H2D_grid_data", data_file_name, "r", false);
-	dim_lon_size = netcdf_file_object->get_dimension_size(COORD_LABEL_LON);
-	dim_lat_size = netcdf_file_object->get_dimension_size(COORD_LABEL_LAT);
-	dim_H2D_size = netcdf_file_object->get_dimension_size("grid_size");
-	netcdf_file_object->read_file_field(COORD_LABEL_LON, (void**)(&center_lon), &size_center_lon, data_type_for_center_lon);
-	netcdf_file_object->read_file_field(COORD_LABEL_LAT, (void**)(&center_lat), &size_center_lat, data_type_for_center_lat);
-	netcdf_file_object->read_file_field("vertex_lon", (void**)(&vertex_lon), &size_vertex_lon, data_type_for_vertex_lon);
-	netcdf_file_object->read_file_field("vertex_lat", (void**)(&vertex_lat), &size_vertex_lat, data_type_for_vertex_lat);
-	netcdf_file_object->read_file_field("area", (void**)(&area), &size_area, data_type_for_area);
-	netcdf_file_object->read_file_field("mask", (void**)(&mask), &size_mask, data_type_for_mask);
+	dim_lon_size = netcdf_file_object->get_dimension_size(COORD_LABEL_LON, comm, is_root_proc);
+	dim_lat_size = netcdf_file_object->get_dimension_size(COORD_LABEL_LAT, comm, is_root_proc);
+	dim_H2D_size = netcdf_file_object->get_dimension_size("grid_size", comm, is_root_proc);
+	netcdf_file_object->read_file_field(COORD_LABEL_LON, (void**)(&center_lon), &size_center_lon, data_type_for_center_lon, comm, is_root_proc);
+	netcdf_file_object->read_file_field(COORD_LABEL_LAT, (void**)(&center_lat), &size_center_lat, data_type_for_center_lat, comm, is_root_proc);
+	netcdf_file_object->read_file_field("vertex_lon", (void**)(&vertex_lon), &size_vertex_lon, data_type_for_vertex_lon, comm, is_root_proc);
+	netcdf_file_object->read_file_field("vertex_lat", (void**)(&vertex_lat), &size_vertex_lat, data_type_for_vertex_lat, comm, is_root_proc);
+	netcdf_file_object->read_file_field("area", (void**)(&area), &size_area, data_type_for_area, comm, is_root_proc);
+	netcdf_file_object->read_file_field("mask", (void**)(&mask), &size_mask, data_type_for_mask, comm, is_root_proc);
 	if (dim_lon_size > 0 && dim_lat_size > 0 && dim_H2D_size > 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size == dim_lon_size*dim_lat_size, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the size of dimension \"grid_size\" is different from the multiple of sizes of dimensions \"lon\" and \"lat\"", grid_name, annotation, data_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size > 0 || (dim_lon_size > 0 && dim_lat_size > 0), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: the dimension size (dimensions \"lon\" and \"lat\" in the file) or the grid size (dimension \"grid_size\" in the file) is not correctly specified in the file \"%s\". Please verify.", grid_name, annotation, data_file_name);
@@ -595,16 +597,16 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 	if (mask != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_mask, DATA_TYPE_INT), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"mask\" is not \"integer\".", grid_name, annotation, data_file_name);
 
-	netcdf_file_object->get_global_text("edge_type", edge_type, NAME_STR_SIZE);
-	netcdf_file_object->get_global_text("cyclic_or_acyclic", cyclic_or_acyclic, NAME_STR_SIZE);
+	netcdf_file_object->get_global_text("edge_type", edge_type, NAME_STR_SIZE, comm, is_root_proc);
+	netcdf_file_object->get_global_text("cyclic_or_acyclic", cyclic_or_acyclic, NAME_STR_SIZE, comm, is_root_proc);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(edge_type) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"edge_type\" is not specified as a global attribute", grid_name, annotation, data_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(cyclic_or_acyclic) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"cyclic_or_acyclic\" is not specified as a global attribute", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "unit", unit_center_lon) || netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "units", unit_center_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "unit", unit_center_lat) || netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "units", unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "unit", unit_center_lon, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LON, "units", unit_center_lon, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "unit", unit_center_lat, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(COORD_LABEL_LAT, "units", unit_center_lat, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lon\" and \"lat\" are different", grid_name, annotation, data_file_name);
 	if (vertex_lon != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lon", "unit", unit_vertex_lon) || netcdf_file_object->get_file_field_string_attribute("vertex_lon", "units", unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lat", "unit", unit_vertex_lat) || netcdf_file_object->get_file_field_string_attribute("vertex_lat", "units", unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lon", "unit", unit_vertex_lon, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute("vertex_lon", "units", unit_vertex_lon, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lon\" from the data file \"%s\"", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute("vertex_lat", "unit", unit_vertex_lat, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute("vertex_lat", "units", unit_vertex_lat, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lat\" from the data file \"%s\"", grid_name, annotation, data_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lon\" and \"vertex_lon\" are different", grid_name, annotation, data_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lat,unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lat\" and \"vertex_lat\" are different", grid_name, annotation, data_file_name);
 	}

@@ -569,24 +569,26 @@ void IO_netcdf::write_grided_data(Remap_grid_data_class *grided_data, bool write
 }
 
 
-long IO_netcdf::get_dimension_size(const char *dim_name)
+long IO_netcdf::get_dimension_size(const char *dim_name, MPI_Comm comm, bool is_root_proc)
 {
     int dimension_id;
-    unsigned long dimension_size;
+    long dimension_size = -1;
 
 
-    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
-    report_nc_error();
-    rcode = nc_inq_dimid(ncfile_id, dim_name, &dimension_id);
-	if (rcode != NC_NOERR) {
-		rcode = nc_close(ncfile_id);
-		report_nc_error();
-		return -1;
+	if (is_root_proc) {
+	    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
+	    report_nc_error();
+	    rcode = nc_inq_dimid(ncfile_id, dim_name, &dimension_id);
+		if (rcode == NC_NOERR) {
+		    rcode = nc_inq_dimlen(ncfile_id, dimension_id, (unsigned long *)(&dimension_size));
+		    report_nc_error();   
+		}
+	    rcode = nc_close(ncfile_id);
+	    report_nc_error();
 	}
-    rcode = nc_inq_dimlen(ncfile_id, dimension_id, &dimension_size);
-    report_nc_error();   
-    rcode = nc_close(ncfile_id);
-    report_nc_error();
+
+	if (comm != -1)
+		MPI_Bcast(&dimension_size, 1, MPI_LONG, 0, comm);
 
     return dimension_size;
 }
@@ -778,16 +780,20 @@ void IO_netcdf::put_global_text(const char *text_title, const char *text_value)
 }
 
 
-void IO_netcdf::get_global_text(const char *text_title, char *text_value, int string_length)
+void IO_netcdf::get_global_text(const char *text_title, char *text_value, int string_length, MPI_Comm comm, bool is_root_proc)
 {
-	for (int i = 0; i < string_length; i ++)
-		text_value[i] = '\0';
+	if (is_root_proc) {
+		for (int i = 0; i < string_length; i ++)
+			text_value[i] = '\0';
+	    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
+	    report_nc_error();
+	    rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, text_title, text_value);
+	    rcode = nc_close(ncfile_id);
+	    report_nc_error();
+	}
 
-    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
-    report_nc_error();
-    rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, text_title, text_value);
-    rcode = nc_close(ncfile_id);
-    report_nc_error();
+	if (comm != -1)
+		MPI_Bcast(text_value, string_length, MPI_CHAR, 0, comm);
 }
 
 
@@ -855,69 +861,89 @@ bool IO_netcdf::get_file_field_attribute(const char *field_name, const char *att
 }
 
 
-bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const char *attribute_name, char *attribute_value)
+bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const char *attribute_name, char *attribute_value, MPI_Comm comm, bool is_root_proc)
 {
 	char data_type[NAME_STR_SIZE];
 
-	
-	if (get_file_field_attribute(field_name, attribute_name, attribute_value, data_type)) 
-		return words_are_the_same(data_type, DATA_TYPE_STRING);
+	attribute_value[0] = '\0';
+	data_type[0] = '\0';
 
-	return false;
+	if (is_root_proc)
+		get_file_field_attribute(field_name, attribute_name, attribute_value, data_type);
+	if (comm != -1) {
+		MPI_Bcast(attribute_value, NAME_STR_SIZE, MPI_CHAR, 0, comm);
+		MPI_Bcast(data_type, NAME_STR_SIZE, MPI_CHAR, 0, comm);
+	}
+	return words_are_the_same(data_type, DATA_TYPE_STRING);
 }
 
 
-void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *field_size, char *data_type)
+void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, int *field_size, char *data_type, MPI_Comm comm, bool is_root_proc)
 {
-	int i, variable_id, *dim_ids, *dim_size;
-	long total_size;
+	int i, variable_id, *dim_ids, *dim_size, total_size, have_field = 1;
 	size_t dim_len;
 	nc_type nc_var_type;
-	char *data_array;
-	int num_dims;
+	char *data_array = NULL;
+	int num_dims = 0;
 
 	*data_array_ptr = NULL;
-	num_dims = 0;
 	*field_size = -1;
 	
-    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
-    report_nc_error();
-    rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
-	if (rcode != NC_NOERR) {
-		rcode = nc_close(ncfile_id);
-		report_nc_error();
-		return;
-	}
-	rcode = nc_inq_varndims(ncfile_id, variable_id, &num_dims);
-	report_nc_error();
-	dim_ids = new int [num_dims];
-	dim_size = new int [num_dims];
-	rcode = nc_inq_vardimid(ncfile_id, variable_id, dim_ids);
-	report_nc_error();
-	for (i = 0; i < num_dims; i ++) {
-		rcode = nc_inq_dimlen(ncfile_id, dim_ids[i], &dim_len);
-		report_nc_error();
-		dim_size[i] = dim_len;
-	}
-	rcode = nc_inq_vartype(ncfile_id, variable_id, &nc_var_type);
-	report_nc_error();
-	datatype_from_netcdf_to_application(nc_var_type, data_type, field_name);
+	if (is_root_proc) {
+	    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
+	    report_nc_error();
+	    rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
+		if (rcode != NC_NOERR) {
+			rcode = nc_close(ncfile_id);
+			report_nc_error();
+			have_field = 0;
+		}
+		else {
+			rcode = nc_inq_varndims(ncfile_id, variable_id, &num_dims);
+			report_nc_error();
+			dim_ids = new int [num_dims];
+			dim_size = new int [num_dims];
+			rcode = nc_inq_vardimid(ncfile_id, variable_id, dim_ids);
+			report_nc_error();
+			for (i = 0; i < num_dims; i ++) {
+				rcode = nc_inq_dimlen(ncfile_id, dim_ids[i], &dim_len);
+				report_nc_error();
+				dim_size[i] = dim_len;
+			}
+			rcode = nc_inq_vartype(ncfile_id, variable_id, &nc_var_type);
+			report_nc_error();
+			datatype_from_netcdf_to_application(nc_var_type, data_type, field_name);
 
-	total_size = 1;
-	for (i = 0; i < num_dims; i ++)
-		total_size *= dim_size[i];
-	data_array = new char [total_size*get_data_type_size(data_type)];
-	rcode = nc_get_var(ncfile_id, variable_id, data_array);
+			total_size = 1;
+			for (i = 0; i < num_dims; i ++)
+				total_size *= dim_size[i];
+			data_array = new char [total_size*get_data_type_size(data_type)];
+			rcode = nc_get_var(ncfile_id, variable_id, data_array);
+
+			*field_size = total_size;
+
+			delete [] dim_ids;
+			delete [] dim_size;
+
+			rcode = nc_close(ncfile_id);
+			report_nc_error();
+		}
+	}
+
+	if (comm != -1) {
+		MPI_Bcast(&have_field, 1, MPI_INT, 0, comm);
+		if (have_field == 0)
+			return;
+		MPI_Bcast(field_size, 1, MPI_INT, 0, comm);
+		MPI_Bcast(data_type, NAME_STR_SIZE, MPI_CHAR, 0, comm);
+		printf("bcast to get field %s data type %s\n", field_name, data_type);
+		fflush(NULL);
+		if (data_array == NULL)
+			data_array = new char [(*field_size)*get_data_type_size(data_type)];
+		MPI_Bcast(data_array, (*field_size)*get_data_type_size(data_type), MPI_CHAR, 0, comm);
+	}
 
 	*data_array_ptr = data_array;
-	if (total_size > 0)
-		*field_size = total_size;
-
-	delete [] dim_ids;
-	delete [] dim_size;
-
-	rcode = nc_close(ncfile_id);
-	report_nc_error();
 }
 
 

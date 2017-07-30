@@ -77,7 +77,7 @@ void IO_binary::read_data(Remap_data_field *read_data_field, int time_pos)
 }
 
 
-long IO_binary::get_dimension_size(const char *dim_name)
+long IO_binary::get_dimension_size(const char *dim_name, MPI_Comm comm, bool is_root_proc)
 {
     EXECUTION_REPORT(REPORT_ERROR, -1, false, "can not read size from binary file\n");
     return -1;
