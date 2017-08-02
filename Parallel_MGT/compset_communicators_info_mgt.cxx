@@ -352,11 +352,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 			else segment_end = segment_end * 10 + digit;
 		}
 	}
-	
-	printf("The processes of component model \"%s\" include: ", full_name);
-	for (int i = 0; i < local_processes_global_ids.size(); i ++)
-		printf(" %d", local_processes_global_ids[i]);
-	printf("\n");
 
 	current_proc_local_id = -1;
 	parent = NULL;
@@ -646,7 +641,6 @@ bool Comp_comm_group_mgt_node::search_coupling_interface_tag(const char *interfa
 	}
 	
 	for (int i = 0; i < coupling_interface_tags.size(); i ++) {
-		printf("search_coupling_interface_tag: %s vs %s : %s vs %s\n", interface_tag, coupling_interface_tags[i]->interface_tag, coupling_interface_tags[i]->comp_full_name, coupling_interface_tags[i]->interface_name);
 		if (words_are_the_same(coupling_interface_tags[i]->interface_tag, interface_tag)) {
 			strcpy(fixed_remote_comp_full_name, coupling_interface_tags[i]->comp_full_name);
 			strcpy(fixed_remote_interface_name, coupling_interface_tags[i]->interface_name);
@@ -796,7 +790,6 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all
 			if (j == old_global_array_size) {
 				EXECUTION_REPORT(REPORT_ERROR, -1, all_global_nodes[i]->get_comp_id() == -1 && !all_global_nodes[i]->have_local_process(comp_comm_group_mgt_mgr->get_current_proc_global_id()), "Software error in Comp_comm_group_mgt_mgr::update_global_nodes: fail2 to use component %s to replace", all_global_nodes[i]->get_full_name());
 				all_global_nodes[i]->reset_local_node_id(global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX);
-				printf("append component model node of %s\n", all_global_nodes[i]->get_full_name());
 				global_node_array.push_back(all_global_nodes[i]);
 			}
 	}

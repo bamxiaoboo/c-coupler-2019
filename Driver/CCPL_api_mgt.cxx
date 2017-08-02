@@ -242,6 +242,9 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	char *annotations, *comp_names;
 
 
+	if (!report_error_enabled)
+		return;
+	
 	get_API_hint(-1, API_id, API_label_local);
 
 	if (comp_id != -1)
@@ -301,6 +304,9 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 	T *values;
 	char API_label[NAME_STR_SIZE];
 	
+
+	if (!report_error_enabled)
+		return;
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);	
@@ -525,6 +531,9 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 	int local_process_id, num_processes, local_string_size, *all_string_size;
 	char API_label[NAME_STR_SIZE], *all_string_para;
 
+
+	if (!report_error_enabled)
+		return;
 
 	local_string_size = strlen(string);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, local_string_size > 0, "Error happens when calling API \"%s\" for %s: parameter %s is an empty string. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);

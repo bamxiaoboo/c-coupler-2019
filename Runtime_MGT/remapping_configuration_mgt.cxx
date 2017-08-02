@@ -781,8 +781,6 @@ long Remapping_setting::calculate_checksum()
 
 void Remapping_setting::shrink(Original_grid_info *src_grid, Original_grid_info *dst_grid)
 {
-	printf("print remapping setting before shrink for %s\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_grid->get_comp_id(), "")->get_full_name());
-	print();
 	if (src_grid->get_V1D_sub_CoR_grid() == NULL)
 		V1D_remapping_algorithm->clean();
 	if (src_grid->get_T1D_sub_CoR_grid() == NULL)
@@ -797,9 +795,6 @@ void Remapping_setting::shrink(Original_grid_info *src_grid, Original_grid_info 
 		delete H2D_remapping_algorithm;
 		H2D_remapping_algorithm = new Remapping_algorithm_specification(REMAP_OPERATOR_NAME_BILINEAR, REMAP_ALGORITHM_TYPE_H2D);
 	}
-
-	printf("print remapping setting after shrink for %s\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_grid->get_comp_id(), "")->get_full_name());	
-	print();
 }
 
 
@@ -909,11 +904,11 @@ void Remapping_configuration_mgt::get_field_remapping_setting(Remapping_setting 
 		Remapping_configuration *current_remapping_configuration = search_remapping_configuration(current_comp_node->get_comp_id());
 		if (current_remapping_configuration != NULL)
 			if (current_remapping_configuration->get_field_remapping_setting(field_remapping_setting, field_name)) {
-				field_remapping_setting.print();
+//				field_remapping_setting.print();
 				return;
 			}
 	}
 	EXECUTION_REPORT(REPORT_ERROR, -1, remapping_configurations[0]->get_field_remapping_setting(field_remapping_setting, field_name), "Software error in Remapping_configuration_mgt::get_field_remapping_setting");
-	field_remapping_setting.print();
+//	field_remapping_setting.print();
 }
 

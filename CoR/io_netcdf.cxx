@@ -936,8 +936,6 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 			return;
 		MPI_Bcast(field_size, 1, MPI_INT, 0, comm);
 		MPI_Bcast(data_type, NAME_STR_SIZE, MPI_CHAR, 0, comm);
-		printf("bcast to get field %s data type %s\n", field_name, data_type);
-		fflush(NULL);
 		if (data_array == NULL)
 			data_array = new char [(*field_size)*get_data_type_size(data_type)];
 		MPI_Bcast(data_array, (*field_size)*get_data_type_size(data_type), MPI_CHAR, 0, comm);

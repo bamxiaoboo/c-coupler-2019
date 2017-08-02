@@ -38,7 +38,6 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
 	annotation_mgr->add_annotation(decomp_id, "register decomposition", annotation);
 	is_registered = registered;
 	synchronize_comp_processes_for_API(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", annotation);
-	printf("decomp_name is \"%s\"\n", decomp_name);
 	check_API_parameter_string(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", decomp_name, "decomp_name", annotation);
 	check_API_parameter_string(host_comp_id, API_ID_DECOMP_MGT_REG_DECOMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id,"C-Coupler code in Decomp_info::Decomp_info for getting comm group"), "for register a parallel decomposition of a grid", original_grid_mgr->get_name_of_grid(grid_id), "grid_id (the corresponding grid name)", annotation);	
 

@@ -611,9 +611,6 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 
 	/* Below is for testing */
 	gettimeofday(&end, NULL);
-	printf("Time: %ld\n", end.tv_sec - start.tv_sec);	
-	printf("okok\n");
-	printf("finish new Delaunay_Voronoi\n");
 }
 
 

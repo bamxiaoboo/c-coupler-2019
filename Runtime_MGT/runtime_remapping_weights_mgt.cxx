@@ -58,7 +58,6 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 			remap_operator_H2D->set_parameter(parameter_name, parameter_value);
 		}
 		remap_operators[num_remap_operators++] = remap_operator_H2D;
-		remapping_setting->print();
 		H2D_remapping_weight_file = remapping_setting->search_H2D_remapping_weight(src_original_grid, dst_original_grid);
 	}
 	if (src_original_grid->get_V1D_sub_CoR_grid() != NULL) {
