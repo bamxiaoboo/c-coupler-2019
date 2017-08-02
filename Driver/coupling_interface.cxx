@@ -221,7 +221,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr == NULL, "Error happens when registering the root component (\"%s\") at the model code with the annotation \"%s\": the root compnent has been registered before at the model code with the annotation \"%s\"", comp_name, annotation, comp_comm_group_mgt_mgr->get_annotation_start());
 	MPI_Initialized(&flag);
 	if (flag == 0) {
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
 		MPI_Init(NULL, NULL);
 	}
 
@@ -230,9 +230,9 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
 
 	if (*comm != -1) {
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(*comm) == MPI_SUCCESS);
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		
 	}
 
@@ -269,6 +269,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	sprintf(file_name, "%s/all/env_run.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
 	components_time_mgrs->define_root_comp_time_mgr(root_comp_id, file_name);
+	import_report_setting();
 	fields_info = new Field_info_mgt();
 	original_grid_mgr = new Original_grid_mgt();
 	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
@@ -343,7 +344,7 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "start to end the coupling registration for the component model %s", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 	
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
 
@@ -355,7 +356,8 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 	}
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish ending the coupling registration for the component model %s", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish ending the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "The coupling registration stage of the component model \"%s\" is successfully ended at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name(), annotation);
 }
 
 
@@ -701,7 +703,8 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr()->do_restart_write(annotation);
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 	
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish advancing time");
+	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "Component model \"%s\" advance time at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_full_name(), annotation);
+	
 }
 
 
@@ -828,17 +831,17 @@ extern "C" void connect_fixed_interfaces_between_two_components_(const char *com
 	
 	if (comp_node_low != NULL && comp_node_low->get_current_proc_local_id() >= 0) {
 		if (comp_node_low->get_current_proc_local_id() == 0)
-			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_low->get_comp_id(), true, "The whole component model \"%s\" is waiting to load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_low, comp_full_name_high, annotation);
+			EXECUTION_REPORT(REPORT_LOG, comp_node_low->get_comp_id(), true, "The whole component model \"%s\" is waiting to load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_low, comp_full_name_high, annotation);
 		comp_node_high_pesudo = comp_node_low->load_comp_info_from_XML(comp_full_name_high);
 		if (comp_node_low->get_current_proc_local_id() == 0)
-			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_low->get_comp_id(), true, "The whole component model \"%s\" successfully load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_low, comp_full_name_high, annotation);
+			EXECUTION_REPORT(REPORT_LOG, comp_node_low->get_comp_id(), true, "The whole component model \"%s\" successfully load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_low, comp_full_name_high, annotation);
 	}
 	if (comp_node_high != NULL && comp_node_high->get_current_proc_local_id() >= 0) {
 		if (comp_node_high->get_current_proc_local_id() == 0)
-			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_high->get_comp_id(), true, "The whole component model \"%s\" is waiting to load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_high, comp_full_name_low, annotation);
+			EXECUTION_REPORT(REPORT_LOG, comp_node_high->get_comp_id(), true, "The whole component model \"%s\" is waiting to load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_high, comp_full_name_low, annotation);
 		comp_node_low_pesudo = comp_node_high->load_comp_info_from_XML(comp_full_name_low);
 		if (comp_node_high->get_current_proc_local_id() == 0)
-			EXECUTION_REPORT(REPORT_PROGRESS, comp_node_high->get_comp_id(), true, "The whole component model \"%s\" successfully load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_high, comp_full_name_low, annotation);
+			EXECUTION_REPORT(REPORT_LOG, comp_node_high->get_comp_id(), true, "The whole component model \"%s\" successfully load the information of the component model \"%s\" at the model code with the annotation \"%s\"", comp_full_name_high, comp_full_name_low, annotation);
 	}
 	if (comp_node_high == NULL) {
 		comp_node_high = comp_node_high_pesudo;

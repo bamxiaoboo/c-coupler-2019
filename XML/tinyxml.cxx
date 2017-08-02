@@ -1083,6 +1083,7 @@ bool TiXmlDocument::LoadFile( FILE* file, MPI_Comm comm, TiXmlEncoding encoding 
 		assert( q <= (buf+length) );
 		*q = 0;
 	}
+	
 	if (comm != -1) {
 		MPI_Bcast(&length, 1, MPI_INT, 0, comm);
 		if (buf == NULL)

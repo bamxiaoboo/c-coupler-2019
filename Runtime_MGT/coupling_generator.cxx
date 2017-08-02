@@ -783,7 +783,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
 	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, false);	
 	if (XML_file == NULL) {
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
 			             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
 		return;
 	}
@@ -1153,9 +1153,9 @@ void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_co
 	
 
 	if (comp_node1->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_node1->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
+		EXECUTION_REPORT(REPORT_LOG, comp_node1->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
 	if (comp_node2->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_node2->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
+		EXECUTION_REPORT(REPORT_LOG, comp_node2->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
 	
 	if (comp_node1->get_current_proc_local_id() >= 0) {		
 		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp1, comp_node1->get_comp_id(), 0, comp_node1->get_full_name());
@@ -1202,9 +1202,9 @@ void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_co
 	all_coupling_connections.clear();
 
 	if (comp_node1->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_node1->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
+		EXECUTION_REPORT(REPORT_LOG, comp_node1->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
 	if (comp_node2->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_node2->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
+		EXECUTION_REPORT(REPORT_LOG, comp_node2->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
 
 	delete [] connection_id_comp1;
 	delete [] connection_id_comp2;

@@ -228,12 +228,12 @@ void Remap_weight_of_operator_class::do_remap(Remap_grid_data_class *field_data_
         else remap_end_iter = field_data_grid_src->get_grid_size()/operator_grid_src->get_grid_size();
         for (j = remap_beg_iter; j < remap_end_iter; j ++) {
 			field_array_offset = j;
-#ifdef DEBUG_CCPL
-	        EXECUTION_REPORT(REPORT_ERROR, -1, field_array_offset >= 0 && (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size() <= field_data_size_src,
-	        				 "remap software error4 in do_remap of Remap_weight_of_strategy_class");
-			EXECUTION_REPORT(REPORT_ERROR, -1, field_array_offset >= 0 && (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size() <= field_data_size_dst,
-				 			 "remap software error5 in do_remap of Remap_weight_of_strategy_class");
-#endif	        
+			if (report_error_enabled) {
+		        EXECUTION_REPORT(REPORT_ERROR, -1, field_array_offset >= 0 && (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size() <= field_data_size_src,
+	    	    				 "remap software error4 in do_remap of Remap_weight_of_strategy_class");
+				EXECUTION_REPORT(REPORT_ERROR, -1, field_array_offset >= 0 && (field_array_offset+1)*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size() <= field_data_size_dst,
+					 			 "remap software error5 in do_remap of Remap_weight_of_strategy_class");
+			}    
             data_value_src = ((double*) field_data_src->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_src->get_grid_size();
             data_value_dst = ((double*) field_data_dst->get_grid_data_field()->data_buf) + field_array_offset*remap_weights_of_operator_instances[i]->operator_grid_dst->get_grid_size();
 			EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->duplicated_remap_operator != NULL, "C-Coupler error3 in do_remap of Remap_weight_of_operator_class");

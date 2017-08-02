@@ -661,7 +661,7 @@ void Remap_grid_class::compute_ocn_mask(const char *topo_field_name, double unit
     if (execution_phase_number == 0)
         return;
 
-    EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "generate ocn mask of grid %s from terrain data", this->grid_name);
+    EXECUTION_REPORT(REPORT_LOG, -1, true, "generate ocn mask of grid %s from terrain data", this->grid_name);
 
     /* Prepare remap operator grid and lon/lat values of topo grid, etc */
     remap_grids[0] = lonlat_sub_grid_this;

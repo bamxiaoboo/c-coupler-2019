@@ -193,43 +193,42 @@ void Field_mem_info::reset_field_name(const char *new_name)
 
 void Field_mem_info::calculate_field_conservative_sum(Field_mem_info *area_field)
 {
-#ifdef DEBUG_CCPL
 	double partial_sum, total_sum;
     long size;
 
-	EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "C-Coupler error in calculate_field_sum");
-    size = get_field_data()->get_grid_data_field()->required_data_size;
-    partial_sum = 0;
-    for (long j = 0; j < size; j ++)
-        partial_sum += (((double*) get_data_buf())[j])*(((double*) area_field->get_data_buf())[j]);
-	MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_DOUBLE, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(area_field->get_comp_id(),"in Field_mem_info::calculate_field_conservative_sum"));
-#endif
+	if (report_log_enabled) {
+		EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "C-Coupler error in calculate_field_sum");
+    	size = get_field_data()->get_grid_data_field()->required_data_size;
+	    partial_sum = 0;
+    	for (long j = 0; j < size; j ++)
+	        partial_sum += (((double*) get_data_buf())[j])*(((double*) area_field->get_data_buf())[j]);
+		MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_DOUBLE, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(area_field->get_comp_id(),"in Field_mem_info::calculate_field_conservative_sum"));
+	}
 }
 
 
 void Field_mem_info::check_field_sum(const char *hint)
 {
-#ifdef DEBUG_CCPL
-
     int partial_sum, total_sum;
     long size;
 
 
-	size = get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)*get_field_data()->get_grid_data_field()->required_data_size/4;
-	partial_sum = 0;
-	for (long j = 0; j < size; j ++)
-		partial_sum += (((int*) get_data_buf())[j]);
+	if (report_log_enabled) {
+		size = get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)*get_field_data()->get_grid_data_field()->required_data_size/4;
+		partial_sum = 0;
+		for (long j = 0; j < size; j ++)
+			partial_sum += (((int*) get_data_buf())[j]);
 
-	if (decomp_id != -1) {
-	    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
-	    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
+		if (decomp_id != -1) {
+		    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
+		    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
+		}
+		else {
+			total_sum = partial_sum;
+			MPI_Bcast(&total_sum, 1, MPI_INT, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, partial_sum == total_sum, "Field %s should be the same but not the same across all processes of the component. Please check the model code related to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+		}
 	}
-	else {
-		total_sum = partial_sum;
-		MPI_Bcast(&total_sum, 1, MPI_INT, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, partial_sum == total_sum, "Field %s should be the same but not the same across all processes of the component. Please check the model code related to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
-	}
-#endif
 }
 
 

@@ -19,6 +19,50 @@
 #include <sys/time.h>
 
 
+bool report_error_enabled;
+bool report_progress_enabled;
+bool report_log_enabled;
+
+
+void import_report_setting()
+{
+	char XML_file_name[NAME_STR_SIZE];
+	int line_number;
+	char keywords[3][NAME_STR_SIZE];
+	bool report_setting[3];
+
+	
+	report_error_enabled = false;
+	report_log_enabled = false;
+	report_progress_enabled = false;
+
+	sprintf(XML_file_name, "%s/all/CCPL_report.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
+	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_WORLD, false);
+	if (XML_file == NULL)
+		return;
+
+	sprintf(keywords[0], "report_log");
+	sprintf(keywords[1], "report_progress");
+	sprintf(keywords[2], "report_error");
+	
+	TiXmlElement *XML_element = XML_file->FirstChildElement();
+	for (int i = 0; i < 3; i ++) {
+		report_setting[i] = false;
+		const char *setting = XML_element->Attribute(keywords[i], &line_number);
+		if (setting == NULL)
+			continue;
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(setting, "on") || words_are_the_same(setting, "off"), "Error happens when loading the XML file \"%s\": the value of \"%s\" must be \"on\" or \"off\". Please verify the XML file around line number %d", XML_file_name, keywords[i]);
+		report_setting[i] = words_are_the_same(setting,"on");
+	}
+
+	delete XML_file;
+
+	report_log_enabled = report_setting[0];
+	report_progress_enabled = report_setting[1];
+	report_error_enabled = report_setting[2];
+}
+
+
 void wtime(double *t)
 {
   static int sec = -1;
@@ -43,21 +87,15 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 			condition = !condition;
 			break;
 		case REPORT_LOG:
-			condition = false;
-#ifdef DEBUG_CCPL
-			condition = true;
-#endif 
-#ifdef DEBUG_CoR
-			condition = true;
-#endif
+			condition = report_log_enabled;
 			break;
 		case REPORT_WARNING:
 			condition = !condition;
 			break;
 		case REPORT_PROGRESS:
-			condition = true;
-			if (line_number > 0 && execution_phase_number == 0)
-				condition = false;
+			if (comp_id == -1)
+				condition = comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0 && report_progress_enabled;
+			else condition = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_current_proc_local_id() == 0 && report_progress_enabled;
 			break;
 		default:
 			printf("report type %d is not support\n", report_type);

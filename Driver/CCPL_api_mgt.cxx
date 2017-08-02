@@ -251,18 +251,18 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 		comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in synchronize_comp_processes_for_API");
 
 	if (hint != NULL)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
-	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
+	else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
 	MPI_Barrier(comm);
 	if (hint != NULL)
-		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
-	else EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
+		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
+	else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);
 	API_ids = new int [num_processes];
 	annotations = new char [num_processes*NAME_STR_SIZE];
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&API_id, 1, MPI_INT, API_ids, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
-	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "annotation is \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "annotation is \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((void*)annotation, NAME_STR_SIZE, MPI_CHAR, annotations, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
 	if (local_process_id == 0) {
 		for (int i = 1; i < num_processes; i ++) {
@@ -688,7 +688,7 @@ TiXmlDocument *open_XML_file_to_read(int comp_id, const char *XML_file_name, MPI
 	bool successful;
 
 
-	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Try to load the XML configuration file \"%s\"", XML_file_name);
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Try to load the XML configuration file \"%s\"", XML_file_name);
 	if (comm != MPI_COMM_NULL)
 		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	if (local_process_id == 0) {
@@ -723,7 +723,7 @@ TiXmlDocument *open_XML_file_to_read(int comp_id, const char *XML_file_name, MPI
 		return NULL;
 	}
 	
-	EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "Successfully load the XML configuration file \"%s\"", XML_file_name);
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Successfully load the XML configuration file \"%s\"", XML_file_name);
 
 	return XML_file;
 }

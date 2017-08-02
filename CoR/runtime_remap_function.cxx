@@ -207,12 +207,6 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
 		src_grid_changed = true;
 	if (!check_mask_values_status(last_mask_values_dst, current_mask_values_dst, remap_operator_runtime_grid_dst->grid_size))
 		dst_grid_changed = true;
-
-	if (src_grid_changed)
-		runtime_remap_operator_grid_src->update_operator_grid_data();
-
-	if (dst_grid_changed)
-		runtime_remap_operator_grid_dst->update_operator_grid_data();
     
     if (src_grid_changed || dst_grid_changed) {
 		if (runtime_remap_operator->get_src_grid()->get_is_sphere_grid() && H2D_remapping_wgt_file != NULL) {
@@ -223,6 +217,10 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
 			EXECUTION_REPORT(REPORT_LOG, -1, true, "should use remap weight file \"%s\" for operator from grid %s to grid %s\n", H2D_remapping_wgt_file, runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
 		}
 		else {
+			if (src_grid_changed)
+				runtime_remap_operator_grid_src->update_operator_grid_data();
+			if (dst_grid_changed)
+				runtime_remap_operator_grid_dst->update_operator_grid_data();
 			EXECUTION_REPORT(REPORT_LOG, -1, true, "should generate remap weight file for operator from grid %s to grid %s\n", runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
 			runtime_remap_operator->calculate_remap_weights();
 		}

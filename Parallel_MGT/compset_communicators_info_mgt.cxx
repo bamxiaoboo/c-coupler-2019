@@ -19,6 +19,48 @@
 #include <dirent.h>
 
 
+
+void recursively_remove_directory()
+{
+    DIR *cur_dir = opendir(".");
+    struct dirent *ent = NULL;
+    struct stat st;
+ 
+    if (cur_dir == NULL)
+        return;
+ 
+    while ((ent = readdir(cur_dir)) != NULL) {
+        stat(ent->d_name, &st);
+     
+        if (words_are_the_same(ent->d_name, ".") || words_are_the_same(ent->d_name, ".."))
+            continue;
+ 
+        if (S_ISDIR(st.st_mode)) {
+            chdir(ent->d_name);
+            recursively_remove_directory();
+            chdir("..");
+        }
+        remove(ent->d_name);
+    }
+     
+    closedir(cur_dir);
+}
+
+
+void remove_directory(const char *path)
+{
+    char old_path[NAME_STR_SIZE];
+ 
+    getcwd(old_path, NAME_STR_SIZE);
+     
+    if (chdir(path) == -1)
+    	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Fail to open \"%s\" which should be a directory");
+	
+    recursively_remove_directory();
+    chdir(old_path);
+}
+
+
 void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool new_dir)
 {
 	char buffer[NAME_STR_SIZE];
@@ -26,16 +68,14 @@ void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool n
 
 	if (is_root_proc) {
 		DIR *dir=opendir(path);
-		if (new_dir) {
-			sprintf(buffer, "rm -rf \"%s\"", path);
-			system(buffer);
-			dir = NULL;
-		}
+		if (dir != NULL && new_dir)
+			remove_directory(path);
 		if (dir == NULL) {
-			sprintf(buffer, "mkdir -p \"%s\"", path);
-			system(buffer);
+			umask(0);
+			mkdir(path, S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH);
+			int retcode = errno;
 			dir=opendir(path);
-			EXECUTION_REPORT(REPORT_ERROR, -1, dir != NULL, "Directory \"%s\" cannot be created. Please check why.", path);
+			EXECUTION_REPORT(REPORT_ERROR, -1, dir != NULL, "Directory \"%s\" cannot be created: %s. Please verify.", path, strerror(retcode));
 		}
 	}	
 }
@@ -135,7 +175,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	if (comm != -1) {
 		comm_group = comm;
 		if (parent == NULL)
-			synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_COMP, comm, "for checking the given communicator for registering root component", annotation);
+			synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_COMP, comm, "checking the given communicator for registering root component", annotation);
 		else {
 			char tmp_string[NAME_STR_SIZE];
 			sprintf(tmp_string, "for checking the given communicator for registering a child component \"%s\"", comp_name);
@@ -149,20 +189,20 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "registering a component model", parent->get_comp_name(), "\"parent_id\" (the corresponding component model)", annotation);
 		parent_comm = parent->get_comm_group();
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
-			EXECUTION_REPORT(REPORT_PROGRESS, parent->comp_id, true, 
+			EXECUTION_REPORT(REPORT_LOG, parent->comp_id, true, 
 			                 "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 parent->get_comp_name(), comp_name, annotation);
 		else if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, -1, true, 
+			EXECUTION_REPORT(REPORT_LOG, -1, true, 
 			                 "Before the MPI_barrier for synchronizing all processes of the whole coupled model for registerring root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 comp_name, annotation);	
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(parent_comm) == MPI_SUCCESS);
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
-			EXECUTION_REPORT(REPORT_PROGRESS, parent->comp_id, true, 
+			EXECUTION_REPORT(REPORT_LOG, parent->comp_id, true, 
 			                 "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 parent->get_comp_name(), comp_name, annotation);
 		else if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_PROGRESS, -1, true, 
+			EXECUTION_REPORT(REPORT_LOG, -1, true, 
 			                 "After the MPI_barrier for synchronizing all processes of the whole coupled model for registerring root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 comp_name, annotation);	
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
@@ -231,11 +271,9 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	}
 	
 	if (ancestor != NULL) {
-		if (ancestor->get_parent() == NULL) {
+		if (is_real_component_model()) {
 			sprintf(working_dir, "%s/CCPL_dir/run/data/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type);
 			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
-		}
-		if (is_real_component_model()) {
 			sprintf(working_dir, "%s/CCPL_dir/run/data/%s/%s", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, full_name);
 			create_directory(working_dir, comm_group, get_current_proc_local_id() == 0, false);
 		}
@@ -245,7 +283,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		create_directory(dir, comm_group, get_current_proc_local_id() == 0, false);		
 		MPI_Barrier(get_comm_group());
 		sprintf(comp_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_components/%s/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, full_name, get_comp_name(), get_current_proc_local_id());
-		sprintf(exe_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_executables/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_comm_group_mgt_mgr->get_executable_name(), comp_comm_group_mgt_mgr->get_executable_name(), get_current_proc_local_id());
+		sprintf(exe_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_executables/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_comm_group_mgt_mgr->get_executable_name(), comp_comm_group_mgt_mgr->get_executable_name(), comp_comm_group_mgt_mgr->get_global_node_root()->get_current_proc_local_id());
 	}
 
 	if (parent != NULL)
@@ -256,7 +294,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		char XML_file_name[NAME_STR_SIZE];
 		sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), full_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, !does_file_exist(XML_file_name), 
-			             "Error happens when registering a component model \"%s\": another componet model with the same has already been registered. Please check the model code related to the annotations \"%s\"", 
+			             "Error happens when registering a component model \"%s\": another componet model with the same name has already been registered. Please check the model code related to the annotations \"%s\"", 
 			             full_name, annotation);
 		TiXmlDocument *XML_file = new TiXmlDocument;
 		TiXmlDeclaration *XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
@@ -268,6 +306,8 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		XML_file->SaveFile(XML_file_name);
 		delete XML_file;
 	}
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering the component model \%s\"", full_name);
 }
 
 
@@ -814,6 +854,8 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 	delete temp_comp_node;
 
 	new_comp->load_coupling_interface_tags();
+
+	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
 	return new_comp->get_local_node_id();
 }

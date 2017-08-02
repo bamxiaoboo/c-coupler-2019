@@ -19,7 +19,12 @@
 
 #define CCPL_NULL_INT                                   ((int)(0x7FFFFFFF))
 
+extern bool report_error_enabled;
+extern bool report_progress_enabled;
+extern bool report_log_enabled;
 
+
+extern void import_report_setting();
 extern void wtime(double *t);
 
 extern void EXECUTION_REPORT(int, int, bool);

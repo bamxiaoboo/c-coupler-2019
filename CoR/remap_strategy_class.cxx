@@ -151,7 +151,7 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
     
     current_remap_src_data_grid = remap_src_data_grid;
     for (i = 0; i < remap_operators.size(); i ++) {
-        EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "execute remap operator %s  %s", remap_operators[i]->get_object_name(), remap_operators[i]->get_operator_name());
+        EXECUTION_REPORT(REPORT_LOG, -1, true, "execute remap operator %s  %s", remap_operators[i]->get_object_name(), remap_operators[i]->get_operator_name());
 		current_remap_src_data_grid_interchanged = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
 		runtime_mask_src = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
 		current_remap_dst_data_grid = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
