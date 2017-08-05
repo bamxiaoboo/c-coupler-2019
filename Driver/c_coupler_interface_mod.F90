@@ -2437,11 +2437,20 @@
    end SUBROUTINE CCPL_check_current_time
 
 
-   SUBROUTINE CCPL_finalize()
+   SUBROUTINE CCPL_finalize(to_finalize_MPI)
+   implicit none
    include 'mpif.h'
+   logical,          intent(in)                :: to_finalize_MPI
+   integer                                     :: local_to_finalize_MPI
    integer ierr
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call MPI_FINALIZE(ierr)
+   
+   if (to_finalize_MPI) then
+       local_to_finalize_MPI = 1
+   else
+       local_to_finalize_MPI = 0
+   endif
+   call finalize_CCPL(local_to_finalize_MPI)
+
    END SUBROUTINE  CCPL_finalize
 
 

@@ -226,11 +226,15 @@ void Coupling_connection::generate_data_transfer()
         MPI_Win_create(recv_algorithm_object->get_tag_buf(), recv_algorithm_object->get_tag_buf_size()*sizeof(long), sizeof(long), MPI_INFO_NULL, union_comm, &tag_win);
         recv_algorithm_object->set_data_win(data_win);
         recv_algorithm_object->set_tag_win(tag_win);
+		inout_interface_mgr->add_MPI_win(data_win);
+		inout_interface_mgr->add_MPI_win(tag_win);
     }
     if (current_proc_id_src_comp != -1) {
 		if (current_proc_id_dst_comp == -1) {
-	        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &data_win);
-	        MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, union_comm, &tag_win);
+	        MPI_Win_create(NULL, 0, sizeof(char), MPI_INFO_NULL, union_comm, &data_win);
+	        MPI_Win_create(NULL, 0, sizeof(long), MPI_INFO_NULL, union_comm, &tag_win);
+			inout_interface_mgr->add_MPI_win(data_win);
+			inout_interface_mgr->add_MPI_win(tag_win);
 		}
         send_algorithm_object->set_data_win(data_win);
         send_algorithm_object->set_tag_win(tag_win);

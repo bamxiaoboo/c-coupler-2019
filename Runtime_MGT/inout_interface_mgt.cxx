@@ -1051,3 +1051,12 @@ void Inout_interface_mgt::runtime_receive_algorithms_receive_data()
 		all_runtime_receive_algorithms[i]->receve_data_in_temp_buffer();
 }
 
+
+void Inout_interface_mgt::free_all_MPI_wins()
+{
+	for (int i = 0; i < all_MPI_wins.size(); i ++) {
+		MPI_Win mpi_win = all_MPI_wins[i];
+		MPI_Win_free(&mpi_win);
+	}
+}
+

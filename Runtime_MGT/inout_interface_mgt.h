@@ -160,6 +160,7 @@ class Inout_interface_mgt
 		long buffer_max_size;
 		long buffer_content_size;
 		long buffer_content_iter;
+		std::vector<MPI_Win> all_MPI_wins;
 
 	public:
 		Inout_interface_mgt(const char*, long);
@@ -184,6 +185,8 @@ class Inout_interface_mgt
 		void execute_interface(int, const char*, bool, int *, int, int*, const char*);
 		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
 		void runtime_receive_algorithms_receive_data();
+		void add_MPI_win(MPI_Win mpi_win) { all_MPI_wins.push_back(mpi_win); }
+		void free_all_MPI_wins(); 
 		
 };
 

@@ -150,8 +150,6 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
     if (remap_operator->get_num_dimensions() == 1)
         require_vertex_fields = remap_operator->does_require_grid_vertex_values();
     else require_vertex_fields = remap_operator->does_require_grid_vertex_values() || (remap_operator->get_is_operator_regridding());
-    if (require_vertex_fields) 
-        initialize_for_vertex_coord_values_generation();
 
     if (is_grid_sphere && !is_rotated_grid && remap_operator->get_is_operator_regridding()) {
         rotated_remap_operator_grid = new Remap_operator_grid(remap_grid, remap_operator, is_src_grid, true);
@@ -185,8 +183,10 @@ Remap_operator_grid::~Remap_operator_grid()
 
 void Remap_operator_grid::update_operator_grid_data()
 {
-    if (require_vertex_fields) 
+    if (require_vertex_fields) {
+		initialize_for_vertex_coord_values_generation();
         generate_overall_vertex_coord_values();
+    }
 
     if (is_src_grid)
         remove_redundant_cells();
@@ -279,6 +279,14 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
     long i, j, last_index;
     Remap_grid_data_class *current_vertex_field;
 
+
+	if (grid_vertex_fields.size() > 0)
+		return;
+
+    if (remap_grid->get_is_sphere_grid() && !remap_grid->check_vertex_fields_completeness(remap_operator)) {
+        EXECUTION_REPORT(REPORT_WARNING, -1, false, "the vertex values corresponding to sphere grid \"%s\" will be generated automatically", remap_grid->get_grid_name());
+        remap_grid->generate_voronoi_grid();
+    }
 
     remap_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, remap_grid);    
     for (i = 0; i < num_leaf_grids; i ++) {

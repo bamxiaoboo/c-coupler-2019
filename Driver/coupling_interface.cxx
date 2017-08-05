@@ -897,3 +897,15 @@ extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, in
 	strncpy(comp_full_name, full_name, strlen(full_name));
 }
 
+
+extern "C" void finalize_ccpl_(int *to_finalize_MPI)
+{
+	inout_interface_mgr->free_all_MPI_wins();
+	if (*to_finalize_MPI == 0)
+		return;
+	int flag;
+	MPI_Finalized(&flag);
+	if (!flag)
+		MPI_Finalize();
+}
+

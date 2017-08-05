@@ -408,14 +408,11 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
     }
 
     /* duplicate grid center and vertex data fields */
-    if (this->num_dimensions == 1 && this->super_grid_of_setting_coord_values != NULL &&
-        this->super_grid_of_setting_coord_values->is_subset_of_grid(top_grid)) {
-        EXECUTION_REPORT(REPORT_ERROR, -1, this->get_grid_center_field() != NULL, "remap software error3 in duplicate_grid\n");            
-        duplicated_grid->grid_center_fields.push_back(this->get_grid_center_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, 1, true, true));
-        if (this->get_grid_vertex_field() != NULL)
-            duplicated_grid->grid_vertex_fields.push_back(this->get_grid_vertex_field()->duplicate_grid_data_field(this->super_grid_of_setting_coord_values, this->super_grid_of_setting_coord_values->num_vertexes, true, true));
-    }
-
+	for (int i = 0; i < grid_center_fields.size(); i ++)
+		duplicated_grid->grid_center_fields.push_back(grid_center_fields[i]->duplicate_grid_data_field(duplicated_grid, 1, true, true));
+	for (int i = 0; i < grid_vertex_fields.size(); i ++)
+		duplicated_grid->grid_vertex_fields.push_back(grid_vertex_fields[i]->duplicate_grid_data_field(duplicated_grid, this->num_vertexes, true, true));
+	
     this->duplicated_grid = NULL;
 
     return duplicated_grid;
@@ -1928,6 +1925,7 @@ void Remap_grid_class::generate_voronoi_grid()
   
     EXECUTION_REPORT(REPORT_ERROR, -1, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
     EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Default boundary area (global area) will be used to generate the voronoi grid\n", grid_name);
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Generate voronoi grid for \"%s\"", grid_name);
 
 	if (boundary_min_lon == NULL_COORD_VALUE) {
 		boundary_min_lat = -90;
@@ -1939,8 +1937,8 @@ void Remap_grid_class::generate_voronoi_grid()
     are_vertex_values_set_in_default = true;
 
     is_global_grid = boundary_min_lat == -90 && boundary_max_lat == 90 && fabs(boundary_min_lon-boundary_max_lon) == 360;
-    center_lon_values = (double*) this->grid_center_fields[0]->get_grid_data_field()->data_buf;
-    center_lat_values = (double*) this->grid_center_fields[1]->get_grid_data_field()->data_buf;
+    center_lon_values = (double*) get_grid_center_field(COORD_LABEL_LON)->get_grid_data_field()->data_buf;
+    center_lat_values = (double*) get_grid_center_field(COORD_LABEL_LAT)->get_grid_data_field()->data_buf;
 
     if (!is_global_grid)
         for (i = 0; i < grid_size; i ++) {
@@ -1959,8 +1957,8 @@ void Remap_grid_class::generate_voronoi_grid()
     delete delaunay_triangularization;
 
     EXECUTION_REPORT(REPORT_ERROR, -1, grid_vertex_fields.size() == 0, "remap software error2 in generate_voronoi_grid\n");
-    grid_vertex_fields.push_back(grid_center_fields[0]->duplicate_grid_data_field(this, num_vertexes, false, false));
-    grid_vertex_fields.push_back(grid_center_fields[1]->duplicate_grid_data_field(this, num_vertexes, false, false));
+    grid_vertex_fields.push_back(get_grid_center_field(COORD_LABEL_LON)->duplicate_grid_data_field(this, num_vertexes, false, false));
+    grid_vertex_fields.push_back(get_grid_center_field(COORD_LABEL_LAT)->duplicate_grid_data_field(this, num_vertexes, false, false));
     delete [] grid_vertex_fields[0]->grid_data_field->data_buf;
     delete [] grid_vertex_fields[1]->grid_data_field->data_buf;
     grid_vertex_fields[0]->grid_data_field->data_buf = vertex_lon_values;
@@ -2609,12 +2607,6 @@ void Remap_grid_class::end_grid_definition_stage(Remap_operator_basis *remap_ope
             remap_grid_manager->remap_grids[i]->check_coord_values_range();
             remap_grid_manager->remap_grids[i]->check_center_fields_sorting_order();
             remap_grid_manager->remap_grids[i]->enable_to_set_coord_values = false;
-        }
-
-    for (int i = 0; i < remap_grid_manager->remap_grids.size(); i ++)
-        if (remap_grid_manager->remap_grids[i]->is_subset_of_grid(this) && remap_grid_manager->remap_grids[i]->get_is_sphere_grid() &&  !remap_grid_manager->remap_grids[i]->check_vertex_fields_completeness(remap_operator)) {
-            EXECUTION_REPORT(REPORT_WARNING, -1, false, "the vertex values corresponding to sphere grid \"%s\" will be generated automatically", remap_grid_manager->remap_grids[i]->get_grid_name());
-                remap_grid_manager->remap_grids[i]->generate_voronoi_grid();
         }
 
     similar_grid = get_similar_grids_setting_coord_values();
