@@ -77,6 +77,9 @@
    public :: CCPL_connect_fixed_interfaces 
    public :: CCPL_get_comp_name_via_interface_tag 
    public :: CCPL_get_local_comp_full_name 
+   public :: CCPL_report_log 
+   public :: CCPL_report_progress 
+   public :: CCPL_report_error 
 
 
    interface CCPL_register_field_instance ; module procedure &
@@ -2748,6 +2751,69 @@
 
    END SUBROUTINE CCPL_get_local_comp_full_name
 
-   
+
+
+   SUBROUTINE CCPL_report_log(comp_id, condition, report_string, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   logical,          intent(in)                :: condition
+   character(len=*), intent(in)                :: report_string
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: local_condition
+
+   local_condition = 0
+   if (condition) local_condition = 1
+
+   if (present(annotation)) then
+       call CCPL_report(2, comp_id, local_condition, trim(report_string)//char(0), trim(annotation)//char(0))
+   else 
+       call CCPL_report(2, comp_id, local_condition, trim(report_string)//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_report_log
+
+
+
+   SUBROUTINE CCPL_report_progress(comp_id, condition, report_string, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   logical,          intent(in)                :: condition
+   character(len=*), intent(in)                :: report_string
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: local_condition
+
+   local_condition = 0
+   if (condition) local_condition = 1
+
+   if (present(annotation)) then
+       call CCPL_report(4, comp_id, local_condition, trim(report_string)//char(0), trim(annotation)//char(0))
+   else 
+       call CCPL_report(4, comp_id, local_condition, trim(report_string)//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_report_progress
+
+
+
+   SUBROUTINE CCPL_report_error(comp_id, condition, report_string, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   logical,          intent(in)                :: condition
+   character(len=*), intent(in)                :: report_string
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: local_condition
+
+   local_condition = 0
+   if (condition) local_condition = 1
+
+   if (present(annotation)) then
+       call CCPL_report(1, comp_id, local_condition, trim(report_string)//char(0), trim(annotation)//char(0))
+   else 
+       call CCPL_report(1, comp_id, local_condition, trim(report_string)//char(0), trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_report_error
+
+ 
 
  END MODULE CCPL_interface_mod

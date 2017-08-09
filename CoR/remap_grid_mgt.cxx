@@ -261,10 +261,19 @@ void Remap_grid_mgt::add_remap_grid(Remap_grid_class *remap_grid)
 }
 
 
+void Remap_grid_mgt::add_temp_grid(Remap_grid_class *temp_grid)
+{
+	temp_grids.push_back(temp_grid);
+}
+
+
 Remap_grid_mgt::~Remap_grid_mgt()
 {
     for (int i = 0; i < remap_grids.size(); i ++)
         delete remap_grids[i];
+
+	for (int i = 0; i < temp_grids.size(); i ++)
+		delete temp_grids[i];
 }
 
 

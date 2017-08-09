@@ -101,6 +101,9 @@ Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 		delete [] temp_array_buffer;
 	for (int i = 0; i < coupling_interface_tags.size(); i ++)
 		delete coupling_interface_tags[i];
+
+	if (restart_mgr != NULL)
+		delete restart_mgr;
 }
 
 

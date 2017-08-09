@@ -116,6 +116,10 @@ Runtime_remapping_weights::~Runtime_remapping_weights()
 	delete sequential_remapping_weights;
 	if (parallel_remapping_weights != NULL)
 		delete parallel_remapping_weights;
+	if (runtime_V1D_remap_grid_src != NULL)
+		delete runtime_V1D_remap_grid_src;
+	if (runtime_V1D_remap_grid_dst != NULL)
+		delete runtime_V1D_remap_grid_dst;
 }
 
 

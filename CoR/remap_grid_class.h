@@ -85,6 +85,7 @@ class Remap_grid_class
 		char name_first_super_grid_of_enable_setting_coord_value[NAME_STR_SIZE];
         Remap_grid_class *duplicated_grid;
         Remap_grid_class *original_grid;
+		bool generated_from_duplication;
         std::vector<Remap_grid_class *> sub_grids;
         std::vector<Remap_grid_data_class *> grid_center_fields;
         std::vector<Remap_grid_data_class *> grid_vertex_fields;

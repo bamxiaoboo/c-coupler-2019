@@ -25,6 +25,8 @@ Annotation_mgt::Annotation_mgt()
 Annotation_mgt::~Annotation_mgt()
 {
 	delete annoation_lookup_table;
+	for (int i = 0; i < annotations.size(); i ++)
+		delete annotations[i];
 }
 
 
@@ -36,6 +38,7 @@ void Annotation_mgt::add_annotation(int object_id, const char *tag, const char *
 
 	sprintf(key, "%x @ %s", object_id, tag);
 	annoation_lookup_table->insert(key, local_annotation);
+	annotations.push_back(local_annotation);
 }
 
 

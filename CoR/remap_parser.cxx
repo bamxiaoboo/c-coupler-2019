@@ -172,7 +172,7 @@ int Remap_parser::match_reserved_words(const char *statement_string)
 /* Get next statement and check syntax at the same time */
 bool Remap_parser::get_next_parsed_statement(int *num_words, char **words)
 {
-    char statement_string[1024];
+    char statement_string[NAME_STR_SIZE];
     char *line_iter;
 
 

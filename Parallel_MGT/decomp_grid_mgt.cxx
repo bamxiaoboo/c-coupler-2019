@@ -65,7 +65,10 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 				decomp_2D_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_id, decomp_info_grid, false)->get_decomp_grid();
 				sub_grids[num_sub_grids++] = decomp_2D_grid;
 			}
-			else sub_grids[num_sub_grids++] = leaf_grids[i]->duplicate_grid(leaf_grids[i]); 
+			else {
+				sub_grids[num_sub_grids++] = leaf_grids[i]->duplicate_grid(leaf_grids[i]); 
+				remap_grid_manager->add_temp_grid(sub_grids[num_sub_grids-1]);
+			}
         }
 		sprintf(decomp_grid_name, "DECOMP_GRID_%s_%d", original_grid->get_grid_name(), comp_id);
         this->decomp_grid = new Remap_grid_class(decomp_grid_name, num_sub_grids, sub_grids, 0);
@@ -79,8 +82,10 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 
 Decomp_grid_info::~Decomp_grid_info()
 {
-	if (decomp_grid != NULL && decomp_grid != original_grid)
+	if (decomp_grid != NULL && decomp_grid != original_grid) {
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "remove decomp grid %s\n", decomp_grid->get_grid_name());
 	    delete decomp_grid;
+	}
 }
 
 

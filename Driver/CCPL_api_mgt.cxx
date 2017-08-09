@@ -227,6 +227,15 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER:
 			sprintf(API_label, "CCPL_register_IO_field_from_data_buffer");
 			break;
+		case API_ID_REPORT_LOG:
+			sprintf(API_label, "CCPL_report_log");
+			break;			
+		case API_ID_REPORT_PROGRESS:
+			sprintf(API_label, "CCPL_report_progress");
+			break;	
+		case API_ID_REPORT_ERROR:
+			sprintf(API_label, "CCPL_report_error");
+			break;	
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;

@@ -58,7 +58,7 @@ class Coupling_timer
 		Coupling_timer(int, int, const char*, int, int, int, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
 		Coupling_timer(const char*, long &, int);
-        ~Coupling_timer() {}
+        ~Coupling_timer();
         bool is_timer_on();
 		bool is_timer_on(int, int, int, int, int, int, int, int, int, int);
 		int get_timer_id() { return timer_id; }
@@ -88,6 +88,7 @@ class Timer_mgt
 		int define_timer(int, int*, int, int, int, const char*);
 		int define_timer(int, Coupling_timer*);
 		bool is_timer_on(int, const char*);
+		void add_timer(Coupling_timer *);
 };
 
 

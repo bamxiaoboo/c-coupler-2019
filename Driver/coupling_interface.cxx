@@ -37,6 +37,39 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 }
 
 
+extern "C" void finalize_ccpl_(int *to_finalize_MPI)
+{
+	inout_interface_mgr->free_all_MPI_wins();
+
+	delete annotation_mgr;
+	delete decomps_info_mgr;
+	delete decomp_grids_mgr;
+	delete components_time_mgrs;
+	delete timer_mgr;
+	delete inout_interface_mgr;
+	delete routing_info_mgr;
+	delete IO_fields_mgr;
+	delete components_IO_output_procedures_mgr;
+	delete fields_gather_scatter_mgr;
+	delete remapping_configuration_mgr;
+	delete runtime_remapping_weights_mgr;
+	delete all_H2D_remapping_wgt_files_info;
+	delete fields_info;
+	delete original_grid_mgr;
+	delete comp_comm_group_mgt_mgr;
+	delete memory_manager;
+	delete coupling_generator;
+	comp_comm_group_mgt_mgr = NULL;
+
+	if (*to_finalize_MPI == 0)
+		return;
+	int flag;
+	MPI_Finalized(&flag);
+	if (!flag)
+		MPI_Finalize();
+}
+
+
 extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation, false);
@@ -898,14 +931,19 @@ extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, in
 }
 
 
-extern "C" void finalize_ccpl_(int *to_finalize_MPI)
+extern "C" void ccpl_report_(int *report_type, int *comp_id, int *condition, const char *report_content, const char *annotation)
 {
-	inout_interface_mgr->free_all_MPI_wins();
-	if (*to_finalize_MPI == 0)
-		return;
-	int flag;
-	MPI_Finalized(&flag);
-	if (!flag)
-		MPI_Finalize();
+	int API_id;
+	bool local_condition = *condition == 1? true : false;
+
+	
+	if (*report_type == REPORT_ERROR)
+		API_id = API_ID_REPORT_ERROR;
+	else if (*report_type == REPORT_LOG)
+		API_id = API_ID_REPORT_LOG;
+	else API_id = API_ID_REPORT_PROGRESS;
+
+	check_for_ccpl_managers_allocated(API_id, annotation);
+	EXECUTION_REPORT(*report_type, *comp_id, local_condition, report_content);
 }
 

@@ -33,7 +33,7 @@ class IO_field
 	public:
 		IO_field(int, int, const char *, const char *);
 		IO_field(int, int, int, int, void *, const char *, const char *, const char *, const char *, const char *);
-		~IO_field();
+		~IO_field() {}
 		int get_comp_id() { return comp_id; }
 		int get_IO_field_id() { return IO_field_id; }
 		int get_field_instance_id() { return field_instance_id; }
@@ -105,7 +105,7 @@ class Components_IO_output_procedures_mgt
 
 	public:
 		Components_IO_output_procedures_mgt() {}
-		~Components_IO_output_procedures_mgt() {}
+		~Components_IO_output_procedures_mgt();
 		void add_component_IO_output_procedures(int, const char*, bool);
 		void add_all_components_IO_output_procedures();
 		Component_IO_output_procedures *get_component_IO_output_procedures(int);

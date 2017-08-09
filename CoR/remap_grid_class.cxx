@@ -35,6 +35,7 @@ void Remap_grid_class::initialize_grid_class_data()
     this->super_grid_of_setting_coord_values = NULL;
     this->first_super_grid_of_enable_setting_coord_value = NULL;
     this->duplicated_grid = NULL;
+	this->generated_from_duplication = false;
     this->original_grid = NULL;
     this->sub_grids.clear();
     this->grid_center_fields.clear();
@@ -226,7 +227,7 @@ Remap_grid_class::~Remap_grid_class()
     if (grid_mask_field != NULL)
         delete grid_mask_field;
 
-    if (original_grid != NULL)
+    if (generated_from_duplication)
         for (int i = 0; i < sub_grids.size(); i ++)
             delete sub_grids[i];
 
@@ -321,6 +322,7 @@ void Remap_grid_class::generate_interchange_grids(Remap_grid_class *remap_grid,
 		delete *interchange_grid;
 		*interchange_grid = existing_grid;
 	}
+	else remap_grid_manager->add_temp_grid(*interchange_grid);
 	
     EXECUTION_REPORT(REPORT_ERROR, -1, this->is_similar_grid_with(*interchange_grid), "remap software error2 when generating interchange grids\n");
 }
@@ -367,6 +369,7 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
     duplicated_grid = new Remap_grid_class;
     duplicated_grid->initialize_grid_class_data();
     duplicated_grid->original_grid = this;
+	duplicated_grid->generated_from_duplication = true;
     this->duplicated_grid = duplicated_grid;
     for (i = 0; i < this->sub_grids.size(); i ++)
         duplicated_grid->sub_grids.push_back(this->sub_grids[i]->duplicate_grid(top_grid));
@@ -991,6 +994,7 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 		delete sphere_grid;
 		sphere_grid = existing_grid;
 	}
+	else remap_grid_manager->add_temp_grid(sphere_grid);
 
 	this->sigma_grid_surface_value_field = this->get_a_leaf_grid_of_sigma_or_hybrid()->sigma_grid_sigma_value_field->duplicate_grid_data_field(sphere_grid, 1, false, false);
 	strcpy(this->sigma_grid_surface_value_field->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
@@ -1979,7 +1983,7 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
     if (grid_center_fields.size() == 0)
         return;
 
-	if (grid_vertex_fields.size() > 0 && !are_vertex_values_set_in_default)
+	if (grid_vertex_fields.size() > 0)
 		return;
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
@@ -1992,9 +1996,8 @@ void Remap_grid_class::set_coord_vertex_values_in_default()
     num_vertexes = 1;
     for (i = 0; i < grid_center_fields.size(); i ++)
         num_vertexes *= 2;
-	if (grid_vertex_fields.size() == 0)
-		for (i = 0; i < grid_center_fields.size(); i ++) 
-			grid_vertex_fields.push_back(grid_center_fields[i]->duplicate_grid_data_field(this, num_vertexes, false, false));
+	for (i = 0; i < grid_center_fields.size(); i ++) 
+		grid_vertex_fields.push_back(grid_center_fields[i]->duplicate_grid_data_field(this, num_vertexes, false, false));
 
     if (grid_center_fields.size() == 1) {
         for (j = 0; j < num_leaf_grids; j ++)
@@ -3076,6 +3079,9 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
 
 	strcpy(decomp_grid->decomp_name, decomp_name);
 	decomp_grid->original_grid = this;
+
+	remap_grid_manager->add_temp_grid(decomp_leaf_grids[0]);
+	remap_grid_manager->add_temp_grid(decomp_leaf_grids[1]);
 	
     return decomp_grid;
 }
@@ -3308,7 +3314,8 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	read_data_from_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_content_iter);
 	strcat(grid_name, grid_name_suffix);
 	if (remap_grid_manager->search_remap_grid_with_grid_name(grid_name) == NULL)
-		remap_grid_manager->add_remap_grid(this);
+        remap_grid_manager->add_remap_grid(this);
+	else remap_grid_manager->add_temp_grid(this);
 	read_data_from_array_buffer(coord_label, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(coord_unit, NAME_STR_SIZE, array, buffer_content_iter);
 	read_data_from_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_content_iter);
@@ -3339,8 +3346,6 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	for (int i = 0; i < temp_int; i ++) {
 		Remap_grid_class *child_grid = new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter);
 		Remap_grid_class *existing_grid = remap_grid_manager->search_remap_grid_with_grid_name(child_grid->get_grid_name());
-		if (existing_grid != child_grid)
-			delete child_grid;
 		sub_grids.push_back(existing_grid);
 	}
 	

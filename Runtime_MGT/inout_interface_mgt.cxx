@@ -153,6 +153,32 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 }
 
 
+Connection_coupling_procedure::~Connection_coupling_procedure()
+{
+	for (int i = 0; i < fields_time_info_src.size(); i ++)
+		delete fields_time_info_src[i];
+
+	for (int i = 0; i < fields_time_info_dst.size(); i ++)
+		delete fields_time_info_dst[i];
+
+	for (int i = 0; i < runtime_inner_averaging_algorithm.size(); i ++) {
+		if (runtime_inner_averaging_algorithm[i] != NULL)
+			delete runtime_inner_averaging_algorithm[i];
+		if (runtime_inter_averaging_algorithm[i] != NULL)
+			delete runtime_inter_averaging_algorithm[i];
+		if (runtime_remap_algorithms[i] != NULL)
+			delete runtime_remap_algorithms[i];
+		if (runtime_unit_transform_algorithms[i] != NULL)
+			delete runtime_unit_transform_algorithms[i];
+		if (runtime_datatype_transform_algorithms[i] != NULL)
+			delete runtime_datatype_transform_algorithms[i];
+	}
+
+	inout_interface_mgr->erase_runtime_receive_algorithm(runtime_data_transfer_algorithm);
+	delete runtime_data_transfer_algorithm;
+}
+
+
 void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update_status, const char *annotation)
 {
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
@@ -357,7 +383,7 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_con
 	read_data_from_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&num_interfaces, sizeof(int), temp_array_buffer, buffer_content_iter);
 	for (int i = 0; i < num_interfaces; i ++) {
-		fields_name.push_back(temp_array_buffer+buffer_content_iter-NAME_STR_SIZE);
+		fields_name.push_back(strdup(temp_array_buffer+buffer_content_iter-NAME_STR_SIZE));
 		buffer_content_iter -= NAME_STR_SIZE;
 	}
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_full_name);
@@ -417,6 +443,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	this->last_execution_time = -1;
 	Coupling_timer *existing_timer = timer_mgr->get_timer(timer_id);
 	this->timer = new Coupling_timer(existing_timer->get_comp_id(), -1, existing_timer);
+	timer_mgr->add_timer(this->timer);
 	this->comp_id = this->timer->get_comp_id();
 	this->interface_type = interface_type;
 	this->inversed_dst_fraction = NULL;
@@ -431,8 +458,19 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 
 Inout_interface::~Inout_interface()
 {
-	if (inversed_dst_fraction != NULL)
+	if (inversed_dst_fraction != NULL) {
+		EXECUTION_REPORT(REPORT_LOG, -1, true, "inout interface %s %x release %x", interface_name, (int)this, (int)inversed_dst_fraction);
 		delete [] inversed_dst_fraction;
+	}
+
+	for (int i = 0; i < fields_name.size(); i ++)
+		delete [] fields_name[i];
+
+	for (int i = 0; i < coupling_procedures.size(); i ++)
+		delete coupling_procedures[i];
+
+	for (int i = 0; i < children_interfaces.size(); i ++)
+		delete children_interfaces[i];
 }
 
 
@@ -839,7 +877,8 @@ void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interfac
 	Inout_interface *child_interface_import = new_interface->get_child_interface(1);
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 
-	interfaces.push_back(new_interface);
+	if (!has_frac_remapping)
+		interfaces.push_back(new_interface);
 	strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(), "in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
 	strcpy(coupling_connection->dst_interface_name, child_interface_import->get_interface_name());
 	for (int i = 0; i < num_fields; i ++)
@@ -1052,6 +1091,16 @@ void Inout_interface_mgt::runtime_receive_algorithms_receive_data()
 }
 
 
+void Inout_interface_mgt::erase_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm)
+{
+	for (int i = 0; i < all_runtime_receive_algorithms.size(); i ++)
+		if (all_runtime_receive_algorithms[i] == new_algorithm) {
+			all_runtime_receive_algorithms.erase(all_runtime_receive_algorithms.begin()+i);
+			break;
+		}
+}
+
+
 void Inout_interface_mgt::free_all_MPI_wins()
 {
 	for (int i = 0; i < all_MPI_wins.size(); i ++) {
@@ -1059,4 +1108,6 @@ void Inout_interface_mgt::free_all_MPI_wins()
 		MPI_Win_free(&mpi_win);
 	}
 }
+
+
 

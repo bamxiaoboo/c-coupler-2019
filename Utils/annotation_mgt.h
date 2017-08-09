@@ -11,6 +11,7 @@
 #define ANNOTATION_MGT_H
 
 
+#include <vector>
 #include "dictionary.h"
 
 
@@ -18,6 +19,7 @@ class Annotation_mgt
 {
 	private:
 		Dictionary<const char*> *annoation_lookup_table;
+		std::vector<const char *> annotations;
 
 	public:
 		Annotation_mgt();

@@ -83,6 +83,7 @@ class Connection_coupling_procedure
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
+		~Connection_coupling_procedure();
 		void add_data_transfer_algorithm(Runtime_trans_algorithm * runtime_algorithm) { runtime_data_transfer_algorithm = runtime_algorithm; }
 		void execute(bool, int*, const char*);
 		void send_fields(bool);
@@ -184,6 +185,7 @@ class Inout_interface_mgt
 		void execute_interface(int, bool, int*, int, int*, const char*);
 		void execute_interface(int, const char*, bool, int *, int, int*, const char*);
 		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
+		void erase_runtime_receive_algorithm(Runtime_trans_algorithm *);
 		void runtime_receive_algorithms_receive_data();
 		void add_MPI_win(MPI_Win mpi_win) { all_MPI_wins.push_back(mpi_win); }
 		void free_all_MPI_wins(); 

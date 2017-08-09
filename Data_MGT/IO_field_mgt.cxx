@@ -82,6 +82,13 @@ void IO_field_mgt::check_for_registering_IO_field(IO_field *new_IO_field, const 
 }
 
 
+IO_field_mgt::~IO_field_mgt()
+{
+	for (int i = 0; i < IO_fields.size(); i ++)
+		delete IO_fields[i];
+}
+
+
 int IO_field_mgt::register_IO_field(int field_instance_id, const char *field_IO_name, const char *annotation)
 {
 	int IO_field_id = TYPE_IO_FIELD_PREFIX | IO_fields.size();
@@ -271,6 +278,13 @@ Component_IO_output_procedures::Component_IO_output_procedures(int comp_id, cons
 }
 
 
+Component_IO_output_procedures::~Component_IO_output_procedures()
+{
+	for (int i = 0; i < IO_output_procedures.size(); i ++)
+		delete IO_output_procedures[i];
+}
+
+
 void Component_IO_output_procedures::generate_coupling_connection(std::vector<Coupling_connection*> &all_IO_connections, int basic_connection_id)
 {
 	for (int i = 0; i < IO_output_procedures.size(); i ++) {
@@ -285,6 +299,13 @@ void Component_IO_output_procedures::execute()
 {
 	for (int i = 0; i < IO_output_procedures.size(); i ++)
 		IO_output_procedures[i]->execute();
+}
+
+
+Components_IO_output_procedures_mgt::~Components_IO_output_procedures_mgt()
+{
+	for (int i = 0; i < components_IO_output_procedures.size(); i ++)
+		delete components_IO_output_procedures[i];
 }
 
 

@@ -117,8 +117,15 @@ Coupling_timer::Coupling_timer(const char *array_buffer, long &buffer_content_it
 	read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter);
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
-	for (int i = 0; i < num_children; i ++)
+	for (int i = 0; i < num_children; i ++) {
 		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter, comp_id));
+		timer_mgr->add_timer(children[i]);
+	}
+}
+
+
+Coupling_timer::~Coupling_timer()
+{
 }
 
 
@@ -182,6 +189,20 @@ void Coupling_timer::check_timer_format()
 }
 
 
+Timer_mgt::~Timer_mgt()
+{
+	for (int i = 0; i < timers.size(); i ++) {
+ 		delete timers[i];
+	}
+}
+
+
+void Timer_mgt::add_timer(Coupling_timer *timer)
+{
+	timers.push_back(timer);
+}
+
+
 bool Timer_mgt::check_is_legal_timer_id(int timer_id)
 {
 	if ((timer_id & TYPE_ID_PREFIX_MASK) != TYPE_TIMER_ID_PREFIX)
@@ -203,7 +224,7 @@ Coupling_timer *Timer_mgt::get_timer(int timer_id)
 int Timer_mgt::define_timer(int comp_id, const char *freq_unit, int freq_count, int local_lag_count, int remote_lag_count, const char *annotation)
 {
 	timers.push_back(new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), freq_unit, freq_count, local_lag_count, remote_lag_count, annotation));
-	return timers[timers.size()-1]->get_timer_id();
+ 	return timers[timers.size()-1]->get_timer_id();
 }
 
 
@@ -211,7 +232,7 @@ int Timer_mgt::define_timer(int comp_id, int *timers_id, int num_timers, int arr
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size >= num_timers, "Error happens when calling API \"CCPL_define_complex_timer\": the array size of \"children_timers_id\" cannot be smaller than \"num_children_timers\". Please check the model code with the annotation \"%s\"", annotation);
 	timers.push_back(new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), timers_id, num_timers, or_or_and, annotation));
-	return timers[timers.size()-1]->get_timer_id();
+ 	return timers[timers.size()-1]->get_timer_id();
 }
 
 
@@ -219,7 +240,7 @@ int Timer_mgt::define_timer(int comp_id, Coupling_timer *existing_timer)
 {
 	Coupling_timer *new_timer = new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), existing_timer);
 	timers.push_back(new_timer);
-	return new_timer->get_timer_id();
+ 	return new_timer->get_timer_id();
 }
 
 
@@ -464,7 +485,6 @@ void Time_mgt::build_restart_timer()
 
 Time_mgt::~Time_mgt()
 {
-    delete restart_timer;
 }
 
 
@@ -916,6 +936,13 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	}
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
 	current_step_id = (current_num_elapsed_day-start_num_elapsed_day) * (SECONDS_PER_DAY/time_step_in_second);
+}
+
+
+Components_time_mgt::~Components_time_mgt()
+{
+	for (int i = 0; i < components_time_mgrs.size(); i ++)
+		delete components_time_mgrs[i];
 }
 
 

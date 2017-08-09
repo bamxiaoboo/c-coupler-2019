@@ -517,6 +517,7 @@ void Coupling_connection::read_connection_fields_info_from_array(std::vector<Int
 	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
 	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
 	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
+	timer_mgr->add_timer(*timer);
 
 	read_fields_info_from_array(fields_info, array_buffer, buffer_content_iter);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_info.size() == fields_name.size(), "Software error in Coupling_connection::read_connection_fields_info_from_array: wrong size of fields_info");
@@ -591,6 +592,11 @@ void Coupling_connection::exchange_bottom_fields_info()
 		if (current_proc_id_dst_comp != -1)
 			dst_fields_info[i]->runtime_remapping_weights = dst_bottom_fields_coupling_info[dst_fields_info[i]->bottom_field_indx]->H2D_runtime_remapping_weights;
 	}
+
+	if (src_fields_info_array != NULL)
+		delete [] src_fields_info_array;
+	if (dst_fields_info_array != NULL)
+		delete [] dst_fields_info_array;
 }
 
 
@@ -747,6 +753,8 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 			continue;
 		import_directions.push_back(new Import_direction_setting(this, comp_full_name, interface_name, redirection_element, XML_file_name, fields_name, fields_count));
 	}
+
+	delete [] fields_count;
 }
 
 
@@ -841,6 +849,15 @@ void Component_import_interfaces_configuration::get_interface_field_import_confi
 	for (int i = 0; i < import_interfaces_configuration.size(); i ++)
 		if (words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), interface_name)) 
 			import_interfaces_configuration[i]->get_field_import_configuration(field_name, producers_info);
+}
+
+
+Coupling_generator::~Coupling_generator()
+{
+	if (import_field_index_lookup_table != NULL)
+		delete import_field_index_lookup_table;
+	if (export_field_index_lookup_table != NULL)
+		delete export_field_index_lookup_table;
 }
 
 
@@ -1070,9 +1087,7 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 						import_field_index_lookup_table->insert(field_name, field_id_iter++);
 						distinct_import_fields_name.push_back(strdup(field_name));
 					}
-					field_index = import_field_index_lookup_table->search(field_name, false);
-					import_fields_src_components[field_index].push_back(std::pair<const char*,const char*>(strdup(comp_full_name),strdup(interface_name)));
-				}
+					field_index = import_field_index_lookup_table->search(field_name, false);				}
 				else {
 					if (export_field_index_lookup_table->search(field_name, false) == 0) {
 						export_field_index_lookup_table->insert(field_name, field_id_iter++);
@@ -1145,6 +1160,9 @@ void Coupling_generator::transfer_interfaces_info_from_one_component_to_another(
 		while (buffer_content_size > 0)
 			interfaces.push_back(new Inout_interface(temp_array_buffer, buffer_content_size));
 	}
+
+	if (temp_array_buffer != NULL)
+		delete [] temp_array_buffer;
 }
 
 

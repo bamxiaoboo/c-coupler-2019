@@ -252,6 +252,9 @@ Original_grid_mgt::Original_grid_mgt()
 
 Original_grid_mgt::~Original_grid_mgt()
 {
+	for (int i = 0; i < original_grids.size(); i ++)
+		delete original_grids[i];
+	
 	delete CoR_grids;
 }
 
@@ -306,14 +309,13 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 			if (words_are_the_same(xml_grid_name, grid_name)) {
 				another_comp_full_name = get_XML_attribute(comp_id, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the grid redirection configuration file");
 				another_comp_grid_name = get_XML_attribute(comp_id, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the grid redirection configuration file");
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(another_comp_grid_name) > 0, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") specifies an empty name of the remote grid. Please check the XML file around line number %d", grid_name, XML_file_name, line_number);
 				break;
 			}
 		}	
 	}
-	delete XML_file;
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
-
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL && another_comp_grid_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 	sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), another_comp_grid_name, another_comp_full_name);
 	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Wait to read NetCDF file \"%s\" to register H2D grid \"%s\" based on the grid \"%s\" of remote component \"%s\". Dead wait will be encounted if the full name of the remote component is wrong. So please make sure the full name of the remote component is correct in the the grid redirection configuration file (\"%s\")", nc_file_name, grid_name, another_comp_grid_name, another_comp_full_name, XML_file_name);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_H2D_grid_via_comp") == 0) {
@@ -334,7 +336,11 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 			break;
 		}
 	}
+	
+	delete XML_file;
 	synchronize_comp_processes_for_API(comp_id, API_ID_GRID_MGT_REG_H2D_GRID_VIA_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_H2D_grid_via_comp"), "register_H2D_grid_via_comp", annotation);
+	if (!report_error_enabled)
+		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp"));
 
 	return register_H2D_grid_via_file(comp_id, grid_name, nc_file_name, annotation);
 }

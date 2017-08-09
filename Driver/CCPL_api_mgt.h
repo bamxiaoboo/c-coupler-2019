@@ -79,6 +79,9 @@
 #define API_ID_INTERFACE_CONNECT_INTERFACES             ((int)(0X04000006))
 #define API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG          ((int)(0X04000007))
 #define API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME       ((int)(0X04000008))
+#define API_ID_REPORT_LOG                               ((int)(0X06000001))
+#define API_ID_REPORT_ERROR                             ((int)(0X06000002))
+#define API_ID_REPORT_PROGRESS                          ((int)(0X06000004))
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);

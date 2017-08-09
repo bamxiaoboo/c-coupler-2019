@@ -48,7 +48,7 @@ int get_data_type_size(const char *data_type)
     else if (words_are_the_same(data_type, DATA_TYPE_SHORT))
         return sizeof(short);
 	else if (words_are_the_same(data_type, DATA_TYPE_STRING))
-		return 1024;
+		return NAME_STR_SIZE;
     else EXECUTION_REPORT(REPORT_ERROR, -1, false, 
                       "implicit data type %s is disabled in this software\n", 
                       data_type);
