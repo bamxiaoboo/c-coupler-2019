@@ -26,11 +26,11 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_na
 
 H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, long *buffer_content_iter)
 {	
-	read_data_from_array_buffer(wgt_file_name, NAME_STR_SIZE, array, *buffer_content_iter);
-	read_data_from_array_buffer(&checksum_dst_mask, sizeof(long), array, *buffer_content_iter);
-	read_data_from_array_buffer(&dst_grid_size, sizeof(int), array, *buffer_content_iter);
-	read_data_from_array_buffer(&checksum_src_mask, sizeof(long), array, *buffer_content_iter);
-	read_data_from_array_buffer(&src_grid_size, sizeof(int), array, *buffer_content_iter);
+	read_data_from_array_buffer(wgt_file_name, NAME_STR_SIZE, array, *buffer_content_iter, true);
+	read_data_from_array_buffer(&checksum_dst_mask, sizeof(long), array, *buffer_content_iter, true);
+	read_data_from_array_buffer(&dst_grid_size, sizeof(int), array, *buffer_content_iter, true);
+	read_data_from_array_buffer(&checksum_src_mask, sizeof(long), array, *buffer_content_iter, true);
+	read_data_from_array_buffer(&src_grid_size, sizeof(int), array, *buffer_content_iter, true);
 	
 	num_wgts = 0;
 	wgts_src_indexes = NULL;
@@ -196,7 +196,7 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(TiXmlElement *XML_element
 H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(const char *array, long *buffer_content_iter)
 {
 	int temp_int;
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter);
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter, true);
 	for (int i = 0; i < temp_int; i ++) {
 		H2D_remapping_wgt_file_info *new_wgt_file_info = new H2D_remapping_wgt_file_info(array, buffer_content_iter);
 		H2D_remapping_wgt_file_info *existing_wgt_file_info = all_H2D_remapping_wgt_files_info->search_wgt_file_info(new_wgt_file_info->get_wgt_file_name());
@@ -360,15 +360,15 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 
 Remapping_algorithm_specification::Remapping_algorithm_specification(const char *array, long *buffer_content_iter)
 {
-	read_data_from_array_buffer(&type_id, sizeof(int), array, *buffer_content_iter);
-	read_data_from_array_buffer(algorithm_name, NAME_STR_SIZE, array, *buffer_content_iter);
+	read_data_from_array_buffer(&type_id, sizeof(int), array, *buffer_content_iter, true);
+	read_data_from_array_buffer(algorithm_name, NAME_STR_SIZE, array, *buffer_content_iter, true);
 	int temp_int;
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter);
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter, true);
 	for (int i = 0; i < temp_int; i ++) {
 		this->parameters_name.push_back(new char [NAME_STR_SIZE]);
-		read_data_from_array_buffer(this->parameters_name[this->parameters_name.size()-1], NAME_STR_SIZE, array, *buffer_content_iter);
+		read_data_from_array_buffer(this->parameters_name[this->parameters_name.size()-1], NAME_STR_SIZE, array, *buffer_content_iter, true);
 		this->parameters_value.push_back(new char [NAME_STR_SIZE]);
-		read_data_from_array_buffer(this->parameters_value[this->parameters_value.size()-1], NAME_STR_SIZE, array, *buffer_content_iter);		
+		read_data_from_array_buffer(this->parameters_value[this->parameters_value.size()-1], NAME_STR_SIZE, array, *buffer_content_iter, true);		
 	}
 }
 

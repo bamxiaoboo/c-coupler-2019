@@ -309,8 +309,8 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		char temp_string[NAME_STR_SIZE];
 		sprintf(temp_string, "%s%s", grid_name, sender_comp_node->get_full_name());
 		Remap_grid_class *mirror_grid = remap_grid_manager->search_remap_grid_with_grid_name(temp_string);
-		read_data_from_array_buffer(&checksum_mask, sizeof(long), temp_array_buffer, buffer_content_size);
-		read_data_from_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_content_size);
+		read_data_from_array_buffer(&checksum_mask, sizeof(long), temp_array_buffer, buffer_content_size, true);
+		read_data_from_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_content_size, true);
 		if (mirror_grid == NULL) {
 			mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
 			EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
@@ -501,10 +501,10 @@ void Coupling_connection::read_fields_info_from_array(std::vector<Interface_fiel
 		Interface_field_info *field_info = new Interface_field_info;
 		field_info->bottom_field_indx = -1;
 		field_info->runtime_remapping_weights = NULL;
-		read_data_from_array_buffer(field_info->decomp_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
-		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter);
-		read_data_from_array_buffer(field_info->unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
-		read_data_from_array_buffer(field_info->data_type, NAME_STR_SIZE, array_buffer, buffer_content_iter);
+		read_data_from_array_buffer(field_info->decomp_name, NAME_STR_SIZE, array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(field_info->grid_name, NAME_STR_SIZE, array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(field_info->unit, NAME_STR_SIZE, array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(field_info->data_type, NAME_STR_SIZE, array_buffer, buffer_content_iter, true);
 		fields_info.push_back(field_info);
 	}
 
@@ -514,8 +514,8 @@ void Coupling_connection::read_fields_info_from_array(std::vector<Interface_fiel
 
 void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, long buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
-	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter, true);
 	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
 	timer_mgr->add_timer(*timer);
 
@@ -1005,22 +1005,22 @@ void Coupling_generator::generate_coupling_procedures()
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) {
 		int num_connections, num_fields, num_sources;
 		long buffer_content_iter = current_array_buffer_size;
-		read_data_from_array_buffer(&num_connections, sizeof(int), temp_array_buffer, buffer_content_iter);
+		read_data_from_array_buffer(&num_connections, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 		for (int i = 0; i < num_connections; i ++) {
 			int connection_id;
-			read_data_from_array_buffer(&connection_id, sizeof(int), temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(&connection_id, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			coupling_connection = new Coupling_connection(connection_id);
-			read_data_from_array_buffer(coupling_connection->dst_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(coupling_connection->dst_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(coupling_connection->dst_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(coupling_connection->dst_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			for (int j = 0; j < num_fields; j ++) {
-				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 				coupling_connection->fields_name.push_back(strdup(field_name));					
 			}		
-			read_data_from_array_buffer(&num_sources, sizeof(int), temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(&num_sources, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			for (int j = 0; j < num_sources; j ++) {
-				read_data_from_array_buffer(src_comp_interface.first, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-				read_data_from_array_buffer(src_comp_interface.second, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+				read_data_from_array_buffer(src_comp_interface.first, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+				read_data_from_array_buffer(src_comp_interface.second, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 				coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 			}
 			all_coupling_connections.push_back(coupling_connection);
@@ -1071,15 +1071,15 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 		long buffer_content_iter = buffer_content_size;
 		int import_or_export, field_id_iter = 100, field_index, num_fields;
 		while (buffer_content_iter > 0) {
-			read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter);
-			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter);
+			read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter, true);
+			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			is_fixed_interface = strlen(fixed_remote_comp_full_name) != 0;
 			for (int i = 0; i < num_fields; i ++) {
-				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
+				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 				if (is_fixed_interface)
 					continue;
 				if (import_or_export == 0) {

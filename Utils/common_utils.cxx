@@ -43,14 +43,19 @@ void write_data_into_array_buffer(const void *data, long data_size, char **temp_
 }
 
 
-void read_data_from_array_buffer(void *data, long data_size, const char *temp_array_buffer, long &buffer_content_iter)
+bool read_data_from_array_buffer(void *data, long data_size, const char *temp_array_buffer, long &buffer_content_iter, bool report_error)
 {
-	EXECUTION_REPORT(REPORT_ERROR,-1, data_size <= buffer_content_iter, "Software error in read_data_from_array_buffer");
+	if (data_size > buffer_content_iter)
+		if (report_error)
+			EXECUTION_REPORT(REPORT_ERROR,-1, false, "Software error in read_data_from_array_buffer");
+		else return false;
 	
 	for (int i = 0; i < data_size; i ++)
 		((char*) data)[i] = temp_array_buffer[buffer_content_iter-data_size+i];
 	
 	buffer_content_iter -= data_size;
+
+	return true;
 }
 
 

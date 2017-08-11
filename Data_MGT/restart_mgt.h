@@ -31,12 +31,12 @@ class Restart_buffer_container
 
 	public:
 		Restart_buffer_container(const char*, const char *, const char *, const char *, long);
-		Restart_buffer_container(const char *, long &);
+		Restart_buffer_container(const char *, long &, const char *);
 		~Restart_buffer_container() { delete [] buffer_content; }		
-		void dump_string(const char*, long, char **, long &, long &);
-		char *load_string(char *, long &, const char *, long &);
+		const char *get_buffer_content() { return buffer_content; }
+		long get_buffer_content_iter() { return buffer_content_iter; }
 		void dump(char **, long &, long &);
-		
+		bool match(const char *, const char *);
 };
 
 
@@ -54,9 +54,15 @@ class Restart_mgt
 		void clean();
 		void do_restart_write(const char *);
 		void write_into_file();
-		void do_restart_read(const char *, const char *);
+		void do_restart_read(bool, const char *, const char *);
 		void reset_comp_id(int comp_id) { this->comp_id = comp_id; }
+		void bcast_buffer_container(Restart_buffer_container **, int);
+		Restart_buffer_container *search_restart_buffer(const char *, const char*);
 };
+
+
+extern void dump_string(const char*, long, char **, long &, long &);
+extern char *load_string(char *, long &, const char *, long &, const char *);
 
 
 #endif

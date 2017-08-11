@@ -111,11 +111,11 @@ Coupling_timer::Coupling_timer(const char *array_buffer, long &buffer_content_it
 	int num_children;
 
 	
-	read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter);
+	read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter, true);
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	for (int i = 0; i < num_children; i ++) {
 		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter, comp_id));
@@ -885,23 +885,23 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	char restart_comp_full_name[NAME_STR_SIZE], restart_case_name[NAME_STR_SIZE];
 
 
-	read_data_from_array_buffer(restart_case_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(restart_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_leap_year_on, sizeof(bool), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_current_step_id, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_current_second, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_current_day, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_current_month, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_current_year, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_previous_second, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_previous_day, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_previous_month, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_previous_year, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_start_second, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_start_day, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_start_month, sizeof(int), temp_array_buffer, buffer_content_iter);
-	read_data_from_array_buffer(&restart_start_year, sizeof(int), temp_array_buffer, buffer_content_iter);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(restart_case_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(restart_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_leap_year_on, sizeof(bool), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_step_id, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_month, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_year, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_previous_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_previous_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_previous_month, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_previous_year, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_start_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_start_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_start_month, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_start_year, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 
 	if (check_existing_data) {
 		if (words_are_the_same(RUNTYPE_CONTINUE, run_type))

@@ -11,6 +11,30 @@
 #include "restart_mgt.h"
 
 
+char *load_string(char *str, long &str_size, const char *array_buffer, long &buffer_content_iter, const char *file_name)
+{
+	char *local_str = str;
+	
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&str_size, sizeof(long), array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	if (local_str == NULL)
+		local_str = new char [str_size+1];
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(local_str, str_size, array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	local_str[str_size] = '\0';
+
+	return local_str;
+}
+
+
+void dump_string(const char *str, long str_size, char **array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	if (str_size == -1)
+		str_size = strlen(str);
+	write_data_into_array_buffer(str, str_size, array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&str_size, sizeof(long), array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
 Restart_buffer_container::Restart_buffer_container(const char *comp_full_name, const char *buf_type, const char *keyword, const char *buffer_content, long buffer_content_iter)
 {
 	strcpy(this->comp_full_name, comp_full_name);
@@ -21,42 +45,19 @@ Restart_buffer_container::Restart_buffer_container(const char *comp_full_name, c
 }
 
 
-Restart_buffer_container::Restart_buffer_container(const char *array_buffer, long &buffer_content_iter)
+Restart_buffer_container::Restart_buffer_container(const char *array_buffer, long &buffer_content_iter, const char *file_name)
 {
 	long total_size, str_size;
 
 
-	read_data_from_array_buffer(&total_size, sizeof(long), array_buffer, buffer_content_iter);
-	buffer_content = load_string(NULL, str_size, array_buffer, buffer_content_iter);
-	this->buffer_content_iter = str_size;
-	load_string(keyword, str_size, array_buffer, buffer_content_iter);
-	load_string(buf_type, str_size, array_buffer, buffer_content_iter);
-	load_string(comp_full_name, str_size, array_buffer, buffer_content_iter);
-	EXECUTION_REPORT(REPORT_ERROR, -1, total_size == strlen(comp_full_name) + strlen(buf_type) + strlen(keyword) + sizeof(long)*3 + this->buffer_content_iter, "Restart_buffer_container::Restart_buffer_container: wrong format of restart data file");
-}
-
-
-char *Restart_buffer_container::load_string(char *str, long &str_size, const char *array_buffer, long &buffer_content_iter)
-{
-	char *local_str = str;
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&total_size, sizeof(long), array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	
-
-	read_data_from_array_buffer(&str_size, sizeof(long), array_buffer, buffer_content_iter);
-	if (local_str == NULL)
-		local_str = new char [str_size+1];
-	read_data_from_array_buffer(local_str, str_size, array_buffer, buffer_content_iter);
-	local_str[str_size] = '\0';
-
-	return local_str;
-}
-
-
-void Restart_buffer_container::dump_string(const char *str, long str_size, char **array_buffer, long &buffer_max_size, long &buffer_content_size)
-{
-	if (str_size == -1)
-		str_size = strlen(str);
-	write_data_into_array_buffer(str, str_size, array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&str_size, sizeof(long), array_buffer, buffer_max_size, buffer_content_size);
+	buffer_content = load_string(NULL, str_size, array_buffer, buffer_content_iter, file_name);
+	this->buffer_content_iter = str_size;
+	load_string(keyword, str_size, array_buffer, buffer_content_iter, file_name);
+	load_string(buf_type, str_size, array_buffer, buffer_content_iter, file_name);
+	load_string(comp_full_name, str_size, array_buffer, buffer_content_iter, file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, total_size == strlen(comp_full_name) + strlen(buf_type) + strlen(keyword) + sizeof(long)*3 + this->buffer_content_iter, "Restart_buffer_container::Restart_buffer_container: wrong format of restart data file");
 }
 
 
@@ -68,6 +69,12 @@ void Restart_buffer_container::dump(char **array_buffer, long &buffer_max_size, 
 	dump_string(buffer_content, buffer_content_iter, array_buffer, buffer_max_size, buffer_content_size);
 	long total_size = strlen(comp_full_name) + strlen(buf_type) + strlen(keyword) + sizeof(long)*3 + buffer_content_iter;
 	write_data_into_array_buffer(&total_size, sizeof(long), array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
+bool Restart_buffer_container::match(const char *buf_type, const char *keyword)
+{
+	return words_are_the_same(this->buf_type, buf_type) && words_are_the_same(this->keyword, keyword);
 }
 
 
@@ -92,9 +99,39 @@ void Restart_mgt::clean()
 }
 
 
-void Restart_mgt::do_restart_read(const char *file_name, const char *annotation)
+void Restart_mgt::bcast_buffer_container(Restart_buffer_container **buffer_container, int local_proc_id)
+{
+	char *temp_array_buffer = NULL;
+	long buffer_max_size, buffer_content_size;
+
+
+	if (local_proc_id == 0)
+		(*buffer_container)->dump(&temp_array_buffer, buffer_max_size, buffer_content_size);
+	
+	transfer_array_from_one_comp_to_another(local_proc_id, -1, local_proc_id, -1, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""), &temp_array_buffer, buffer_content_size);
+	
+	if (local_proc_id != 0)
+		*buffer_container = new Restart_buffer_container(temp_array_buffer, buffer_content_size, NULL);
+	
+	if (temp_array_buffer != NULL)
+		delete [] temp_array_buffer;
+}
+
+
+Restart_buffer_container *Restart_mgt::search_restart_buffer(const char *buf_type, const char *keyword)
+{
+	for (int i = 0; i < restart_buffer_containers.size(); i ++)
+		if (restart_buffer_containers[i]->match(buf_type, keyword))
+			return restart_buffer_containers[i];
+
+	return NULL;
+}
+
+
+void Restart_mgt::do_restart_read(bool check_existing_data, const char *file_name, const char *annotation)
 {
 	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in Restart_mgt::do_restart");
+	Restart_buffer_container *time_mgr_restart_buffer = NULL;
 
 
 	if (local_proc_id == 0) {
@@ -106,13 +143,26 @@ void Restart_mgt::do_restart_read(const char *file_name, const char *annotation)
 		fseek(restart_fp, 0, SEEK_SET);
 		fread(array_buffer, buffer_content_iter, 1, restart_fp);
 		int num_restart_buffer_containers;
-		read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter);
+		EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 		for (int i = 0; i < num_restart_buffer_containers; i ++) {
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter > 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
-			restart_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter));
+			restart_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name));
 		}
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
 	}
+
+	if (local_proc_id == 0) {
+		time_mgr_restart_buffer = search_restart_buffer(RESTART_BUF_TYPE_TIME, "local time manager");
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr_restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
+	}
+	bcast_buffer_container(&time_mgr_restart_buffer, local_proc_id);
+	if (local_proc_id != 0)
+		restart_buffer_containers.push_back(time_mgr_restart_buffer);
+	long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();
+	components_time_mgrs->get_time_mgr(comp_id)->import_restart_data(time_mgr_restart_buffer->get_buffer_content(), buffer_size, file_name, check_existing_data);
+
+
+	clean();
 }
 
 
@@ -135,6 +185,13 @@ void Restart_mgt::do_restart_write(const char *annotation)
 			restart_buffer_containers.push_back(new Restart_buffer_container(comp_full_name, RESTART_BUF_TYPE_TIME, "local time manager", array_buffer, buffer_content_size));
 			write_into_file();
 		}
+
+		int date = last_timer_on_full_time/(long)100000;
+		int second = last_timer_on_full_time%(long)100000;
+		char restart_file_name[NAME_STR_SIZE];
+		Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Restart_mgt::write_into_file");
+		sprintf(restart_file_name, "%s/%s.r.%08d-%05d", comp_node->get_working_dir(), comp_node->get_comp_full_name(), date, second);
+		do_restart_read(true, restart_file_name, "in internal test");
 	}
 }
 
@@ -163,8 +220,6 @@ void Restart_mgt::write_into_file()
 	fclose(restart_file);
 	delete [] array_buffer;
 	clean();
-
-	do_restart_read(restart_file_name, "in internal test");
 }
 
 

@@ -450,14 +450,14 @@ void Remap_grid_data_class::write_grid_data_into_array(char **array, long &buffe
 Remap_grid_data_class::Remap_grid_data_class(Remap_grid_class *grid, const char *array, long &buffer_content_iter)
 {
 	grid_data_field = new Remap_data_field;
-	read_data_from_array_buffer(grid_data_field->field_name_in_application, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(grid_data_field->field_name_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(grid_data_field->data_type_in_application, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(grid_data_field->data_type_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(&(grid_data_field->required_data_size), sizeof(long), array, buffer_content_iter);
-	read_data_from_array_buffer(&(grid_data_field->read_data_size), sizeof(long), array, buffer_content_iter);
+	read_data_from_array_buffer(grid_data_field->field_name_in_application, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(grid_data_field->field_name_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(grid_data_field->data_type_in_application, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(grid_data_field->data_type_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(&(grid_data_field->required_data_size), sizeof(long), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&(grid_data_field->read_data_size), sizeof(long), array, buffer_content_iter, true);
 	grid_data_field->data_buf = new char [grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application)];
-	read_data_from_array_buffer(grid_data_field->data_buf, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application), array, buffer_content_iter);
+	read_data_from_array_buffer(grid_data_field->data_buf, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application), array, buffer_content_iter, true);
 	this->coord_value_grid = grid;
 }
 

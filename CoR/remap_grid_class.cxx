@@ -3225,7 +3225,7 @@ void Remap_grid_class::read_grid_field_from_array(Remap_grid_data_class **grid_f
 	int temp_int;
 
 
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter, true);
 	if (temp_int != 0)
 		*grid_field = new Remap_grid_data_class(this, array, buffer_content_iter);
 }
@@ -3311,27 +3311,27 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	
 	initialize_grid_class_data();
 
-	read_data_from_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_content_iter);
+	read_data_from_array_buffer(grid_name, NAME_STR_SIZE, array, buffer_content_iter, true);
 	strcat(grid_name, grid_name_suffix);
 	if (remap_grid_manager->search_remap_grid_with_grid_name(grid_name) == NULL)
         remap_grid_manager->add_remap_grid(this);
 	else remap_grid_manager->add_temp_grid(this);
-	read_data_from_array_buffer(coord_label, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(coord_unit, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(&grid_size, sizeof(long), array, buffer_content_iter);
-	read_data_from_array_buffer(&num_dimensions, sizeof(int), array, buffer_content_iter);
-	read_data_from_array_buffer(&num_vertexes, sizeof(int), array, buffer_content_iter);
-	read_data_from_array_buffer(&masks_are_known, sizeof(bool), array, buffer_content_iter);
-	read_data_from_array_buffer(&cyclic, sizeof(bool), array, buffer_content_iter);
-	read_data_from_array_buffer(&are_vertex_values_set_in_default, sizeof(bool), array, buffer_content_iter);
-	read_data_from_array_buffer(&sigma_grid_surface_value_field_specified, sizeof(bool), array, buffer_content_iter);
-	read_data_from_array_buffer(&sigma_grid_top_value, sizeof(double), array, buffer_content_iter);
-	read_data_from_array_buffer(&sigma_grid_scale_factor, sizeof(double), array, buffer_content_iter);
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
+	read_data_from_array_buffer(coord_label, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(coord_unit, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(&grid_size, sizeof(long), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&num_dimensions, sizeof(int), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&num_vertexes, sizeof(int), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&masks_are_known, sizeof(bool), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&cyclic, sizeof(bool), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&are_vertex_values_set_in_default, sizeof(bool), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&sigma_grid_surface_value_field_specified, sizeof(bool), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&sigma_grid_top_value, sizeof(double), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&sigma_grid_scale_factor, sizeof(double), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter, true);
 	for (int i = 0; i < temp_int; i ++)
 		grid_center_fields.push_back(new Remap_grid_data_class(this, array, buffer_content_iter));
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter, true);
 	for (int i = 0; i < temp_int; i ++)
 		grid_vertex_fields.push_back(new Remap_grid_data_class(this, array, buffer_content_iter));
 	read_grid_field_from_array(&redundant_cell_mark_field, array, buffer_content_iter);
@@ -3340,9 +3340,9 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	read_grid_field_from_array(&sigma_grid_sigma_value_field, array, buffer_content_iter);
 	read_grid_field_from_array(&hybrid_grid_coefficient_field, array, buffer_content_iter);
 	read_grid_field_from_array(&sigma_grid_dynamic_surface_value_field, array, buffer_content_iter);
-	read_data_from_array_buffer(name_super_grid_of_setting_coord_values, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(name_first_super_grid_of_enable_setting_coord_value, NAME_STR_SIZE, array, buffer_content_iter);
-	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter);
+	read_data_from_array_buffer(name_super_grid_of_setting_coord_values, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(name_first_super_grid_of_enable_setting_coord_value, NAME_STR_SIZE, array, buffer_content_iter, true);
+	read_data_from_array_buffer(&temp_int, sizeof(int), array, buffer_content_iter, true);
 	for (int i = 0; i < temp_int; i ++) {
 		Remap_grid_class *child_grid = new Remap_grid_class(top_grid, grid_name_suffix, array, buffer_content_iter);
 		Remap_grid_class *existing_grid = remap_grid_manager->search_remap_grid_with_grid_name(child_grid->get_grid_name());
