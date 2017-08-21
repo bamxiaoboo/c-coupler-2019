@@ -28,8 +28,8 @@
    public :: CCPL_get_number_of_current_step 
    public :: CCPL_get_number_of_total_steps 
    public :: CCPL_get_time_step
-   public :: CCPL_is_first_restart_step 
    public :: CCPL_is_first_step
+   public :: CCPL_is_first_restart_step
    public :: CCPL_get_current_num_days_in_year
    public :: CCPL_get_current_year 
    public :: CCPL_get_current_date 
@@ -80,6 +80,8 @@
    public :: CCPL_report_log 
    public :: CCPL_report_progress 
    public :: CCPL_report_error 
+   public :: CCPL_do_restart_write
+   public :: CCPL_do_restart_read
 
 
    interface CCPL_register_field_instance ; module procedure &
@@ -1058,17 +1060,6 @@
 
 
 
- logical FUNCTION CCPL_is_first_restart_step
-   implicit none
-   logical is_first_restart_step
-
-   call coupling_is_first_restart_step(is_first_restart_step)
-   CCPL_is_first_restart_step = is_first_restart_step
-
- END FUNCTION CCPL_is_first_restart_step
-
-
-
  logical FUNCTION CCPL_is_first_step(comp_id, annotation)
    implicit none
    integer                      :: is_first_step
@@ -1087,6 +1078,27 @@
    endif
 
  END FUNCTION CCPL_is_first_step
+
+
+
+ logical FUNCTION CCPL_is_first_restart_step(comp_id, annotation)
+   implicit none
+   integer                      :: is_first_restart_step
+   integer,          intent(in) :: comp_id
+   character(len=*), intent(in), optional :: annotation
+
+   if (present(annotation)) then
+      call is_comp_first_restart_step(comp_id, is_first_restart_step, trim(annotation)//char(0))
+   else
+      call is_comp_first_restart_step(comp_id, is_first_restart_step, trim("")//char(0))
+   endif
+   if (is_first_restart_step .eq. 1) then
+      CCPL_is_first_restart_step = .true.
+   else
+      CCPL_is_first_restart_step = .false.
+   endif
+
+ END FUNCTION CCPL_is_first_restart_step
 
 
 
@@ -2814,6 +2826,47 @@
 
    END SUBROUTINE CCPL_report_error
 
+
+
+   SUBROUTINE CCPL_do_restart_write(comp_id, bypass_timer, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   logical,          intent(in)                :: bypass_timer
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: local_bypass_timer
+
+   local_bypass_timer = 0
+   if (bypass_timer) local_bypass_timer = 1
+
+   if (present(annotation)) then
+       call CCPL_write_restart(comp_id, local_bypass_timer, trim(annotation)//char(0))
+   else 
+       call CCPL_write_restart(comp_id, local_bypass_timer, trim("")//char(0))
+   endif
+   
+   END SUBROUTINE CCPL_do_restart_write
  
+
+
+   SUBROUTINE CCPL_do_restart_read(comp_id, specified_restart_file, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: specified_restart_file
+   character(len=*), intent(in), optional      :: annotation
+   character *1024                             :: local_specified_restart_file
+
+
+   local_specified_restart_file = ""
+   if (present(specified_restart_file)) local_specified_restart_file = specified_restart_file
+
+   if (present(annotation)) then
+       call CCPL_read_restart(comp_id, trim(local_specified_restart_file)//char(0), trim(annotation)//char(0))
+   else 
+       call CCPL_read_restart(comp_id, trim(local_specified_restart_file)//char(0), trim("")//char(0))
+   endif
+   
+   END SUBROUTINE CCPL_do_restart_read
+ 
+
 
  END MODULE CCPL_interface_mod

@@ -65,6 +65,7 @@
 #define API_ID_TIME_MGT_IS_END_CURRENT_MONTH            ((int)(0X02100800))
 #define API_ID_TIME_MGT_GET_CURRENT_CAL_TIME            ((int)(0X02101000))
 #define API_ID_TIME_MGT_IS_FIRST_STEP                   ((int)(0X02102000))
+#define API_ID_TIME_MGT_IS_FIRST_RESTART_STEP           ((int)(0X02103000))
 #define API_ID_TIME_MGT_GET_NUM_CURRENT_STEP            ((int)(0X02104000))
 #define API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS             ((int)(0X02108000))
 #define API_ID_TIME_MGT_GET_TIME_STEP                   ((int)(0X02110000))
@@ -82,6 +83,8 @@
 #define API_ID_REPORT_LOG                               ((int)(0X06000001))
 #define API_ID_REPORT_ERROR                             ((int)(0X06000002))
 #define API_ID_REPORT_PROGRESS                          ((int)(0X06000004))
+#define API_ID_RESTART_MGT_WRITE                        ((int)(0X07000001))
+#define API_ID_RESTART_MGT_READ                         ((int)(0X07000002))
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);

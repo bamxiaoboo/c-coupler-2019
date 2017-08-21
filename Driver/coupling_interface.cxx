@@ -105,10 +105,10 @@ extern "C" void is_comp_first_step_(int *comp_id, int *result, const char *annot
 }
 
 
-extern "C" void coupling_is_first_restart_step_(bool *result)
+extern "C" void is_comp_first_restart_step_(int *comp_id, int *result, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, false, "coupling_is_first_restart_step has not been implemented");
-	
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_FIRST_RESTART_STEP, annotation, false);
+	*result = components_time_mgrs->get_time_mgr(*comp_id)->is_first_restart_step()? 1 : 0;
 }
 
 
@@ -732,12 +732,31 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation, false);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_advance_time\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr() != NULL, "Software error in advance_component_time_");
-	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in advance_component_time_")->get_restart_mgr()->do_restart_write(annotation);
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
-	
-	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "Component model \"%s\" advance time at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_full_name(), annotation);
-	
+	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "Component model \"%s\" advance time at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name(), annotation);
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish advancing time");
+}
+
+
+extern "C" void ccpl_write_restart_(int *comp_id, int *bypass_timer, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to do restart write");
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE, annotation, false);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_do_restart_write\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1);
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish doing restart write");
+}
+
+
+extern "C" void ccpl_read_restart_(int *comp_id, const char *specified_file_name, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to do restart read");
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ, annotation, false);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_do_restart_write\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_read(specified_file_name, annotation);
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish doing restart read");
 }
 
 

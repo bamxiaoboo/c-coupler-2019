@@ -106,21 +106,23 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, Coupling_timer *existi
 }
 
 
-Coupling_timer::Coupling_timer(const char *array_buffer, long &buffer_content_iter, int comp_id)
+Coupling_timer::Coupling_timer(const char *array_buffer, long &buffer_content_iter, int comp_id, bool report_check, bool &successful)
 {
 	int num_children;
+	successful = true;
 
 	
-	read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter, true);
+	successful = successful && read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter, report_check);
+	successful = successful && read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
+	successful = successful && read_data_from_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
+	successful = successful && read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
+	successful = successful && read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter, report_check);
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	for (int i = 0; i < num_children; i ++) {
-		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter, comp_id));
+		children.push_back(new Coupling_timer(array_buffer, buffer_content_iter, comp_id, report_check, successful));
 		timer_mgr->add_timer(children[i]);
 	}
+	timer_mgr->add_timer(this);
 }
 
 
@@ -186,6 +188,36 @@ bool Coupling_timer::is_timer_on()
 void Coupling_timer::check_timer_format()
 { 
 	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, local_lag_count, remote_lag_count, false, NULL); 
+}
+
+
+char frequency_unit[NAME_STR_SIZE];
+int frequency_count;
+int local_lag_count;
+int remote_lag_count;
+
+
+bool Coupling_timer::is_the_same_with(Coupling_timer *another)
+{
+	if (this->frequency_count != another->frequency_count)
+		return false;
+	if (this->local_lag_count != another->local_lag_count)
+		return false;
+	if (this->remote_lag_count != another->remote_lag_count)
+		return false;
+	if (!words_are_the_same(this->frequency_unit, another->frequency_unit))
+		return false;
+	if (this->children.size() != another->children.size())
+		return false;
+	if (this->children.size() > 0) {
+		if (this->or_or_and != another->or_or_and)
+			return false;
+		for (int i = 0; i < this->children.size(); i ++)
+			if (!this->children[i]->is_the_same_with(another->children[i]))
+				return false;
+	}
+
+	return true;
 }
 
 
@@ -313,7 +345,21 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(run_type,RUNTYPE_INITIAL) || words_are_the_same(run_type,RUNTYPE_CONTINUE) || words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID),
 			             "Run_type is wrong. It must be one of the four options: \"initial\", \"continue\", \"branch\" and \"hybrid\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 		strcpy(this->run_type, run_type);
-		// to be added for how to settle the run type. 
+		if (words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID)) {
+			const char *rest_refcase = get_XML_attribute(-1, XML_element, "rest_ref_case", XML_file_name, line_number, "the name of the reference case for branch run of hybrid run", "the overall parameters to run the model");
+			strcpy(this->rest_refcase, rest_refcase);
+			const char *refdate_string = get_XML_attribute(-1, XML_element, "rest_ref_date", XML_file_name, line_number, "the date of the reference case for branch run of hybrid run", "the overall parameters to run the model");		
+			sscanf(refdate_string, "%d", &rest_refdate);
+			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(rest_refdate/10000, (rest_refdate%10000)/100, rest_refdate%100, 0, NULL), "The date of the reference case for branch run of hybrid run is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+			const char *refsecond_string = get_XML_attribute(-1, XML_element, "rest_ref_second", XML_file_name, line_number, "The second of the reference case for branch run of hybrid run", "the overall parameters to run the model");
+			sscanf(refsecond_string, "%d", &rest_refsecond); 	
+			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(rest_refdate/10000, (rest_refdate%10000)/100, rest_refdate%100, rest_refsecond, NULL), "The start second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		}
+		else {
+			rest_refcase[0] = '\0';
+			rest_refdate = -1;
+			rest_refsecond = -1;
+		}
 		const char *leap_year_string = get_XML_attribute(-1, XML_element, "leap_year", XML_file_name, line_number, "whether leap year is on in the simulation", "the overall parameters to run the model");
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(leap_year_string, "on") || words_are_the_same(leap_year_string, "off"),
 			             "The value of leap year wrong. Its value must be \"on\" or \"off\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
@@ -472,6 +518,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	start_num_elapsed_day = current_num_elapsed_day;
 	stop_num_elapsed_day = calculate_elapsed_day(stop_year,stop_month,stop_day);
 	current_step_id = 0;
+	restarted_step_id = -1;
 	num_total_steps = -1;
 }
 
@@ -804,9 +851,12 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	strcpy(new_time_mgr->exp_model_name, this->exp_model_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);
 	strcpy(new_time_mgr->run_type, this->run_type);
+	strcpy(new_time_mgr->rest_refcase, this->rest_refcase);
 	strcpy(new_time_mgr->stop_option, this->stop_option);
 	strcpy(new_time_mgr->rest_freq_unit, this->rest_freq_unit);
 	new_time_mgr->rest_freq_count = this->rest_freq_count;
+	new_time_mgr->rest_refdate = this->rest_refdate;
+	new_time_mgr->rest_refsecond = this->rest_refsecond;
 	new_time_mgr->restart_timer = NULL;
 
 	return new_time_mgr;
@@ -936,6 +986,7 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	}
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
 	current_step_id = (current_num_elapsed_day-start_num_elapsed_day) * (SECONDS_PER_DAY/time_step_in_second);
+	restarted_step_id = current_step_id;
 }
 
 

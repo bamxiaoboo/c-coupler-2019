@@ -170,6 +170,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_IS_FIRST_STEP:
 			sprintf(API_label, "CCPL_is_first_step");
 			break;
+		case API_ID_TIME_MGT_IS_FIRST_RESTART_STEP:
+			sprintf(API_label, "CCPL_is_first_restart_step");
+			break;			
 		case API_ID_TIME_MGT_GET_NUM_CURRENT_STEP:
 			sprintf(API_label, "CCPL_get_number_of_current_step");
 			break;
@@ -236,6 +239,12 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_REPORT_ERROR:
 			sprintf(API_label, "CCPL_report_error");
 			break;	
+		case API_ID_RESTART_MGT_READ:
+			sprintf(API_label, "CCPL_do_restart_read");
+			break;
+		case API_ID_RESTART_MGT_WRITE:
+			sprintf(API_label, "CCPL_do_restart_write");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;
@@ -625,6 +634,8 @@ const char *get_XML_attribute(int comp_id, TiXmlElement *XML_element, const char
 {
 	const char *attribute_value = XML_element->Attribute(attribute_keyword, &line_number);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, attribute_value != NULL, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has not been specified. Please verify the XML file arround the line number %d.", 
+		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, XML_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) > 0, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has been specified but with an empty string. Please verify the XML file arround the line number %d.", 
 		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, XML_element->Row());
 	return attribute_value;
 }

@@ -8,6 +8,7 @@
 
 
 #include "global_data.h"
+#include "restart_mgt.h"
 #include "runtime_cumulate_average_algorithm.h"
 #include "runtime_datatype_transformer.h"
 #include "inout_interface_mgt.h"
@@ -43,6 +44,40 @@ void Connection_field_time_info::get_time_of_next_timer_on(bool advance)
 {
 	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
 		                             current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, advance);
+}
+
+
+void Connection_field_time_info::write_into_array_for_restart(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	write_data_into_array_buffer(&current_year, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_month, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_day, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&last_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&last_timer_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&next_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&next_timer_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&time_step_in_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&inst_or_aver, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&lag_seconds, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
+void Connection_field_time_info::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&lag_seconds, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&inst_or_aver, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&next_timer_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&next_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_timer_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_month, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_year, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 }
 
 
@@ -283,7 +318,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer non-bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
 				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time[i], 
 					             "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %ld). Please verify. ", 
-					             inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, runtime_data_transfer_algorithm->get_history_receive_sender_time(i), current_remote_fields_time[i]);
+					             inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, current_remote_fields_time[i], runtime_data_transfer_algorithm->get_history_receive_sender_time(i));
 			}	
 		}
 		return;
@@ -367,6 +402,54 @@ Field_mem_info *Connection_coupling_procedure::get_data_transfer_field_instance(
 Runtime_remapping_weights *Connection_coupling_procedure::get_runtime_remapping_weights(int i) 
 {
 	return coupling_connection->dst_fields_info[i]->runtime_remapping_weights; 
+}
+
+
+void Connection_coupling_procedure::write_into_array_for_restart(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	for (int i = fields_time_info_dst.size()-1; i >= 0; i --) {
+		fields_time_info_src[i]->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
+		fields_time_info_dst[i]->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
+		long temp_long = last_remote_fields_time[i];
+		write_data_into_array_buffer(&temp_long, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+		temp_long = current_remote_fields_time[i];
+		write_data_into_array_buffer(&temp_long, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+	}
+	int temp_int = fields_time_info_dst.size();
+	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	for (int i = fields_mem_registered.size()-1; i >=0; i --)
+		dump_string(fields_mem_registered[i]->get_field_name(), -1, temp_array_buffer, buffer_max_size, buffer_content_size);
+	temp_int = fields_mem_registered.size();
+	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);	
+}
+
+
+
+void Connection_coupling_procedure::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
+{
+	int num_total_fields, i, j;
+	long str_size, temp_long;
+	char restart_field_name[NAME_STR_SIZE];
+
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_total_fields, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, inout_interface->get_interface_name());
+	for (i = 0; i < num_total_fields; i ++) {
+		load_string(restart_field_name, str_size, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, file_name);
+		for (j = 0; j < fields_mem_registered.size(); j ++)
+			if (words_are_the_same(restart_field_name, fields_mem_registered[j]->get_field_name()))
+				break;
+		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), i == j, "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, inout_interface->get_interface_name());
+	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_total_fields, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	for (i = 0; i < num_total_fields; i ++) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&temp_long, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+		current_remote_fields_time[i] = temp_long;
+		EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&temp_long, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+		last_remote_fields_time[i] = temp_long;
+		fields_time_info_dst[i]->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
+		fields_time_info_src[i]->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
+	}
 }
 
 
@@ -603,6 +686,44 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 }
 
 
+void Inout_interface::write_into_array_for_restart(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	for (int i = coupling_procedures.size() - 1; i >= 0; i --)
+		coupling_procedures[i]->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
+	int temp_int = coupling_procedures.size();
+	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	for (int i = children_interfaces.size()-1; i >= 0; i --)
+		children_interfaces[i]->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
+	temp_int = children_interfaces.size();
+	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&last_execution_time, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+	timer->write_timer_into_array(temp_array_buffer, buffer_max_size, buffer_content_size);
+}
+
+
+void Inout_interface::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
+{
+	int num_children, num_procedures;
+	bool successful;
+
+
+	Coupling_timer *restart_timer = new Coupling_timer(temp_array_buffer, buffer_content_iter, comp_id, false, successful);
+	EXECUTION_REPORT(REPORT_ERROR, -1, successful, "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_timer->is_the_same_with(timer), "Error happens when loading the restart data file \"%s\": the timer of the interface \"%s\" in the restart data file is different from the current timer speicifed by the model code. Please verify.", file_name, interface_name);
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_execution_time, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_children, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_children == children_interfaces.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, get_interface_name());
+	for (int i = 0; i < num_children; i ++)
+		children_interfaces[i]->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_procedures, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_procedures == coupling_procedures.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, get_interface_name());
+	for (int i = 0; i < num_procedures; i ++)
+		coupling_procedures[i]->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
+}
+
+
 void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coupling_procedure)
 {
 	coupling_procedures.push_back(coupling_procedure);
@@ -687,6 +808,9 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size()) <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
 	else if (import_or_export_or_remap == 3)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size())-1 <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
+
+	if (bypass_timer && (words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) || words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)))
+		return;
 	
 	if (bypass_timer)
 		bypass_counter ++;
@@ -1109,5 +1233,33 @@ void Inout_interface_mgt::free_all_MPI_wins()
 	}
 }
 
+
+void Inout_interface_mgt::write_into_restart_buffers(std::vector<Restart_buffer_container*> *restart_buffers, int comp_id)
+{
+	char *array_buffer;
+	long buffer_max_size, buffer_content_size;
+	
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id) {
+			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "") == 0) {
+				array_buffer = NULL;
+				interfaces[i]->write_into_array_for_restart(&array_buffer, buffer_max_size, buffer_content_size);
+				Restart_buffer_container *restart_buffer = new Restart_buffer_container(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name(), array_buffer, buffer_content_size);
+				restart_buffers->push_back(restart_buffer);
+			}
+		}			
+}
+
+
+void Inout_interface_mgt::import_restart_data(Restart_mgt *restart_mgr, const char *file_name, int local_proc_id, const char *annotation)
+{
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == restart_mgr->get_comp_id()) {
+			Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name(), local_proc_id);			
+			EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", file_name, annotation, interfaces[i]->get_interface_name());			
+			long buffer_size = restart_buffer->get_buffer_content_iter();
+			interfaces[i]->import_restart_data(restart_buffer->get_buffer_content(), buffer_size, file_name);
+		}
+}
 
 

@@ -514,10 +514,12 @@ void Coupling_connection::read_fields_info_from_array(std::vector<Interface_fiel
 
 void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, long buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
+	bool successful;
+
+	
 	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter, true);
-	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id);
-	timer_mgr->add_timer(*timer);
+	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id, true, successful);
 
 	read_fields_info_from_array(fields_info, array_buffer, buffer_content_iter);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_info.size() == fields_name.size(), "Software error in Coupling_connection::read_connection_fields_info_from_array: wrong size of fields_info");

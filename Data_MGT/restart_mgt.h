@@ -12,7 +12,7 @@
 
 
 #define RESTART_BUF_TYPE_TIME            "time_restart"
-#define RESTART_BUF_TYPE_AVERAGE         "average_restart"
+#define RESTART_BUF_TYPE_INTERFACE       "interface"
 
 
 #include "common_utils.h"
@@ -52,17 +52,21 @@ class Restart_mgt
 		Restart_mgt(int);
 		~Restart_mgt();
 		void clean();
-		void do_restart_write(const char *);
+		void do_restart_write(const char *, bool);
 		void write_into_file();
 		void do_restart_read(bool, const char *, const char *);
+		void do_restart_read(const char *, const char *);
 		void reset_comp_id(int comp_id) { this->comp_id = comp_id; }
 		void bcast_buffer_container(Restart_buffer_container **, int);
+		Restart_buffer_container *search_then_bcast_buffer_container(const char *, const char *, int);
 		Restart_buffer_container *search_restart_buffer(const char *, const char*);
+		int get_comp_id() { return comp_id; }
+		void get_file_name_in_rpointer_file(char *);
 };
 
 
 extern void dump_string(const char*, long, char **, long &, long &);
-extern char *load_string(char *, long &, const char *, long &, const char *);
+extern char *load_string(char *, long &, long, const char *, long &, const char *);
 
 
 #endif

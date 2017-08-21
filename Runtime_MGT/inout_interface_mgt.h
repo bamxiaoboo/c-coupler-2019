@@ -11,6 +11,7 @@
 #define INOUT_INTERFACE_MGT_H
 
 
+#include "restart_mgt.h"
 #include <vector>
 #include "common_utils.h"
 #include "memory_mgt.h"
@@ -52,6 +53,8 @@ class Connection_field_time_info
 		Connection_field_time_info(Inout_interface*, Coupling_timer*, int, int);
 		void get_time_of_next_timer_on(bool);
 		void reset_last_timer_info() { last_timer_num_elapsed_days = -1; last_timer_second = -1; }
+		void write_into_array_for_restart(char**, long&, long&);		
+		void import_restart_data(const char *, long &, const char *);
 };
 
 
@@ -92,6 +95,8 @@ class Connection_coupling_procedure
 		Runtime_remap_algorithm *get_runtime_remap_algorithm(int i) { return runtime_remap_algorithms[i]; }
 		Runtime_remapping_weights *get_runtime_remapping_weights(int i);
 		bool get_finish_status() { return finish_status; }
+		void write_into_array_for_restart(char**, long&, long&);
+		void import_restart_data(const char *, long &, const char *);
 };
 
 
@@ -136,6 +141,8 @@ class Inout_interface
 		const char *get_field_name(int);
 		int get_num_dst_fields();
 		void transform_interface_into_array(char**, long&, long&);
+		void write_into_array_for_restart(char**, long&, long&);
+		void import_restart_data(const char *, long &, const char *);
 		Field_mem_info *search_registered_field_instance(const char*);
 		Coupling_timer *get_timer() { return timer; }
 		void add_coupling_procedure(Connection_coupling_procedure*);
@@ -189,7 +196,8 @@ class Inout_interface_mgt
 		void runtime_receive_algorithms_receive_data();
 		void add_MPI_win(MPI_Win mpi_win) { all_MPI_wins.push_back(mpi_win); }
 		void free_all_MPI_wins(); 
-		
+		void write_into_restart_buffers(std::vector<Restart_buffer_container*> *, int);
+		void import_restart_data(Restart_mgt *, const char *, int, const char *);
 };
 
 #endif

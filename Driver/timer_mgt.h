@@ -57,7 +57,7 @@ class Coupling_timer
 		Coupling_timer(int, int, int*, int, int, const char *);
 		Coupling_timer(int, int, const char*, int, int, int, const char*);
 		Coupling_timer(int, int, Coupling_timer*);
-		Coupling_timer(const char*, long &, int);
+		Coupling_timer(const char*, long &, int, bool, bool &);
         ~Coupling_timer();
         bool is_timer_on();
 		bool is_timer_on(int, int, int, int, int, int, int, int, int, int);
@@ -71,6 +71,7 @@ class Coupling_timer
 		void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
 		void reset_remote_lag_count() { remote_lag_count = 0; }
 		void check_timer_format();
+		bool is_the_same_with(Coupling_timer *);
 };
 
 
@@ -119,6 +120,7 @@ class Time_mgt
 		int start_num_elapsed_day;
 		int stop_num_elapsed_day;
         int current_step_id;
+		int restarted_step_id;
         long num_total_steps;
         bool leap_year_on;
         Coupling_timer *restart_timer;
@@ -130,6 +132,9 @@ class Time_mgt
 		char stop_option[NAME_STR_SIZE];
 		char rest_freq_unit[NAME_STR_SIZE];
 		int rest_freq_count;
+		char rest_refcase[NAME_STR_SIZE];
+		int rest_refdate;
+		int rest_refsecond;
 		bool advance_time_synchronized;
 
     public:
@@ -190,6 +195,11 @@ class Time_mgt
 		void import_restart_data(const char*, long&, const char *, bool);
 		bool is_restart_timer_on() { return restart_timer->is_timer_on(); }
 		const char *get_case_name() { return case_name; }
+		const char *get_run_type() { return run_type; }
+		const char *get_rest_refcase() { return rest_refcase; }
+		int get_rest_refdate() { return rest_refdate; }
+		int get_rest_refsecond() { return rest_refsecond; }
+		bool is_first_restart_step() { return current_step_id == restarted_step_id; }
 };
 
 
