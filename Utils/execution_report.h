@@ -11,6 +11,9 @@
 #define EXECUTION_REPORT_H
 
 
+#include <stdarg.h>
+
+
 #define REPORT_ERROR       ((int)1)
 #define REPORT_LOG         ((int)2)
 #define REPORT_WARNING     ((int)3)
@@ -27,7 +30,9 @@ extern bool report_log_enabled;
 extern void import_report_setting();
 extern void wtime(double *t);
 
+
 extern void EXECUTION_REPORT(int, int, bool);
+/*
 extern void EXECUTION_REPORT(int, int, bool, const char*);
 extern void EXECUTION_REPORT(int, int, bool, const char*, long);
 extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*);
@@ -64,6 +69,9 @@ extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const cha
 extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, const char*);
 extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, int, const char*);
 extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, int, int);
+*/
+
+extern void EXECUTION_REPORT(int, int, bool, const char *, ...);
 
 
 #endif

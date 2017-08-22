@@ -24,6 +24,7 @@ bool report_progress_enabled;
 bool report_log_enabled;
 
 
+
 void import_report_setting()
 {
 	char XML_file_name[NAME_STR_SIZE];
@@ -155,37 +156,54 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 }
 
 
-void report_ender(int report_type, int comp_id, char *output_string)
+void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *format, ...)
 {
-#ifndef ONLY_CoR
+	char output_string[NAME_STR_SIZE*4];
+	FILE *log_file;
+	
+
+	report_header(report_type, comp_id, condition, output_string);
+	
+	if (!condition)
+		return;
+	
+	strcat(output_string, format);
+	strcat(output_string, "\n\n");
+
 	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
-
+	
 	if (comp_comm_group_mgt_mgr == NULL || (comp_id == -1 && comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id) == NULL)) {
-		printf("%s\n\n", output_string);
-		fflush(NULL);
+		va_list pArgList;
+	    va_start(pArgList, output_string);
+		vfprintf(stdout, output_string, pArgList);
+		va_end(pArgList);
+		fflush(stdout);
 	}
 	else {
-		const char *log_file_name =	comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
+		const char *log_file_name = comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
 		FILE *log_file = fopen(log_file_name, "a+");
-		fprintf(log_file, "%s\n\n", output_string);
+		va_list pArgList;
+	    va_start(pArgList, output_string);
+		vfprintf(log_file, output_string, pArgList);
+		va_end(pArgList);
 		fclose(log_file);
 		if (comp_id != -1) {
-			log_file_name =	comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
+			log_file_name = comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
 			log_file = fopen(log_file_name, "a+");
-			fprintf(log_file, "%s\n\n", output_string);
+			va_start(pArgList, output_string);
+			vfprintf(log_file, output_string, pArgList);
+			va_end(pArgList);
 			fclose(log_file);
 		}
 		if (report_type == REPORT_ERROR)
 			printf("ERROR happens. Please check the log file \"%s\"\n\n", log_file_name);
 	}
-#else
-	printf("%s\n\n", output_string);
-	fflush(NULL);	
-#endif	
+
 	if (report_type == REPORT_ERROR)
 		assert(false);
 }
+
 
 
 void EXECUTION_REPORT(int report_type, int comp_id, bool condition) 
@@ -198,600 +216,30 @@ void EXECUTION_REPORT(int report_type, int comp_id, bool condition)
 	if (!condition)
 		return;
 
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const void *addr) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, addr);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const void *str2, const char *str3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, int value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, int value2, int value3, int value4) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2, value3, value4);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2, const char *str2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, value1, value2, str2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, const char *str2, int value2, long value3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, value1, str2, value2, value3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, long value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, const char *str5) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1, str5);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, value1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, str6);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6, const char *str7) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, str6, str7);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, const char *str6) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, value1, str6);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, int value1, int value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, str5, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4, int value1, void *addr) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, str4, value1, addr);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, const char *str4) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, str3, str4);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, long value1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, value1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, const char *str2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, value1, str2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, const char *str2, const char *str3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, value1, str2, str3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, int value1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, value1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, int value1, const char *str3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, value1, str3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1, int value2, long value3, int value4) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, value1, value2, value3, value4);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, str3, value1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, const char *str4) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, value1, str4);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, double value1, double value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, const char *str3, int value1, long value2, long value3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-	sprintf(output_string+strlen(output_string), str1, str2, str3, value1, value2, value3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, value1);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1, long value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, const char *str2, long value1, long value2, long value3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, str2, value1, value2, value3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, value1, value2);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2, int value3) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, value1, value2, value3);
-
-	report_ender(report_type, comp_id, output_string);
-}
-
-
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *str1, int value1, int value2, int value3, int value4) 
-{
-	char output_string[NAME_STR_SIZE*4];
-	
-
-	report_header(report_type, comp_id, condition, output_string);
-
-	if (!condition)
-		return;
-
-    sprintf(output_string+strlen(output_string), str1, value1, value2, value3, value4);
-
-	report_ender(report_type, comp_id, output_string);
+	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
+		comp_id = -1;
+
+	if (comp_comm_group_mgt_mgr == NULL || (comp_id == -1 && comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id) == NULL)) {
+		printf("%s\n\n", output_string);
+		fflush(NULL);
+	}
+	else {
+		const char *log_file_name = comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
+		FILE *log_file = fopen(log_file_name, "a+");
+		fprintf(log_file, "%s\n\n", output_string);
+		fclose(log_file);
+		if (comp_id != -1) {
+			log_file_name = comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
+			log_file = fopen(log_file_name, "a+");
+			fprintf(log_file, "%s\n\n", output_string);
+			fclose(log_file);
+		}
+		if (report_type == REPORT_ERROR)
+			printf("ERROR happens. Please check the log file \"%s\"\n\n", log_file_name);
+	}
+
+	if (report_type == REPORT_ERROR)
+		assert(false);
 }
 
 
