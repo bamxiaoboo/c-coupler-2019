@@ -105,16 +105,6 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		transfer_process_on.push_back(false);
 		current_remote_fields_time.push_back(-1);
 		last_remote_fields_time.push_back(-1);
-		if (inout_interface->get_import_or_export_or_remap() == 1) {
-			fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, 
-				                                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
-			fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, 
-				                                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
-		}
-		else {
-			fields_mem_inner_step_averaged.push_back(NULL);
-			fields_mem_inter_step_averaged.push_back(NULL);
-		}
 		fields_mem_remapped.push_back(NULL);
 		fields_mem_datatype_transformed.push_back(NULL);
 		fields_mem_unit_transformed.push_back(NULL);
@@ -127,8 +117,23 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			fields_time_info_src[i]->reset_last_timer_info();
 		else fields_time_info_dst[i]->reset_last_timer_info();
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
-			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
-			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
+			if (fields_time_info_dst[i]->inst_or_aver == USING_AVERAGE_VALUE) {
+				fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, 
+																				   inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
+				runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
+			}
+			else fields_mem_inner_step_averaged.push_back(fields_mem_registered[i]);
+			if (fields_time_info_dst[i]->inst_or_aver == USING_INSTANTANEOUS_VALUE)
+				fields_mem_inter_step_averaged.push_back(fields_mem_inner_step_averaged[i]);
+			else {				
+				fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, 
+																				   inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
+				runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
+			}	
+		}
+		else {
+			fields_mem_inner_step_averaged.push_back(NULL);
+			fields_mem_inter_step_averaged.push_back(NULL);
 		}
 		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? 
 			                             coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
@@ -142,30 +147,6 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
 			}	
 		}	
-		if (inout_interface->get_import_or_export_or_remap() == 0) {
-			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, 
-				                                                   inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-			else {
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), 
-					                                               coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, 
-					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), 
-					                                               BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", 
-					                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
-			}
-			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
-					             "for field %s, add data type transformation at dst from %s to %s\n", 
-					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
-				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, 
-					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				if (fields_mem_remapped[i] == NULL)
-					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
-				else runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_remapped[i], fields_mem_datatype_transformed[i]);
-			}
-		}
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (fields_mem_remapped[i] != NULL)
 				fields_mem_transfer[i] = fields_mem_remapped[i];
@@ -176,13 +157,22 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			else fields_mem_transfer[i] = fields_mem_inter_step_averaged[i];
 		}
 		else {
-			Field_mem_info *last_field_instance = fields_mem_transfer[i];
-			if (fields_mem_datatype_transformed[i] != NULL)
-				last_field_instance = fields_mem_datatype_transformed[i];
-			else if (fields_mem_remapped[i] != NULL)
-				last_field_instance = fields_mem_remapped[i];
-			else last_field_instance = fields_mem_transfer[i];
-			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(last_field_instance, fields_mem_registered[i]);
+			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
+					             "for field %s, add data type transformation at dst from %s to %s\n", 
+					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, 
+					                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_registered[i]);
+			}
+			else fields_mem_transfer[i] = fields_mem_registered[i];
+			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights != NULL && coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() != NULL) {
+				fields_mem_remapped[i] = fields_mem_transfer[i];
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), 
+					                                               coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, 
+					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
+			}
 		}
 	}
 }
@@ -300,8 +290,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					if (runtime_remap_algorithms[i] != NULL)
 						runtime_remap_algorithms[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL)
-						runtime_datatype_transform_algorithms[i]->run(true);								
-					runtime_inter_averaging_algorithm[i]->run(true);
+						runtime_datatype_transform_algorithms[i]->run(true);
 				}				
 			}
 		}
@@ -330,8 +319,10 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				current_remote_fields_time[i] = -1;
 				EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 				transfer_data = true;
-				runtime_inner_averaging_algorithm[i]->run(true);
-				runtime_inter_averaging_algorithm[i]->run(true);
+				if (runtime_inner_averaging_algorithm[i] != NULL)
+					runtime_inner_averaging_algorithm[i]->run(true);
+				if (runtime_inter_averaging_algorithm[i] != NULL)
+					runtime_inter_averaging_algorithm[i]->run(true);
 				if (runtime_datatype_transform_algorithms[i] != NULL)
 					runtime_datatype_transform_algorithms[i]->run(true);
 			}
@@ -345,12 +336,14 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_inner_averaging_algorithm[i]->run(false);
 					continue;
 				}
-				runtime_inner_averaging_algorithm[i]->run(true);
+				if (runtime_inner_averaging_algorithm[i] != NULL)
+					runtime_inner_averaging_algorithm[i]->run(true);
 				if (((long)fields_time_info_src[i]->current_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_src[i]->current_second == ((long)fields_time_info_dst[i]->last_timer_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_dst[i]->last_timer_second+lag_seconds) {
 					current_remote_fields_time[i] = ((long)fields_time_info_dst[i]->last_timer_num_elapsed_days)*100000 + fields_time_info_dst[i]->last_timer_second;
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] != current_remote_fields_time[i], "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time[i] = current_remote_fields_time[i];
-					runtime_inter_averaging_algorithm[i]->run(true);
+					if (runtime_inter_averaging_algorithm[i] != NULL)
+						runtime_inter_averaging_algorithm[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
 					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i])) {  // restart related
@@ -363,7 +356,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					current_remote_fields_time[i] = ((long)fields_time_info_dst[i]->next_timer_num_elapsed_days)*100000 + fields_time_info_dst[i]->next_timer_second;
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] != current_remote_fields_time[i], "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time[i] = current_remote_fields_time[i];
-					runtime_inter_averaging_algorithm[i]->run(true);
+					if (runtime_inter_averaging_algorithm[i] != NULL)
+						runtime_inter_averaging_algorithm[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
 					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time[i])) {  // restart related
@@ -372,7 +366,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					}
 				}
 				else {
-					if (fields_time_info_dst[i]->inst_or_aver == USING_AVERAGE_VALUE)
+					if (runtime_inter_averaging_algorithm[i] != NULL)
 						runtime_inter_averaging_algorithm[i]->run(false);
 				}	
 			}
@@ -808,9 +802,6 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size()) <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
 	else if (import_or_export_or_remap == 3)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size())-1 <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
-
-	if (bypass_timer && (words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) || words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)))
-		return;
 	
 	if (bypass_timer)
 		bypass_counter ++;
