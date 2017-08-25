@@ -175,7 +175,7 @@ void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *
 	
 	if (comp_comm_group_mgt_mgr == NULL || (comp_id == -1 && comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id) == NULL)) {
 		va_list pArgList;
-	    va_start(pArgList, output_string);
+	    va_start(pArgList, format);
 		vfprintf(stdout, output_string, pArgList);
 		va_end(pArgList);
 		fflush(stdout);
@@ -184,14 +184,14 @@ void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *
 		const char *log_file_name = comp_comm_group_mgt_mgr->get_exe_log_file_name(comp_id);
 		FILE *log_file = fopen(log_file_name, "a+");
 		va_list pArgList;
-	    va_start(pArgList, output_string);
+	    va_start(pArgList, format);
 		vfprintf(log_file, output_string, pArgList);
 		va_end(pArgList);
 		fclose(log_file);
 		if (comp_id != -1) {
 			log_file_name = comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
 			log_file = fopen(log_file_name, "a+");
-			va_start(pArgList, output_string);
+			va_start(pArgList, format);
 			vfprintf(log_file, output_string, pArgList);
 			va_end(pArgList);
 			fclose(log_file);

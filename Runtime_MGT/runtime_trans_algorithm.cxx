@@ -238,12 +238,10 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
 }
 
 
-void Runtime_trans_algorithm::pass_transfer_parameters(std::vector <bool> &transfer_process_on, std::vector <long> &current_remote_fields_time)
+void Runtime_trans_algorithm::pass_transfer_parameters(bool transfer_process_on, long current_remote_fields_time)
 {
-    for (int i = 0; i < transfer_process_on.size(); i ++) {
-        this->transfer_process_on = transfer_process_on[i];
-        this->current_remote_fields_time = current_remote_fields_time[i];
-    }
+    this->transfer_process_on = transfer_process_on;
+    this->current_remote_fields_time = current_remote_fields_time;
 }
 
 
@@ -614,7 +612,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
 }
 
 
-long Runtime_trans_algorithm::get_history_receive_sender_time(int j)
+long Runtime_trans_algorithm::get_history_receive_sender_time()
 {
     return last_receive_sender_time;
 }

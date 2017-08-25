@@ -68,11 +68,11 @@ class Connection_coupling_procedure
 		std::vector<Field_mem_info *> fields_mem_datatype_transformed;
 		std::vector<Field_mem_info *> fields_mem_unit_transformed;
 		std::vector<Field_mem_info *> fields_mem_transfer;
-		std::vector<Connection_field_time_info *> fields_time_info_src;
-		std::vector<Connection_field_time_info *> fields_time_info_dst;
-		std::vector<bool> transfer_process_on;
-		std::vector<long> last_remote_fields_time;
-		std::vector<long> current_remote_fields_time;
+		Connection_field_time_info *fields_time_info_src;
+		Connection_field_time_info *fields_time_info_dst;
+		bool transfer_process_on;
+		long last_remote_fields_time;
+		long current_remote_fields_time;
 		Coupling_connection *coupling_connection;
 		Inout_interface *inout_interface;
 		std::vector<Runtime_cumulate_average_algorithm*> runtime_inner_averaging_algorithm;
@@ -82,7 +82,7 @@ class Connection_coupling_procedure
 		std::vector<Runtime_datatype_transformer*> runtime_datatype_transform_algorithms;
 		Runtime_trans_algorithm *runtime_data_transfer_algorithm;
 		bool finish_status;
-		bool transfer_data;
+		bool has_been_restarted;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);

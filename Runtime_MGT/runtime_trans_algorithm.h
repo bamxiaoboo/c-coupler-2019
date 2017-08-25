@@ -97,11 +97,11 @@ class Runtime_trans_algorithm
         int get_total_buf_size() {return total_buf_size;}
         int get_data_buf_size() {return data_buf_size;}
         int get_tag_buf_size() {return tag_buf_size;}
-        void pass_transfer_parameters(std::vector<bool> &, std::vector<long> &);
+        void pass_transfer_parameters(bool, long);
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}
         void receve_data_in_temp_buffer();
-        long get_history_receive_sender_time(int);
+        long get_history_receive_sender_time();
 };
 
 
