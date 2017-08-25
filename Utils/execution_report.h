@@ -1,5 +1,5 @@
 /***************************************************************
-  *  Copyright (c) 2013, Tsinghua University.
+  *  Copyright (c) 2017, Tsinghua University.
   *  This is a source file of C-Coupler.
   *  This file was initially finished by Dr. Li Liu. 
   *  If you have any problem, 
@@ -32,45 +32,6 @@ extern void wtime(double *t);
 
 
 extern void EXECUTION_REPORT(int, int, bool);
-/*
-extern void EXECUTION_REPORT(int, int, bool, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, long);
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, int);
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, int, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, int, int); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, int, int, int); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, int, const char*, int, long); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const void*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, int); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, int, const char*); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, long, int, long, int); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, long); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, long, long); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, long, long, long); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const void*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, int); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, int, const char*); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, int, long);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, int, int, int, int);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, double, double); 
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, int, long, long);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char *);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char *, int);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char *, int, long);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char *, int, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, int, void*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, const char*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, int);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, int, const char*);
-extern void EXECUTION_REPORT(int, int, bool, const char*, const char*, const char*, const char*, const char*, int, int);
-*/
-
 extern void EXECUTION_REPORT(int, int, bool, const char *, ...);
 
 
