@@ -1,5 +1,5 @@
 /***************************************************************
-  *  Copyright (c) 2013, Tsinghua University.
+  *  Copyright (c) 2017, Tsinghua University.
   *  This is a source file of C-Coupler.
   *  This file was initially finished by Dr. Cheng Zhang and then
   *  modified by Dr. Cheng Zhang and Dr. Li Liu. 
