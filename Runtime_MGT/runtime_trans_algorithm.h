@@ -47,19 +47,19 @@ class Runtime_trans_algorithm
         int *fields_data_type_sizes;
         bool *is_V1D_sub_grid_after_H2D_sub_grid;
         long * field_grids_num_lev;
-        bool transfer_process_on;
-        long current_remote_fields_time;
+        bool *transfer_process_on;
+        long *current_remote_fields_time;
         long last_field_remote_recv_count;
         long current_field_local_recv_count;
         Time_mgt *time_mgr;
-        long last_receive_field_sender_time;
-        long current_receive_field_sender_time;
-        long current_receive_field_usage_time;
+        long *last_receive_field_sender_time;
+        long *current_receive_field_sender_time;
+        long *current_receive_field_usage_time;
         std::vector<bool> history_receive_buffer_status;
-        std::vector<long> history_receive_sender_time;
-        std::vector<long> history_receive_usage_time;
+        std::vector<long*> history_receive_sender_time;
+        std::vector<long*> history_receive_usage_time;
         std::vector<void*> history_receive_data_buffer;
-        long last_receive_sender_time;
+        std::vector<long> last_receive_sender_time;
         int last_history_receive_buffer_index;
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
@@ -97,11 +97,11 @@ class Runtime_trans_algorithm
         int get_total_buf_size() {return total_buf_size;}
         int get_data_buf_size() {return data_buf_size;}
         int get_tag_buf_size() {return tag_buf_size;}
-        void pass_transfer_parameters(bool, long);
+        void pass_transfer_parameters(std::vector<bool> &, std::vector<long> &);
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}
         void receve_data_in_temp_buffer();
-        long get_history_receive_sender_time();
+        long get_history_receive_sender_time(int);
 };
 
 

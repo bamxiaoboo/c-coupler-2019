@@ -64,6 +64,8 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     this->fields_mem = new Field_mem_info *[num_transfered_fields];
     fields_data_buffers = new void *[num_transfered_fields];
     fields_routers = new Routing_info *[num_transfered_fields];
+    transfer_process_on = new bool [num_transfered_fields];
+    current_remote_fields_time = new long [num_transfered_fields];
     last_history_receive_buffer_index = -1;
     last_field_remote_recv_count = -1;
     current_field_local_recv_count = 1;
@@ -99,6 +101,9 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     field_grids_num_lev = new long [num_transfered_fields];
     fields_data_type_sizes = new int [num_transfered_fields];
     is_V1D_sub_grid_after_H2D_sub_grid =  new bool [num_transfered_fields];
+    last_receive_field_sender_time = new long [num_transfered_fields];
+    current_receive_field_sender_time = new long [num_transfered_fields];
+    current_receive_field_usage_time = new long [num_transfered_fields];
 
     memset(transfer_size_with_remote_procs, 0, sizeof(int)*num_remote_procs);
     memset(send_displs_in_remote_procs, 0, sizeof(int)*num_remote_procs);
@@ -154,7 +159,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         MPI_Allgather(transfer_size_with_remote_procs, num_remote_procs, MPI_INT, total_transfer_size_with_remote_procs, num_remote_procs, MPI_INT, local_comp_node->get_comm_group());
         for (int i = 0; i < current_proc_local_id; i ++) {
             for (int j = 0; j < num_remote_procs; j ++) {
-                send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j] + 2*sizeof(long);
+                send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j] + 2*num_transfered_fields*sizeof(long);
                 //send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j];
             }
         }
@@ -169,26 +174,44 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     */
     recv_displs_in_current_proc[0] = sizeof(long);
     for (int i = 1; i < num_remote_procs; i ++)
-        recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 2*sizeof(long);
+        recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 2*num_transfered_fields*sizeof(long);
 
-    current_receive_field_sender_time = -1;
-    last_receive_field_sender_time = -1;
+    for (int i = 0; i < num_transfered_fields; i ++) {
+        current_receive_field_sender_time[i] = -1;
+        last_receive_field_sender_time[i] = -1;
+    }
 
     data_buf_size = 0;
     for (int j = 0; j < num_remote_procs; j ++) 
         data_buf_size += transfer_size_with_remote_procs[j];
 
+    //data_buf = (void *) new char [data_buf_size];
+
+    /*
+    if (!send_or_receive)
+        tag_buf_size = 2 * num_remote_procs * num_transfered_fields + 1;
+    else tag_buf_size = 2 * num_transfered_fields + 1;
+    tag_buf = new long [tag_buf_size];
+    */
     tag_buf_size = 2 * num_remote_procs * num_transfered_fields + 1;
-    total_buf_size = data_buf_size + (2*num_remote_procs + 1) * sizeof(long);
+    total_buf_size = data_buf_size + (2*num_transfered_fields*num_remote_procs + 1) * sizeof(long);
     total_buf = new char[total_buf_size];
     send_tag_buf = (long *) total_buf;
     
     send_tag_buf[0] = -1;
     for (int i = 0; i < num_remote_procs; i ++) {
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[i]);
-		tag_buf[0] = -1;
-		tag_buf[1] = -1;
+        for (int j = 0; j < 2 * num_transfered_fields; j ++)
+            tag_buf[j] = -1;
     }
+
+    /*
+    for (int i = 0; i < tag_buf_size; i ++)
+        tag_buf[i] = -1;
+    */
+
+    for (int i = 0; i < num_transfered_fields; i ++)
+        last_receive_sender_time.push_back(-1);
 
     num_recv_procs_related = 0;
     recv_proc_start = -1;
@@ -227,21 +250,33 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] field_grids_num_lev;
     delete [] fields_data_type_sizes;
     delete [] is_V1D_sub_grid_after_H2D_sub_grid;
+    delete [] transfer_process_on;
+    delete [] current_remote_fields_time;
+    delete [] current_receive_field_sender_time;
+    delete [] current_receive_field_usage_time;
+    delete [] last_receive_field_sender_time;
 	delete [] total_buf;
+    //delete [] data_buf;
+    //delete [] tag_buf;
     delete [] transfer_size_with_remote_procs;
     delete [] send_displs_in_remote_procs;
     delete [] recv_displs_in_current_proc;
     delete [] remote_proc_ranks_in_union_comm;
 
-    for (int i = 0; i < history_receive_sender_time.size(); i ++)
+    for (int i = 0; i < history_receive_sender_time.size(); i ++) {
+        delete [] history_receive_sender_time[i];
         delete [] history_receive_data_buffer[i];
+        delete [] history_receive_usage_time[i];
+    }
 }
 
 
-void Runtime_trans_algorithm::pass_transfer_parameters(bool transfer_process_on, long current_remote_fields_time)
+void Runtime_trans_algorithm::pass_transfer_parameters(std::vector <bool> &transfer_process_on, std::vector <long> &current_remote_fields_time)
 {
-    this->transfer_process_on = transfer_process_on;
-    this->current_remote_fields_time = current_remote_fields_time;
+    for (int i = 0; i < transfer_process_on.size(); i ++) {
+        this->transfer_process_on[i] = transfer_process_on[i];
+        this->current_remote_fields_time[i] = current_remote_fields_time[i];
+    }
 }
 
 
@@ -252,24 +287,50 @@ bool Runtime_trans_algorithm::set_remote_tags(bool bypass_timer, long bypass_cou
 
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[index_remote_procs_with_common_data[i]]);
-        if (transfer_process_on) {
-            if (bypass_timer) {
-                tag_buf[0] = current_full_time + bypass_counter*((long)100000000000000);
-                tag_buf[1] = -999;
+        for (int j = 0; j < num_transfered_fields; j ++)
+            if (transfer_process_on[j]) {
+                if (bypass_timer) {
+                    tag_buf[j] = current_full_time + bypass_counter*((long)100000000000000);
+                    tag_buf[num_transfered_fields+j] = -999;
+                }
+                else {
+                    tag_buf[j] = current_full_time;
+                    tag_buf[num_transfered_fields+j] = current_remote_fields_time[j];
+                }
             }
-            else {
-                tag_buf[0] = current_full_time;
-                tag_buf[1] = current_remote_fields_time;
-            }
-        }
 
         int remote_proc_id = remote_proc_ranks_in_union_comm[index_remote_procs_with_common_data[i]];
         MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-        MPI_Put(tag_buf, 2*sizeof(long), MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[index_remote_procs_with_common_data[i]], 2*sizeof(long), MPI_CHAR, data_win);
+        MPI_Put(tag_buf, num_transfered_fields*2*sizeof(long), MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[index_remote_procs_with_common_data[i]], num_transfered_fields*2*sizeof(long), MPI_CHAR, data_win);
         MPI_Win_unlock(remote_proc_id, data_win);
 
-        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[0], tag_buf[1]);
+        for (int j = 0; j < num_transfered_fields; j ++)
+            EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[j], tag_buf[num_transfered_fields+j]);
     }
+
+    /*
+    for (int i = 0; i < num_transfered_fields; i ++)
+        if (transfer_process_on[i]) {
+            if (bypass_timer) {
+                tag_buf[i] = current_full_time + bypass_counter*((long)100000000000000);
+                tag_buf[num_transfered_fields+i] = -999;
+            }
+            else {
+                tag_buf[i] = current_full_time;
+                tag_buf[num_transfered_fields+i] = current_remote_fields_time[i];
+            }
+        }
+
+    for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
+        int remote_proc_id = remote_proc_ranks_in_union_comm[index_remote_procs_with_common_data[i]];
+        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, tag_win);
+        MPI_Put(tag_buf, num_transfered_fields*2, MPI_LONG, remote_proc_id, num_transfered_fields*current_proc_local_id*2, num_transfered_fields*2, MPI_LONG, tag_win);
+        MPI_Win_unlock(remote_proc_id, tag_win);
+    }    
+
+    for (int i = 0; i < num_transfered_fields; i ++)
+        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[i], tag_buf[num_transfered_fields+i]);
+    */
 
     return true;
 }
@@ -281,6 +342,12 @@ bool Runtime_trans_algorithm::set_local_tags()
     send_tag_buf[0] = current_field_local_recv_count;
     current_field_local_recv_count ++;
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
+    /*
+    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
+    tag_buf[tag_buf_size-1] = current_field_local_recv_count;
+    current_field_local_recv_count ++;
+    MPI_Win_unlock(current_proc_id_union_comm, tag_win);
+    */
 
     return true;
 }
@@ -353,7 +420,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
         if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
             int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
             MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, tag_win);
-            MPI_Get(tag_buf+tag_buf_size-1, 1, MPI_LONG, remote_proc_id, num_local_procs*2, 1, MPI_LONG, tag_win);
+            MPI_Get(tag_buf+tag_buf_size-1, 1, MPI_LONG, remote_proc_id, num_local_procs*num_transfered_fields*2, 1, MPI_LONG, tag_win);
             MPI_Win_unlock(remote_proc_id, tag_win);
             if (temp_field_remote_recv_count == -100) 
                 temp_field_remote_recv_count = tag_buf[tag_buf_size-1];
@@ -386,28 +453,46 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
 
 void Runtime_trans_algorithm::receve_data_in_temp_buffer()
 {
-    bool is_ready = true;
+    bool is_ready = true, has_new_data = false;
 
 
     if (index_remote_procs_with_common_data.size() == 0)
         return;
 
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, current_proc_id_union_comm, 0, data_win);
-    for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
-        int remote_proc_index = index_remote_procs_with_common_data[i];
-        tag_buf = (long *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
-        if (i == 0) {
-            current_receive_field_sender_time = tag_buf[0];
-            current_receive_field_usage_time = tag_buf[1];
+    for (int j = 0; j < num_transfered_fields; j ++)
+        for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
+            int remote_proc_index = index_remote_procs_with_common_data[i];
+            tag_buf = (long *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
+            if (i == 0) {
+                current_receive_field_sender_time[j] = tag_buf[j];
+                current_receive_field_usage_time[j] = tag_buf[num_transfered_fields+j];
+            }
+            else is_ready = is_ready && (current_receive_field_sender_time[j] == tag_buf[j]);
         }
-        else is_ready = is_ready && (current_receive_field_sender_time == tag_buf[0]);
-    }
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
+    
+    /*
+    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
+    for (int j = 0; j < num_transfered_fields; j ++)
+        for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
+            int remote_proc_index = index_remote_procs_with_common_data[i];
+            if (i == 0) {
+                current_receive_field_sender_time[j] = tag_buf[remote_proc_index*num_transfered_fields*2+j];
+                current_receive_field_usage_time[j] = tag_buf[remote_proc_index*num_transfered_fields*2+num_transfered_fields+j];
+            }
+            else is_ready = is_ready && (current_receive_field_sender_time[j] == tag_buf[remote_proc_index*num_transfered_fields*2+j]);
+        }
+    MPI_Win_unlock(current_proc_id_union_comm, tag_win);
+    */
 
     if (!is_ready)
         return;
 
-    if (last_receive_field_sender_time == current_receive_field_sender_time)
+    for (int i = 0; i < num_transfered_fields; i ++)
+        has_new_data = has_new_data | (last_receive_field_sender_time[i] != current_receive_field_sender_time[i]);
+
+    if (!has_new_data)
         return;
 
     int empty_history_receive_buffer_index = -1;
@@ -422,8 +507,8 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
     }
     if (empty_history_receive_buffer_index == -1) {
         std::vector<bool> temp_history_receive_buffer_status;
-        std::vector<long> temp_history_receive_sender_time;
-        std::vector<long> temp_history_receive_usage_time;
+        std::vector<long*> temp_history_receive_sender_time;
+        std::vector<long*> temp_history_receive_usage_time;
         std::vector<void*> temp_history_receive_data_buffer;
         for (int i = 0; i < history_receive_data_buffer.size(); i ++) {
             int index_iter = (last_history_receive_buffer_index+i) % history_receive_data_buffer.size();
@@ -445,28 +530,31 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
         last_history_receive_buffer_index = 0;
         empty_history_receive_buffer_index = history_receive_buffer_status.size();
         history_receive_buffer_status.push_back(false);
-        history_receive_sender_time.push_back(-1);
-        history_receive_usage_time.push_back(-1);
+        history_receive_sender_time.push_back(new long [num_transfered_fields]);
+        history_receive_usage_time.push_back(new long [num_transfered_fields]);
         history_receive_data_buffer.push_back(new char [data_buf_size]);
     }
 
     history_receive_buffer_status[empty_history_receive_buffer_index] = true;
-    history_receive_sender_time[empty_history_receive_buffer_index] = current_receive_field_sender_time;
-    history_receive_usage_time[empty_history_receive_buffer_index] = current_receive_field_usage_time;
-    last_receive_field_sender_time = current_receive_field_sender_time;
+    for (int i = 0; i < num_transfered_fields; i ++) {
+        history_receive_sender_time[empty_history_receive_buffer_index][i] = current_receive_field_sender_time[i];
+        history_receive_usage_time[empty_history_receive_buffer_index][i] = current_receive_field_usage_time[i];
+        last_receive_field_sender_time[i] = current_receive_field_sender_time[i];
+    }
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
     //memcpy(history_receive_data_buffer[empty_history_receive_buffer_index], data_buf, data_buf_size);
     int offset = 0;
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) continue;
-        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*sizeof(long));
+        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*num_transfered_fields*sizeof(long));
         memcpy((char *)history_receive_data_buffer[empty_history_receive_buffer_index]+offset, data_buf, transfer_size_with_remote_procs[remote_proc_index]);
         offset += transfer_size_with_remote_procs[remote_proc_index];
     }    
     MPI_Win_unlock(current_proc_id_union_comm, data_win);    
 
-    EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time);
+    for (int i = 0; i < num_transfered_fields; i ++)
+        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time[i]);
 
     set_local_tags();
     
@@ -491,7 +579,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
     }
 
     for (int j = 0; j < num_transfered_fields; j ++)
-        if (transfer_process_on) {
+        if (transfer_process_on[j]) {
             fields_mem[j]->check_field_sum("before sending data");
             fields_mem[j]->use_field_values("before sending data");
         }  
@@ -508,10 +596,10 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
 
         offset = 0;
         int old_offset = offset;
-        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*sizeof(long));
+        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*num_transfered_fields*sizeof(long));
         if (transfer_size_with_remote_procs[remote_proc_index] > 0)
             for (int j = 0; j < num_transfered_fields; j ++)
-                if (transfer_process_on) {
+                if (transfer_process_on[j]) {
                     if (fields_routers[j]->get_num_dimensions() == 0) {
                         memcpy((char *)data_buf + offset, fields_data_buffers[j], fields_data_type_sizes[j]);
                         offset += fields_data_type_sizes[j];
@@ -521,24 +609,43 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
                 }
 
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
-        if (transfer_process_on) {
-            if (bypass_timer) {
-                tag_buf[0] = current_full_time + bypass_counter*((long)100000000000000);
-                tag_buf[1] = -999;
+        for (int j = 0; j < num_transfered_fields; j ++)
+            if (transfer_process_on[j]) {
+                if (bypass_timer) {
+                    tag_buf[j] = current_full_time + bypass_counter*((long)100000000000000);
+                    tag_buf[num_transfered_fields+j] = -999;
+                }
+                else {
+                    tag_buf[j] = current_full_time;
+                    tag_buf[num_transfered_fields+j] = current_remote_fields_time[j];
+                }
             }
-            else {
-                tag_buf[0] = current_full_time;
-                tag_buf[1] = current_remote_fields_time;
-            }
-        }
 
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
+        /*
+        if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
+            MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
+            MPI_Put((char *)data_buf + old_offset, transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id,
+                    send_displs_in_remote_procs[remote_proc_index]+2*num_transfered_fields*sizeof(long), 
+                    transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
+            //MPI_Put((char *)data_buf + old_offset, transfer_size_with_remote_procs[i], MPI_CHAR, remote_proc_id,
+            //        send_displs_in_remote_procs[i], transfer_size_with_remote_procs[i], MPI_CHAR, data_win);
+            MPI_Win_unlock(remote_proc_id, data_win);
+
+            EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[remote_proc_index], "C-Coupler software error in send of runtime_trans_algorithm: %d  %d", offset, old_offset);
+        }
 
         MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-        MPI_Put(tag_buf, 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
+        MPI_Put(tag_buf, num_transfered_fields*2*sizeof(long), MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], num_transfered_fields*2*sizeof(long), MPI_CHAR, data_win);
+        MPI_Win_unlock(remote_proc_id, data_win);
+        */
+
+        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
+        MPI_Put(tag_buf, num_transfered_fields*2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], num_transfered_fields*2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
         MPI_Win_unlock(remote_proc_id, data_win);
 
-        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[0], tag_buf[1]);
+        for (int j = 0; j < num_transfered_fields; j ++)
+            EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[j], tag_buf[num_transfered_fields+j]);
     }
     EXECUTION_REPORT(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
 
@@ -555,8 +662,8 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
     bool received_data_ready = false;
 
     if (bypass_timer)
-        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time, bypass_counter);
-    else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld", remote_comp_full_name, current_remote_fields_time);
+        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time[0], bypass_counter);
+    else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld", remote_comp_full_name, current_remote_fields_time[0]);
 
     if (index_remote_procs_with_common_data.size() > 0) {
 
@@ -576,7 +683,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
             int old_offset = offset;
             //int offset = recv_displs_in_current_proc[i];
             for (int j = 0; j < num_transfered_fields; j ++)
-                if (transfer_process_on) {
+                if (transfer_process_on[j]) {
                     if (fields_routers[j]->get_num_dimensions() == 0) {
                         memcpy(fields_data_buffers[j], (char *) history_receive_data_buffer[last_history_receive_buffer_index] + offset, fields_data_type_sizes[j]);
                         offset += fields_data_type_sizes[j];
@@ -591,14 +698,14 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
     }
 
     for (int j = 0; j < num_transfered_fields; j ++)
-        if (transfer_process_on) {
+        if (transfer_process_on[j]) {
             fields_mem[j]->check_field_sum("after receiving data");
             fields_mem[j]->define_field_values(false);
             if (index_remote_procs_with_common_data.size() > 0)
-                last_receive_sender_time = history_receive_sender_time[last_history_receive_buffer_index];
+                last_receive_sender_time[j] = history_receive_sender_time[last_history_receive_buffer_index][j];
             else if (bypass_timer)
-                last_receive_sender_time = bypass_counter*((long)100000000000000);
-            else last_receive_sender_time = current_remote_fields_time;
+                last_receive_sender_time[j] = bypass_counter*((long)100000000000000);
+            else last_receive_sender_time[j] = current_remote_fields_time[j];
         }    
 
     if (index_remote_procs_with_common_data.size() > 0) {
@@ -612,9 +719,9 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
 }
 
 
-long Runtime_trans_algorithm::get_history_receive_sender_time()
+long Runtime_trans_algorithm::get_history_receive_sender_time(int j)
 {
-    return last_receive_sender_time;
+    return last_receive_sender_time[j];
 }
 
 
@@ -624,7 +731,7 @@ void Runtime_trans_algorithm::preprocess()
         transfer_size_with_remote_procs[index_remote_procs_with_common_data[i]] = 0;
 
     for (int i = 0; i < num_transfered_fields; i ++) {
-        if (transfer_process_on) {
+        if (transfer_process_on[i]) {
             for (int j = 0; j < index_remote_procs_with_common_data.size(); j ++) {
                 int remote_proc_index = index_remote_procs_with_common_data[j];
                 if (fields_routers[i]->get_num_dimensions() == 0)
