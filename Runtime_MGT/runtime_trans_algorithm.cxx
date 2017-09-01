@@ -362,44 +362,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
-    for (int i = recv_proc_start; i < recv_proc_start + num_recv_procs_related; i ++) {
-        int remote_proc_index = index_recv_procs_with_common_data[i];
-        int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
-        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-        MPI_Get(send_tag_buf, sizeof(long), MPI_CHAR, remote_proc_id, 0, sizeof(long), MPI_CHAR, data_win);
-        MPI_Win_unlock(remote_proc_id, data_win);
-        if (temp_field_remote_recv_count == -100) 
-            temp_field_remote_recv_count = send_tag_buf[0];
-        else if (temp_field_remote_recv_count != send_tag_buf[0])
-            is_ready = 1;
-        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get remote tag from component \"%s\" (at process %d) %d %ld %ld", remote_comp_full_name, remote_proc_index, (int)temp_field_remote_recv_count, send_tag_buf[0], last_field_remote_recv_count);
-    }
-    
-    if (is_ready == 0 && num_recv_procs_related > 0) {
-        if (temp_field_remote_recv_count == -1) {
-            EXECUTION_REPORT(REPORT_ERROR, -1, last_field_remote_recv_count == -1 || last_field_remote_recv_count == 0, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready");
-            if (last_field_remote_recv_count != -1)
-                is_ready = 1;
-        }
-        else if (temp_field_remote_recv_count != last_field_remote_recv_count) {
-            EXECUTION_REPORT(REPORT_ERROR, -1, temp_field_remote_recv_count == last_field_remote_recv_count + 1, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready %ld %ld", temp_field_remote_recv_count, last_field_remote_recv_count + 1);
-        }
-        else
-            is_ready = 1;
-    }
-    
-    int sum = 0;
-    MPI_Allreduce(&is_ready, &sum, 1, MPI_INT, MPI_SUM, sub_comm);
-    
-    if (sum == 0) {
-        last_field_remote_recv_count ++;
-        return true;
-    }
-    else
-        return false;
-    
-    /*
-     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
+    for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
             int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
@@ -410,27 +373,9 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
                 temp_field_remote_recv_count = send_tag_buf[0];
             else if (temp_field_remote_recv_count != send_tag_buf[0])
                 return false;
-            //break;
         }
     }
-    */
-    /*
-     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
-        int remote_proc_index = index_remote_procs_with_common_data[i];
-        if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
-            int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
-            MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, tag_win);
-            MPI_Get(tag_buf+tag_buf_size-1, 1, MPI_LONG, remote_proc_id, num_local_procs*num_transfered_fields*2, 1, MPI_LONG, tag_win);
-            MPI_Win_unlock(remote_proc_id, tag_win);
-            if (temp_field_remote_recv_count == -100) 
-                temp_field_remote_recv_count = tag_buf[tag_buf_size-1];
-            else if (temp_field_remote_recv_count != tag_buf[tag_buf_size-1])
-                return false;
-        }
-    }
-    */
 
-    /*
     if (temp_field_remote_recv_count == -1) {
         EXECUTION_REPORT(REPORT_ERROR, -1, last_field_remote_recv_count == -1 || last_field_remote_recv_count == 0, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready");
         if (last_field_remote_recv_count == -1) {
@@ -447,7 +392,6 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready()
     }
 
     return false;
-    */
 }
 
 

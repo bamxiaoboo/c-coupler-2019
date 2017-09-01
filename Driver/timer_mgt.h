@@ -136,6 +136,7 @@ class Time_mgt
 		int rest_refdate;
 		int rest_refsecond;
 		bool advance_time_synchronized;
+		int stop_n;
 
     public:
 		Time_mgt() {}
@@ -184,7 +185,7 @@ class Time_mgt
 		bool get_is_leap_year_on() { return leap_year_on; }
 		int get_comp_id() { return comp_id; }
 		Time_mgt *clone_time_mgr(int);
-		void set_time_step_in_second(int, const char*);
+		bool set_time_step_in_second(int, const char*, bool);
 		bool is_a_leap_year(int);
 		void build_restart_timer();
 		int get_current_step_id() { return current_step_id; }
@@ -200,6 +201,7 @@ class Time_mgt
 		int get_rest_refdate() { return rest_refdate; }
 		int get_rest_refsecond() { return rest_refsecond; }
 		bool is_first_restart_step() { return current_step_id == restarted_step_id; }
+		void calculate_stop_time(int, int, int, int);
 };
 
 

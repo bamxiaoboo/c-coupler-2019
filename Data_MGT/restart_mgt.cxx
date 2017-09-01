@@ -229,13 +229,6 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 		if (local_proc_id == 0)
 			write_into_file();
 		clean();
-		
-		int date = last_timer_on_full_time/(long)100000;
-		int second = last_timer_on_full_time%(long)100000;
-		char restart_file_name[NAME_STR_SIZE];
-		Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Restart_mgt::write_into_file");
-		sprintf(restart_file_name, "%s/%s.%s.r.%08d-%05d", comp_node->get_working_dir(), time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
-		do_restart_read(true, restart_file_name, "in internal test");
 	}
 }
 

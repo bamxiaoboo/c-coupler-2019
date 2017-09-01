@@ -43,7 +43,6 @@
    public :: CCPL_is_end_current_day 
    public :: CCPL_is_end_current_month
    public :: CCPL_allreduce_real16
-   public :: CCPL_abort
    public :: CCPL_register_component
    public :: CCPL_get_component_id
    public :: CCPL_get_current_process_id_in_component
@@ -1376,16 +1375,6 @@
 #endif
  END SUBROUTINE CCPL_allreduce_real16
  
-
-
- SUBROUTINE CCPL_abort(error_string)
-   implicit none
-   character(len=*),     intent(in)    ::  error_string
-
-   call coupling_abort(trim(error_string)//char(0))
-
- END SUBROUTINE CCPL_abort
-
 
 
 

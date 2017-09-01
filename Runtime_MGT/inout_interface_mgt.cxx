@@ -267,8 +267,10 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				transfer_process_on[i] = true;
 				field_update_status[i] = 1;
 				current_remote_fields_time[i] = -1;
-				if (inout_interface->get_bypass_counter() == 1)
-					EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
+				if (inout_interface->get_bypass_counter() == 1) {
+					if (!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
+						EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
+				}
 				else EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == last_remote_fields_time[i] / ((long)100000000000000), "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
 				transfer_data = true;
 				continue;
@@ -328,7 +330,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			if (bypass_timer) {
 				transfer_process_on[i] = true;
 				current_remote_fields_time[i] = -1;
-				EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+				if (!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
+					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time[i] == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 				transfer_data = true;
 				runtime_inner_averaging_algorithm[i]->run(true);
 				runtime_inter_averaging_algorithm[i]->run(true);
@@ -808,9 +811,6 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size()) <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
 	else if (import_or_export_or_remap == 3)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size())-1 <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
-
-	if (bypass_timer && (words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) || words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)))
-		return;
 	
 	if (bypass_timer)
 		bypass_counter ++;
@@ -887,15 +887,8 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 	}
 
 	if (import_or_export_or_remap == 0) {
-		for (int i = 0; i < fields_mem_registered.size(); i ++) {
-			if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT))
-				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %f : %f\n", interface_name, fields_mem_registered[i]->get_field_name(), ((float*) fields_mem_registered[i]->get_data_buf())[0], ((float*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);
-			else if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE))
-				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %lf : %lf\n", interface_name, fields_mem_registered[i]->get_field_name(), ((double*) fields_mem_registered[i]->get_data_buf())[0], ((double*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);
-			else if (words_are_the_same(fields_mem_registered[i]->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_INT))
-				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "import interface %s get field instance (%s) with value %d : %d\n", interface_name, fields_mem_registered[i]->get_field_name(), ((int*) fields_mem_registered[i]->get_data_buf())[0], ((int*) fields_mem_registered[i]->get_data_buf())[fields_mem_registered[i]->get_size_of_field()-1]);		
+		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			fields_mem_registered[i]->check_field_sum("after executing an export interface");
-		}
 	}
 }
 

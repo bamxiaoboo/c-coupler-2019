@@ -19,7 +19,6 @@ int num_days_of_month_of_nonleap_year[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 3
 int num_days_of_month_of_leap_year[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 
-
 bool common_is_timer_on(const char *frequency_unit, int frequency_count, int local_lag_count, int current_year, 
 	                  int current_month, int current_day, int current_second, int current_num_elapsed_day,
 	                  int start_year, int start_month, int start_day, int start_second, int start_num_elapsed_day)
@@ -191,12 +190,6 @@ void Coupling_timer::check_timer_format()
 }
 
 
-char frequency_unit[NAME_STR_SIZE];
-int frequency_count;
-int local_lag_count;
-int remote_lag_count;
-
-
 bool Coupling_timer::is_the_same_with(Coupling_timer *another)
 {
 	if (this->frequency_count != another->frequency_count)
@@ -310,6 +303,85 @@ bool Time_mgt::check_is_time_legal(int year, int month, int day, int second, con
 }
 
 
+void Time_mgt::calculate_stop_time(int start_year, int start_month, int start_day, int start_second)
+{
+	long num_total_seconds;
+	
+
+	if (words_are_the_same(stop_option,FREQUENCY_UNIT_NYEARS)) {
+		stop_year = start_year + stop_n;
+		stop_month = start_month;
+		stop_day = start_day;
+		stop_second = start_second;
+		if (start_month == 2 && start_day == 29 && !is_a_leap_year(stop_year))
+			stop_day = 28;
+	}
+	else if (words_are_the_same(stop_option, FREQUENCY_UNIT_NMONTHS)) {
+		stop_year = start_year + stop_n/12;
+		if (start_month + (stop_n%12) > 12) {
+			stop_year ++;
+			stop_month = (start_month + (stop_n%12)) - 12;
+		}
+		else stop_month = (start_month + (stop_n%12));
+		stop_day = start_day;
+		stop_second = start_second;
+		if (is_a_leap_year(stop_year) && num_days_of_month_of_leap_year[stop_month-1] < stop_day)
+			stop_day = num_days_of_month_of_leap_year[stop_month-1];
+		if (!is_a_leap_year(stop_year) && num_days_of_month_of_nonleap_year[stop_month-1] < stop_day)
+			stop_day = num_days_of_month_of_nonleap_year[stop_month-1]; 				
+	}
+	else {
+		int num_days = 0, num_hours = 0, num_minutes = 0, num_seconds = 0;
+		if (words_are_the_same(stop_option, FREQUENCY_UNIT_NDAYS)) {
+			num_days = stop_n;
+			num_total_seconds = stop_n * SECONDS_PER_DAY;
+		}
+		else if (words_are_the_same(stop_option, "nhours")) {
+			num_days = stop_n/24;
+			num_hours = stop_n % 24;
+			num_total_seconds = stop_n * 3600;
+		}
+		else if (words_are_the_same(stop_option, "nminutes")) {
+			num_days = stop_n / 1440;
+			num_hours = (stop_n % 1440) / 60;
+			num_minutes = stop_n % 60;
+			num_total_seconds = stop_n * 60;
+		}
+		else {
+			num_days = stop_n / SECONDS_PER_DAY;
+			num_hours = (stop_n % SECONDS_PER_DAY) / 3600;
+			num_minutes = (stop_n % 3600) / 60;
+			num_seconds = stop_n % 60;
+			num_total_seconds = stop_n;
+		}
+		this->stop_year = -1;
+		this->stop_month = -1;
+		this->stop_day = -1;
+		this->stop_second = -1;
+		Time_mgt *cloned_time_mgr = clone_time_mgr(comp_id);
+		cloned_time_mgr->set_time_step_in_second(SECONDS_PER_DAY, "C-Coupler creates the time manager of a component", true);
+		for (int i = 0; i < num_days; i ++)
+			cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+		cloned_time_mgr->set_time_step_in_second(3600, "C-Coupler creates the time manager of a component", true);
+		for (int i = 0; i < num_hours; i ++)
+			cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+		cloned_time_mgr->set_time_step_in_second(60, "C-Coupler creates the time manager of a component", true);
+		for (int i = 0; i < num_minutes; i ++)
+			cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+		cloned_time_mgr->set_time_step_in_second(1, "C-Coupler creates the time manager of a component", true);
+		for (int i = 0; i < num_seconds; i ++)
+			cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
+		this->stop_year = cloned_time_mgr->current_year;
+		this->stop_month = cloned_time_mgr->current_month;
+		this->stop_day = cloned_time_mgr->current_day;
+		this->stop_second = cloned_time_mgr->current_second;
+		delete cloned_time_mgr;
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_total_seconds == (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second,
+						 "Software error in Time_mgt::Time_mgt: fail to caculate stop time according to stop_n");
+	}
+}
+
+
 Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 {
 	int line_number;
@@ -324,7 +396,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	this->advance_time_synchronized = false;
 
 	{
-		int start_date, stop_date, reference_date, stop_n, rest_freq_count, time_step;
+		int start_date, stop_date, reference_date, rest_freq_count, time_step;
 		long num_total_seconds;
 		TiXmlDocument XML_file(XML_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(MPI_COMM_WORLD), "Fail to read XML file \"%s\" with the time information setting. The XML file may not exist or may not be a legal XML file. Please check.", XML_file_name);
@@ -381,7 +453,6 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		current_day = start_day;
 		current_second = start_second;
 		const char *reference_date_string = XML_element->Attribute("reference_date", &line_number);
-		EXECUTION_REPORT(REPORT_ERROR, -1, reference_date_string != NULL, "The reference date is unset or the format of the XML file is wrong. Please check the XML file \"%s\"", XML_file_name);
 		if (reference_date_string != NULL) {
 			sscanf(reference_date_string, "%d", &reference_date);
 			reference_year = reference_date / 10000;
@@ -428,79 +499,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			sscanf(stop_n_string, "%d", &stop_n);
 			if (stop_n == -999 || stop_n <= 0)
 				stop_year = stop_month = stop_day = stop_second = -1;
-			else {
-				if (words_are_the_same(stop_option,FREQUENCY_UNIT_NYEARS)) {
-					stop_year = start_year + stop_n;
-					stop_month = start_month;
-					stop_day = start_day;
-					stop_second = start_second;
-					if (start_month == 2 && start_day == 29 && !is_a_leap_year(stop_year))
-						stop_day = 28;
-				}
-				else if (words_are_the_same(stop_option, FREQUENCY_UNIT_NMONTHS)) {
-					stop_year = start_year + stop_n/12;
-					if (start_month + (stop_n%12) > 12) {
-						stop_year ++;
-						stop_month = (start_month + (stop_n%12)) - 12;
-					}
-					else stop_month = (start_month + (stop_n%12));
-					stop_day = start_day;
-					stop_second = start_second;
-					if (is_a_leap_year(stop_year) && num_days_of_month_of_leap_year[stop_month-1] < stop_day)
-						stop_day = num_days_of_month_of_leap_year[stop_month-1];
-					if (!is_a_leap_year(stop_year) && num_days_of_month_of_nonleap_year[stop_month-1] < stop_day)
-						stop_day = num_days_of_month_of_nonleap_year[stop_month-1];					
-				}
-				else {
-					int num_days = 0, num_hours = 0, num_minutes = 0, num_seconds = 0;
-					if (words_are_the_same(stop_option, FREQUENCY_UNIT_NDAYS)) {
-						num_days = stop_n;
-						num_total_seconds = stop_n * SECONDS_PER_DAY;
-					}
-					else if (words_are_the_same(stop_option, "nhours")) {
-						num_days = stop_n/24;
-						num_hours = stop_n % 24;
-						num_total_seconds = stop_n * 3600;
-					}
-					else if (words_are_the_same(stop_option, "nminutes")) {
-						num_days = stop_n / 1440;
-						num_hours = (stop_n % 1440) / 60;
-						num_minutes = stop_n % 60;
-						num_total_seconds = stop_n * 60;
-					}
-					else {
-						num_days = stop_n / SECONDS_PER_DAY;
-						num_hours = (stop_n % SECONDS_PER_DAY) / 3600;
-						num_minutes = (stop_n % 3600) / 60;
-						num_seconds = stop_n % 60;
-						num_total_seconds = stop_n;
-					}
-					this->stop_year = -1;
-					this->stop_month = -1;
-					this->stop_day = -1;
-					this->stop_second = -1;
-					Time_mgt *cloned_time_mgr = clone_time_mgr(comp_id);
-					cloned_time_mgr->set_time_step_in_second(SECONDS_PER_DAY, "C-Coupler creates the time manager of a component");
-					for (int i = 0; i < num_days; i ++)
-						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
-					cloned_time_mgr->set_time_step_in_second(3600, "C-Coupler creates the time manager of a component");
-					for (int i = 0; i < num_hours; i ++)
-						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
-					cloned_time_mgr->set_time_step_in_second(60, "C-Coupler creates the time manager of a component");
-					for (int i = 0; i < num_minutes; i ++)
-						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
-					cloned_time_mgr->set_time_step_in_second(1, "C-Coupler creates the time manager of a component");
-					for (int i = 0; i < num_seconds; i ++)
-						cloned_time_mgr->advance_model_time("in Time_mgt(...)", false);
-					this->stop_year = cloned_time_mgr->current_year;
-					this->stop_month = cloned_time_mgr->current_month;
-					this->stop_day = cloned_time_mgr->current_day;
-					this->stop_second = cloned_time_mgr->current_second;
-					delete cloned_time_mgr;
-					EXECUTION_REPORT(REPORT_ERROR, -1, num_total_seconds == (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second,
-					                 "Software error in Time_mgt::Time_mgt: fail to caculate stop time according to stop_n");
-				}
-			}
+			else calculate_stop_time(start_year, start_month, start_day, start_second);
 			EXECUTION_REPORT(REPORT_LOG, -1, true, "The stop time generated by C-Coupler according to the users' specification is %04d%02d%02d-%05d", stop_year, stop_month, stop_day, stop_second);
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year,stop_month,stop_day,stop_second,"Software error in Time_mgt::Time_mgt: wrong stop time generated by C-Coupler."));
 		}
@@ -667,26 +666,6 @@ bool Time_mgt::is_timer_on(const char *frequency_unit, int frequency_count, int 
 }
 
 
-void Time_mgt::set_restart_time(long start_full_time, long restart_full_time)
-{
-    long restart_date_value;
-    long tmp_date_value;
-
-
-//	if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "restart"))
-//	    EXECUTION_REPORT(REPORT_ERROR,-1, get_start_full_time() == start_full_time, "the start time read from restart file is different from current setting\n");
-	EXECUTION_REPORT(REPORT_ERROR, -1, check_time_consistency_between_components(start_full_time), "the start date of all components in the restart run (restart) is different\n");
-	EXECUTION_REPORT(REPORT_ERROR, -1, check_time_consistency_between_components(restart_full_time), "the restart date of all components in the restart run (restart) is different\n");
-    current_second = restart_full_time % 100000;
-    current_day = (restart_full_time/100000)%100;
-    current_month = (restart_full_time/10000000)%100;
-    current_year = restart_full_time/1000000000;
-    current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
-	current_step_id = (current_num_elapsed_day-start_num_elapsed_day) * (SECONDS_PER_DAY/time_step_in_second);
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "current step id from restart is %d", current_step_id);
-}
-
-
 bool Time_mgt::check_is_model_run_finished()
 {
     EXECUTION_REPORT(REPORT_LOG, comp_id, true, "check_is_model_run_finished %d %ld", current_step_id, num_total_steps);
@@ -847,6 +826,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->start_num_elapsed_day = this->start_num_elapsed_day;
 	new_time_mgr->stop_num_elapsed_day = this->stop_num_elapsed_day;
 	new_time_mgr->advance_time_synchronized = false;
+	new_time_mgr->stop_n = this->stop_n;
 	strcpy(new_time_mgr->case_name, this->case_name);
 	strcpy(new_time_mgr->exp_model_name, this->exp_model_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);
@@ -863,13 +843,15 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 }
 
 
-void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *annotation)
+bool Time_mgt::set_time_step_in_second(int time_step_in_second, const char *annotation, bool check_error)
 {
 	this->time_step_in_second = time_step_in_second;
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second > 0, "The value of the time step is wrong when setting the time step of the component \"%s\". It must be a positive value. Please check the model code with the annotation \"%s\"",
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "get comp name in Time_mgt::set_time_step_in_second")->get_comp_name(), annotation);
 	if (stop_year != -1) {
 		long total_seconds = (stop_num_elapsed_day-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
+		if (!check_error && total_seconds%((long)time_step_in_second) != 0)
+			return false;
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, total_seconds%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the start time and the stop time of the simulation. Please check the model code and the XML file \"env_run.xml\"", annotation);
 		num_total_steps = total_seconds / time_step_in_second;
 	}
@@ -883,7 +865,9 @@ void Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 		else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_SECONDS))
 			rest_freq = rest_freq_count;
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
-	}	
+	}
+
+	return true;
 }
 
 
@@ -985,8 +969,16 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 		annotation_mgr->add_annotation(comp_id, "setting time step", "C-Coupler read from restart file");
 	}
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
-	current_step_id = (current_num_elapsed_day-start_num_elapsed_day) * (SECONDS_PER_DAY/time_step_in_second);
+	current_step_id = ((current_num_elapsed_day-start_num_elapsed_day)*SECONDS_PER_DAY+current_second-start_second)/time_step_in_second;
 	restarted_step_id = current_step_id;
+
+	if ((words_are_the_same(RUNTYPE_CONTINUE, run_type) || words_are_the_same(RUNTYPE_BRANCH, run_type)) && !words_are_the_same(stop_option, "date")) {
+		calculate_stop_time(current_year, current_month, current_day, current_second);
+		stop_num_elapsed_day = calculate_elapsed_day(stop_year,stop_month,stop_day);
+		current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, set_time_step_in_second(time_step_in_second, "in Time_mgt::import_restart_data", false), "Error happens when importing the restart data from the file \"%s\": the time step does not match the setting of stop time", file_name);
+		current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
+	}
 }
 
 
@@ -1030,7 +1022,7 @@ void Components_time_mgt::set_component_time_step(int comp_id, int time_step, co
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "get the local id of the current component in Components_time_mgt::set_component_time_step") == 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step > 0, "The value of time step is wrong. It must be a positive value. Please check the model code with the annotation \"%s\"", annotation);
-	get_time_mgr(comp_id)->set_time_step_in_second(time_step, annotation);
+	get_time_mgr(comp_id)->set_time_step_in_second(time_step, annotation, true);
 }
 
 
