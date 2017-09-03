@@ -41,7 +41,7 @@ bool common_is_timer_on(const char *frequency_unit, int frequency_count, int loc
             return false;
         num_elapsed_time = (current_year-start_year)*NUM_MONTH_PER_YEAR+current_month-start_month;
     }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS)) {
+    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS)) {
         if (current_second != 0 || current_day != 1 || current_month != 1)
             return false;
         num_elapsed_time = current_year-start_year;
@@ -1044,6 +1044,7 @@ void Components_time_mgt::advance_component_time(int comp_id, const char *annota
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
 	time_mgr->advance_model_time(annotation, true);
+	comp_comm_group_mgt_mgr->set_current_proc_current_time(comp_id, time_mgr->get_current_num_elapsed_day(), time_mgr->get_current_second());
     EXECUTION_REPORT(REPORT_LOG, comp_id, true, "The current time is %08d-%05d, and the current number of the time step is %d", time_mgr->get_current_date(), time_mgr->get_current_second(), time_mgr->get_current_step_id());
 }
 

@@ -85,10 +85,12 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         remote_comp_node = fields_routers[0]->get_src_comp_node();
     }
     strcpy(remote_comp_full_name, remote_comp_node->get_comp_full_name());
+	remote_comp_node_updated = false;
     comp_id = local_comp_node->get_comp_id();
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
     time_mgr = components_time_mgrs->get_time_mgr(comp_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, time_mgr != NULL, "software error in Runtime_trans_algorithm::Runtime_trans_algorithm: wrong time mgr: %x: %d: %d: %s : %s: %s %s %s", comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler native code get time manager")->get_current_proc_local_id(), current_proc_local_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler native code get time manager")->get_comp_full_name(), local_comp_node->get_comp_full_name(), remote_comp_node->get_comp_full_name(), fields_routers[0]->get_src_comp_node()->get_comp_name(), fields_routers[0]->get_dst_comp_node()->get_comp_name());
     num_remote_procs = remote_comp_node->get_num_procs();
     num_local_procs = local_comp_node->get_num_procs();
     remote_proc_ranks_in_union_comm = new int [num_remote_procs];
@@ -160,19 +162,13 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         for (int i = 0; i < current_proc_local_id; i ++) {
             for (int j = 0; j < num_remote_procs; j ++) {
                 send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j] + 2*num_transfered_fields*sizeof(long);
-                //send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j];
-            }
+             }
         }
         for (int j = 0; j < num_remote_procs; j ++)
-            send_displs_in_remote_procs[j] += sizeof(long);
+            send_displs_in_remote_procs[j] += sizeof(long)*2;
     }
-    /*
-    else {
-        for (int i = 1; i < num_remote_procs; i ++)
-            recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1];
-    }
-    */
-    recv_displs_in_current_proc[0] = sizeof(long);
+
+    recv_displs_in_current_proc[0] = sizeof(long)*2;
     for (int i = 1; i < num_remote_procs; i ++)
         recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 2*num_transfered_fields*sizeof(long);
 
@@ -185,30 +181,17 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     for (int j = 0; j < num_remote_procs; j ++) 
         data_buf_size += transfer_size_with_remote_procs[j];
 
-    //data_buf = (void *) new char [data_buf_size];
-
-    /*
-    if (!send_or_receive)
-        tag_buf_size = 2 * num_remote_procs * num_transfered_fields + 1;
-    else tag_buf_size = 2 * num_transfered_fields + 1;
-    tag_buf = new long [tag_buf_size];
-    */
-    tag_buf_size = 2 * num_remote_procs * num_transfered_fields + 1;
-    total_buf_size = data_buf_size + (2*num_transfered_fields*num_remote_procs + 1) * sizeof(long);
+    total_buf_size = data_buf_size + (2*num_transfered_fields*num_remote_procs + 2) * sizeof(long);
     total_buf = new char[total_buf_size];
     send_tag_buf = (long *) total_buf;
     
     send_tag_buf[0] = -1;
+	send_tag_buf[1] = -1;
     for (int i = 0; i < num_remote_procs; i ++) {
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[i]);
         for (int j = 0; j < 2 * num_transfered_fields; j ++)
             tag_buf[j] = -1;
     }
-
-    /*
-    for (int i = 0; i < tag_buf_size; i ++)
-        tag_buf[i] = -1;
-    */
 
     for (int i = 0; i < num_transfered_fields; i ++)
         last_receive_sender_time.push_back(-1);
@@ -256,8 +239,6 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] current_receive_field_usage_time;
     delete [] last_receive_field_sender_time;
 	delete [] total_buf;
-    //delete [] data_buf;
-    //delete [] tag_buf;
     delete [] transfer_size_with_remote_procs;
     delete [] send_displs_in_remote_procs;
     delete [] recv_displs_in_current_proc;
@@ -340,58 +321,56 @@ bool Runtime_trans_algorithm::set_local_tags()
 {
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
     send_tag_buf[0] = current_field_local_recv_count;
+	send_tag_buf[1] = ((long)time_mgr->get_current_num_elapsed_day())*100000 + ((long)time_mgr->get_current_second());
     current_field_local_recv_count ++;
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
-    /*
-    MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, tag_win);
-    tag_buf[tag_buf_size-1] = current_field_local_recv_count;
-    current_field_local_recv_count ++;
-    MPI_Win_unlock(current_proc_id_union_comm, tag_win);
-    */
 
     return true;
 }
 
 
-bool Runtime_trans_algorithm::is_remote_data_buf_ready()
+bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 {
     long temp_field_remote_recv_count = -100;
-    int is_ready = 0;
 
 
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
+	if (comp_comm_group_mgt_mgr->get_is_definition_finalized() && !remote_comp_node_updated) {
+		remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_full_name);
+		remote_comp_node_updated = true;
+		remote_comp_node->allocate_proc_latest_model_time();
+	}
+
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
+ 			if (remote_comp_node_updated && last_receive_sender_time[0] < remote_comp_node->get_proc_latest_model_time(remote_proc_index)) {
+				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Can bypass MPI_Get for proc %d", remote_proc_index);
+				continue;
+			}
             int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
             MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-            MPI_Get(send_tag_buf, sizeof(long), MPI_CHAR, remote_proc_id, 0, sizeof(long), MPI_CHAR, data_win);
+            MPI_Get(send_tag_buf, sizeof(long)*2, MPI_CHAR, remote_proc_id, 0, sizeof(long)*2, MPI_CHAR, data_win);
             MPI_Win_unlock(remote_proc_id, data_win);
-            if (temp_field_remote_recv_count == -100) 
-                temp_field_remote_recv_count = send_tag_buf[0];
-            else if (temp_field_remote_recv_count != send_tag_buf[0])
-                return false;
+			if (remote_comp_node_updated)
+				remote_comp_node->set_proc_latest_model_time(remote_proc_index, send_tag_buf[1]);
+			if (send_tag_buf[0] != -1 && send_tag_buf[0] != last_field_remote_recv_count + 1)
+				return false;
+
+			temp_field_remote_recv_count = send_tag_buf[0];
         }
     }
 
     if (temp_field_remote_recv_count == -1) {
         EXECUTION_REPORT(REPORT_ERROR, -1, last_field_remote_recv_count == -1 || last_field_remote_recv_count == 0, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready");
-        if (last_field_remote_recv_count == -1) {
-            last_field_remote_recv_count = 0;
-            return true;
-        }
-        return false;
+        if (last_field_remote_recv_count != -1) 
+	        return false;
     }
 
-    if (temp_field_remote_recv_count != last_field_remote_recv_count) {
-        EXECUTION_REPORT(REPORT_ERROR, -1, temp_field_remote_recv_count == last_field_remote_recv_count + 1, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready %ld %ld", temp_field_remote_recv_count, last_field_remote_recv_count + 1);
-        last_field_remote_recv_count = temp_field_remote_recv_count;
-        return true;
-    }
-
-    return false;
+	last_field_remote_recv_count ++;
+    return true;
 }
 
 
@@ -518,7 +497,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
 {
     if (index_remote_procs_with_common_data.size() > 0) {
         preprocess();
-        if (!is_remote_data_buf_ready())
+        if (!is_remote_data_buf_ready(bypass_timer))
             return false;
     }
 
@@ -566,23 +545,6 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
             }
 
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
-        /*
-        if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
-            MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-            MPI_Put((char *)data_buf + old_offset, transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id,
-                    send_displs_in_remote_procs[remote_proc_index]+2*num_transfered_fields*sizeof(long), 
-                    transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
-            //MPI_Put((char *)data_buf + old_offset, transfer_size_with_remote_procs[i], MPI_CHAR, remote_proc_id,
-            //        send_displs_in_remote_procs[i], transfer_size_with_remote_procs[i], MPI_CHAR, data_win);
-            MPI_Win_unlock(remote_proc_id, data_win);
-
-            EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[remote_proc_index], "C-Coupler software error in send of runtime_trans_algorithm: %d  %d", offset, old_offset);
-        }
-
-        MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-        MPI_Put(tag_buf, num_transfered_fields*2*sizeof(long), MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], num_transfered_fields*2*sizeof(long), MPI_CHAR, data_win);
-        MPI_Win_unlock(remote_proc_id, data_win);
-        */
 
         MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
         MPI_Put(tag_buf, num_transfered_fields*2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], num_transfered_fields*2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
@@ -592,6 +554,13 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
             EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[j], tag_buf[num_transfered_fields+j]);
     }
     EXECUTION_REPORT(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
+
+    for (int j = 0; j < num_transfered_fields; j ++)
+        if (transfer_process_on[j]) {
+            if (bypass_timer)
+                last_receive_sender_time[j] = bypass_counter*((long)100000000000000);
+            else last_receive_sender_time[j] = current_remote_fields_time[j];
+    }
 
     //set_remote_tags(bypass_timer, bypass_counter);
 

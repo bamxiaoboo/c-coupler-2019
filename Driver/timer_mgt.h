@@ -161,7 +161,6 @@ class Time_mgt
 		int get_start_second() { return start_second; }
 		int get_start_num_elapsed_day() { return start_num_elapsed_day; }
 		int get_stop_num_elapsed_day() { return stop_num_elapsed_day; }
-        void set_restart_time(long, long);
         bool is_timer_on(const char *, int, int);
         bool check_is_model_run_finished();
         bool check_is_coupled_run_restart_time();

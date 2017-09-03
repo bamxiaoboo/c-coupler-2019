@@ -203,7 +203,7 @@ extern "C" void get_ccpl_num_elapsed_days_from_reference_date_(int *comp_id, int
 
 extern "C" void coupling_abort_(const char *error_string)
 {
-	EXECUTION_REPORT(REPORT_ERROR,-1, false, error_string);
+        EXECUTION_REPORT(REPORT_ERROR,-1, false, error_string);
 }
 
 
@@ -947,6 +947,8 @@ extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, in
 	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_local_comp_full_name_")->get_full_name();
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *comp_full_name_size >= strlen(full_name), "Error happens when calling the API \"CCPL_get_local_comp_full_name\": the parameter string \"comp_full_name\" is too short: only %d while the size of the component model full name is %d", *comp_full_name_size, strlen(full_name));
 	strncpy(comp_full_name, full_name, strlen(full_name));
+	for (int i = strlen(full_name); i < *comp_full_name_size; i ++)
+		comp_full_name[i] = ' ';
 }
 
 

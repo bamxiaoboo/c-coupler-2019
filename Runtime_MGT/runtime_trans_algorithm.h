@@ -63,6 +63,7 @@ class Runtime_trans_algorithm
         int last_history_receive_buffer_index;
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
+		bool remote_comp_node_updated;
         char remote_comp_full_name[NAME_STR_SIZE];
         int current_proc_local_id;
         int current_proc_global_id;
@@ -78,7 +79,7 @@ class Runtime_trans_algorithm
         bool send(bool, long);
         bool recv(bool, long);
         long get_receive_data_time();
-        bool is_remote_data_buf_ready();
+        bool is_remote_data_buf_ready(bool);
         bool set_remote_tags(bool, long);
         bool set_local_tags();
         void preprocess();

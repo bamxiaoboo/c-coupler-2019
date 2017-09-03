@@ -64,6 +64,7 @@ class Comp_comm_group_mgt_node
 		std::vector<Comp_comm_group_mgt_node*> children;
 		MPI_Comm comm_group;
 		std::vector<int> local_processes_global_ids;
+		long *proc_latest_model_time;
 		int current_proc_local_id;
 		int current_proc_global_id;
 		char *temp_array_buffer;
@@ -118,6 +119,10 @@ class Comp_comm_group_mgt_node
 		bool is_real_component_model();
 		Restart_mgt *get_restart_mgr() { return restart_mgr; }
 		bool have_local_process(int);
+		void allocate_proc_latest_model_time();
+		void set_current_proc_current_time(int, int);
+		void set_proc_latest_model_time(int, long);
+		long get_proc_latest_model_time(int);
 };
 
 
@@ -183,6 +188,7 @@ class Comp_comm_group_mgt_mgr
 		void push_comp_node(Comp_comm_group_mgt_node *);
 		Comp_comm_group_mgt_node *pop_comp_node();
 		void check_validation();
+		void set_current_proc_current_time(int, int, int);
 };
 
 

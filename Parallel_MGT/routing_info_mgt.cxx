@@ -59,9 +59,10 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const c
     src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
     dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
 	strcpy(this->src_comp_full_name, src_comp_node->get_comp_full_name());
-	strcpy(this->dst_comp_full_name, dst_comp_node->get_comp_full_name());
+	strcpy(this->index_dst_comp_full_name, dst_comp_node->get_comp_full_name());
 	if (dst_decomp_info != NULL)
 		dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_decomp_info->get_host_comp_id());
+	strcpy(this->true_dst_comp_full_name, dst_comp_node->get_comp_full_name());
 	src_comp_node_id = src_comp_node->get_comp_id();
 	dst_comp_node_id = dst_comp_node->get_comp_id();
     strcpy(this->src_decomp_name, src_decomp_name);
@@ -87,6 +88,11 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const c
         if (current_proc_id_dst_comp != -1) 
 			dst_decomp_size = dst_decomp_info->get_num_local_cells();
     }
+
+	if (current_proc_id_src_comp != 0)
+		EXECUTION_REPORT(REPORT_LOG, src_comp_id, true, "Finish generating router from (%s %s) to (%s %s)", src_comp_full_name, src_decomp_name, index_dst_comp_full_name, dst_decomp_name);
+	if (current_proc_id_dst_comp != 0)
+		EXECUTION_REPORT(REPORT_LOG, dst_comp_id, true, "Finish generating router from (%s %s) to (%s %s)", src_comp_full_name, src_decomp_name, index_dst_comp_full_name, dst_decomp_name);
 }
 
 
@@ -109,10 +115,7 @@ Routing_info::~Routing_info()
 
 bool Routing_info::match_router(const int src_comp_id, const int dst_comp_id, const char *src_decomp_name, const char *dst_decomp_name)
 {
-    src_comp_node = comp_comm_group_mgt_mgr->search_global_node(src_comp_id);
-    dst_comp_node = comp_comm_group_mgt_mgr->search_global_node(dst_comp_id);
-
-    return (words_are_the_same(src_comp_full_name, src_comp_node->get_full_name()) && words_are_the_same(dst_comp_full_name, dst_comp_node->get_full_name()) &&
+    return (words_are_the_same(src_comp_full_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_id)->get_full_name()) && words_are_the_same(index_dst_comp_full_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_id)->get_full_name()) &&
             words_are_the_same(this->src_decomp_name, src_decomp_name) && words_are_the_same(this->dst_decomp_name, dst_decomp_name));
 }
 
@@ -286,4 +289,17 @@ Routing_info_with_one_process *Routing_info::get_routing_info(bool is_send, int 
 		return recv_from_remote_procs_routing_info[i];
 	}
 }
+
+
+Comp_comm_group_mgt_node *Routing_info::get_src_comp_node() 
+{ 
+	return comp_comm_group_mgt_mgr->search_global_node(src_comp_full_name); 
+}
+
+
+Comp_comm_group_mgt_node *Routing_info::get_dst_comp_node() 
+{ 
+    return comp_comm_group_mgt_mgr->search_global_node(true_dst_comp_full_name); 
+}
+
 

@@ -104,6 +104,9 @@ Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 
 	if (restart_mgr != NULL)
 		delete restart_mgr;
+
+	if (proc_latest_model_time != NULL)
+		delete [] proc_latest_model_time;
 }
 
 
@@ -135,6 +138,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->working_dir[0] = '\0';
 	this->comp_log_file_name[0] = '\0';
 	this->exe_log_file_name[0] = '\0';
+	this->proc_latest_model_time = NULL;
 	global_node_id ++;
 	this->parent = parent;
 	temp_array_buffer = NULL;
@@ -173,6 +177,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->temp_array_buffer = new char [buffer_max_size];
 	this->definition_finalized = false;	
 	this->unified_global_id = 0;
+	this->proc_latest_model_time = NULL;
 	restart_mgr = new Restart_mgt(comp_id);
 
 	if (comm != -1) {
@@ -321,6 +326,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 
 	comp_id = -1;
 	temp_array_buffer = NULL;
+	proc_latest_model_time = NULL;
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
 	const char *XML_comp_name = get_XML_attribute(comp_id, XML_element, "name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
 	const char *XML_full_name = get_XML_attribute(comp_id, XML_element, "full_name", XML_file_name, line_number, "the full_name of the component model", "internal configuration file of component information");
@@ -665,6 +671,43 @@ bool Comp_comm_group_mgt_node::have_local_process(int local_proc_global_id)
 }
 
 
+void Comp_comm_group_mgt_node::allocate_proc_latest_model_time()
+{
+	if (proc_latest_model_time != NULL)
+		return;
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, get_num_procs() > 0, "Software error in Comp_comm_group_mgt_node::allocate_proc_latest_model_time");
+	proc_latest_model_time = new long [get_num_procs()];
+	for (int i = 0; i < get_num_procs(); i ++)
+		proc_latest_model_time[i] = -1;
+}
+
+
+void Comp_comm_group_mgt_node::set_current_proc_current_time(int days, int second)
+{
+	allocate_proc_latest_model_time();
+	proc_latest_model_time[current_proc_local_id] = ((long)days)*((long)100000) + (long)second;
+	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "set_proc_latest_model_time %ld: %d %d", proc_latest_model_time[current_proc_local_id], days, second);
+}
+
+
+void Comp_comm_group_mgt_node::set_proc_latest_model_time(int proc_id, long model_time)
+{
+	allocate_proc_latest_model_time();
+	EXECUTION_REPORT(REPORT_ERROR, -1, proc_id >= 0 && proc_id < get_num_procs(), "Software error in set_proc_latest_model_time: wrong proc id: %d vs %d", proc_id, get_num_procs());
+
+	if (model_time > proc_latest_model_time[proc_id])
+		proc_latest_model_time[proc_id] = model_time;
+}
+
+
+long Comp_comm_group_mgt_node::get_proc_latest_model_time(int proc_id)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, proc_id >= 0 && proc_id < get_num_procs(), "Software error in get_proc_latest_model_time: wrong proc id");
+	return proc_latest_model_time[proc_id];
+}
+
+
 Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 {
 	int i, j, num_procs, proc_id;
@@ -890,7 +933,7 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 		definition_finalized = true;
 		generate_sorted_comp_ids();
 		write_comp_comm_info_into_XML();
-		read_comp_comm_info_from_XML();
+//		read_comp_comm_info_from_XML();
 	}
 
 	if (true_local_id == 1)
@@ -1161,5 +1204,11 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::pop_comp_node()
 	Comp_comm_group_mgt_node *top_comp_node = global_node_array[global_node_array.size()-1];
 	global_node_array.erase(global_node_array.begin()+global_node_array.size()-1);
 	return top_comp_node;
+}
+
+
+void Comp_comm_group_mgt_mgr::set_current_proc_current_time(int comp_id, int days, int second)
+{
+	get_global_node_of_local_comp(comp_id,"Comp_comm_group_mgt_mgr::set_current_proc_time")->set_current_proc_current_time(days, second);
 }
 
