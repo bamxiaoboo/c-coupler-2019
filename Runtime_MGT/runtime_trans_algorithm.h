@@ -80,7 +80,6 @@ class Runtime_trans_algorithm
         bool recv(bool, long);
         long get_receive_data_time();
         bool is_remote_data_buf_ready(bool);
-        bool set_remote_tags(bool, long);
         bool set_local_tags();
         void preprocess();
         void pack_MD_data(int, int, int *);
