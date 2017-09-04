@@ -234,9 +234,9 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
 }
 
 
-void Runtime_trans_algorithm::pass_transfer_parameters(std::vector <bool> &transfer_process_on, std::vector <long> &current_remote_fields_time)
+void Runtime_trans_algorithm::pass_transfer_parameters(long current_remote_fields_time)
 {
-	this->current_remote_fields_time = current_remote_fields_time[0];
+	this->current_remote_fields_time = current_remote_fields_time;
 }
 
 
