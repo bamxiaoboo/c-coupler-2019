@@ -110,15 +110,17 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		else fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_import_or_export_or_remap() == 1, i-coupling_connection->fields_name.size()));
 		current_remote_fields_time = -1;
 		last_remote_fields_time = -1;
+		fields_mem_inner_step_averaged.push_back(NULL);
+		fields_mem_inter_step_averaged.push_back(NULL);
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
-			fields_mem_inner_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, 
-				                                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
-			fields_mem_inter_step_averaged.push_back(memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, 
-				                                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size()));
-		}
-		else {
-			fields_mem_inner_step_averaged.push_back(NULL);
-			fields_mem_inter_step_averaged.push_back(NULL);
+			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE)
+				fields_mem_inner_step_averaged[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, 
+		                                                                      inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+			else fields_mem_inner_step_averaged[i] = fields_mem_registered[i];
+			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE && !(fields_time_info_dst->lag_seconds == 0 && fields_time_info_dst->timer->is_the_same_with(fields_time_info_src->timer)))
+				fields_mem_inter_step_averaged[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, 
+				                                                              inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+			else fields_mem_inter_step_averaged[i] = fields_mem_inner_step_averaged[i];
 		}
 		fields_mem_remapped.push_back(NULL);
 		fields_mem_datatype_transformed.push_back(NULL);
@@ -126,8 +128,10 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		fields_mem_transfer.push_back(NULL);
 
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
-			runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
-			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
+			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE)
+				runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
+			if (fields_mem_inter_step_averaged[i] != fields_mem_inner_step_averaged[i])
+				runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
 		}
 		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? 
 			                             coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
@@ -284,7 +288,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_remap_algorithms[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL)
 						runtime_datatype_transform_algorithms[i]->run(true);								
-					runtime_inter_averaging_algorithm[i]->run(true);
+					if (runtime_inter_averaging_algorithm[i] != NULL)
+						runtime_inter_averaging_algorithm[i]->run(true);
 			}
 		}
 		finish_status = true;
@@ -312,8 +317,10 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				if (i == fields_mem_registered.size() - 1 && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 				transfer_data = true;
-				runtime_inner_averaging_algorithm[i]->run(true);
-				runtime_inter_averaging_algorithm[i]->run(true);
+				if (runtime_inner_averaging_algorithm[i] != NULL)
+					runtime_inner_averaging_algorithm[i]->run(true);
+				if (runtime_inter_averaging_algorithm[i] != NULL)
+					runtime_inter_averaging_algorithm[i]->run(true);
 				if (runtime_datatype_transform_algorithms[i] != NULL)
 					runtime_datatype_transform_algorithms[i]->run(true);
 			}
@@ -326,13 +333,15 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_inner_averaging_algorithm[i]->run(false);
 					continue;
 				}
-				runtime_inner_averaging_algorithm[i]->run(true);
+				if (runtime_inner_averaging_algorithm[i] != NULL)
+					runtime_inner_averaging_algorithm[i]->run(true);
 				if (((long)fields_time_info_src->current_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_src->current_second == ((long)fields_time_info_dst->last_timer_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_dst->last_timer_second+lag_seconds) {
 					current_remote_fields_time = ((long)fields_time_info_dst->last_timer_num_elapsed_days)*100000 + fields_time_info_dst->last_timer_second;
 					if (i == fields_mem_registered.size() - 1)
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time = current_remote_fields_time;
-					runtime_inter_averaging_algorithm[i]->run(true);
+					if (runtime_inter_averaging_algorithm[i] != NULL)
+						runtime_inter_averaging_algorithm[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
 					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time)) {  // restart related
@@ -345,7 +354,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					if (i == fields_mem_registered.size() - 1)
 					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time = current_remote_fields_time;
-					runtime_inter_averaging_algorithm[i]->run(true);
+					if (runtime_inter_averaging_algorithm[i] != NULL)
+						runtime_inter_averaging_algorithm[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
 					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time)) {  // restart related
@@ -353,7 +363,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					}
 				}
 				else {
-					if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE)
+					if (runtime_inter_averaging_algorithm[i] != NULL)
 						runtime_inter_averaging_algorithm[i]->run(false);
 				}	
 			}
