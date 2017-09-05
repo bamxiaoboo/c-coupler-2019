@@ -74,13 +74,14 @@
    public :: CCPL_execute_interface_using_id 
    public :: CCPL_execute_interface_using_name
    public :: CCPL_connect_fixed_interfaces 
-   public :: CCPL_get_comp_name_via_interface_tag 
+   public :: CCPL_get_comp_full_name_via_interface_tag 
    public :: CCPL_get_local_comp_full_name 
    public :: CCPL_report_log 
    public :: CCPL_report_progress 
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write
    public :: CCPL_do_restart_read
+   public :: CCPL_abort
 
 
    interface CCPL_register_field_instance ; module procedure &
@@ -2700,24 +2701,24 @@
 
 
 
-   SUBROUTINE CCPL_connect_fixed_interfaces(comp_full_name_or_tag1, comp_full_name_or_tag2, annotation)
+   SUBROUTINE CCPL_connect_fixed_interfaces(comp_full_name1, comp_full_name2, annotation)
    implicit none
-   character(len=*), intent(in)                :: comp_full_name_or_tag1
-   character(len=*), intent(in)                :: comp_full_name_or_tag2
+   character(len=*), intent(in)                :: comp_full_name1
+   character(len=*), intent(in)                :: comp_full_name2
    character(len=*), intent(in), optional      :: annotation
 
 
    if (present(annotation)) then
-       call connect_fixed_interfaces_between_two_components(trim(comp_full_name_or_tag1)//char(0), trim(comp_full_name_or_tag2)//char(0), trim(annotation)//char(0))
+       call connect_fixed_interfaces_between_two_components(trim(comp_full_name1)//char(0), trim(comp_full_name2)//char(0), trim(annotation)//char(0))
    else 
-       call connect_fixed_interfaces_between_two_components(trim(comp_full_name_or_tag1)//char(0), trim(comp_full_name_or_tag2)//char(0), trim("")//char(0))
+       call connect_fixed_interfaces_between_two_components(trim(comp_full_name1)//char(0), trim(comp_full_name2)//char(0), trim("")//char(0))
    endif
 
    END SUBROUTINE CCPL_connect_fixed_interfaces
 
 
    
-   logical FUNCTION CCPL_get_comp_name_via_interface_tag(comp_id, interface_tag, comp_full_name, annotation)
+   logical FUNCTION CCPL_get_comp_full_name_via_interface_tag(comp_id, interface_tag, comp_full_name, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    character(len=*), intent(in)                :: interface_tag
@@ -2732,9 +2733,9 @@
        call get_comp_name_via_interface_tag(comp_id, trim(interface_tag)//char(0), comp_full_name, int_result, len(comp_full_name), trim("")//char(0))
    endif
 
-   CCPL_get_comp_name_via_interface_tag = (int_result .eq. 1)
+   CCPL_get_comp_full_name_via_interface_tag = (int_result .eq. 1)
 
-   END FUNCTION CCPL_get_comp_name_via_interface_tag
+   END FUNCTION CCPL_get_comp_full_name_via_interface_tag
 
 
 
@@ -2856,6 +2857,15 @@
    
    END SUBROUTINE CCPL_do_restart_read
  
+
+
+   SUBROUTINE CCPL_abort(error_string)
+   implicit none
+   character(len=*),     intent(in)    ::  error_string
+
+   call coupling_abort(trim(error_string)//char(0))
+
+   END SUBROUTINE CCPL_abort
 
 
  END MODULE CCPL_interface_mod

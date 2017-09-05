@@ -19,6 +19,7 @@
 #include <sys/time.h>
 
 
+bool report_all_enabled;
 bool report_error_enabled;
 bool report_progress_enabled;
 bool report_log_enabled;
@@ -32,7 +33,8 @@ void import_report_setting()
 	char keywords[3][NAME_STR_SIZE];
 	bool report_setting[3];
 
-	
+
+	report_all_enabled = false;
 	report_error_enabled = false;
 	report_log_enabled = false;
 	report_progress_enabled = false;
@@ -156,7 +158,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 }
 
 
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *format, ...)
+void execution_report(int report_type, int comp_id, bool condition, const char *format, ...)
 {
 	char output_string[NAME_STR_SIZE*4];
 	FILE *log_file;
@@ -206,7 +208,7 @@ void EXECUTION_REPORT(int report_type, int comp_id, bool condition, const char *
 
 
 
-void EXECUTION_REPORT(int report_type, int comp_id, bool condition) 
+void execution_report(int report_type, int comp_id, bool condition) 
 {
 	char output_string[NAME_STR_SIZE*4];
 

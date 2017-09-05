@@ -144,32 +144,6 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
 				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
 			}	
-		}	
-		if (inout_interface->get_import_or_export_or_remap() == 0) {
-			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, 
-				                                                   inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-			else {
-				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), 
-					                                               coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, 
-					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), 
-					                                               BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", 
-					                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
-			}
-			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
-					             "for field %s, add data type transformation at dst from %s to %s\n", 
-					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
-				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, 
-					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
-				if (fields_mem_remapped[i] == NULL)
-					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
-				else runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_remapped[i], fields_mem_datatype_transformed[i]);
-			}
-		}
-		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (fields_mem_remapped[i] != NULL)
 				fields_mem_transfer[i] = fields_mem_remapped[i];
 			else if (fields_mem_unit_transformed[i] != NULL)
@@ -177,15 +151,26 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			else if (fields_mem_datatype_transformed[i] != NULL)
 				fields_mem_transfer[i] = fields_mem_datatype_transformed[i];
 			else fields_mem_transfer[i] = fields_mem_inter_step_averaged[i];
-		}
-		else {
-			Field_mem_info *last_field_instance = fields_mem_transfer[i];
-			if (fields_mem_datatype_transformed[i] != NULL)
-				last_field_instance = fields_mem_datatype_transformed[i];
-			else if (fields_mem_remapped[i] != NULL)
-				last_field_instance = fields_mem_remapped[i];
-			else last_field_instance = fields_mem_transfer[i];
-			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(last_field_instance, fields_mem_registered[i]);
+		}	
+		if (inout_interface->get_import_or_export_or_remap() == 0) {
+			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
+				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
+					             "for field %s, add data type transformation at dst from %s to %s\n", 
+					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
+				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, 
+					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_datatype_transformed[i], fields_mem_registered[i]);
+			}
+			else fields_mem_datatype_transformed[i] = fields_mem_registered[i];
+			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
+				fields_mem_transfer[i] = fields_mem_datatype_transformed[i];
+			else {
+				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), 
+					                                               coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, 
+					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_datatype_transformed[i], coupling_connection->connection_id);
+				memset(fields_mem_transfer[i]->get_data_buf(), 0, fields_mem_transfer[i]->get_size_of_field()*get_data_type_size(fields_mem_transfer[i]->get_data_type()));
+			}
 		}
 	}
 }

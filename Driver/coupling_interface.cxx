@@ -39,6 +39,9 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 
 extern "C" void finalize_ccpl_(int *to_finalize_MPI)
 {
+	int global_proc_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
+
+	
 	inout_interface_mgr->free_all_MPI_wins();
 
 	delete annotation_mgr;
@@ -67,6 +70,9 @@ extern "C" void finalize_ccpl_(int *to_finalize_MPI)
 	MPI_Finalized(&flag);
 	if (!flag)
 		MPI_Finalize();
+
+	if (global_proc_id == 0)
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Finish finalizing C-Coupler");
 }
 
 

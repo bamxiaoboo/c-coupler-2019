@@ -10,6 +10,9 @@
 #ifndef EXECUTION_REPORT_H
 #define EXECUTION_REPORT_H
 
+#define EXECUTION_REPORT               execution_report
+#define EXECUTION_REPORT_LOG           if (report_log_enabled) execution_report
+
 
 #include <stdarg.h>
 
@@ -22,6 +25,7 @@
 
 #define CCPL_NULL_INT                                   ((int)(0x7FFFFFFF))
 
+extern bool report_all_enabled;
 extern bool report_error_enabled;
 extern bool report_progress_enabled;
 extern bool report_log_enabled;
@@ -31,8 +35,8 @@ extern void import_report_setting();
 extern void wtime(double *t);
 
 
-extern void EXECUTION_REPORT(int, int, bool);
-extern void EXECUTION_REPORT(int, int, bool, const char *, ...);
+extern void execution_report(int, int, bool);
+extern void execution_report(int, int, bool, const char *, ...);
 
 
 #endif
