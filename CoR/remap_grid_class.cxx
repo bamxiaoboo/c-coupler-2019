@@ -661,7 +661,7 @@ void Remap_grid_class::compute_ocn_mask(const char *topo_field_name, double unit
     if (execution_phase_number == 0)
         return;
 
-    EXECUTION_REPORT(REPORT_LOG, -1, true, "generate ocn mask of grid %s from terrain data", this->grid_name);
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "generate ocn mask of grid %s from terrain data", this->grid_name);
 
     /* Prepare remap operator grid and lon/lat values of topo grid, etc */
     remap_grids[0] = lonlat_sub_grid_this;
@@ -913,7 +913,7 @@ bool Remap_grid_class::is_sigma_grid_surface_value_field_updated()
 	sigma_grid_surface_value_field_specified = true;
 
 	if (result)
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "surface field for sigma grid %s has been updated", grid_name);
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "surface field for sigma grid %s has been updated", grid_name);
 	
 	return result;
 }
@@ -981,7 +981,7 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
 		return;
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Allocate sigma grid specific fields for grid %s", grid_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Allocate sigma grid specific fields for grid %s", grid_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_sigma_grid(), "C-Coupler error0 in allocate_sigma_grid_specific_fields");
 		
 	get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
@@ -1045,7 +1045,7 @@ void Remap_grid_class::calculate_lev_sigma_values()
 	if (lev_leaf_grid_of_sigma_or_hybrid->hybrid_grid_coefficient_field != NULL) {
 		hybrid_grid_coefficient_values = (double*) lev_leaf_grid_of_sigma_or_hybrid->hybrid_grid_coefficient_field->get_grid_data_field()->data_buf;
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(lev_leaf_grid_of_sigma_or_hybrid->hybrid_grid_coefficient_field->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),  "C-Coupler error in Remap_grid_class::calculate_lev_sigma_values: wrong data type of hybrid coefficient");
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "Sigma grid \"%s\" is a hybrid grid", grid_name);
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Sigma grid \"%s\" is a hybrid grid", grid_name);
 	}
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),	"C-Coupler error in Remap_grid_class::calculate_lev_sigma_values: wrong data type of sigma field");
@@ -1929,7 +1929,7 @@ void Remap_grid_class::generate_voronoi_grid()
   
     EXECUTION_REPORT(REPORT_ERROR, -1, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
     EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Default boundary area (global area) will be used to generate the voronoi grid\n", grid_name);
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Generate voronoi grid for \"%s\"", grid_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Generate voronoi grid for \"%s\"", grid_name);
 
 	if (boundary_min_lon == NULL_COORD_VALUE) {
 		boundary_min_lat = -90;
@@ -3113,7 +3113,7 @@ void Remap_grid_class::generate_3D_grid_decomp_sigma_values(Remap_grid_class *or
 
 	sigma_grid_surface_value_field_specified = original_3D_grid->sigma_grid_surface_value_field_specified;
 	
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_size(),
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "generate decomp sigma values for 3D grid %s: %ld %ld %ld\n", grid_name, get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_size(),
 	                 sigma_grid_surface_value_field->get_coord_value_grid()->get_grid_size(), this->get_grid_size());
 
 	this->get_leaf_grids(&num_leaf_grids, leaf_grids, this);

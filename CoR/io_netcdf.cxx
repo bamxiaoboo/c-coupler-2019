@@ -286,7 +286,7 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
                 sprintf(tmp_string, "%s", sized_sub_grids[i]->get_coord_label()); 
             else sprintf(tmp_string, "grid_size", sized_sub_grids[i]->get_grid_name()); 
             rcode = nc_def_dim(ncfile_id, tmp_string, sized_sub_grids[i]->get_grid_size(), &dim_ncid);
-			EXECUTION_REPORT(REPORT_LOG, -1, true, "define dim %s in ncfile %s", tmp_string, file_name);
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "define dim %s in ncfile %s", tmp_string, file_name);
             report_nc_error();
             sized_grids_map[sized_sub_grids[i]] = dim_ncid;
         }
@@ -366,7 +366,7 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
 					sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
             }
         }
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "IO field name is %s", tmp_string);
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "IO field name is %s", tmp_string);
     }
 
     rcode = nc_inq_varid(ncfile_id, tmp_string, &var_ncid);
@@ -762,7 +762,7 @@ void IO_netcdf::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
 
 void IO_netcdf::put_global_text(const char *text_title, const char *text_value)
 {
-    EXECUTION_REPORT(REPORT_LOG, -1, true, "put global text (%s) (%s) into netcdf file %s\n", text_title, text_value, file_name);	
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "put global text (%s) (%s) into netcdf file %s\n", text_title, text_value, file_name);	
 	if (!is_external_file) {
     	rcode = nc_open(file_name, NC_WRITE, &ncfile_id);
     	report_nc_error();

@@ -221,7 +221,7 @@ void Field_mem_info::check_field_sum(const char *hint)
 
 		if (decomp_id != -1) {
 		    MPI_Allreduce(&partial_sum, &total_sum, 1, MPI_INT, MPI_SUM, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
-		    EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
+		    EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "check sum of field \"%s\" %s is %x vs %x", get_field_name(), hint, total_sum, partial_sum);
 		}
 		else {
 			total_sum = partial_sum;

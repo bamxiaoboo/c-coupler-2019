@@ -107,9 +107,10 @@ void H2D_remapping_wgt_file_info::read_remapping_weights(int comp_id)
 	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
 	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
 
-	if (num_procs_in_file_read_comm < comp_node->get_num_procs())
-		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Partially load remapping weight file %s", wgt_file_name);
-	else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Load remapping weight file %s", wgt_file_name);
+	if (num_procs_in_file_read_comm < comp_node->get_num_procs()) {
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Partially load remapping weight file %s", wgt_file_name);
+	}
+	else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Load remapping weight file %s", wgt_file_name);
 
 	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
 
@@ -877,7 +878,7 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_exe_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration"), false);
 	if (XML_file == NULL) {
-		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);
 		return;
 	}
 	remapping_configurations.push_back(new Remapping_configuration(comp_id, XML_file_name, XML_file));

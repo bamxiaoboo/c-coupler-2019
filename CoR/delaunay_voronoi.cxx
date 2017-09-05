@@ -533,7 +533,7 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 	
 	delete [] mark;
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
 
 	if (cyclic) {
 		for (i = 0; i < 4; i ++)

@@ -48,7 +48,7 @@ Decomp_info::Decomp_info(const char *decomp_name, int decomp_id, int host_comp_i
     if (num_local_cells == 0)
         local_cell_global_indx = NULL;
     else {
-        EXECUTION_REPORT(REPORT_LOG, host_comp_id, true, 
+        EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, 
 			             "parallel decomposition \"%s\" on the grid \"%s\" has %d local grid cells", 
 			             decomp_name, original_grid_mgr->search_grid_info(grid_id)->get_grid_name());
         local_cell_global_indx = new int [num_local_cells];
@@ -132,9 +132,9 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
 		if (dst_decomp_info->get_local_cell_global_indx()[j] >= 0)
 			if (dst_decomp_info->get_local_cell_global_indx()[j] != CCPL_NULL_INT)
 				decomp_map_dst[dst_decomp_info->get_local_cell_global_indx()[j]] = 1;
-	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "before calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
 	remap_weights->calculate_src_decomp(src_original_grid->get_H2D_sub_CoR_grid(), dst_original_grid->get_H2D_sub_CoR_grid(), decomp_map_src, decomp_map_dst);
-	EXECUTION_REPORT(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, dst_decomp_info->get_comp_id(), true, "after calculate_src_decomp for grid %s", src_original_grid->get_H2D_sub_CoR_grid()->get_grid_name());
 
     for (long i = 0; i < src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(); i ++)
         if (decomp_map_src[i] != 0)

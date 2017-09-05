@@ -197,20 +197,20 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "registering a component model", parent->get_comp_name(), "\"parent_id\" (the corresponding component model)", annotation);
 		parent_comm = parent->get_comm_group();
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
-			EXECUTION_REPORT(REPORT_LOG, parent->comp_id, true, 
+			EXECUTION_REPORT_LOG(REPORT_LOG, parent->comp_id, true, 
 			                 "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 parent->get_comp_name(), comp_name, annotation);
 		else if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_LOG, -1, true, 
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, 
 			                 "Before the MPI_barrier for synchronizing all processes of the whole coupled model for registerring root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 comp_name, annotation);	
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(parent_comm) == MPI_SUCCESS);
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
-			EXECUTION_REPORT(REPORT_LOG, parent->comp_id, true, 
+			EXECUTION_REPORT_LOG(REPORT_LOG, parent->comp_id, true, 
 			                 "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 parent->get_comp_name(), comp_name, annotation);
 		else if (parent->get_current_proc_local_id() == 0) 
-			EXECUTION_REPORT(REPORT_LOG, -1, true, 
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, 
 			                 "After the MPI_barrier for synchronizing all processes of the whole coupled model for registerring root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
 			                 comp_name, annotation);	
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
@@ -315,7 +315,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		delete XML_file;
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish registering the component model \%s\"", full_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering the component model \%s\"", full_name);
 }
 
 
@@ -528,7 +528,7 @@ void Comp_comm_group_mgt_node::update_child(const Comp_comm_group_mgt_node *chil
 		EXECUTION_REPORT(REPORT_ERROR, -1, children[i]->parent == this, "software error in Comp_comm_group_mgt_node::update_child: wrong parent1");
 		EXECUTION_REPORT(REPORT_ERROR, -1, children[i]->parent != children[i], "software error in Comp_comm_group_mgt_node::update_child: wrong parent2");
 		if (children[i] == child_old) {
-			EXECUTION_REPORT(REPORT_LOG, child_old->comp_id, true, "Link the parent of component \"%s\" to \"%s\"", child_old->full_name, child_old->parent->get_full_name());
+			EXECUTION_REPORT_LOG(REPORT_LOG, child_old->comp_id, true, "Link the parent of component \"%s\" to \"%s\"", child_old->full_name, child_old->parent->get_full_name());
 			child_new->parent = this;
 			children[i] = child_new;
 			break;
@@ -687,7 +687,7 @@ void Comp_comm_group_mgt_node::set_current_proc_current_time(int days, int secon
 {
 	allocate_proc_latest_model_time();
 	proc_latest_model_time[current_proc_local_id] = ((long)days)*((long)100000) + (long)second;
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "set_proc_latest_model_time %ld: %d %d", proc_latest_model_time[current_proc_local_id], days, second);
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "set_proc_latest_model_time %ld: %d %d", proc_latest_model_time[current_proc_local_id], days, second);
 }
 
 

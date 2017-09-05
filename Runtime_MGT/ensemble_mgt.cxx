@@ -24,7 +24,7 @@ Ensemble_mgt::Ensemble_mgt()
 void Ensemble_mgt::Initialize(int ensemble_member_id, int have_random_seed_for_perturbation, int root_random_seed_for_perturbation, const char *perturbation_type)
 {
 	EXECUTION_REPORT(REPORT_ERROR,-1, ensemble_member_id > 0, "The number of an ensemble member must be a positive integer\n");
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "Ensemble is enabled. The ensemble member id is %d", ensemble_member_id);
+	EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "Ensemble is enabled. The ensemble member id is %d", ensemble_member_id);
 
 	this->ensemble_member_id = ensemble_member_id;
 	this->have_random_seed_for_perturbation = (have_random_seed_for_perturbation == 1);
@@ -43,7 +43,7 @@ void Ensemble_mgt::Initialize(int ensemble_member_id, int have_random_seed_for_p
 		for (int i = 0; i < ensemble_member_id; i ++)
 			this->ensemble_random_seed_for_perturbation = rand();
 		srand(this->ensemble_random_seed_for_perturbation);
-		EXECUTION_REPORT(REPORT_LOG,-1, true, "In the ensemble experiment of perturbing roundoff errors, for the ensemble member %d, the seed of random number generation is %d", ensemble_member_id, this->ensemble_random_seed_for_perturbation);
+		EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "In the ensemble experiment of perturbing roundoff errors, for the ensemble member %d, the seed of random number generation is %d", ensemble_member_id, this->ensemble_random_seed_for_perturbation);
 	}
 }
 
@@ -150,7 +150,7 @@ void Ensemble_mgt::perturb_a_model_array(void *field_data_buf, const char *data_
 	if ((current_random_number & (0x000000001)) == 0)
 		return;
 
-	EXECUTION_REPORT(REPORT_LOG,-1, true, "Perturb the values of a model array with random roundoff errors");
+	EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "Perturb the values of a model array with random roundoff errors");
 	perturb_an_array(field_data_buf, data_type, field_size, current_random_number);
 }
 
@@ -168,7 +168,7 @@ void Ensemble_mgt::run()
 		return;
 
 	for (int i = 0; i < registered_fields_for_perturbation.size(); i ++) {
-		EXECUTION_REPORT(REPORT_LOG,-1, true, "Perturb the values of field %s (on grid %s) with random roundoff errors", registered_fields_for_perturbation[i]->get_field_name(), registered_fields_for_perturbation[i]->get_grid_name());
+		EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "Perturb the values of field %s (on grid %s) with random roundoff errors", registered_fields_for_perturbation[i]->get_field_name(), registered_fields_for_perturbation[i]->get_grid_name());
 		perturb_an_array(registered_fields_for_perturbation[i]->get_data_buf(), registered_fields_for_perturbation[i]->get_field_data()->get_grid_data_field()->data_type_in_application,
 						 registered_fields_for_perturbation[i]->get_size_of_field(), current_random_number);
 	}

@@ -135,7 +135,7 @@ Remap_weight_of_operator_class *Remap_weight_of_operator_class::generate_paralle
     long remap_beg_iter, remap_end_iter, global_field_array_offset, local_field_array_offset;
 
 
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "Remap_weight_of_operator has %ld instances", remap_weights_of_operator_instances.size());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Remap_weight_of_operator has %ld instances", remap_weights_of_operator_instances.size());
 
     for (i = 0; i < remap_weights_of_operator_instances.size(); i ++) {
         EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_of_operator_instances[i]->field_data_grid_src == this->field_data_grid_src && remap_weights_of_operator_instances[i]->field_data_grid_dst == this->field_data_grid_dst &&

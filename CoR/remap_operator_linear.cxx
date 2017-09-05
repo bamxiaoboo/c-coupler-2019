@@ -84,7 +84,7 @@ void Remap_operator_linear::calculate_remap_weights()
     }
 	
 	if (remap_weights_groups[1]->get_num_weights() == 0) {
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "Encounter an empty linear remapping operator instance"); 
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Encounter an empty linear remapping operator instance"); 
 		return;
 	}
 

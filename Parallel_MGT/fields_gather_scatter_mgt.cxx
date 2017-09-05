@@ -130,14 +130,14 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
         rearrange_indexes = new int [num_total_cells];
     }
     MPI_Gatherv((int*)decomps_info_mgr->get_decomp_info(original_decomp_id)->get_local_cell_global_indx(), num_local_cells, MPI_INT, rearrange_indexes, counts, displs, MPI_INT, 0, local_comm);
-    EXECUTION_REPORT(REPORT_LOG,-1, true, "generate gather scatter info for (%s %s %s)", original_decomp_name, grid_name, data_type);
+    EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "generate gather scatter info for (%s %s %s)", original_decomp_name, grid_name, data_type);
     if (current_proc_local_id == 0) {
         for (i = 0; i < num_local_procs; i ++) {
             displs[i] *= num_points_in_each_cell*num_levels;
             counts[i] *= num_points_in_each_cell*num_levels;
         }
         mpibuf = new char [num_total_cells*num_points_in_each_cell*num_levels*get_data_type_size(data_type)];
-		EXECUTION_REPORT(REPORT_LOG,-1, true, "allocate global field for gather/scatter");
+		EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "allocate global field for gather/scatter");
 		global_field_mem = memory_manager->alloc_mem("IO_gather_field", new_decomp_id, grid_id, BUF_MARK_GATHER, data_type, "no unit", "allocate gather field", false);
     }
 }

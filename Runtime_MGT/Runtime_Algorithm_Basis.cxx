@@ -66,9 +66,9 @@ void Runtime_algorithm_basis::runtime_algorithm_common_initialize(const int num_
 void Runtime_algorithm_basis::cumulate_average_before_run(bool is_algorithm_in_kernel_stage)
 {
 	if (cumulate_average_algorithm_before_run != NULL) {
-		EXECUTION_REPORT(REPORT_LOG,-1, true, "before implicit cumulating and averaging");
+		EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "before implicit cumulating and averaging");
 		cumulate_average_algorithm_before_run->run(is_algorithm_in_kernel_stage);
-		EXECUTION_REPORT(REPORT_LOG,-1, true, "after implicit cumulating and averaging");
+		EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "after implicit cumulating and averaging");
 	}
 }
 

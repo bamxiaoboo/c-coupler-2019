@@ -90,9 +90,9 @@ Routing_info::Routing_info(const int src_comp_id, const int dst_comp_id, const c
     }
 
 	if (current_proc_id_src_comp != 0)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_id, true, "Finish generating router from (%s %s) to (%s %s)", src_comp_full_name, src_decomp_name, index_dst_comp_full_name, dst_decomp_name);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_id, true, "Finish generating router from (%s %s) to (%s %s)", src_comp_full_name, src_decomp_name, index_dst_comp_full_name, dst_decomp_name);
 	if (current_proc_id_dst_comp != 0)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_id, true, "Finish generating router from (%s %s) to (%s %s)", src_comp_full_name, src_decomp_name, index_dst_comp_full_name, dst_decomp_name);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_id, true, "Finish generating router from (%s %s) to (%s %s)", src_comp_full_name, src_decomp_name, index_dst_comp_full_name, dst_decomp_name);
 }
 
 

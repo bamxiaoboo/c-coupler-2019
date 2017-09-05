@@ -13,6 +13,7 @@
 #include "runtime_trans_algorithm.h"
 #include "global_data.h"
 #include <string.h>
+#include <unistd.h>
 
 
 template <class T> void Runtime_trans_algorithm::pack_segment_data(T *mpi_buf, T *field_data_buf, int segment_start, int segment_size, int field_2D_size, int num_lev, bool is_V1D_sub_grid_after_H2D_sub_grid)
@@ -67,6 +68,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     last_history_receive_buffer_index = -1;
     last_field_remote_recv_count = -1;
     current_field_local_recv_count = 1;
+	last_receive_sender_time = -1;
 
     for (int i = 0; i < num_transfered_fields; i ++) {
         this->fields_mem[i] = fields_mem[i];
@@ -234,9 +236,10 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
 }
 
 
-void Runtime_trans_algorithm::pass_transfer_parameters(long current_remote_fields_time)
+void Runtime_trans_algorithm::pass_transfer_parameters(long current_remote_fields_time, int bypass_counter)
 {
 	this->current_remote_fields_time = current_remote_fields_time;
+	this->bypass_counter = bypass_counter;
 }
 
 
@@ -270,7 +273,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
  			if (remote_comp_node_updated && last_receive_sender_time < remote_comp_node->get_proc_latest_model_time(remote_proc_index)) {
-				EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Can bypass MPI_Get for proc %d", remote_proc_index);
+				EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Can bypass MPI_Get for proc %d", remote_proc_index);
 				continue;
 			}
             int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
@@ -281,7 +284,10 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 				remote_comp_node->set_proc_latest_model_time(remote_proc_index, send_tag_buf[1]);
 			if (send_tag_buf[0] != -1 && send_tag_buf[0] != last_field_remote_recv_count + 1)
 				return false;
-			temp_field_remote_recv_count = send_tag_buf[0];
+			if (temp_field_remote_recv_count == -100)
+				temp_field_remote_recv_count = send_tag_buf[0];
+			if (temp_field_remote_recv_count != send_tag_buf[0])
+				return false;
         }
     }
 
@@ -290,6 +296,8 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
         if (last_field_remote_recv_count != -1) 
 	        return false;
     }
+
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Remote buffer component \"%s\" is ready for receiving data: %ld vs %ld vs %ld : %d", remote_comp_full_name, temp_field_remote_recv_count, last_field_remote_recv_count, last_receive_sender_time, bypass_counter);	
 
 	last_field_remote_recv_count ++;
     return true;
@@ -380,21 +388,21 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
     }    
     MPI_Win_unlock(current_proc_id_union_comm, data_win);    
 
-    EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time);
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time);
 
     set_local_tags();
 }
 
 
-bool Runtime_trans_algorithm::run(bool bypass_timer, long bypass_counter)
+bool Runtime_trans_algorithm::run(bool bypass_timer)
 {
     if (send_or_receive)
-        return send(bypass_timer, bypass_counter);
-    else return recv(bypass_timer, bypass_counter);
+        return send(bypass_timer);
+    else return recv(bypass_timer);
 }
 
 
-bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
+bool Runtime_trans_algorithm::send(bool bypass_timer)
 {
     if (index_remote_procs_with_common_data.size() > 0) {
         preprocess();
@@ -445,7 +453,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
         MPI_Put(tag_buf, 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
         MPI_Win_unlock(remote_proc_id, data_win);
 
-        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[0], tag_buf[1]);
+        EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[0], tag_buf[1]);
     }
     EXECUTION_REPORT(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
 
@@ -453,19 +461,21 @@ bool Runtime_trans_algorithm::send(bool bypass_timer, long bypass_counter)
         last_receive_sender_time = bypass_counter*((long)100000000000000);
     else last_receive_sender_time = current_remote_fields_time;
 
-    EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", remote_comp_full_name);
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", remote_comp_full_name);
 
     return true;
 }
 
 
-bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
+bool Runtime_trans_algorithm::recv(bool bypass_timer)
 {
     bool received_data_ready = false;
+	
 
-    if (bypass_timer)
-        EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time, bypass_counter);
-    else EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld", remote_comp_full_name, current_remote_fields_time);
+    if (bypass_timer) {
+        EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time, bypass_counter);
+    }	
+    else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld", remote_comp_full_name, current_remote_fields_time);
 
     if (index_remote_procs_with_common_data.size() > 0) {
 
@@ -514,7 +524,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer, long bypass_counter)
         last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
     }
 
-    EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
 
     return true;
 }

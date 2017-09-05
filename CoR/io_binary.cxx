@@ -121,11 +121,11 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 #ifndef ONLY_CoR
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "to be rewritten: IO_binary::read_remap_weights");
 #endif
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "begin reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "begin reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
 		fseek(fp_binary, 0, SEEK_SET);
 		remap_weights->read_remap_weights_from_array(NULL, fp_binary, array_size, true, NULL, read_weight_values);
 		fclose(fp_binary);
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
     }
 }
 

@@ -137,7 +137,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			                             coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (!words_are_the_same(transfer_data_type, coupling_connection->src_fields_info[i]->data_type)) {
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, 
 					             "For field %s, add data type transformation at src from %s to %s\n", 
 					             fields_mem_registered[i]->get_field_name(), coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, 
@@ -154,7 +154,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		}	
 		if (inout_interface->get_import_or_export_or_remap() == 0) {
 			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, 
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, 
 					             "for field %s, add data type transformation at dst from %s to %s\n", 
 					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, 
@@ -219,10 +219,9 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		lag_seconds = -remote_fields_time_info->lag_seconds;
 	}
 	time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0, "CCPL internal");
-	local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();
-	if (local_fields_time_info->last_timer_num_elapsed_days != -1) 
-		EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
-		                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
+	local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();  
+	EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), !((local_fields_time_info->last_timer_num_elapsed_days != -1)) || ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
+	                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
 	EXECUTION_REPORT(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
 	                 "Please make sure that the import/export interface \"%s\" is called when the timer of any field is on. Please check the model code with the annotation \"%s\"", 
 	                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
@@ -248,8 +247,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		if (bypass_timer) {
 			current_remote_fields_time = -1;
 			if (inout_interface->get_bypass_counter() == 1) {
-				if (!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
-					EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
+				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), !(!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) || last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
 			}
 			else EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == last_remote_fields_time / ((long)100000000000000), "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
 			transfer_data = true;
@@ -257,17 +255,17 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		else if (!(fields_time_info_dst->current_num_elapsed_days != fields_time_info_dst->last_timer_num_elapsed_days || fields_time_info_dst->current_second != fields_time_info_dst->last_timer_second)) {
 			current_remote_fields_time = ((long)fields_time_info_src->last_timer_num_elapsed_days) * 100000 + fields_time_info_src->last_timer_second; 
 			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time) && current_remote_fields_time != last_remote_fields_time) {  // restart related
-				EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Will receive remote data at %ld", current_remote_fields_time);
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Will receive remote data at %ld", current_remote_fields_time);
 				last_remote_fields_time = current_remote_fields_time;
 				transfer_data = true;
 			}
- 			else EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld", last_remote_fields_time);
+ 			else EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld", last_remote_fields_time);
 		}
 		if (transfer_data) {
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --)
 				field_update_status[i] = transfer_data? 1 : 0;
-			runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time);
-			runtime_data_transfer_algorithm->run(bypass_timer, inout_interface->get_bypass_counter());
+			runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
+			runtime_data_transfer_algorithm->run(bypass_timer);
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 					if (runtime_remap_algorithms[i] != NULL)
 						runtime_remap_algorithms[i]->run(true);
@@ -283,9 +281,10 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				continue;
 			last_remote_fields_time = runtime_data_transfer_algorithm->get_history_receive_sender_time(i);
 			long remote_bypass_counter = last_remote_fields_time / ((long)100000000000000);
-			EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
-			if (bypass_timer) 
-				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
+			EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
+			if (bypass_timer) {
+				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. %d %d", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, remote_bypass_counter, inout_interface->get_bypass_counter());
+			}
 			else {
 				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer non-bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
 				EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time, 
@@ -299,8 +298,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 			if (bypass_timer) {
 				current_remote_fields_time = -1;
-				if (i == fields_mem_registered.size() - 1 && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
-					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+				EXECUTION_REPORT(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1 && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) || last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 				transfer_data = true;
 				if (runtime_inner_averaging_algorithm[i] != NULL)
 					runtime_inner_averaging_algorithm[i]->run(true);
@@ -322,8 +320,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					runtime_inner_averaging_algorithm[i]->run(true);
 				if (((long)fields_time_info_src->current_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_src->current_second == ((long)fields_time_info_dst->last_timer_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_dst->last_timer_second+lag_seconds) {
 					current_remote_fields_time = ((long)fields_time_info_dst->last_timer_num_elapsed_days)*100000 + fields_time_info_dst->last_timer_second;
-					if (i == fields_mem_registered.size() - 1)
-					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+					EXECUTION_REPORT(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1) || last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time = current_remote_fields_time;
 					if (runtime_inter_averaging_algorithm[i] != NULL)
 						runtime_inter_averaging_algorithm[i]->run(true);
@@ -336,8 +333,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				}
 				if ((((long)fields_time_info_dst->next_timer_num_elapsed_days)*((long)SECONDS_PER_DAY))+fields_time_info_dst->next_timer_second+lag_seconds < (((long)fields_time_info_src->next_timer_num_elapsed_days)*((long)SECONDS_PER_DAY)) + fields_time_info_src->next_timer_second) {
 					current_remote_fields_time = ((long)fields_time_info_dst->next_timer_num_elapsed_days)*100000 + fields_time_info_dst->next_timer_second;
-					if (i == fields_mem_registered.size() - 1)
-					EXECUTION_REPORT(REPORT_ERROR, -1, last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+					EXECUTION_REPORT(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1) || last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
 					last_remote_fields_time = current_remote_fields_time;
 					if (runtime_inter_averaging_algorithm[i] != NULL)
 						runtime_inter_averaging_algorithm[i]->run(true);
@@ -356,7 +352,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		if (!transfer_data)
 			finish_status = true;
 		if (transfer_data)
-			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(current_remote_fields_time);
+			((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 	}
 }
 
@@ -364,7 +360,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 void Connection_coupling_procedure::send_fields(bool bypass_timer)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface->get_import_or_export_or_remap() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
-	finish_status = runtime_data_transfer_algorithm->run(bypass_timer, inout_interface->get_bypass_counter());
+	finish_status = runtime_data_transfer_algorithm->run(bypass_timer);
 }
 
 
@@ -507,7 +503,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 Inout_interface::~Inout_interface()
 {
 	if (inversed_dst_fraction != NULL) {
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "inout interface %s %x release %x", interface_name, (int)this, (int)inversed_dst_fraction);
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "inout interface %s %x release %x", interface_name, (int)this, (int)inversed_dst_fraction);
 		delete [] inversed_dst_fraction;
 	}
 
@@ -698,11 +694,11 @@ void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coup
 void Inout_interface::preprocessing_for_frac_based_remapping()
 {
 	if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remapping_weights(0) == NULL) {
-		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Does not pre-process the fraction becase the runtime alogrithm is NULL");		
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Does not pre-process the fraction becase the runtime alogrithm is NULL");		
 		return;
 	}
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Pre-process the fraction");
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Pre-process the fraction");
 	
 	for (int i = 0; i < fields_mem_registered.size()-1; i ++) {
 		if (words_are_the_same(fields_mem_registered[i]->get_data_type(), DATA_TYPE_FLOAT))
@@ -723,14 +719,14 @@ void Inout_interface::postprocessing_for_frac_based_remapping(bool bypass_timer)
 
 
 	if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remap_algorithm(0) == NULL) {
-		EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Does not post-process the fraction becase the runtime alogrithm is NULL");		
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Does not post-process the fraction becase the runtime alogrithm is NULL");		
 		return;
 	}
 	
 	if (!timer->is_timer_on() && !bypass_timer)
 		return;
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Post-process the fraction"); 	
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Post-process the fraction"); 	
 
 	dst_frac_field = children_interfaces[1]->fields_mem_registered[fields_mem_registered.size()-1];
 
@@ -767,12 +763,15 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 	bool at_first_normal_step = false;
 
 
-	if (import_or_export_or_remap == 0)
+	if (import_or_export_or_remap == 0) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_mem_registered.size() <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
-	else if (import_or_export_or_remap == 2)
+	}	
+	else if (import_or_export_or_remap == 2) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size()) <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
-	else if (import_or_export_or_remap == 3)
+	}	
+	else if (import_or_export_or_remap == 3) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, ((int)children_interfaces[0]->fields_mem_registered.size())-1 <= size_field_update_status, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
+	}	
 	
 	if (bypass_timer)
 		bypass_counter ++;
@@ -882,7 +881,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	if (size_frac_dst != -1)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, template_field_dst->get_size_of_field() == size_frac_dst, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of the parameter \"frac_dst\" is different from the size of each target field instance. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish checking for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish checking for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
 
 	Field_mem_info *frac_field_src = memory_manager->alloc_mem("remap_frac", template_field_src->get_decomp_id(), template_field_src->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "source fraction for remapping", false);
 	frac_field_src->reset_mem_buf(frac_src, true);
@@ -899,7 +898,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	}
 	fields_mem_registered.push_back(frac_field_src);
 
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "After field instance allocation for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "After field instance allocation for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
 	
 	children_interfaces[0]->fields_mem_registered.push_back(frac_field_src);
 	children_interfaces[1]->fields_mem_registered.push_back(frac_field_dst);
@@ -949,7 +948,7 @@ Inout_interface_mgt::~Inout_interface_mgt()
 
 void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interface *new_interface, int num_fields, int *field_ids_src, bool has_frac_remapping) 
 {
-	EXECUTION_REPORT(REPORT_LOG, new_interface->get_comp_id(), true, "start to generate the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, new_interface->get_comp_id(), true, "start to generate the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
 	
 	Coupling_connection *coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 	Inout_interface *child_interface_export = new_interface->get_child_interface(0);
@@ -975,7 +974,7 @@ void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interfac
 	interfaces.erase(interfaces.begin()+interfaces.size()-1);
 	interfaces.erase(interfaces.begin()+interfaces.size()-1);
 
-	EXECUTION_REPORT(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
 }
 
 
@@ -987,7 +986,7 @@ int Inout_interface_mgt::register_normal_remap_interface(const char *interface_n
 		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), existing_interface == NULL, "Error happens when calling API \"%s\" to register an interface named \"%s\" at the model code model with the annotation \"%s\": an interface with the same name has already been registered at the model code with the annotation \"%s\". Please verify.", API_label, interface_name, annotation, annotation_mgr->get_annotation(existing_interface->get_interface_id(), "registering interface"));
 	generate_remapping_interface_connection(new_interface, num_fields, field_ids_src, false);
 
-	EXECUTION_REPORT(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating a normal remapping interface \"%s\"", new_interface->get_interface_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating a normal remapping interface \"%s\"", new_interface->get_interface_name());
 	
 	return new_interface->get_interface_id();
 }
@@ -997,9 +996,9 @@ int Inout_interface_mgt::register_frac_based_remap_interface(const char *interfa
 {
 	int new_remap_interface_id = register_normal_remap_interface(interface_name, num_fields, field_ids_src, field_ids_dst, timer_id, inst_or_aver, array_size_src, array_size_dst, API_label, annotation);
 	Inout_interface *new_remap_interface = get_interface(new_remap_interface_id);
-	EXECUTION_REPORT(REPORT_LOG, new_remap_interface->get_comp_id(), true, "Finish generating the normal part for a fraction based remapping interface \"%s\"", new_remap_interface->get_interface_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, new_remap_interface->get_comp_id(), true, "Finish generating the normal part for a fraction based remapping interface \"%s\"", new_remap_interface->get_interface_name());
 	new_remap_interface->add_remappling_fraction_processing(frac_src, frac_dst, size_frac_src, size_frac_dst, frac_data_type, API_label, annotation);
-	EXECUTION_REPORT(REPORT_LOG, new_remap_interface->get_comp_id(), true, "Adding fraction process for the remapping interface \"%s\"", new_remap_interface->get_interface_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, new_remap_interface->get_comp_id(), true, "Adding fraction process for the remapping interface \"%s\"", new_remap_interface->get_interface_name());
 	return new_remap_interface->get_interface_id();
 }
 
@@ -1137,14 +1136,13 @@ void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer,
 {
 	Inout_interface *inout_interface;
 
-	
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_interface_id_legal(interface_id), "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
+	if (!is_interface_id_legal(interface_id))
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
 	inout_interface = get_interface(interface_id);
-	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface != NULL, "0x%x should be the ID of import/export interface. However, it is wrong as the corresponding interface is not found. Please check the model code with the annotation \"%s\"", interface_id, annotation);
-	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
+	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();
-	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 
 
@@ -1152,14 +1150,14 @@ void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_n
 {
 	Inout_interface *inout_interface;
 
-	
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "0x%x is not an legal ID of a component. Please check the model code with the annotation \"%s\"", comp_id, annotation);
+	if (!comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id))
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "0x%x is not an legal ID of a component. Please check the model code with the annotation \"%s\"", comp_id, annotation);
 	inout_interface = get_interface(comp_id, interface_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, inout_interface != NULL, "Registered interface of this component does not contain an import/export interface named \"%s\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
-	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
+	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();
-	EXECUTION_REPORT(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 
 

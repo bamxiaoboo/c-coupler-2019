@@ -29,7 +29,7 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 	this->decomp_id = decomp_id;
 	strcpy(this->decomp_name, decomp->get_decomp_name());
 	this->original_grid = original_grid;
-    EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, 
+    EXECUTION_REPORT_LOG(REPORT_LOG, decomp->get_host_comp_id(), true, 
 		             "Generate decomposition grid for the grid \"%s\" on the parallel decomposition \"%s\"", 
 		             original_grid->get_grid_name(), decomp_name);
 
@@ -40,7 +40,7 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 
     if (this->original_grid->get_is_sphere_grid()) {
         EXECUTION_REPORT(REPORT_ERROR, -1, decomp_info_grid == original_grid, "Software error in Decomp_grid_info::Decomp_grid_info: inconsistent H2D grid: %s  %s  %s", original_grid->get_grid_name(), decomp->get_grid_name(), decomp_name);
-		EXECUTION_REPORT(REPORT_LOG, decomp->get_host_comp_id(), true, 
+		EXECUTION_REPORT_LOG(REPORT_LOG, decomp->get_host_comp_id(), true, 
 			             "generate decomposition sphere grid (%s %s) with size %d", 
 			             decomp_name, original_grid->get_grid_name(), decomp->get_num_local_cells());
         this->decomp_grid = this->original_grid->generate_decomp_grid(decomp->get_local_cell_global_indx(), decomp->get_num_local_cells(), decomp_name);
@@ -83,7 +83,7 @@ Decomp_grid_info::Decomp_grid_info(int decomp_id, Remap_grid_class *original_gri
 Decomp_grid_info::~Decomp_grid_info()
 {
 	if (decomp_grid != NULL && decomp_grid != original_grid) {
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "remove decomp grid %s\n", decomp_grid->get_grid_name());
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "remove decomp grid %s\n", decomp_grid->get_grid_name());
 	    delete decomp_grid;
 	}
 }

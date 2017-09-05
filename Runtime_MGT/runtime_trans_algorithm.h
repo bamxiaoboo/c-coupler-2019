@@ -74,9 +74,10 @@ class Runtime_trans_algorithm
         std::vector<int> index_recv_procs_with_common_data;
         int num_recv_procs_related;
         int recv_proc_start;
+		int bypass_counter;
 
-        bool send(bool, long);
-        bool recv(bool, long);
+        bool send(bool);
+        bool recv(bool);
         long get_receive_data_time();
         bool is_remote_data_buf_ready(bool);
         bool set_local_tags();
@@ -89,14 +90,14 @@ class Runtime_trans_algorithm
     public:
         Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *);
         ~Runtime_trans_algorithm();
-        bool run(bool, long);
+        bool run(bool);
         char * get_total_buf() {return total_buf;}
         void * get_data_buf() {return data_buf;}
         long * get_tag_buf() {return tag_buf;}
         int get_total_buf_size() {return total_buf_size;}
         int get_data_buf_size() {return data_buf_size;}
         int get_tag_buf_size() {return tag_buf_size;}
-        void pass_transfer_parameters(long);
+        void pass_transfer_parameters(long, int);
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}
         void receve_data_in_temp_buffer();

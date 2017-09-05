@@ -48,12 +48,12 @@ void Coupling_connection::generate_a_coupling_procedure(bool has_frac_remapping)
 	if (current_proc_id_src_comp != -1) {
 		export_interface = inout_interface_mgr->get_interface(src_comp_interfaces[0].first, src_comp_interfaces[0].second);
 		EXECUTION_REPORT(REPORT_ERROR, -1, export_interface != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: NULL export interface");
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate a coupling connection from \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate a coupling connection from \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	}
 	if (current_proc_id_dst_comp != -1) {
 		import_interface = inout_interface_mgr->get_interface(dst_comp_full_name, dst_interface_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface != NULL, "Software error in Coupling_connection::generate_a_coupling_procedure: NULL import interface");
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to generate a coupling connection from \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to generate a coupling connection from \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	}
 
     create_union_comm();
@@ -72,9 +72,9 @@ void Coupling_connection::generate_a_coupling_procedure(bool has_frac_remapping)
 	generate_data_transfer();
 
 	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish generating a coupling connection from \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish generating a coupling connection from \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish generating a coupling connection from \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish generating a coupling connection from \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 void Coupling_connection::create_union_comm()
@@ -103,11 +103,11 @@ void Coupling_connection::create_union_comm()
         dst_ranks[i] = dst_comp_node->get_local_proc_global_id(i);
 
 	if (current_proc_id_src_comp != -1) {
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 		MPI_Barrier(src_comm);
 	}
 	if (current_proc_id_dst_comp != -1) {
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 		MPI_Barrier(dst_comm);
 	}
 
@@ -171,9 +171,9 @@ void Coupling_connection::create_union_comm()
     delete [] dst_ranks;
 
 	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 
@@ -191,9 +191,9 @@ void Coupling_connection::generate_data_transfer()
 
 
 	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Start to generate runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 
 	for (int i = 0; i < src_fields_info.size(); i ++) { 
 		if (dst_fields_info[i]->runtime_remapping_weights != NULL && dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info() != NULL) {
@@ -247,9 +247,9 @@ void Coupling_connection::generate_data_transfer()
 	delete [] temp_dst_decomp_name;
 
 	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish generating runtime data transfer algorithm from component \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish generating runtime data transfer algorithm from component \"%s\" (current component) to \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish generating runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish generating runtime data transfer algorithm from component \"%s\" to \"%s\" (current component). The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 
@@ -275,9 +275,9 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		if (all_original_grid_status[i] == 1) {
 			delete [] all_original_grid_status;
 			if (sender_comp_node->get_current_proc_local_id() != -1)
-				EXECUTION_REPORT(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+				EXECUTION_REPORT_LOG(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
 			if (receiver_comp_node->get_current_proc_local_id() != -1)
-				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+				EXECUTION_REPORT_LOG(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" because the CoR grid is the same", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
 			return false;
 		}
 	
@@ -291,16 +291,16 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	delete [] all_original_grid_status;
 	if (!should_exchange_grid) {
 		if (sender_comp_node->get_current_proc_local_id() != -1)
-			EXECUTION_REPORT(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+			EXECUTION_REPORT_LOG(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
 		if (receiver_comp_node->get_current_proc_local_id() != -1)
-			EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
+			EXECUTION_REPORT_LOG(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Does not exchange grid \"%s\" from \"%s\" to \"%s\" again", grid_name, sender_comp_node->get_comp_full_name(), receiver_comp_node->get_comp_full_name());
 		return true;
 	}
 
 	if (sender_comp_node->get_current_proc_local_id() != -1) 
-		EXECUTION_REPORT(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Send grid %s to component \"%s\"", grid_name, receiver_comp_node->get_full_name());
+		EXECUTION_REPORT_LOG(REPORT_LOG, sender_comp_node->get_comp_id(), true, "Send grid %s to component \"%s\"", grid_name, receiver_comp_node->get_full_name());
 	if (receiver_comp_node->get_current_proc_local_id() != -1) 
-		EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Receive grid %s from component \"%s\"", grid_name, sender_comp_node->get_full_name());
+		EXECUTION_REPORT_LOG(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Receive grid %s from component \"%s\"", grid_name, sender_comp_node->get_full_name());
 
 	if (sender_original_grid != NULL)
 		sender_original_grid->write_grid_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
@@ -318,7 +318,7 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 		}
 		else {
 			if (receiver_comp_node->get_current_proc_local_id() != -1) 
-				EXECUTION_REPORT(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" (\"%s\") again", grid_name, temp_string);
+				EXECUTION_REPORT_LOG(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" (\"%s\") again", grid_name, temp_string);
 		}
 		receiver_original_grid = original_grid_mgr->get_original_grid(original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid));
 		if (receiver_original_grid->get_bottom_field_variation_type() != bottom_field_variation_type)
@@ -419,9 +419,9 @@ void Coupling_connection::generate_src_bottom_field_coupling_info()
 void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 {
 	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 
 	for (int i = 0; i < fields_name.size(); i ++) {
 		src_fields_info[i]->runtime_remapping_weights = NULL;
@@ -442,10 +442,10 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
 			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
 			if (src_original_grid->is_H2D_grid_and_the_same_as_another_grid(dst_original_grid)) {
-				EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "The data interpolation from grid \"%s\" to \"%s\" is bypassed as these too grids are the same", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());
+				EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "The data interpolation from grid \"%s\" to \"%s\" is bypassed as these too grids are the same", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());
 				continue;
 			}
-			else EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "The data interpolation from grid \"%s\" to \"%s\" is necessary", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());
+			else EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "The data interpolation from grid \"%s\" to \"%s\" is necessary", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
 				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
 				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL, "Fail to generate interpolation from component \"%s\" to \"%s\": it is not allowed to set the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate to be an external field. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
@@ -465,9 +465,9 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 	exchange_bottom_fields_info();
 
 	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, src_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT(REPORT_LOG, dst_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
+		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "finish generating interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
 
 
@@ -798,7 +798,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
 	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, false);	
 	if (XML_file == NULL) {
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
 			             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
 		return;
 	}
@@ -837,7 +837,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 
 	delete XML_file;
 	
-	EXECUTION_REPORT(REPORT_LOG, comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s", XML_file_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s", XML_file_name);
 }
 
 
@@ -885,7 +885,7 @@ void Coupling_generator::generate_coupling_procedures()
 	coupling_generator->synchronize_latest_connection_id(MPI_COMM_WORLD);
 	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "Start to generate coupling procedure");
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedure");
 	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
@@ -1038,7 +1038,7 @@ void Coupling_generator::generate_coupling_procedures()
 	}
 	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-		EXECUTION_REPORT(REPORT_LOG, -1, true, "Finish generating coupling procedure");
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedure");
 }
 
 
@@ -1178,9 +1178,9 @@ void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_co
 	
 
 	if (comp_node1->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_LOG, comp_node1->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node1->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
 	if (comp_node2->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_LOG, comp_node2->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node2->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
 	
 	if (comp_node1->get_current_proc_local_id() >= 0) {		
 		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp1, comp_node1->get_comp_id(), 0, comp_node1->get_full_name());
@@ -1227,9 +1227,9 @@ void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_co
 	all_coupling_connections.clear();
 
 	if (comp_node1->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_LOG, comp_node1->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node1->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
 	if (comp_node2->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT(REPORT_LOG, comp_node2->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node2->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
 
 	delete [] connection_id_comp1;
 	delete [] connection_id_comp2;

@@ -113,7 +113,7 @@ Remap_grid_data_class *cpl_duplicate_field_with_double_data_type(Remap_grid_data
     delete [] double_field->get_grid_data_field()->data_buf;
 	EXECUTION_REPORT(REPORT_ERROR, -1, float_field->get_coord_value_grid()->get_grid_size() == double_field->get_grid_data_field()->required_data_size,
 				 "C-Coupler software error in cpl_duplicate_field_with_double_data_type\n");
-	EXECUTION_REPORT(REPORT_LOG, -1, true, "cpl duplicated field size is %ld", double_field->get_grid_data_field()->required_data_size);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "cpl duplicated field size is %ld", double_field->get_grid_data_field()->required_data_size);
     double_field->get_grid_data_field()->data_buf = new double [double_field->get_grid_data_field()->required_data_size];
 
     return double_field;
