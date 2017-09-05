@@ -56,7 +56,6 @@ extern "C" void finalize_ccpl_(int *to_finalize_MPI)
 	delete fields_gather_scatter_mgr;
 	delete remapping_configuration_mgr;
 	delete runtime_remapping_weights_mgr;
-	delete all_H2D_remapping_wgt_files_info;
 	delete fields_info;
 	delete original_grid_mgr;
 	delete comp_comm_group_mgt_mgr;
@@ -389,6 +388,7 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
 		coupling_generator->generate_coupling_procedures();
 		coupling_generator->generate_IO_procedures();
+		delete all_H2D_remapping_wgt_files_info;
 	}
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
 

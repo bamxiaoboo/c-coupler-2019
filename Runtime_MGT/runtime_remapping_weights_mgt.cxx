@@ -105,7 +105,11 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 		EXECUTION_REPORT(REPORT_ERROR, -1, dst_original_grid->get_H2D_sub_CoR_grid() == NULL && dst_decomp_info == NULL, "Software error in Coupling_connection::generate_interpolation: conflict between grid and decomp");
 		parallel_remapping_weights = sequential_remapping_weights;
 	}	
-	else generate_parallel_remapping_weights();
+	else {
+		generate_parallel_remapping_weights();
+		delete sequential_remapping_weights;
+		sequential_remapping_weights = NULL;
+	}
 }
 
 
@@ -113,7 +117,6 @@ Runtime_remapping_weights::~Runtime_remapping_weights()
 {
 	delete remapping_setting;
 	delete remapping_strategy;
-	delete sequential_remapping_weights;
 	if (parallel_remapping_weights != NULL)
 		delete parallel_remapping_weights;
 	if (runtime_V1D_remap_grid_src != NULL)
