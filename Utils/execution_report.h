@@ -10,8 +10,10 @@
 #ifndef EXECUTION_REPORT_H
 #define EXECUTION_REPORT_H
 
-#define EXECUTION_REPORT               execution_report
-#define EXECUTION_REPORT_LOG           if (report_log_enabled) execution_report
+#define EXECUTION_REPORT                        execution_report
+#define EXECUTION_REPORT_LOG                    if (report_log_enabled) execution_report
+#define EXECUTION_REPORT_ERROR_OPTIONALLY       if (report_error_enabled) execution_report
+
 
 
 #include <stdarg.h>

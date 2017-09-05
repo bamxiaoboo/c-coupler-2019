@@ -61,6 +61,8 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 		mem_size = decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells() * get_data_type_size(data_type) * remap_grid_grid->get_grid_size()/remap_grid_decomp->get_grid_size();
 	}
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"", field_name, annotation);
+	
+	host_comp_time_mgr = components_time_mgrs->get_time_mgr(host_comp_id);
 
 	const field_attr *field_attributes = fields_info->search_field_info(field_name);
 
@@ -151,7 +153,7 @@ void Field_mem_info::define_field_values(bool is_restarting)
 {
 	if (!is_restarting)
 		is_field_active = true;
-    last_define_time = components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time();
+    last_define_time = host_comp_time_mgr->get_current_full_time();
 }
 
 
@@ -160,7 +162,7 @@ void Field_mem_info::use_field_values(const char *annotation)
     if (is_registered_model_buf) 
         return;
     
-    if (last_define_time == components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time())
+    if (last_define_time == host_comp_time_mgr->get_current_full_time())
         return;
 
 	if (last_define_time == 0x7fffffffffffffff) {
@@ -168,7 +170,7 @@ void Field_mem_info::use_field_values(const char *annotation)
 			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before defining it. Please modify the model code with the annotation \"%s\"", field_name, get_decomp_name(), get_grid_name(), buf_mark, annotation);
 		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Field_mem_info::use_field_values: field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before defining it. Please modify the model code with the annotation \"%s\"", field_name, get_decomp_name(), get_grid_name(), buf_mark, annotation);		
 	}
-    EXECUTION_REPORT(REPORT_ERROR, host_comp_id, last_define_time <= components_time_mgrs->get_time_mgr(host_comp_id)->get_current_full_time(), "C-Coupler error in Field_mem_info::use_field_values: wrong time order");
+    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, host_comp_id, last_define_time <= host_comp_time_mgr->get_current_full_time(), "C-Coupler error in Field_mem_info::use_field_values: wrong time order");
     is_restart_field = true;
 }
 

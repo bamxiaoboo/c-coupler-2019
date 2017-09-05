@@ -13,6 +13,7 @@
 #include <vector>
 #include "common_utils.h"
 #include "remap_grid_data_class.h"
+#include "timer_mgt.h"
 
 
 #define BUF_MARK_GRID_FIELD                      (-100)
@@ -48,6 +49,7 @@ class Field_mem_info
 		long define_order_count;
 		bool is_field_active;
         Remap_grid_data_class *grided_field_data;
+		Time_mgt *host_comp_time_mgr;
 
     public:
 		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *, bool);

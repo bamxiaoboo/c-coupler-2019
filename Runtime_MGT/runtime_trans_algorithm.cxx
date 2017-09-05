@@ -292,7 +292,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
     }
 
     if (temp_field_remote_recv_count == -1) {
-        EXECUTION_REPORT(REPORT_ERROR, -1, last_field_remote_recv_count == -1 || last_field_remote_recv_count == 0, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready");
+        EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, last_field_remote_recv_count == -1 || last_field_remote_recv_count == 0, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready");
         if (last_field_remote_recv_count != -1) 
 	        return false;
     }
@@ -455,7 +455,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
         EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Set remote tag to component \"%s\": %ld %ld", remote_comp_full_name, tag_buf[0], tag_buf[1]);
     }
-    EXECUTION_REPORT(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
+    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset <= data_buf_size, "Software error in Runtime_trans_algorithm::send: wrong data_buf_size: %d vs %d", offset, data_buf_size);
 
     if (bypass_timer)
         last_receive_sender_time = bypass_counter*((long)100000000000000);
@@ -503,8 +503,8 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
                 fields_mem[j]->define_field_values(false);
             }
 
-            EXECUTION_REPORT(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
-            //EXECUTION_REPORT(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
+            EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
+            //EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
         }
     }
 
@@ -582,7 +582,7 @@ void Runtime_trans_algorithm::pack_MD_data(int remote_proc_index, int field_inde
                 pack_segment_data((double*)((char*)data_buf+(*offset)), (double*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             default:
-                EXECUTION_REPORT(REPORT_ERROR,-1, false, "Software error in Runtime_trans_algorithm::pack_MD_data: unsupported data type in runtime transfer algorithm. Please verify.");
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR,-1, false, "Software error in Runtime_trans_algorithm::pack_MD_data: unsupported data type in runtime transfer algorithm. Please verify.");
                 break;
         }
         (*offset) += num_elements_in_segments[i]*field_grids_num_lev[field_index]*fields_data_type_sizes[field_index];
@@ -620,7 +620,7 @@ void Runtime_trans_algorithm::unpack_MD_data(void *data_buf, int remote_proc_ind
                 unpack_segment_data((double*)((char*)data_buf+(*offset)), (double*)fields_data_buffers[field_index], segment_starts[i], num_elements_in_segments[i], field_2D_size, field_grids_num_lev[field_index], is_V1D_sub_grid_after_H2D_sub_grid[field_index]);
                 break;
             default:
-                EXECUTION_REPORT(REPORT_ERROR,-1, false, "Software error in Runtime_trans_algorithm::unpack_MD_data: unsupported data type in runtime transfer algorithm. Please verify.");
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR,-1, false, "Software error in Runtime_trans_algorithm::unpack_MD_data: unsupported data type in runtime transfer algorithm. Please verify.");
                 break;
         }
         (*offset) += num_elements_in_segments[i]*field_grids_num_lev[field_index]*fields_data_type_sizes[field_index];
