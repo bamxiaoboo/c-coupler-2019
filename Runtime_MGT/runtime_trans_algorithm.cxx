@@ -176,7 +176,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         data_buf_size += transfer_size_with_remote_procs[j];
 
     total_buf_size = data_buf_size + (2*num_remote_procs + 2) * sizeof(long);
-    total_buf = new char[total_buf_size];
+    total_buf = (char*) (new long[(total_buf_size+sizeof(long)-1)/sizeof(long)]);
     send_tag_buf = (long *) total_buf;
     
     send_tag_buf[0] = -1;
@@ -367,7 +367,7 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
         history_receive_buffer_status.push_back(false);
         history_receive_sender_time.push_back(-1);
         history_receive_usage_time.push_back(-1);
-        history_receive_data_buffer.push_back(new char [data_buf_size]);
+        history_receive_data_buffer.push_back(new long [(data_buf_size+sizeof(long)-1)/sizeof(long)]);
     }
 
     history_receive_buffer_status[empty_history_receive_buffer_index] = true;
