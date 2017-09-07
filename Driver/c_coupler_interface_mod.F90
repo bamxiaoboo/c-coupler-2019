@@ -1380,7 +1380,6 @@
 
 
    integer FUNCTION CCPL_register_component(parent_id, comp_name, comp_type, comp_comm, annotation)
-   use parse_compset_nml_mod
    implicit none
    integer                                 :: rcode
    integer, external                       :: chdir, getcwd   ! LINUX system call
