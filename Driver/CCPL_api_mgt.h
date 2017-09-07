@@ -107,6 +107,7 @@ extern long calculate_checksum_of_array(const char *, int, int, const char *, co
 extern char *check_and_aggregate_local_grid_data(int, int, MPI_Comm, const char *, int, int, int, char *, const char *, int, int *, int &, const char *);
 extern bool does_file_exist(const char *);
 extern TiXmlDocument *open_XML_file_to_read(int, const char *, MPI_Comm, bool);
+extern TiXmlNode *get_XML_first_child_of_unique_root(int, const char *, TiXmlDocument *);
 
 
 #endif

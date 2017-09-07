@@ -606,8 +606,8 @@ void Comp_comm_group_mgt_node::load_coupling_interface_tags()
 	if (XML_file == NULL)
 		return;
 	
-	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
-	TiXmlNode *root_XML_element_node = (TiXmlNode*) root_XML_element;
+	TiXmlElement *root_XML_element;
+	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file);
 	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
 		root_XML_element = root_XML_element_node->ToElement();
 		if (words_are_the_same(root_XML_element->Value(),"component_interface_tags"))

@@ -68,7 +68,6 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 		}
 		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "Original_grid_info::Original_grid_info"));
 	}
-
 }
 
 
@@ -304,8 +303,8 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp"), false);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 
-	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
-	TiXmlNode *root_XML_element_node = (TiXmlNode*) root_XML_element;
+	TiXmlElement *root_XML_element;
+	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file);
 	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
 		root_XML_element = root_XML_element_node->ToElement();
 		if (words_are_the_same(root_XML_element->Value(),"component_grid_redirection_configuration"))

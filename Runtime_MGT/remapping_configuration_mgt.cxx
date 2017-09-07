@@ -810,7 +810,7 @@ Remapping_configuration::Remapping_configuration()
 Remapping_configuration::Remapping_configuration(int comp_id, const char *XML_file_name, TiXmlDocument *XML_file)
 {
 	this->comp_id = comp_id;
-	for (TiXmlNode *XML_element_node = XML_file->FirstChildElement(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
+	for (TiXmlNode *XML_element_node = get_XML_first_child_of_unique_root(comp_id,XML_file_name,XML_file); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
 		TiXmlElement *XML_element = XML_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(XML_element->Value(), "remapping_setting"), "\"%s\" is not a legal attribute (the legal is \"remapping_setting\") for defining a remapping setting. Please verify the XML file arround the line number %d.", XML_element->Value(), XML_element->Row());
 		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status of a remapping setting", "remapping configuration"))

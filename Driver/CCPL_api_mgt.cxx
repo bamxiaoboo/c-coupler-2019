@@ -634,6 +634,18 @@ void check_and_verify_name_format_of_string_for_XML(int comp_id, const char *str
 }
 
 
+TiXmlNode *get_XML_first_child_of_unique_root(int comp_id, const char *XML_file_name, TiXmlDocument *XML_file)
+{
+	TiXmlNode *root_node = XML_file->FirstChildElement();
+	if (root_node == NULL)
+		return NULL;
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, root_node->NextSibling() == NULL && words_are_the_same(root_node->Value(), "root"), "ERROR happens when reading the XML configuration file \"%s\": it now has multiple root nodes while it is allowed to have at most one root node that is named \"root\". Please verify.", XML_file_name);
+	
+	return root_node->FirstChild();
+}
+
+
 bool is_XML_setting_on(int comp_id, TiXmlElement *XML_element, const char *XML_file_name, const char *attribute_annotation, const char *XML_file_annotation)
 {
 	int line_number;
