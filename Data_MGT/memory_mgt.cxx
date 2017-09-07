@@ -198,7 +198,7 @@ void Field_mem_info::calculate_field_conservative_sum(Field_mem_info *area_field
 	double partial_sum, total_sum;
     long size;
 
-	if (report_log_enabled) {
+	if (report_internal_log_enabled) {
 		EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "C-Coupler error in calculate_field_sum");
     	size = get_field_data()->get_grid_data_field()->required_data_size;
 	    partial_sum = 0;
@@ -215,7 +215,7 @@ void Field_mem_info::check_field_sum(const char *hint)
     long size;
 
 
-	if (report_log_enabled) {
+	if (report_internal_log_enabled) {
 		size = get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)*get_field_data()->get_grid_data_field()->required_data_size/4;
 		partial_sum = 0;
 		for (long j = 0; j < size; j ++)

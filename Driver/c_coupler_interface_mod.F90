@@ -2772,9 +2772,9 @@
    if (condition) local_condition = 1
 
    if (present(annotation)) then
-       call CCPL_report(2, comp_id, local_condition, trim(report_string)//char(0), trim(annotation)//char(0))
+       call CCPL_report(5, comp_id, local_condition, trim(report_string)//char(0), trim(annotation)//char(0))
    else 
-       call CCPL_report(2, comp_id, local_condition, trim(report_string)//char(0), trim("")//char(0))
+       call CCPL_report(5, comp_id, local_condition, trim(report_string)//char(0), trim("")//char(0))
    endif
 
    END SUBROUTINE CCPL_report_log

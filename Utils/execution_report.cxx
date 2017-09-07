@@ -19,11 +19,10 @@
 #include <sys/time.h>
 
 
-bool report_all_enabled;
+bool report_external_log_enabled;
 bool report_error_enabled;
 bool report_progress_enabled;
-bool report_log_enabled;
-
+bool report_internal_log_enabled;
 
 
 void import_report_setting()
@@ -34,9 +33,9 @@ void import_report_setting()
 	bool report_setting[3];
 
 
-	report_all_enabled = false;
+	report_external_log_enabled = false;
 	report_error_enabled = false;
-	report_log_enabled = false;
+	report_internal_log_enabled = false;
 	report_progress_enabled = false;
 
 	sprintf(XML_file_name, "%s/all/CCPL_report.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
@@ -44,12 +43,13 @@ void import_report_setting()
 	if (XML_file == NULL)
 		return;
 
-	sprintf(keywords[0], "report_log");
-	sprintf(keywords[1], "report_progress");
-	sprintf(keywords[2], "report_error");
+	sprintf(keywords[0], "report_internal_log");
+	sprintf(keywords[1], "report_external_log");
+	sprintf(keywords[2], "report_progress");
+	sprintf(keywords[3], "report_error");
 	
 	TiXmlElement *XML_element = XML_file->FirstChildElement();
-	for (int i = 0; i < 3; i ++) {
+	for (int i = 0; i < 4; i ++) {
 		report_setting[i] = false;
 		const char *setting = XML_element->Attribute(keywords[i], &line_number);
 		if (setting == NULL)
@@ -60,9 +60,10 @@ void import_report_setting()
 
 	delete XML_file;
 
-	report_log_enabled = report_setting[0];
-	report_progress_enabled = report_setting[1];
-	report_error_enabled = report_setting[2];
+	report_internal_log_enabled = report_setting[0];
+	report_external_log_enabled = report_setting[1];
+	report_progress_enabled = report_setting[2];
+	report_error_enabled = report_setting[3];
 }
 
 
@@ -90,7 +91,10 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 			condition = !condition;
 			break;
 		case REPORT_LOG:
-			condition = report_log_enabled;
+			condition = report_internal_log_enabled;
+			break;
+		case REPORT_EXTERNAL_LOG:
+			condition = report_external_log_enabled;
 			break;
 		case REPORT_WARNING:
 			condition = !condition;
@@ -123,6 +127,13 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_s
 			else sprintf(output_string+strlen(output_string), "C-Coupler REPORT LOG: ");
 #endif			
 			break;
+			case REPORT_EXTERNAL_LOG:
+				if (line_number > 0 && execution_phase_number < 2)
+					sprintf(output_string+strlen(output_string), "CoR REPORT LOG at script line %d: ", line_number);
+#ifndef ONLY_CoR
+				else sprintf(output_string+strlen(output_string), "C-Coupler REPORT LOG: ");
+#endif			
+				break;
 		case REPORT_WARNING:
 			if (line_number > 0 && execution_phase_number < 2)
 				sprintf(output_string+strlen(output_string), "CoR REPORT WARNING at script line %d: ", line_number);

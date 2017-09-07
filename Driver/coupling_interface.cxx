@@ -963,7 +963,7 @@ extern "C" void ccpl_report_(int *report_type, int *comp_id, int *condition, con
 	
 	if (*report_type == REPORT_ERROR)
 		API_id = API_ID_REPORT_ERROR;
-	else if (*report_type == REPORT_LOG)
+	else if (*report_type == REPORT_EXTERNAL_LOG)
 		API_id = API_ID_REPORT_LOG;
 	else API_id = API_ID_REPORT_PROGRESS;
 
