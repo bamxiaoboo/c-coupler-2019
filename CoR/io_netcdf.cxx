@@ -760,16 +760,35 @@ void IO_netcdf::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
 }
 
 
-void IO_netcdf::put_global_text(const char *text_title, const char *text_value)
+void IO_netcdf::put_global_attr(const char *text_title, const void *attr_value, const char *local_data_type, const char *nc_data_type, int size)
 {
-    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "put global text (%s) (%s) into netcdf file %s\n", text_title, text_value, file_name);	
+	int nc_datatype;
+
+	
 	if (!is_external_file) {
     	rcode = nc_open(file_name, NC_WRITE, &ncfile_id);
     	report_nc_error();
 	}
     rcode = nc_redef(ncfile_id);
     report_nc_error();
-    rcode = nc_put_att_text(ncfile_id, NC_GLOBAL, text_title, strlen(text_value), text_value);    
+
+	if (words_are_the_same(nc_data_type, DATA_TYPE_STRING))
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(local_data_type, DATA_TYPE_STRING), "software error in IO_netcdf::put_global_attr: miss match of data type");
+	else if (words_are_the_same(nc_data_type, DATA_TYPE_FLOAT))
+		nc_datatype = NC_FLOAT;
+	else if (words_are_the_same(nc_data_type, DATA_TYPE_DOUBLE))
+		nc_datatype = NC_DOUBLE;
+	else if (words_are_the_same(nc_data_type, DATA_TYPE_INT))
+		nc_datatype = NC_INT;
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in IO_netcdf::put_global_attr: wrong nc data type %s", nc_datatype);
+	
+	if (words_are_the_same(local_data_type, DATA_TYPE_STRING))
+	    rcode = nc_put_att_text(ncfile_id, NC_GLOBAL, text_title, sizeof((const char*)attr_value), (const char*)attr_value);
+	else if (words_are_the_same(local_data_type, DATA_TYPE_FLOAT))
+		rcode = nc_put_att_float(ncfile_id, NC_GLOBAL, text_title, NC_FLOAT, size, (const float*)attr_value);
+	else if (words_are_the_same(local_data_type, DATA_TYPE_DOUBLE))
+		rcode = nc_put_att_double(ncfile_id, NC_GLOBAL, text_title, NC_DOUBLE, size, (const double*)attr_value);
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in IO_netcdf::put_global_attr: wrong local data type %s", local_data_type);
     report_nc_error();
     nc_enddef(ncfile_id);
     report_nc_error();
@@ -780,36 +799,22 @@ void IO_netcdf::put_global_text(const char *text_title, const char *text_value)
 }
 
 
-void IO_netcdf::get_global_text(const char *text_title, char *text_value, int string_length, MPI_Comm comm, bool is_root_proc)
-{
-	if (is_root_proc) {
-		for (int i = 0; i < string_length; i ++)
-			text_value[i] = '\0';
-	    rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
-	    report_nc_error();
-	    rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, text_title, text_value);
-	    rcode = nc_close(ncfile_id);
-	    report_nc_error();
-	}
-
-	if (comm != -1)
-		MPI_Bcast(text_value, string_length, MPI_CHAR, 0, comm);
-}
-
-
 bool IO_netcdf::get_file_field_attribute(const char *field_name, const char *attribute_name, char *attribute_value, char *data_type)
 {
-	int variable_id, nc_data_type;
+	int variable_id = NC_GLOBAL, nc_data_type;
 	unsigned long attribute_size;
 
 	
     rcode = nc_open(file_name, NC_NOWRITE, &ncfile_id);
     report_nc_error();
-    rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
-	if (rcode != NC_NOERR) {
-		rcode = nc_close(ncfile_id);
-		report_nc_error();
-		return false;
+
+	if (field_name != NULL) {
+	    rcode = nc_inq_varid(ncfile_id, field_name, &variable_id);
+		if (rcode != NC_NOERR) {
+			rcode = nc_close(ncfile_id);
+			report_nc_error();
+			return false;
+		}
 	}
 
 	rcode = nc_inq_att(ncfile_id, variable_id, attribute_name, &nc_data_type, &attribute_size);
@@ -861,20 +866,25 @@ bool IO_netcdf::get_file_field_attribute(const char *field_name, const char *att
 }
 
 
-bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const char *attribute_name, char *attribute_value, MPI_Comm comm, bool is_root_proc)
+bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const char *attribute_name, char *attribute_value, char *data_type, MPI_Comm comm, bool is_root_proc)
 {
-	char data_type[NAME_STR_SIZE];
+	int success;
 
 	attribute_value[0] = '\0';
 	data_type[0] = '\0';
 
 	if (is_root_proc)
-		get_file_field_attribute(field_name, attribute_name, attribute_value, data_type);
+		success = get_file_field_attribute(field_name, attribute_name, attribute_value, data_type)? 1 : 0;
+	if (comm != -1)
+		MPI_Bcast(&success, 1, MPI_INT, 0, comm);
+	if (success == 0)
+		return false;
 	if (comm != -1) {
 		MPI_Bcast(attribute_value, NAME_STR_SIZE, MPI_CHAR, 0, comm);
 		MPI_Bcast(data_type, NAME_STR_SIZE, MPI_CHAR, 0, comm);
 	}
-	return words_are_the_same(data_type, DATA_TYPE_STRING);
+
+	return true;
 }
 
 

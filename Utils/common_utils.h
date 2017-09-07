@@ -39,6 +39,9 @@ template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *
 }
 
 
+extern void transform_datatype_of_arrays(const char *, char *, const char *, const char *, long);
+
+
 template <typename T1, typename T2, typename T3> void arrays_multiplication_template(T1 *src_array1, T2 *src_array2, T3 *dst_array, int array_size)
 {
 	for (int i = 0; i < array_size; i ++)

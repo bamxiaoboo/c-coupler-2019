@@ -265,6 +265,10 @@ class Remap_grid_class
 		Remap_grid_class(Remap_grid_class*, const char *, const char *, long &);
 		Remap_grid_data_class *generate_mid_point_grid_field(Remap_grid_data_class *);
 		Remap_grid_class *generate_mid_point_grid();
+		double get_boundary_min_lon() { return boundary_min_lon; }
+		double get_boundary_max_lon() { return boundary_max_lon; }
+		double get_boundary_min_lat() { return boundary_min_lat; }
+		double get_boundary_max_lat() { return boundary_max_lat; }
 };
 
 #endif

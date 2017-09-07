@@ -90,6 +90,8 @@
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);
 extern void check_API_parameter_string(int, int, MPI_Comm, const char*, const char*, const char*, const char*);
 extern void check_API_parameter_int(int, int, MPI_Comm, const char*, int, const char*, const char*);
+extern void check_API_parameter_float(int, int, MPI_Comm, const char*, float, const char*, const char*);
+extern void check_API_parameter_double(int, int, MPI_Comm, const char*, double, const char*, const char*);
 extern void check_API_parameter_long(int, int, MPI_Comm, const char*, long, const char*, const char*);
 extern void check_API_parameter_data_array(int, int, MPI_Comm, const char *, int, int, const char *, const char *, const char *);
 extern void check_API_parameter_timer(int, int, MPI_Comm, const char*, int, const char*, const char*);

@@ -103,12 +103,12 @@ class Original_grid_mgt
 		int add_original_grid(int, const char*, Remap_grid_class*);
 		int get_num_grid_levels(int);
 		bool is_V1D_sub_grid_after_H2D_sub_grid(int);
-		void common_checking_for_H2D_registration_via_data(int, const char *, const char *, const char *, const char *, const char *, int, int, int, int, int, int *, char *, char *, char *, char *, const char *, int);
-		int create_H2D_grid_from_global_data(int, const char *, const char *, const char *, const char *, int, int, int, int, int, int, int, int, int, char *, char *, int *, char *, char *, char *, const char *);
+		void common_checking_for_H2D_registration_via_data(int, const char *, const char *, const char *, const char *, const char *, int, int, int, int, int, int *, char *, char *, char *, char *, char *, char *, char *, char *, const char *, int);
+		int create_H2D_grid_from_global_data(int, const char *, const char *, const char *, const char *, int, int, int, int, int, int, int, int, int, char *, char *, char *, char *, char *, char *, int *, char *, char *, char *, const char *);
 		int register_H2D_grid_via_global_data(int, const char *, const char *, const char *, const char *, const char *, int, int, int, int, 
-											   int, int, int, int, char *, char *, int *, char *, char *, char *, const char *, int);
+											   int, int, int, int, char *, char *, char *, char *, char *, char *, int *, char *, char *, char *, const char *, int);
 		int register_H2D_grid_via_local_data(int, const char *, const char *, const char *, const char *, const char *, int, int, int, int, int, 
-											 int, int, int, int, int *, char *, char *, int *, char *, char *, char *, const char *, int *, const char *, int);
+											 int, int, int, int, int *, char *, char *, char *, char *, char *, char *, int *, char *, char *, char *, const char *, int *, const char *, int);
 		int register_H2D_grid_via_file(int, const char *, const char *, const char *);
 		int register_H2D_grid_via_comp(int, const char *, const char *);
 		int register_V1D_grid_via_data(int, int, const char *, int, const char *, int, double, const double *, const double *, const char *);

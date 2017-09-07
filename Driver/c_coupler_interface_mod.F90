@@ -1562,11 +1562,12 @@
 
 
    integer FUNCTION CCPL_register_H2D_grid_global_online_C1D_M1D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
-                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+                                                           min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
    character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
    integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R4),         intent(in)                                     :: min_lon, max_lon, min_lat, max_lat
    real(R4),         intent(in), dimension(:)                       :: center_lon, center_lat
    integer,          intent(in), dimension(:),   target, optional   :: mask
    real(R4),         intent(in), dimension(:),   target, optional   :: area
@@ -1609,11 +1610,11 @@
    if (present(annotation)) then
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                               trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                              center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+                                              min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                               trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                              center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+                                              min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
    CCPL_register_H2D_grid_global_online_C1D_M1D_float = grid_id
@@ -1625,11 +1626,12 @@
 
 
    integer FUNCTION CCPL_register_H2D_grid_global_online_C1D_M1D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
-                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+                                                           min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
    character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
    integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R8),         intent(in)                                     :: min_lon, max_lon, min_lat, max_lat
    real(R8),         intent(in), dimension(:)                       :: center_lon, center_lat
    integer,          intent(in), dimension(:),   target, optional   :: mask
    real(R8),         intent(in), dimension(:),   target, optional   :: area
@@ -1673,11 +1675,11 @@
    if (present(annotation)) then
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                         trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+                                       min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+                                       min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
    CCPL_register_H2D_grid_global_online_C1D_M1D_double = grid_id
@@ -1689,11 +1691,12 @@
 
 
    integer FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
-                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+                                                           min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
    character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
    integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R4),         intent(in)                                     :: min_lon, max_lon, min_lat, max_lat
    real(R4),         intent(in), dimension(:,:)                     :: center_lon, center_lat
    integer,          intent(in), dimension(:,:),   target, optional :: mask
    real(R4),         intent(in), dimension(:,:),   target, optional :: area
@@ -1736,11 +1739,11 @@
    if (present(annotation)) then
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+                                       min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real4")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+                                       min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
    CCPL_register_H2D_grid_global_online_C2D_M2D_float = grid_id
@@ -1752,11 +1755,12 @@
 
 
    integer FUNCTION CCPL_register_H2D_grid_global_online_C2D_M2D_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, dim_size1, dim_size2, &
-                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
+                                                           min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
    character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
    integer,          intent(in)                                     :: dim_size1, dim_size2
+   real(R8),         intent(in)                                     :: min_lon, max_lon, min_lat, max_lat
    real(R8),         intent(in), dimension(:,:)                     :: center_lon, center_lat
    integer,          intent(in), dimension(:,:),   target, optional :: mask
    real(R8),         intent(in), dimension(:,:),   target, optional :: area
@@ -1800,11 +1804,11 @@
    if (present(annotation)) then
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                         trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
+                                       min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim(annotation)//char(0))
    else
       call register_H2D_grid_with_global_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                        trim("real8")//char(0), dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat,  &
-                                       center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
+                                       min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, trim("")//char(0))
    endif
 
    CCPL_register_H2D_grid_global_online_C2D_M2D_double = grid_id
@@ -1817,13 +1821,14 @@
 
 
    integer FUNCTION CCPL_register_H2D_grid_local_online_float(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, grid_size, num_local_cells, local_cells_global_index, &
-                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation)
+                                                           min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
    character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
    integer,          intent(in)                                     :: grid_size
    integer,          intent(in)                                     :: num_local_cells
    integer,          intent(in), dimension(:)                       :: local_cells_global_index(:)
+   real(R4),         intent(in)                                     :: min_lon, max_lon, min_lat, max_lat 
    real(R4),         intent(in), dimension(:)                       :: center_lon, center_lat
    integer,          intent(in), dimension(:),   target, optional   :: mask
    real(R4),         intent(in), dimension(:),   target, optional   :: area
@@ -1878,8 +1883,8 @@
 
    call register_H2D_grid_with_local_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                           trim("real4")//char(0), grid_size, num_local_cells, size(local_cells_global_index), size_center_lon, size_center_lat, size_mask, size_area, &
-                                          size_vertex_lon, size_vertex_lat, local_cells_global_index, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, &
-                                          trim(local_decomp_name)//char(0), local_decomp_id, trim(local_annotation)//char(0))
+                                          size_vertex_lon, size_vertex_lat, local_cells_global_index, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, &
+                                          temp_vertex_lon, temp_vertex_lat, trim(local_decomp_name)//char(0), local_decomp_id, trim(local_annotation)//char(0))
 
    CCPL_register_H2D_grid_local_online_float = grid_id
 
@@ -1892,13 +1897,14 @@
 
 
    integer FUNCTION CCPL_register_H2D_grid_local_online_double(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, grid_size, num_local_cells, local_cells_global_index, &
-                                                           center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation)
+                                                           min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation)
    implicit none
    integer, intent(in)                                              :: comp_id
    character(len=*), intent(in)                                     :: grid_name, edge_type, coord_unit, cyclic_or_acyclic
    integer,          intent(in)                                     :: grid_size
    integer,          intent(in)                                     :: num_local_cells
    integer,          intent(in), dimension(:)                       :: local_cells_global_index(:)
+   real(R8),         intent(in)                                     :: min_lon, max_lon, min_lat, max_lat 
    real(R8),         intent(in), dimension(:)                       :: center_lon, center_lat
    integer,          intent(in), dimension(:),   target, optional   :: mask
    real(R8),         intent(in), dimension(:),   target, optional   :: area
@@ -1953,8 +1959,8 @@
 
    call register_H2D_grid_with_local_data(comp_id, grid_id, trim(grid_name)//char(0), trim(edge_type)//char(0), trim(coord_unit)//char(0), trim(cyclic_or_acyclic)//char(0), &
                                           trim("real8")//char(0), grid_size, num_local_cells, size(local_cells_global_index), size_center_lon, size_center_lat, size_mask, size_area, &
-                                          size_vertex_lon, size_vertex_lat, local_cells_global_index, center_lon, center_lat, temp_mask, temp_area, temp_vertex_lon, temp_vertex_lat, &
-                                          trim(local_decomp_name)//char(0), local_decomp_id, trim(local_annotation)//char(0))
+                                          size_vertex_lon, size_vertex_lat, local_cells_global_index, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, temp_mask, temp_area, &
+                                          temp_vertex_lon, temp_vertex_lat, trim(local_decomp_name)//char(0), local_decomp_id, trim(local_annotation)//char(0))
 
    CCPL_register_H2D_grid_local_online_double = grid_id
 

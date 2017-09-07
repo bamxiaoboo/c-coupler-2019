@@ -494,6 +494,18 @@ void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, cons
 }
 
 
+void check_API_parameter_float(int comp_id, int API_id, MPI_Comm comm, const char *hint, float value, const char *parameter_name, const char *annotation)
+{
+	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
+}
+
+
+void check_API_parameter_double(int comp_id, int API_id, MPI_Comm comm, const char *hint, double value, const char *parameter_name, const char *annotation)
+{
+	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
+}
+
+
 void check_API_parameter_int(int comp_id, int API_id, MPI_Comm comm, const char *hint, int value, const char *parameter_name, const char *annotation)
 {
 	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);

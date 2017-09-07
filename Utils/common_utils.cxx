@@ -233,3 +233,17 @@ bool are_two_coord_arrays_same(double *array1, double *array2, int array_size1, 
 	return true;
 }
 
+
+void transform_datatype_of_arrays(const char *src_array, char *dst_array, const char *src_data_type, const char *dst_data_type, long num_local_cells)
+{
+	if (words_are_the_same(src_data_type,DATA_TYPE_FLOAT) && words_are_the_same(dst_data_type,DATA_TYPE_FLOAT))
+		transform_datatype_of_arrays((const float*)src_array, (float*) dst_array, num_local_cells);
+	else if (words_are_the_same(src_data_type,DATA_TYPE_DOUBLE) && words_are_the_same(dst_data_type,DATA_TYPE_DOUBLE))
+		transform_datatype_of_arrays((const double*)src_array, (double*) dst_array, num_local_cells);
+	else if (words_are_the_same(src_data_type,DATA_TYPE_FLOAT) && words_are_the_same(dst_data_type,DATA_TYPE_DOUBLE))
+		transform_datatype_of_arrays((const float*)src_array, (double*) dst_array, num_local_cells);
+	else if (words_are_the_same(src_data_type,DATA_TYPE_DOUBLE) && words_are_the_same(dst_data_type,DATA_TYPE_FLOAT))
+		transform_datatype_of_arrays((const double*)src_array, (float*) dst_array, num_local_cells);
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in transform_datatype_of_arrays: data type transformation from %s to %s is not supported", src_data_type, dst_data_type);
+}
+
