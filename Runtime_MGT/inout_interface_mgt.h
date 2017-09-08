@@ -68,6 +68,7 @@ class Connection_coupling_procedure
 		std::vector<Field_mem_info *> fields_mem_datatype_transformed;
 		std::vector<Field_mem_info *> fields_mem_unit_transformed;
 		std::vector<Field_mem_info *> fields_mem_transfer;
+		std::vector<int> field_interface_local_index;
 		Connection_field_time_info * fields_time_info_src;
 		Connection_field_time_info * fields_time_info_dst;
 		long last_remote_fields_time;
@@ -142,7 +143,7 @@ class Inout_interface
 		void transform_interface_into_array(char**, long&, long&);
 		void write_into_array_for_restart(char**, long&, long&);
 		void import_restart_data(const char *, long &, const char *);
-		Field_mem_info *search_registered_field_instance(const char*);
+		Field_mem_info *search_registered_field_instance(const char*, int &);
 		Coupling_timer *get_timer() { return timer; }
 		void add_coupling_procedure(Connection_coupling_procedure*);
 		int get_inst_or_aver() { return inst_or_aver; } 

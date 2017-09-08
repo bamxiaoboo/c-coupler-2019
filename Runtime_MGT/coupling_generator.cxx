@@ -553,10 +553,11 @@ void Coupling_connection::write_field_info_into_array(Field_mem_info *field, cha
 void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, long &buffer_max_size, long &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
 {
 	char tmp_string[NAME_STR_SIZE];
+	int field_local_index;
 
 	
 	for (int i = fields_name.size() - 1; i >= 0; i --) {
-		Field_mem_info *field = inout_interface->search_registered_field_instance(fields_name[i]);
+		Field_mem_info *field = inout_interface->search_registered_field_instance(fields_name[i], field_local_index);
 		write_field_info_into_array(field, array, buffer_max_size, buffer_content_size);
 	}
 	*timer = inout_interface->get_timer();

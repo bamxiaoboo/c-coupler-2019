@@ -83,6 +83,9 @@ void Connection_field_time_info::import_restart_data(const char *temp_array_buff
 
 Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *inout_interface, Coupling_connection *coupling_connection)
 {
+	int field_local_index;
+
+	
 	this->inout_interface = inout_interface;
 	this->coupling_connection = coupling_connection; 
 
@@ -105,9 +108,14 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		runtime_remap_algorithms.push_back(NULL);
 		runtime_unit_transform_algorithms.push_back(NULL);
 		runtime_datatype_transform_algorithms.push_back(NULL);
-		if (i < coupling_connection->fields_name.size())
-			fields_mem_registered.push_back(inout_interface->search_registered_field_instance(coupling_connection->fields_name[i]));
-		else fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_import_or_export_or_remap() == 1, i-coupling_connection->fields_name.size()));
+		if (i < coupling_connection->fields_name.size()) {
+			fields_mem_registered.push_back(inout_interface->search_registered_field_instance(coupling_connection->fields_name[i], field_local_index));
+			field_interface_local_index.push_back(field_local_index);
+		}
+		else {
+			fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_import_or_export_or_remap() == 1, i-coupling_connection->fields_name.size()));
+			field_interface_local_index.push_back(-1);
+		}
 		current_remote_fields_time = -1;
 		last_remote_fields_time = -1;
 		fields_mem_inner_step_averaged.push_back(NULL);
@@ -278,7 +286,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		}
 		if (transfer_data) {
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --)
-				field_update_status[i] = transfer_data? 1 : 0;
+				if (field_interface_local_index[i] != -1)
+					field_update_status[field_interface_local_index[i]] = transfer_data? 1 : 0;
 			runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 			runtime_data_transfer_algorithm->run(bypass_timer);
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
@@ -635,11 +644,14 @@ int Inout_interface::get_num_dst_fields()
 }
 
 
-Field_mem_info *Inout_interface::search_registered_field_instance(const char *field_name)
+Field_mem_info *Inout_interface::search_registered_field_instance(const char *field_name, int &field_local_index)
 {
+	field_local_index = -1;
 	for (int i = 0; i < fields_mem_registered.size(); i ++)
-		if (words_are_the_same(fields_mem_registered[i]->get_field_name(), field_name))
+		if (words_are_the_same(fields_mem_registered[i]->get_field_name(), field_name)) {
+			field_local_index = i;
 			return fields_mem_registered[i];
+		}
 
 	return NULL;
 }
@@ -781,15 +793,21 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 	if (import_or_export_or_remap == 0) {
 		if (fields_mem_registered.size() > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
+		for (int i = 0; i < fields_mem_registered.size(); i ++)
+			field_update_status[i] = 0;
 	}	
 	else if (import_or_export_or_remap == 2) {
 		if (((int)children_interfaces[0]->fields_mem_registered.size()) > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
+		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size()); i ++)
+			field_update_status[i] = 0;
 	}	
 	else if (import_or_export_or_remap == 3) {
 		if (((int)children_interfaces[0]->fields_mem_registered.size())-1 > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
-	}	
+		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size())-1; i ++)
+			field_update_status[i] = 0;
+	}
 	
 	if (bypass_timer)
 		bypass_counter ++;
