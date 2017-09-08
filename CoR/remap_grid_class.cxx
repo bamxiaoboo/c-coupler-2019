@@ -1897,8 +1897,8 @@ void Remap_grid_class::set_grid_boundary(double min_lon, double max_lon, double 
 
     EXECUTION_REPORT(REPORT_ERROR, -1, this->get_is_sphere_grid(), "%s is not a sphere grid, while only sphere grid can be set boundary");
     EXECUTION_REPORT(REPORT_ERROR, -1, boundary_min_lon == NULL_COORD_VALUE, "the boundary of grid %s has been set before", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, min_lon >= 0 && min_lon <= 360, "the minimum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, max_lon >= 0 && max_lon <= 360, "the maximum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, min_lon >= -360 && min_lon <= 360, "the minimum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, max_lon >= -360 && max_lon <= 360, "the maximum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, min_lat >= -90 && min_lat <= 90, "the minimum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, max_lat >= -90 && max_lat <= 90, "the maximum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, min_lat < max_lat, "the minimum latitude of the boundary must be smaller than the maximum latitude of the boundary", grid_name);
