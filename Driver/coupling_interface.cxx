@@ -375,6 +375,15 @@ extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * 
 }
 
 
+extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *global_proc_id, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_PROC_GLOBAL_ID, annotation, false);
+	int num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *local_proc_id >= 0 && *local_proc_id < num_proc, "Error happens when calling the API \"CCPL_get_component_process_global_id\": the parameter \"local_proc_id\" is wrong (its value is %d, not between 0 and %d). Please verify the model code corresponding to the annotation \"%s\"", *local_proc_id, num_proc-1, annotation);
+	*global_proc_id = comp_comm_group_mgt_mgr->search_global_node(*comp_id)->get_local_proc_global_id(*local_proc_id);
+}
+
+
 extern "C" void end_registration_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
@@ -760,6 +769,17 @@ extern "C" void ccpl_read_restart_(int *comp_id, const char *specified_file_name
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_read(specified_file_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart read");
+}
+
+
+extern "C" void is_restart_timer_on_(int *comp_id, int *check_result, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_IS_TIMER_ON, annotation, false);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in is_restart_timer_on_")->is_real_component_model(), "Error happens when calling the API CCPL_is_restart_timer_on: the given component model \"%s\" is not a real model. Please verify the model code related to the annotation \"%s\"",
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in is_restart_timer_on_")->get_comp_full_name(), annotation);
+	if (components_time_mgrs->get_time_mgr(*comp_id)->is_restart_timer_on())
+		*check_result = 1;
+	else *check_result = 0;
 }
 
 

@@ -56,6 +56,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP:
 			sprintf(API_label, "CCPL_get_num_process_in_component");
 			break;	
+		case API_ID_COMP_MGT_GET_COMP_PROC_GLOBAL_ID:
+			sprintf(API_label, "CCPL_get_component_process_global_id");
+			break;	
 		case API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA:
 			sprintf(API_label, "CCPL_register_H2D_grid_via_local_data");
 			break;
@@ -241,6 +244,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			break;	
 		case API_ID_RESTART_MGT_READ:
 			sprintf(API_label, "CCPL_do_restart_read");
+			break;
+		case API_ID_RESTART_MGT_IS_TIMER_ON:
+			sprintf(API_label, "CCPL_is_restart_timer_on");
 			break;
 		case API_ID_RESTART_MGT_WRITE:
 			sprintf(API_label, "CCPL_do_restart_write");

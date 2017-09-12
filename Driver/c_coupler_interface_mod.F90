@@ -46,6 +46,7 @@
    public :: CCPL_register_component
    public :: CCPL_get_component_id
    public :: CCPL_get_current_process_id_in_component
+   public :: CCPL_get_component_process_global_id
    public :: CCPL_is_current_process_in_component
    public :: CCPL_get_num_process_in_component
    public :: CCPL_end_coupling_configuration
@@ -81,6 +82,7 @@
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write
    public :: CCPL_do_restart_read
+   public :: CCPL_is_restart_timer_on
    public :: CCPL_abort
 
 
@@ -1465,7 +1467,26 @@
    CCPL_get_current_process_id_in_component = proc_id
 
    END FUNCTION CCPL_get_current_process_id_in_component
+
+
+
+   integer FUNCTION CCPL_get_component_process_global_id(comp_id, local_proc_id, annotation)
+   implicit none
+   integer, intent(in)                     :: comp_id
+   integer, intent(in)                     :: local_proc_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: global_proc_id
+   character *1024                         :: local_annotation
+   integer                                 :: proc_id
    
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+
+   call get_comp_proc_global_id(comp_id, local_proc_id, global_proc_id, annotation)    
+   CCPL_get_component_process_global_id = global_proc_id
+
+   END FUNCTION CCPL_get_component_process_global_id
+  
 
 
    integer FUNCTION CCPL_get_num_process_in_component(comp_id, annotation)
@@ -2862,6 +2883,25 @@
    
    END SUBROUTINE CCPL_do_restart_read
  
+
+
+   logical FUNCTION CCPL_is_restart_timer_on(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: check_result
+
+   if (present(annotation)) then
+       call is_restart_timer_on(comp_id, check_result, trim(annotation)//char(0))
+   else
+       call is_restart_timer_on(comp_id, check_result, trim("")//char(0))
+   endif   
+
+   CCPL_is_restart_timer_on = .false.
+   if (check_result .eq. 1) CCPL_is_restart_timer_on = .true.
+
+   END FUNCTION CCPL_is_restart_timer_on
+
 
 
    SUBROUTINE CCPL_abort(error_string)

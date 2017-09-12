@@ -21,6 +21,7 @@
 #define API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP         ((int)(0x00200007))
 #define API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP     ((int)(0x00200008))
 #define API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP            ((int)(0x00200010))
+#define API_ID_COMP_MGT_GET_COMP_PROC_GLOBAL_ID         ((int)(0x00200011))
 #define API_ID_COMP_MGT_GET_COMP_ID                     ((int)(0x00200020))
 #define API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA     ((int)(0X00400000))
 #define API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA    ((int)(0X00400001))
@@ -85,6 +86,7 @@
 #define API_ID_REPORT_PROGRESS                          ((int)(0X06000004))
 #define API_ID_RESTART_MGT_WRITE                        ((int)(0X07000001))
 #define API_ID_RESTART_MGT_READ                         ((int)(0X07000002))
+#define API_ID_RESTART_MGT_IS_TIMER_ON                  ((int)(0X07000004))
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);

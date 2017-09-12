@@ -29,8 +29,8 @@ void import_report_setting()
 {
 	char XML_file_name[NAME_STR_SIZE];
 	int line_number;
-	char keywords[3][NAME_STR_SIZE];
-	bool report_setting[3];
+	char keywords[4][NAME_STR_SIZE];
+	bool report_setting[4];
 
 
 	report_external_log_enabled = false;
