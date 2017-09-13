@@ -211,13 +211,13 @@ void IO_output_procedure::execute()
 					char time_string[NAME_STR_SIZE];
 					char full_file_name[NAME_STR_SIZE];
 					char file_header[NAME_STR_SIZE];
-					if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_SECONDS))
+					if (IS_TIME_UNIT_SECOND(field_timer->get_frequency_unit()))
 						sprintf(time_string, "%04d%02d%02d-%05d", time_mgr->get_current_year(), time_mgr->get_current_month(), time_mgr->get_current_day(), time_mgr->get_current_second());
-					else if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_DAYS))
+					else if (IS_TIME_UNIT_DAY(field_timer->get_frequency_unit()))
 						sprintf(time_string, "%04d%02d%02d", time_mgr->get_current_year(), time_mgr->get_current_month(), time_mgr->get_current_day());	
-					else if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_MONTHS))
+					else if (IS_TIME_UNIT_MONTH(field_timer->get_frequency_unit()))
 						sprintf(time_string, "%04d%02d", time_mgr->get_current_year(), time_mgr->get_current_month());	
-					else if (words_are_the_same(field_timer->get_frequency_unit(), FREQUENCY_UNIT_YEARS))
+					else if (IS_TIME_UNIT_YEAR(field_timer->get_frequency_unit()))
 						sprintf(time_string, "%04d", time_mgr->get_current_year());
 					comp_comm_group_mgt_mgr->get_output_data_file_header(comp_id, file_header);
 					sprintf(full_file_name, "%s.%s.h%d.nc",file_header, time_string, procedure_id);

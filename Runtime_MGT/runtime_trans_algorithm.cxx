@@ -406,8 +406,10 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 {
     if (index_remote_procs_with_common_data.size() > 0) {
         preprocess();
-        if (!is_remote_data_buf_ready(bypass_timer))
+        if (!is_remote_data_buf_ready(bypass_timer)) {
+			inout_interface_mgr->runtime_receive_algorithms_receive_data();
             return false;
+        }
     }
 
     for (int j = 0; j < num_transfered_fields; j ++) {

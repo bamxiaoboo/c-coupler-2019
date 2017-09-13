@@ -10,13 +10,32 @@
 #ifndef COUPLING_TIME_MGT
 #define COUPLING_TIME_MGT
 
+
+#define FREQUENCY_UNIT_STEP             "step"
+#define FREQUENCY_UNIT_SECOND           "second"
+#define FREQUENCY_UNIT_MINUTE           "minute"
+#define FREQUENCY_UNIT_HOUR             "hour"
+#define FREQUENCY_UNIT_DAY              "day"
+#define FREQUENCY_UNIT_MONTH            "month"
+#define FREQUENCY_UNIT_YEAR             "year"
 #define FREQUENCY_UNIT_STEPS            "steps"
 #define FREQUENCY_UNIT_SECONDS          "seconds"
+#define FREQUENCY_UNIT_MINUTES          "minutes"
+#define FREQUENCY_UNIT_HOURS            "hours"
 #define FREQUENCY_UNIT_DAYS             "days"
 #define FREQUENCY_UNIT_MONTHS           "months"
 #define FREQUENCY_UNIT_YEARS            "years"
+#define FREQUENCY_UNIT_NSTEP            "nstep"
+#define FREQUENCY_UNIT_NSECOND          "nsecond"
+#define FREQUENCY_UNIT_NMINUTE          "nminute"
+#define FREQUENCY_UNIT_NHOUR            "nhour"
+#define FREQUENCY_UNIT_NDAY             "nday"
+#define FREQUENCY_UNIT_NMONTH           "nmonth"
+#define FREQUENCY_UNIT_NYEAR            "nyear"
 #define FREQUENCY_UNIT_NSTEPS           "nsteps"
 #define FREQUENCY_UNIT_NSECONDS         "nseconds"
+#define FREQUENCY_UNIT_NMINUTES         "nminutes"
+#define FREQUENCY_UNIT_NHOURS           "nhours"
 #define FREQUENCY_UNIT_NDAYS            "ndays"
 #define FREQUENCY_UNIT_NMONTHS          "nmonths"
 #define FREQUENCY_UNIT_NYEARS           "nyears"
@@ -26,10 +45,28 @@
 #define RUNTYPE_BRANCH                  "branch"
 #define RUNTYPE_HYBRID                  "hybrid"
 
-#define SECONDS_PER_DAY                     86400
-#define NUM_MONTH_PER_YEAR                  12
-#define NUM_DAYS_PER_NONLEAP_YEAR           365
-#define NUM_DAYS_PER_LEAP_YEAR              366
+#define SECONDS_PER_DAY                 86400
+#define NUM_MONTH_PER_YEAR              12
+#define NUM_DAYS_PER_NONLEAP_YEAR       365
+#define NUM_DAYS_PER_LEAP_YEAR          366
+
+
+#define IS_TIME_UNIT_STEP(unit)         (words_are_the_same(unit,FREQUENCY_UNIT_STEP) || words_are_the_same(unit,FREQUENCY_UNIT_STEPS) || words_are_the_same(unit,FREQUENCY_UNIT_NSTEP) || words_are_the_same(unit,FREQUENCY_UNIT_NSTEPS))
+#define IS_TIME_UNIT_SECOND(unit)       (words_are_the_same(unit,FREQUENCY_UNIT_SECOND) || words_are_the_same(unit,FREQUENCY_UNIT_SECONDS) || words_are_the_same(unit,FREQUENCY_UNIT_NSECOND) || words_are_the_same(unit,FREQUENCY_UNIT_NSECONDS))
+#define IS_TIME_UNIT_MINUTE(unit)       (words_are_the_same(unit,FREQUENCY_UNIT_MINUTE) || words_are_the_same(unit,FREQUENCY_UNIT_MINUTES) || words_are_the_same(unit,FREQUENCY_UNIT_NMINUTE) || words_are_the_same(unit,FREQUENCY_UNIT_NMINUTES))
+#define IS_TIME_UNIT_HOUR(unit)         (words_are_the_same(unit,FREQUENCY_UNIT_HOUR) || words_are_the_same(unit,FREQUENCY_UNIT_HOURS) || words_are_the_same(unit,FREQUENCY_UNIT_NHOUR) || words_are_the_same(unit,FREQUENCY_UNIT_NHOURS))
+#define IS_TIME_UNIT_DAY(unit)          (words_are_the_same(unit,FREQUENCY_UNIT_DAY) || words_are_the_same(unit,FREQUENCY_UNIT_DAYS) || words_are_the_same(unit,FREQUENCY_UNIT_NDAY) || words_are_the_same(unit,FREQUENCY_UNIT_NDAYS))
+#define IS_TIME_UNIT_MONTH(unit)        (words_are_the_same(unit,FREQUENCY_UNIT_MONTH) || words_are_the_same(unit,FREQUENCY_UNIT_MONTHS) || words_are_the_same(unit,FREQUENCY_UNIT_NMONTH) || words_are_the_same(unit,FREQUENCY_UNIT_NMONTHS))
+#define IS_TIME_UNIT_YEAR(unit)         (words_are_the_same(unit,FREQUENCY_UNIT_YEAR) || words_are_the_same(unit,FREQUENCY_UNIT_YEARS) || words_are_the_same(unit,FREQUENCY_UNIT_NYEAR) || words_are_the_same(unit,FREQUENCY_UNIT_NYEARS))
+
+
+#define TIME_UNIT_STRING_STEP           "\"step\", \"steps\", \"nstep\", \"nsteps\""
+#define TIME_UNIT_STRING_SECOND         "\"second\", \"seconds\", \"nsecond\", \"nseconds\""
+#define TIME_UNIT_STRING_MINUTE         "\"minute\", \"minutes\", \"nminute\", \"nminutes\""
+#define TIME_UNIT_STRING_HOUR           "\"hour\", \"hours\", \"nhour\", \"nhours\""
+#define TIME_UNIT_STRING_DAY            "\"day\", \"days\", \"nday\", \"ndays\""
+#define TIME_UNIT_STRING_MONTH          "\"month\", \"months\", \"nmonth\", \"nmonths\""
+#define TIME_UNIT_STRING_YEAR           "\"year\", \"years\", \"nyear\", \"nyears\""
 
 
 #include "common_utils.h"

@@ -28,20 +28,20 @@ bool common_is_timer_on(const char *frequency_unit, int frequency_count, int loc
 
     EXECUTION_REPORT(REPORT_ERROR,-1, frequency_count > 0, "C-Coupler software error: the frequency count must be larger than 0\n");
 
-    if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NSECONDS)) {
+    if (IS_TIME_UNIT_SECOND(frequency_unit)) {
         num_elapsed_time = ((long)(current_num_elapsed_day-start_num_elapsed_day))*SECONDS_PER_DAY + current_second - start_second;
     }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NDAYS)) {
+    else if (IS_TIME_UNIT_DAY(frequency_unit)) {
         if (current_second != 0)
             return false;
         num_elapsed_time = current_num_elapsed_day-start_num_elapsed_day;
     }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS)) {
+    else if (IS_TIME_UNIT_MONTH(frequency_unit)) {
         if (current_second != 0 || current_day != 1)
             return false;
         num_elapsed_time = (current_year-start_year)*NUM_MONTH_PER_YEAR+current_month-start_month;
     }
-    else if (words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS)) {
+    else if (IS_TIME_UNIT_YEAR(frequency_unit)) {
         if (current_second != 0 || current_day != 1 || current_month != 1)
             return false;
         num_elapsed_time = current_year-start_year;
@@ -83,7 +83,7 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, const char *freq_unit,
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "Software error in Coupling_timer::Coupling_timer, with annotation \"%s\"", annotation);
 	comp_time_mgr->check_timer_format(frequency_unit, frequency_count, local_lag_count, remote_lag_count, true, annotation);
 	annotation_mgr->add_annotation(timer_id, "define timer", annotation);
-	if (words_are_the_same(freq_unit, FREQUENCY_UNIT_STEPS)) {
+	if (IS_TIME_UNIT_STEP(freq_unit)) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr->get_time_step_in_second() > 0, "Software error in Coupling_timer::Coupling_timer: uninitialized time step");
 		strcpy(frequency_unit, FREQUENCY_UNIT_SECONDS);
 		frequency_count *= comp_time_mgr->get_time_step_in_second();
@@ -308,7 +308,7 @@ void Time_mgt::calculate_stop_time(int start_year, int start_month, int start_da
 	long num_total_seconds;
 	
 
-	if (words_are_the_same(stop_option,FREQUENCY_UNIT_NYEARS)) {
+	if (IS_TIME_UNIT_YEAR(stop_option)) {
 		stop_year = start_year + stop_n;
 		stop_month = start_month;
 		stop_day = start_day;
@@ -316,7 +316,7 @@ void Time_mgt::calculate_stop_time(int start_year, int start_month, int start_da
 		if (start_month == 2 && start_day == 29 && !is_a_leap_year(stop_year))
 			stop_day = 28;
 	}
-	else if (words_are_the_same(stop_option, FREQUENCY_UNIT_NMONTHS)) {
+	else if (IS_TIME_UNIT_MONTH(stop_option)) {
 		stop_year = start_year + stop_n/12;
 		if (start_month + (stop_n%12) > 12) {
 			stop_year ++;
@@ -332,16 +332,16 @@ void Time_mgt::calculate_stop_time(int start_year, int start_month, int start_da
 	}
 	else {
 		int num_days = 0, num_hours = 0, num_minutes = 0, num_seconds = 0;
-		if (words_are_the_same(stop_option, FREQUENCY_UNIT_NDAYS)) {
+		if (IS_TIME_UNIT_DAY(stop_option)) {
 			num_days = stop_n;
 			num_total_seconds = stop_n * SECONDS_PER_DAY;
 		}
-		else if (words_are_the_same(stop_option, "nhours")) {
+		else if (IS_TIME_UNIT_HOUR(stop_option)) {
 			num_days = stop_n/24;
 			num_hours = stop_n % 24;
 			num_total_seconds = stop_n * 3600;
 		}
-		else if (words_are_the_same(stop_option, "nminutes")) {
+		else if (IS_TIME_UNIT_MINUTE(stop_option)) {
 			num_days = stop_n / 1440;
 			num_hours = (stop_n % 1440) / 60;
 			num_minutes = stop_n % 60;
@@ -466,9 +466,8 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			reference_day = 1;
 		}
 		const char *rest_freq_unit = get_XML_attribute(-1, XML_element, "rest_freq_unit", XML_file_name, line_number, "the unit of the frequency of writing restart data files", "the overall parameters to run the model");		
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NSECONDS)|| words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NDAYS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NYEARS) ||
-			             words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_DAYS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS),
-			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", \"nseconds\" (\"seconds\"), \"ndays\" (\"days\"), \"nmonths\" (\"months\"), and \"nyears\" (\"years\"). Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(rest_freq_unit, "none") || IS_TIME_UNIT_YEAR(rest_freq_unit) || IS_TIME_UNIT_SECOND(rest_freq_unit) || IS_TIME_UNIT_DAY(rest_freq_unit) || IS_TIME_UNIT_MONTH(rest_freq_unit),
+			             "The time unit for the frequency of writing restart files (rest_freq_unit) must be one of the following options: \"none\", %s, %s, %s, %s. Please check the XML file \"%s\" arround the line_number %d", TIME_UNIT_STRING_SECOND, TIME_UNIT_STRING_DAY, TIME_UNIT_STRING_MONTH, TIME_UNIT_STRING_YEAR, XML_file_name, line_number);
 		strcpy(this->rest_freq_unit, rest_freq_unit);
 		this->rest_freq_count = 0;
 		if (!words_are_the_same(rest_freq_unit, "none")) {
@@ -478,8 +477,8 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			this->rest_freq_count = rest_freq_count;
 		}
 		const char *stop_option = get_XML_attribute(-1, XML_element, "stop_option", XML_file_name, line_number, "the option to specify the end of the simulation", "the overall parameters to run the model");
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(stop_option, "date") || words_are_the_same(stop_option, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(stop_option, "nminutes") || words_are_the_same(stop_option, "nhours") || words_are_the_same(stop_option, FREQUENCY_UNIT_NDAYS) || words_are_the_same(stop_option, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(stop_option, FREQUENCY_UNIT_NYEARS),
-			             "Stop option is wrong. It must be one of the following options: \"date\", \"nseconds\", \"nminutes\", \"nhours\", \"ndays\", \"nmonths\" and \"nyears\". Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(stop_option, "date") || IS_TIME_UNIT_SECOND(stop_option) || IS_TIME_UNIT_MINUTE(stop_option) || IS_TIME_UNIT_HOUR(stop_option) || IS_TIME_UNIT_DAY(stop_option) || IS_TIME_UNIT_MONTH(stop_option) || IS_TIME_UNIT_YEAR(stop_option),
+			             "The stop option is wrong. It must be one of the following options: \"date\", %s, %s, %s, %s, %s, %s. Please check the XML file \"%s\" arround the line_number %d", TIME_UNIT_STRING_SECOND, TIME_UNIT_STRING_MINUTE, TIME_UNIT_STRING_HOUR, TIME_UNIT_STRING_DAY, TIME_UNIT_STRING_MONTH, TIME_UNIT_STRING_YEAR, XML_file_name, line_number);
 		strcpy(this->stop_option, stop_option);
 		if (words_are_the_same(stop_option, "date")) {
 			const char *stop_date_string = get_XML_attribute(-1, XML_element, "stop_date", XML_file_name, line_number, "the date to stop the simulation", "the overall parameters to run the model");
@@ -709,19 +708,18 @@ int Time_mgt::get_current_date()
 void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_count, int local_lag_count, int remote_lag_count, bool check_value, const char *annotation)
 {
 	if (time_step_in_second > 0) {
-	    EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(frequency_unit, FREQUENCY_UNIT_STEPS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_DAYS) ||
-	                     words_are_the_same(frequency_unit, FREQUENCY_UNIT_NDAYS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS), 
-	                 "The period unit in a timer (the current unit is \"%s\") must be one of \"steps\", \"seconds\" (\"nseconds\"), \"days\" (\"ndays\"), \"months\" (\"nmonths\") and \"years\" (\"nyears\"). Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+	    EXECUTION_REPORT(REPORT_ERROR, comp_id, IS_TIME_UNIT_STEP(frequency_unit) || IS_TIME_UNIT_SECOND(frequency_unit) || IS_TIME_UNIT_DAY(frequency_unit) || IS_TIME_UNIT_MONTH(frequency_unit) || IS_TIME_UNIT_YEAR(frequency_unit), 
+	                 "Error happens when defining a timer: the period unit is \"%s\", not one of %s, %s, %s, %s, %s. Please check the model code with the annotation \"%s\"", frequency_unit, TIME_UNIT_STRING_STEP, TIME_UNIT_STRING_SECOND, TIME_UNIT_STRING_DAY, TIME_UNIT_STRING_MONTH, TIME_UNIT_STRING_YEAR, annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
-	    if ((words_are_the_same(frequency_unit, FREQUENCY_UNIT_SECONDS) || words_are_the_same(frequency_unit, FREQUENCY_UNIT_NSECONDS)) && check_value) {
-	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "The frequency count in timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);
-	        EXECUTION_REPORT(REPORT_ERROR, comp_id, local_lag_count%time_step_in_second == 0, "The remote lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
-	        EXECUTION_REPORT(REPORT_ERROR, comp_id, remote_lag_count%time_step_in_second == 0, "The remote lag count in a timer must be a multiple of the time step of the component when the frequency unit is \"seconds\". Please check the model code with the annotation \"%s\"", annotation);        
+	    if (IS_TIME_UNIT_SECOND(frequency_unit) && check_value) {
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "Error happens when defining a timer: the frequency count (%d) in timer is not a multiple of the time step (%d) of the component when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", frequency_count, time_step_in_second, frequency_unit, annotation);
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, local_lag_count%time_step_in_second == 0, "Error happens when defining a timer: the remote lag count (%d) in a timer is not a multiple of the time step (%d) of the component when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", local_lag_count, time_step_in_second, frequency_unit, annotation);        
+	        EXECUTION_REPORT(REPORT_ERROR, comp_id, remote_lag_count%time_step_in_second == 0, "Error happens when defining a timer: the remote lag count (%d) in a timer is not a multiple of the time step (%d) of the component when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", remote_lag_count, time_step_in_second, frequency_unit, annotation);
 	    }	
 		if (local_lag_count != 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS), "The local lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !IS_TIME_UNIT_MONTH(frequency_unit) && !IS_TIME_UNIT_YEAR(frequency_unit), "Error happens when defining a timer: the local lag count cannot be set when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 		if (remote_lag_count != 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(frequency_unit, FREQUENCY_UNIT_MONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_YEARS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NMONTHS) && !words_are_the_same(frequency_unit, FREQUENCY_UNIT_NYEARS), "The remote lag count cannot be set when the frequency unit of a timer is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, !IS_TIME_UNIT_MONTH(frequency_unit) && !IS_TIME_UNIT_YEAR(frequency_unit), "Error happens when defining a timer: the remote lag count cannot be set when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", frequency_unit, annotation);
 	}
 }
 
@@ -858,11 +856,11 @@ bool Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 	else num_total_steps = -1;
 	if (restart_timer != NULL) {
 		long rest_freq;
-		if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NDAYS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_DAYS))
+		if (IS_TIME_UNIT_DAY(rest_freq_unit))
 			rest_freq = SECONDS_PER_DAY * rest_freq_count;
-		else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NMONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_MONTHS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_YEARS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NYEARS))
+		else if (IS_TIME_UNIT_MONTH(rest_freq_unit) || IS_TIME_UNIT_YEAR(rest_freq_unit))
 			rest_freq = SECONDS_PER_DAY;
-		else if (words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_NSECONDS) || words_are_the_same(rest_freq_unit, FREQUENCY_UNIT_SECONDS))
+		else if (IS_TIME_UNIT_SECOND(rest_freq_unit))
 			rest_freq = rest_freq_count;
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, rest_freq%((long)time_step_in_second) == 0, "The time step set at model code with the annotation \"%s\" does not match the frequency of writing restart data files. Please check the model code and the XML file \"env_run.xml\"", annotation);
 	}

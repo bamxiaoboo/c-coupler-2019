@@ -34,7 +34,7 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 	next_timer_second = -1;
 	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
 		                             current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
-	if (words_are_the_same(timer->get_frequency_unit(), FREQUENCY_UNIT_SECONDS))
+	if (IS_TIME_UNIT_SECOND(timer->get_frequency_unit()))
 		lag_seconds = timer->get_remote_lag_count();
 	else lag_seconds = timer->get_remote_lag_count() * SECONDS_PER_DAY;
 }
