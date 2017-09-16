@@ -89,6 +89,7 @@ class Original_grid_mgt
 	public:
 		Original_grid_mgt();
 		~Original_grid_mgt();
+		void initialize_CoR_grids();
 		void check_for_grid_definition(int, const char*, const char*);
 		int get_CoR_defined_grid(int, const char*, const char*, const char*);
 		Original_grid_info *search_grid_info(const char*, int);

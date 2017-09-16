@@ -2366,10 +2366,9 @@
    temp_remote_lag_count = 0
    if (present(remote_lag_count)) temp_remote_lag_count = remote_lag_count
    if (present(annotation)) then
-        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, temp_remote_lag_count, trim(annotation)//char(0))
+        call define_single_timer(comp_id, timer_id, trim(period_unit)//char(0), period_count, local_lag_count, temp_remote_lag_count, trim(annotation)//char(0))
    else
-        call define_single_timer(comp_id, timer_id, period_unit, period_count, local_lag_count, temp_remote_lag_count, trim("")//char(0))
-        
+        call define_single_timer(comp_id, timer_id, trim(period_unit)//char(0), period_count, local_lag_count, temp_remote_lag_count, trim("")//char(0))
    endif
    CCPL_define_single_timer = timer_id
 

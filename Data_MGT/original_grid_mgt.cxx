@@ -241,7 +241,17 @@ bool Original_grid_info::is_H2D_grid_and_the_same_as_another_grid(Original_grid_
 Original_grid_mgt::Original_grid_mgt()
 {	
 	original_grids.clear();
-	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_exe_dir());
+	CoR_script_name[0] = '\0';
+	CoR_grids = NULL;
+}
+
+
+void Original_grid_mgt::initialize_CoR_grids()
+{
+	if (CoR_grids != NULL)
+		return;
+	
+	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir());
 	FILE *fp = fopen(CoR_script_name, "r");
 	if (fp == NULL)
 		CoR_script_name[0] = '\0';
@@ -249,7 +259,7 @@ Original_grid_mgt::Original_grid_mgt()
 	if (strlen(CoR_script_name) != 0) {
 		char current_dir[NAME_STR_SIZE], grids_dir[NAME_STR_SIZE];
 		EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(current_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory for running the model");
-		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_config_exe_dir());
+		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir());
 		EXECUTION_REPORT(REPORT_ERROR, -1, chdir(grids_dir) == 0, "Fail to access the directory of the CoR grid data files: \"%s\". Please verify.", grids_dir);
 		CoR_grids = new Remap_mgt(CoR_script_name);
 		chdir(current_dir);
@@ -817,7 +827,7 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	char CoR_script_file_name[NAME_STR_SIZE];
 
 	
-	sprintf(CoR_script_file_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_config_exe_dir());
+	sprintf(CoR_script_file_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir());
 	original_CoR_grid = remap_grid_manager->search_remap_grid_with_grid_name(CoR_grid_name);
 	if (original_CoR_grid == NULL)
 		if (strlen(CoR_script_name) > 0)

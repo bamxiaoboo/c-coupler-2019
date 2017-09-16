@@ -544,7 +544,7 @@ extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const c
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
 
 	common_checking_for_grid_registration(*comp_id, grid_name, NULL, API_ID_GRID_MGT_REG_H2D_GRID_VIA_FILE, annotation);
-	sprintf(full_data_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_exe_dir(), data_file_name);
+	sprintf(full_data_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir(), data_file_name);
 	*grid_id = original_grid_mgr->register_H2D_grid_via_file(*comp_id, grid_name, full_data_file_name, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);
