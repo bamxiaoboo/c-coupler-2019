@@ -643,14 +643,14 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			fields_element = detailed_element;
-			const char *default_str = get_XML_attribute(comp_id, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file");
+			const char *default_str = get_XML_attribute(comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file");
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all") || words_are_the_same(default_str, "remain"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"fields\" is wrong (legal values are \"off\", \"all\" and \"remain\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				fields_default_setting = 0;
 				for (TiXmlNode *field_element_node = detailed_element->FirstChild(); field_element_node != NULL; field_element_node = field_element_node->NextSibling()) {
 					TiXmlElement *field_element = field_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field (arround line %d of the XML file)", interface_name, XML_file_name, field_element->Row());
-					const char *field_name = get_XML_attribute(comp_id, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file");	
+					const char *field_name = get_XML_attribute(comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file");	
 					check_and_verify_name_format_of_string_for_XML(comp_id, field_name, "the field", XML_file_name, line_number);
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_info->search_field_info(field_name) != NULL, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", an illegal field name (\"%s\") is detected. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_name, field_element->Row());
 					for (i = 0; i < interface_fields_name.size(); i ++)
@@ -685,14 +685,14 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, components_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 			components_element = detailed_element;
-			const char *default_str = get_XML_attribute(comp_id, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file");
+			const char *default_str = get_XML_attribute(comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file");
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"componets\" is wrong (legal values are \"off\" and \"all\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				components_default_setting = 0;
 				for (TiXmlNode *component_element_node = detailed_element->FirstChild(); component_element_node != NULL; component_element_node = component_element_node->NextSibling()) {
 					TiXmlElement *component_element = component_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
-					const char *full_name = get_XML_attribute(comp_id, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
+					const char *full_name = get_XML_attribute(comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
 					strcpy(producer_info.first, full_name);
 					const char *interface_name = component_element->Attribute("interface_name", &line_number);
@@ -818,7 +818,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	for (TiXmlNode *interface_XML_element_node = root_XML_element->FirstChild(); interface_XML_element_node != NULL; interface_XML_element_node = interface_XML_element_node->NextSibling()) {
 		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
-		const char *interface_name = get_XML_attribute(comp_id, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file");
+		const char *interface_name = get_XML_attribute(comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file");
 		if (!is_XML_setting_on(comp_id, interface_XML_element, XML_file_name, "the \"status\" of the redirection configurations for an import interface", "import interface configuration file"))
 			continue;
 		check_and_verify_name_format_of_string_for_XML(-1, interface_name, "the import interface", XML_file_name, line_number);

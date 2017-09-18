@@ -441,6 +441,8 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		comp_id = comp_or_grid_id;
 	else comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
 
+	check_API_parameter_string_length(comp_id, API_id, 80, field_name, "field_name", annotation);
+
 	if (decomp_id != -1) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "The parameter of decomposition ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);
 		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "The parameter of grid ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);		

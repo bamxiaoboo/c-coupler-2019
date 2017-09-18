@@ -251,7 +251,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -277,7 +277,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -303,7 +303,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -329,7 +329,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -355,7 +355,7 @@
    character(len=*), intent(in), optional    :: field_unit
    character(len=*), intent(in), optional    :: annotation
    integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                            :: local_field_unit, local_annotation
+   character *2048                            :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -381,7 +381,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -407,7 +407,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -433,7 +433,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -459,7 +459,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -485,7 +485,7 @@
    character(len=*), intent(in), optional    :: field_unit
    character(len=*), intent(in), optional    :: annotation
    integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                            :: local_field_unit, local_annotation
+   character *2048                            :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -511,7 +511,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -537,7 +537,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -563,7 +563,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -589,7 +589,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -615,7 +615,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *512                          :: local_field_unit, local_annotation
+   character *2048                          :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -1861,7 +1861,7 @@
    real(R4),                     dimension(:,:), pointer            :: temp_vertex_lon, temp_vertex_lat, temp_float_2d
    integer                                                          :: grid_id, local_decomp_id
    integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
-   character *512                                                   :: local_decomp_name, local_annotation
+   character *2048                                                   :: local_decomp_name, local_annotation
    
    size_center_lon = size(center_lon)
    size_center_lat = size(center_lat)
@@ -1937,7 +1937,7 @@
    real(R8),                     dimension(:,:), pointer            :: temp_vertex_lon, temp_vertex_lat, temp_double_2d
    integer                                                          :: grid_id, local_decomp_id
    integer                                                          :: size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat
-   character *512                                                   :: local_decomp_name, local_annotation
+   character *2048                                                   :: local_decomp_name, local_annotation
    
    size_center_lon = size(center_lon)
    size_center_lat = size(center_lat)
@@ -2547,7 +2547,7 @@
    real(R4),         INTENT(IN), dimension(:)                   :: frac_src
    real(R4),         intent(in), dimension(:), target, optional :: frac_dst
    real(R4),                     dimension(:), pointer          :: temp_frac_dst, temp_float_1d
-   character *512                                               :: local_annotation
+   character *2048                                               :: local_annotation
    
    allocate(temp_float_1d(1))
    temp_frac_dst => temp_float_1d
@@ -2585,7 +2585,7 @@
    real(R8),         INTENT(IN), dimension(:)                   :: frac_src
    real(R8),         intent(in), dimension(:), target, optional :: frac_dst
    real(R8),                     dimension(:), pointer          :: temp_frac_dst, temp_double_1d
-   character *512                                               :: local_annotation
+   character *2048                                               :: local_annotation
    
    allocate(temp_double_1d(1))
    temp_frac_dst => temp_double_1d
@@ -2670,7 +2670,7 @@
    integer                                               :: local_bypass_timer
    integer,          intent(out), dimension(:), optional :: field_update_status
    integer                                               :: temp_field_update_status(4096), i, num_dst_fields
-   character *512                                        :: local_annotation
+   character *2048                                        :: local_annotation
 
 
    if (bypass_timer) then
@@ -2705,7 +2705,7 @@
    integer                                               :: local_bypass_timer
    integer,          intent(out), dimension(:), optional :: field_update_status
    integer                                               :: temp_field_update_status(4096), i, num_dst_fields
-   character *512                                        :: local_annotation
+   character *2048                                        :: local_annotation
 
 
    if (bypass_timer) then

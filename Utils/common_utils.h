@@ -30,6 +30,8 @@ extern void check_for_coupling_registration_stage(int, int, bool, const char *);
 extern void common_checking_for_grid_registration(int, const char *, const char *, int, const char *);
 extern void check_for_ccpl_managers_allocated(int, const char *);
 extern bool are_two_coord_arrays_same(double *, double *, int, int);
+extern void check_API_parameter_string_length(int, int, int, const char *, const char *, const char *);
+extern void check_XML_attribute_value_string_length(int, int, const char *, const char *, const char *, int);
 
 
 template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)
@@ -62,8 +64,14 @@ template <typename T> bool are_array_values_between_boundaries_kernel(const T *d
 	for (int i = 0; i < array_size; i ++) {
 		if (has_missing_value && data_array[i] == missing_value)
 			continue;
-		if (data_array[i] < lower_bound || data_array[i] > upper_bound)
-			return false;
+		if (lower_bound < upper_bound) {
+			if (data_array[i] < lower_bound || data_array[i] > upper_bound)
+				return false;
+		}
+		else {
+			if (data_array[i] < lower_bound && data_array[i] > upper_bound)
+				return false;		
+		}
 	}
 
 	return true;

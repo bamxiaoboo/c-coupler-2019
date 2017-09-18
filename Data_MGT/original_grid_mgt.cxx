@@ -323,10 +323,10 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 	if (root_XML_element_node != NULL) {
 		for (TiXmlNode *grid_XML_element_node = root_XML_element->FirstChild(); grid_XML_element_node != NULL; grid_XML_element_node = grid_XML_element_node->NextSibling()) {
 			TiXmlElement *grid_XML_element = grid_XML_element_node->ToElement();
-			const char *xml_grid_name = get_XML_attribute(comp_id, grid_XML_element, "local_grid_name", XML_file_name, line_number, "grid name of the current component", "the grid redirection configuration file");
+			const char *xml_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "local_grid_name", XML_file_name, line_number, "grid name of the current component", "the grid redirection configuration file");
 			if (words_are_the_same(xml_grid_name, grid_name)) {
-				another_comp_full_name = get_XML_attribute(comp_id, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the grid redirection configuration file");
-				another_comp_grid_name = get_XML_attribute(comp_id, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the grid redirection configuration file");
+				another_comp_full_name = get_XML_attribute(comp_id, 512, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the grid redirection configuration file");
+				another_comp_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the grid redirection configuration file");
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(another_comp_grid_name) > 0, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") specifies an empty name of the remote grid. Please check the XML file around line number %d", grid_name, XML_file_name, line_number);
 				break;
 			}

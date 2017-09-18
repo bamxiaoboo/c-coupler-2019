@@ -56,7 +56,7 @@ class Dictionary
 
 
 template <class T>  
-Dictionary<T>::Dictionary<T>(int size)
+Dictionary<T>::Dictionary(int size)
 {
 	int true_size = size / 4;
   

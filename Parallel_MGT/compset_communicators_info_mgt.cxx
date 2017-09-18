@@ -86,9 +86,9 @@ Coupling_interface_tag::Coupling_interface_tag(TiXmlElement *XML_element, int co
 	int line_number; 
 
 
-	const char *XML_interface_tag = get_XML_attribute(comp_id, XML_element, "interface_tag", XML_file_name, line_number, "the \"interface_tag\" used to register an export/import interface", "interface configuration file");
-	const char *XML_comp_full_name = get_XML_attribute(comp_id, XML_element, "comp_full_name", XML_file_name, line_number, "the full name of the component model corresponding to the \"interface_tag\"", "interface configuration file");
-	const char *XML_interface_name = get_XML_attribute(comp_id, XML_element, "interface_name", XML_file_name, line_number, "the interface name corresponding to the \"interface_tag\"", "interface configuration file");
+	const char *XML_interface_tag = get_XML_attribute(comp_id, 600, XML_element, "interface_tag", XML_file_name, line_number, "the \"interface_tag\" used to register an export/import interface", "interface configuration file");
+	const char *XML_comp_full_name = get_XML_attribute(comp_id, 512, XML_element, "comp_full_name", XML_file_name, line_number, "the full name of the component model corresponding to the \"interface_tag\"", "interface configuration file");
+	const char *XML_interface_name = get_XML_attribute(comp_id, 80, XML_element, "interface_name", XML_file_name, line_number, "the interface name corresponding to the \"interface_tag\"", "interface configuration file");
 	strcpy(interface_tag, XML_interface_tag);
 	strcpy(comp_full_name, XML_comp_full_name);
 	strcpy(interface_name, XML_interface_name);
@@ -328,9 +328,9 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	temp_array_buffer = NULL;
 	proc_latest_model_time = NULL;
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
-	const char *XML_comp_name = get_XML_attribute(comp_id, XML_element, "name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
-	const char *XML_full_name = get_XML_attribute(comp_id, XML_element, "full_name", XML_file_name, line_number, "the full_name of the component model", "internal configuration file of component information");
-	const char *XML_processes = get_XML_attribute(comp_id, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information");
+	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
+	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full_name of the component model", "internal configuration file of component information");
+	const char *XML_processes = get_XML_attribute(comp_id, -1, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information");
 	strcpy(this->comp_name, XML_comp_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(specified_full_name, XML_full_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: the full name specified is different from the full name in XML file");
 	strcpy(this->full_name, XML_full_name);

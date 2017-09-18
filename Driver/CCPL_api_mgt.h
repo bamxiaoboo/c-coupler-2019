@@ -101,7 +101,7 @@ extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, 
 extern void get_API_hint(int, int, char*);
 extern void check_and_verify_name_format_of_string_for_API(int, const char*, int, const char*, const char*);
 extern void check_and_verify_name_format_of_string_for_XML(int, const char*, const char*, const char*, int);
-extern const char *get_XML_attribute(int, TiXmlElement*, const char*, const char*, int&, const char*, const char*);
+extern const char *get_XML_attribute(int, int, TiXmlElement*, const char*, const char*, int&, const char*, const char*);
 extern bool is_XML_setting_on(int, TiXmlElement*, const char*, const char*, const char*);
 extern void transfer_array_from_one_comp_to_another(int, int, int, int, MPI_Comm, char **, long &);
 extern void gather_array_in_one_comp(int, int, void *, int, int, int *, void **, MPI_Comm);

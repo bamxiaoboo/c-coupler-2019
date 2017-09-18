@@ -655,20 +655,22 @@ TiXmlNode *get_XML_first_child_of_unique_root(int comp_id, const char *XML_file_
 bool is_XML_setting_on(int comp_id, TiXmlElement *XML_element, const char *XML_file_name, const char *attribute_annotation, const char *XML_file_annotation)
 {
 	int line_number;
-	const char *status = get_XML_attribute(comp_id, XML_element, "status", XML_file_name, line_number, attribute_annotation, XML_file_annotation);
+	const char *status = get_XML_attribute(comp_id, -1, XML_element, "status", XML_file_name, line_number, attribute_annotation, XML_file_annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(status, "on") || words_are_the_same(status, "off"), "In the XML file \"%s\" that is for %s, the value of %s is wrong (must be \"on\" or \"off\"). Please verify the XML file arround the line number %d.",
 		             XML_file_name, XML_file_annotation, attribute_annotation, line_number);
 	return words_are_the_same(status, "on");
 }
 
 
-const char *get_XML_attribute(int comp_id, TiXmlElement *XML_element, const char *attribute_keyword, const char *XML_file_name, int &line_number, const char *attribute_annotation, const char *XML_file_annotation)
+const char *get_XML_attribute(int comp_id, int max_string_length, TiXmlElement *XML_element, const char *attribute_keyword, const char *XML_file_name, int &line_number, const char *attribute_annotation, const char *XML_file_annotation)
 {
 	const char *attribute_value = XML_element->Attribute(attribute_keyword, &line_number);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, attribute_value != NULL, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has not been specified. Please verify the XML file arround the line number %d.", 
 		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, XML_element->Row());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) > 0, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has been specified but with an empty string. Please verify the XML file arround the line number %d.", 
 		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, XML_element->Row());
+	if (max_string_length > 0)	
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) <= max_string_length, "Error happens when using the XML configuration file \"%s\": the string size (current is %d) of the value (\"%s\") the XML attribute \"%s\" is larger than the limit (%d). Please verify XML file arround the line %d.", XML_file_name, strlen(attribute_value), attribute_value, attribute_keyword, max_string_length, line_number);
 	return attribute_value;
 }
 

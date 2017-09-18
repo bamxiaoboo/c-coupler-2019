@@ -205,6 +205,9 @@ void common_checking_for_grid_registration(int comp_id, const char *grid_name, c
 	
 	get_API_hint(comp_id, API_id, API_label);
 	check_for_coupling_registration_stage(comp_id, API_id, true, annotation);
+	check_API_parameter_string_length(comp_id, API_id, 80, grid_name, "grid_name", annotation);
+	if (coord_unit != NULL)
+		check_API_parameter_string_length(comp_id, API_id, 80, coord_unit, "coord_unit", annotation);
 	existing_grid = original_grid_mgr->search_grid_info(grid_name, comp_id);
 	if (existing_grid != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"%s\" to register a grid \"%s\": another grid with the same name has already been registered before (at the model code with the annotation \"%s\"). It cannot be registered again (at the model code with the annotation \"%s\"). Please verify.", API_label, grid_name, annotation_mgr->get_annotation(existing_grid->get_grid_id(), "grid_registration"), annotation);
@@ -246,4 +249,22 @@ void transform_datatype_of_arrays(const char *src_array, char *dst_array, const 
 		transform_datatype_of_arrays((const double*)src_array, (float*) dst_array, num_local_cells);
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in transform_datatype_of_arrays: data type transformation from %s to %s is not supported", src_data_type, dst_data_type);
 }
+
+
+void check_API_parameter_string_length(int comp_id, int API_ID, int str_max_size, const char *str, const char *parameter_name, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+
+
+	get_API_hint(-1, API_ID, API_label);
+	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(str) <= str_max_size, "Error happens when calling the API \"%s\": the string size (current is %d) of the parameter \"%s\" (the string is \"%s\") is larger than the limit (%d). Please verify the model code with the annotation \"%s\".", API_label, strlen(str), parameter_name, str, str_max_size, annotation);
+}
+
+
+void check_XML_attribute_value_string_length(int comp_id, int str_max_size, const char *XML_attribute, const char *XML_value, const char *XML_file_name, int line_number)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(XML_value) <= str_max_size, "Error happens when using the XML configuration file \"%s\": the string size (current is %d) of the value (\"%s\") the XML attribute \"%s\" is larger than the limit (%d). Please verify XML file arround the line %d.", XML_file_name, strlen(XML_value), XML_value, XML_attribute, str_max_size, line_number);
+}
+
 
