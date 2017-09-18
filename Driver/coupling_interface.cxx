@@ -37,10 +37,10 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 }
 
 
-extern "C" void finalize_ccpl_(int *to_finalize_MPI)
+extern "C" void finalize_ccpl_(int *to_finalize_MPI, const char *annotation)
 {
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Start to finalize C-Coupler");
+		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Start to finalize C-Coupler at the model code with the annotation \"%s\"", annotation);
 	
 	inout_interface_mgr->free_all_MPI_wins();
 
@@ -58,9 +58,9 @@ extern "C" void finalize_ccpl_(int *to_finalize_MPI)
 	delete runtime_remapping_weights_mgr;
 	delete fields_info;
 	delete original_grid_mgr;
-	delete comp_comm_group_mgt_mgr;
 	delete memory_manager;
 	delete coupling_generator;
+	delete comp_comm_group_mgt_mgr;
 	comp_comm_group_mgt_mgr = NULL;
 
 	if (*to_finalize_MPI == 0)

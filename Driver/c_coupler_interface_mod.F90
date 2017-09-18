@@ -2467,11 +2467,12 @@
    end SUBROUTINE CCPL_check_current_time
 
 
-   SUBROUTINE CCPL_finalize(to_finalize_MPI)
+   SUBROUTINE CCPL_finalize(to_finalize_MPI, annotation)
    implicit none
    include 'mpif.h'
    logical,          intent(in)                :: to_finalize_MPI
    integer                                     :: local_to_finalize_MPI
+   character(len=*), intent(in), optional      :: annotation
    integer ierr
    
    if (to_finalize_MPI) then
@@ -2479,7 +2480,11 @@
    else
        local_to_finalize_MPI = 0
    endif
-   call finalize_CCPL(local_to_finalize_MPI)
+   if (present(annotation)) then
+       call finalize_CCPL(local_to_finalize_MPI, trim(annotation)//char(0))
+   else 
+       call finalize_CCPL(local_to_finalize_MPI, trim("")//char(0))
+   endif
 
    END SUBROUTINE  CCPL_finalize
 
