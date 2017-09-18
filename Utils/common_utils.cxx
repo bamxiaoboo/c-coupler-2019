@@ -268,3 +268,20 @@ void check_XML_attribute_value_string_length(int comp_id, int str_max_size, cons
 }
 
 
+bool is_string_decimal_number(const char *string)
+{
+	int length = strlen(string);
+
+	if (length == 0)
+		return false;
+	
+	for (int i = 0; i < length; i ++) {
+		if (i == 0 && string[i] == '-' && length > 1)
+			continue;
+		if (!(string[i] >= '0' && string[i] <= '9'))
+			return false;
+	}
+	
+	return true;
+}
+

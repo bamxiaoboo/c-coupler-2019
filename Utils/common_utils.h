@@ -22,7 +22,6 @@ extern bool get_next_attr(char *, char **);
 extern bool get_next_integer_attr(char **, int&);
 extern bool get_next_double_attr(char **line, double&);
 extern bool is_end_of_file(FILE *);
-
 extern void write_string_into_array_buffer(const char*, long, char**, long&, long&);
 extern void write_data_into_array_buffer(const void*, long, char **, long&, long&);
 extern bool read_data_from_array_buffer(void*, long, const char*, long &, bool);
@@ -32,6 +31,7 @@ extern void check_for_ccpl_managers_allocated(int, const char *);
 extern bool are_two_coord_arrays_same(double *, double *, int, int);
 extern void check_API_parameter_string_length(int, int, int, const char *, const char *, const char *);
 extern void check_XML_attribute_value_string_length(int, int, const char *, const char *, const char *, int);
+extern bool is_string_decimal_number(const char *);
 
 
 template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)

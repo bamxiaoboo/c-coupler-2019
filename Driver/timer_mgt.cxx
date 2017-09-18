@@ -418,12 +418,14 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		if (words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID)) {
 			const char *rest_refcase = get_XML_attribute(-1, 80, XML_element, "rest_ref_case", XML_file_name, line_number, "the name of the reference case for branch run of hybrid run", "the overall parameters to run the model");
 			strcpy(this->rest_refcase, rest_refcase);
-			const char *refdate_string = get_XML_attribute(-1, -1, XML_element, "rest_ref_date", XML_file_name, line_number, "the date of the reference case for branch run of hybrid run", "the overall parameters to run the model");		
+			const char *refdate_string = get_XML_attribute(-1, -1, XML_element, "rest_ref_date", XML_file_name, line_number, "the date of the reference case for branch run of hybrid run", "the overall parameters to run the model");	
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(refdate_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, refdate_string, "rest_ref_date", line_number);
 			sscanf(refdate_string, "%d", &rest_refdate);
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(rest_refdate/10000, (rest_refdate%10000)/100, rest_refdate%100, 0, NULL), "The date of the reference case for branch run of hybrid run is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 			const char *refsecond_string = get_XML_attribute(-1, -1, XML_element, "rest_ref_second", XML_file_name, line_number, "The second of the reference case for branch run of hybrid run", "the overall parameters to run the model");
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(refsecond_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, refsecond_string, "rest_ref_second", line_number);
 			sscanf(refsecond_string, "%d", &rest_refsecond); 	
-			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(rest_refdate/10000, (rest_refdate%10000)/100, rest_refdate%100, rest_refsecond, NULL), "The start second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(rest_refdate/10000, (rest_refdate%10000)/100, rest_refdate%100, rest_refsecond, NULL), "The \"rest_ref_second\" (%d) specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", rest_refsecond, XML_file_name, line_number);
 		}
 		else {
 			rest_refcase[0] = '\0';
@@ -437,21 +439,24 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			leap_year_on = true;
 		else leap_year_on = false;
 		const char *start_date_string = get_XML_attribute(-1, -1, XML_element, "start_date", XML_file_name, line_number, "the start date to run the simulation", "the overall parameters to run the model");		
+		EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(start_date_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, start_date_string, "start_date", line_number);
 		sscanf(start_date_string, "%d", &start_date);
 	    start_year = start_date / 10000;
     	start_month = (start_date%10000) / 100;
     	start_day = start_date % 100;
 		EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(start_year, start_month, start_day, 0, NULL), "The start date specified is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
-		const char *start_second_string = get_XML_attribute(-1, -1, XML_element, "start_second", XML_file_name, line_number, "the start second to run the simulation", "the overall parameters to run the model");		
+		const char *start_second_string = get_XML_attribute(-1, -1, XML_element, "start_second", XML_file_name, line_number, "the start second to run the simulation", "the overall parameters to run the model");
+		EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(start_second_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, start_second_string, "start_second", line_number);
 		sscanf(start_second_string, "%d", &this->start_second);		
-		EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(start_year, start_month, start_day, start_second, NULL), "The start second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
+		EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(start_year, start_month, start_day, start_second, NULL), "The start second (%d) specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", start_second, XML_file_name, line_number);
 		current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
 		current_year = start_year;
 		current_month = start_month;
 		current_day = start_day;
 		current_second = start_second;
 		const char *reference_date_string = XML_element->Attribute("reference_date", &line_number);
-		if (reference_date_string != NULL) {
+		if (reference_date_string != NULL) {			
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(reference_date_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, reference_date_string, "reference_date", line_number);
 			sscanf(reference_date_string, "%d", &reference_date);
 			reference_year = reference_date / 10000;
 			reference_month = (reference_date%10000) / 100;
@@ -470,6 +475,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		this->rest_freq_count = 0;
 		if (!words_are_the_same(rest_freq_unit, "none")) {
 			const char *rest_freq_count_string = get_XML_attribute(-1, -1, XML_element, "rest_freq_count", XML_file_name, line_number, "the count of the frequency of writing restart data files", "the overall parameters to run the model");		
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(rest_freq_count_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, rest_freq_count_string, "rest_freq_count", line_number);			
 			sscanf(rest_freq_count_string, "%d", &rest_freq_count);
 			EXECUTION_REPORT(REPORT_ERROR, -1, rest_freq_count > 0, "The count of time unit for the frequency of writing restart files (rest_freq_count) must be a possitive value. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 			this->rest_freq_count = rest_freq_count;
@@ -480,12 +486,14 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		strcpy(this->stop_option, stop_option);
 		if (words_are_the_same(stop_option, "date")) {
 			const char *stop_date_string = get_XML_attribute(-1, -1, XML_element, "stop_date", XML_file_name, line_number, "the date to stop the simulation", "the overall parameters to run the model");
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(stop_date_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, stop_date_string, "stop_date", line_number);						
 			sscanf(stop_date_string, "%d", &stop_date);
 			stop_year = stop_date / 10000;
 			stop_month = (stop_date%10000) / 100;
 			stop_day = stop_date % 100;
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year, stop_month, stop_day, 0, NULL), "The stop date specified is a wrong date. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 			const char *stop_second_string = get_XML_attribute(-1, -1, XML_element, "stop_second", XML_file_name, line_number, "the second to stop the simulation", "the overall parameters to run the model");
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(stop_second_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, stop_second_string, "stop_second", line_number);									
 			sscanf(stop_second_string, "%d", &this->stop_second); 	
 			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year, stop_month, stop_day, stop_second, NULL), "The stop second specified is a wrong second number in a day. Please check the XML file \"%s\" arround the line_number %d", XML_file_name, line_number);
 			num_total_seconds = (calculate_elapsed_day(stop_year,stop_month,stop_day)-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
@@ -493,12 +501,15 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		}
 		else {
 			const char *stop_n_string = get_XML_attribute(-1, -1, XML_element, "stop_n", XML_file_name, line_number, "the count for stopping the simulation", "the overall parameters to run the model");
+			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(stop_n_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, stop_n_string, "stop_n", line_number);												
 			sscanf(stop_n_string, "%d", &stop_n);
 			if (stop_n == -999 || stop_n <= 0)
 				stop_year = stop_month = stop_day = stop_second = -1;
-			else calculate_stop_time(start_year, start_month, start_day, start_second);
+			else {
+				calculate_stop_time(start_year, start_month, start_day, start_second);				
+				EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year,stop_month,stop_day,stop_second,"Software error in Time_mgt::Time_mgt: wrong stop time generated by C-Coupler."));
+			}
 			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "The stop time generated by C-Coupler according to the users' specification is %04d%02d%02d-%05d", stop_year, stop_month, stop_day, stop_second);
-			EXECUTION_REPORT(REPORT_ERROR, -1, check_is_time_legal(stop_year,stop_month,stop_day,stop_second,"Software error in Time_mgt::Time_mgt: wrong stop time generated by C-Coupler."));
 		}
 	}
 
@@ -512,7 +523,9 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
     current_second = start_second;
 	current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
 	start_num_elapsed_day = current_num_elapsed_day;
-	stop_num_elapsed_day = calculate_elapsed_day(stop_year,stop_month,stop_day);
+	if (stop_year != -1)
+		stop_num_elapsed_day = calculate_elapsed_day(stop_year,stop_month,stop_day);
+	else stop_num_elapsed_day = -1;
 	current_step_id = 0;
 	restarted_step_id = -1;
 	num_total_steps = -1;
