@@ -801,7 +801,8 @@ void IO_netcdf::put_global_attr(const char *text_title, const void *attr_value, 
 
 bool IO_netcdf::get_file_field_attribute(const char *field_name, const char *attribute_name, char *attribute_value, char *data_type)
 {
-	int variable_id = NC_GLOBAL, nc_data_type;
+	int variable_id = NC_GLOBAL;
+	nc_type nc_data_type;
 	unsigned long attribute_size;
 
 	
@@ -928,13 +929,27 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 			for (i = 0; i < num_dims; i ++)
 				total_size *= dim_size[i];
 			data_array = new char [total_size*get_data_type_size(data_type)];
-			rcode = nc_get_var(ncfile_id, variable_id, data_array);
-
+			switch(nc_var_type) {
+				case NC_SHORT:
+					rcode = nc_get_var_short(ncfile_id, variable_id, (short*)data_array);
+					break;
+				case NC_INT:
+					rcode = nc_get_var_int(ncfile_id, variable_id, (int*)data_array);
+					break;
+				case NC_FLOAT:
+					rcode = nc_get_var_float(ncfile_id, variable_id, (float*)data_array);
+					break;
+				case NC_DOUBLE:
+					rcode = nc_get_var_double(ncfile_id, variable_id, (double*)data_array);
+					break;
+				default:
+					EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in IO_netcdf::read_file_field: data type %s is not supported", data_type);
+					break;
+			}
+			report_nc_error();
 			*field_size = total_size;
-
 			delete [] dim_ids;
 			delete [] dim_size;
-
 			rcode = nc_close(ncfile_id);
 			report_nc_error();
 		}
