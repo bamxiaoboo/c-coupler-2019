@@ -503,7 +503,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 			const char *stop_n_string = get_XML_attribute(-1, -1, XML_element, "stop_n", XML_file_name, line_number, "the count for stopping the simulation", "the overall parameters to run the model");
 			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(stop_n_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, stop_n_string, "stop_n", line_number);												
 			sscanf(stop_n_string, "%d", &stop_n);
-			if (stop_n == -999 || stop_n <= 0)
+			if (stop_n == -999)
 				stop_year = stop_month = stop_day = stop_second = -1;
 			else {
 				calculate_stop_time(start_year, start_month, start_day, start_second);				

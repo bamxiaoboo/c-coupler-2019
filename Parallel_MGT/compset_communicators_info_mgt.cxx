@@ -163,6 +163,9 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	
 	strcpy(this->comp_name, comp_name);
 	strcpy(this->comp_type, comp_type);
+	if (parent != NULL && words_are_the_same(parent->get_comp_type(), COMP_TYPE_PSEUDO_COUPLED) && parent->children.size() > 0)
+		EXECUTION_REPORT(REPORT_ERROR, parent->get_comp_id(), false, "Error happens when registering the component model \"%s\": its parent \"%s\" is an inactive component model and already has one child \"%s\". Please note that an inactive component model can have at most one child. Please check the model code with the annotation \"%s\"", comp_name, parent->comp_name, parent->children[0]->comp_name, annotation);
+
 	while(ancestor != NULL && words_are_the_same(ancestor->get_comp_type(), COMP_TYPE_PSEUDO_COUPLED)) 
 		ancestor = ancestor->get_parent();
 	if (ancestor == NULL || words_are_the_same(ancestor->get_comp_name(), "ROOT"))
