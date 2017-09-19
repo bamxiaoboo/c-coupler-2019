@@ -855,7 +855,7 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 }
 
 
-int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, const char *annotation)
+int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, int change_dir, const char *annotation)
 {
 	int i, true_parent_id = 0;
 	Comp_comm_group_mgt_node *root_local_node, *new_comp;
@@ -901,6 +901,13 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 	if (strlen(first_active_comp_config_dir) == 0 && new_comp->is_real_component_model()) {
 		sprintf(first_active_comp_config_dir, "%s/%s", runtime_config_root_dir, new_comp->get_comp_name());
+		if (change_dir == 1) {
+			char new_dir[NAME_STR_SIZE];
+			sprintf(new_dir, "%s/run/%s/%s", root_working_dir, new_comp->get_comp_type(), new_comp->get_comp_name());
+			DIR *dir=opendir(new_dir);
+			EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), dir != NULL, "Fail to change working directory for the first active component model \"%s\": the directory \"%s\" does not exist.", new_comp->get_comp_name(), new_dir);
+			chdir(new_dir);
+		}
 		original_grid_mgr->initialize_CoR_grids();
 	}
 

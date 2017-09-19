@@ -1381,7 +1381,7 @@
 
 
 
-   integer FUNCTION CCPL_register_component(parent_id, comp_name, comp_type, comp_comm, annotation)
+   integer FUNCTION CCPL_register_component(parent_id, comp_name, comp_type, comp_comm, change_dir, annotation)
    implicit none
    integer                                 :: rcode
    integer, external                       :: chdir, getcwd   ! LINUX system call
@@ -1391,11 +1391,16 @@
    integer, intent(inout)                  :: comp_comm
    character(len=*), intent(in)            :: comp_type
    character(len=*), intent(in)            :: comp_name
+   logical, intent(in), optional           :: change_dir
    character(len=*), intent(in), optional  :: annotation
+   integer                                 :: local_change_dir
    character *1024                         :: local_annotation
    character *1024                         :: exe_name
    character *1024                         :: root_working_dir
 
+
+   local_change_dir = 0
+   if (present(change_dir) .and. change_dir) local_change_dir = 1
 
    local_annotation = ""
    if (present(annotation)) then
@@ -1407,9 +1412,9 @@
       call getarg(0, exe_name)
       call initialize_CCPL_mgrs
       call check_CCPL_Fortran_API_int_type(parent_id)
-      call register_root_component(comp_comm, trim(comp_name)//char(0), trim(comp_type)//char(0), trim(local_annotation)//char(0), comp_id, trim(exe_name)//char(0), trim(root_working_dir)//char(0))
+      call register_root_component(comp_comm, trim(comp_name)//char(0), trim(comp_type)//char(0), trim(local_annotation)//char(0), comp_id, local_change_dir, trim(exe_name)//char(0))
    else
-      call register_component(parent_id, trim(comp_name)//char(0), trim(comp_type)//char(0), comp_comm, trim(local_annotation)//char(0), comp_id)
+      call register_component(parent_id, trim(comp_name)//char(0), trim(comp_type)//char(0), comp_comm, trim(local_annotation)//char(0), local_change_dir, comp_id)
    endif
    CCPL_register_component = comp_id
 

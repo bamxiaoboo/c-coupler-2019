@@ -239,7 +239,7 @@ extern "C" void check_fortran_api_int_type_(int *fortran_int_size)
 
 
 extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
-										const char *executable_name)
+										int *change_dir, const char *executable_name)
 {
 	int flag;
 	MPI_Comm local_comm = -1;
@@ -272,7 +272,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		
 	}
 
-	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, annotation);
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, *change_dir, annotation);
 
 	if (*comm != -1) {
 		int input_comm_size, new_comm_size;
@@ -316,7 +316,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 }
 
 
-extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *comp_id)
+extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *change_dir, int *comp_id)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register component model \%s\"", comp_name);
 
@@ -330,7 +330,7 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 	}
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, *change_dir, annotation);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);

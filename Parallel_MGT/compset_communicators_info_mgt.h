@@ -147,7 +147,7 @@ class Comp_comm_group_mgt_mgr
 	public:
 		Comp_comm_group_mgt_mgr(const char*);
 		~Comp_comm_group_mgt_mgr();
-		int register_component(const char*, const char*, MPI_Comm&, int, const char*);
+		int register_component(const char*, const char*, MPI_Comm&, int, int, const char*);
 		void merge_comp_comm_info(int, const char*);
 		bool is_legal_local_comp_id(int);
 		void update_global_nodes(Comp_comm_group_mgt_node**, int);
