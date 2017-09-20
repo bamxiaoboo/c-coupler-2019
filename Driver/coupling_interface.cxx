@@ -272,6 +272,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 		
 	}
 
+	original_grid_mgr = new Original_grid_mgt();
 	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, *change_dir, annotation);
 
 	if (*comm != -1) {
@@ -307,7 +308,6 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	components_time_mgrs->define_root_comp_time_mgr(root_comp_id, file_name);
 	import_report_setting();
 	fields_info = new Field_info_mgt();
-	original_grid_mgr = new Original_grid_mgt();
 	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(root_comp_id,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(root_comp_id);

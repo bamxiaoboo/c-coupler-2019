@@ -20,6 +20,8 @@ int Field_info_mgt::get_field_num_dims(const char *field_dim, const char *cfg_na
 		return 0;
 	if (words_are_the_same(field_dim, FIELD_2_DIM))
 		return 2;
+	if (words_are_the_same(field_dim, FIELD_V1_DIM))
+		return 1;
 	if (words_are_the_same(field_dim, FIELD_3_DIM))
 		return 3;
 	if (words_are_the_same(field_dim, FIELD_4_DIM))
@@ -82,9 +84,9 @@ Field_info_mgt::Field_info_mgt()
 		if (existing_field != NULL && comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 			EXECUTION_REPORT(REPORT_ERROR, -1, false, "Cannot spefify the attributes of field \"%s\" in the XML file \"%s\" around the line number %d again because it has already been specified around the line number %d", field_name, XML_file_name, line_number, existing_field->line_number);
 		const char *field_long_name = get_XML_attribute(-1, 1000, field_XML_element, "long_name", XML_file_name, line_number, "long name of a field", "configuration of the attributes of shared fields for coupling");
-		const char *field_dimensions = get_XML_attribute(-1, -1, field_XML_element, "dimensions", XML_file_name, line_number, "information of dimensions (0D, H2D or V3D) of a field", "configuration of the attributes of shared fields for coupling");
+		const char *field_dimensions = get_XML_attribute(-1, -1, field_XML_element, "dimensions", XML_file_name, line_number, "information of dimensions (0D, H2D, V1D or V3D) of a field", "configuration of the attributes of shared fields for coupling");
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_dimensions, FIELD_0_DIM) || words_are_the_same(field_dimensions, FIELD_2_DIM) || words_are_the_same(field_dimensions, FIELD_3_DIM), "The dimensions of field \"%s\" is wrong (must be \"0D\", \"H2D\" or \"V3D\"). Please verify the XML file \"%s\" arround the line number %d.", field_name, XML_file_name, field_XML_element->Row());
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_dimensions, FIELD_0_DIM) || words_are_the_same(field_dimensions, FIELD_2_DIM) || words_are_the_same(field_dimensions, FIELD_3_DIM) || words_are_the_same(field_dimensions, FIELD_V1_DIM), "The dimensions of field \"%s\" is wrong (must be \"0D\", \"H2D\", \"V1D\" or \"V3D\"). Please verify the XML file \"%s\" arround the line number %d.", field_name, XML_file_name, field_XML_element->Row());
 		const char *default_unit = get_XML_attribute(-1, 80, field_XML_element, "default_unit", XML_file_name, line_number, "default unit of a field", "configuration of the attributes of shared fields for coupling");
 		const char *field_type = get_XML_attribute(-1, -1, field_XML_element, "type", XML_file_name, line_number, "default unit of a field", "configuration of the attributes of shared fields for coupling");
 		add_field_info(field_name, field_long_name, default_unit, field_dimensions, field_type, line_number);

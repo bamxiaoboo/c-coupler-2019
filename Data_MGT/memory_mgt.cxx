@@ -71,6 +71,8 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 		bool dimensions_match_grid;
 		if (words_are_the_same(field_attributes->field_dim, FIELD_0_DIM))
 			dimensions_match_grid = decomp_id == -1 && remap_grid_grid == NULL;
+		if (words_are_the_same(field_attributes->field_dim, FIELD_V1_DIM))
+			dimensions_match_grid = decomp_id == -1 && remap_grid_grid != NULL && remap_grid_grid->get_num_dimensions() == 1 && remap_grid_grid->has_grid_coord_label(COORD_LABEL_LEV);
 		else if (words_are_the_same(field_attributes->field_dim, FIELD_2_DIM))
 			dimensions_match_grid = decomp_id != -1 && remap_grid_grid != NULL && remap_grid_grid->get_is_sphere_grid();
 		else if (words_are_the_same(field_attributes->field_dim, FIELD_3_DIM))

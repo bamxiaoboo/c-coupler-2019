@@ -16,6 +16,7 @@
 
 #define FIELD_0_DIM       "0D"
 #define FIELD_2_DIM       "H2D"
+#define FIELD_V1_DIM      "V1D"
 #define FIELD_3_DIM       "V3D"
 #define FIELD_4_DIM       "4D"
 
