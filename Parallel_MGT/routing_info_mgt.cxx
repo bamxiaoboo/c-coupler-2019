@@ -132,6 +132,7 @@ void Routing_info::build_2D_router()
     int src_comp_root_proc_global_id = src_comp_node->get_root_proc_global_id();
     int dst_comp_root_proc_global_id = dst_comp_node->get_root_proc_global_id();
     Routing_info_with_one_process *routing_info;
+	long total_src_cells, total_dst_cells;
 
 
     if (current_proc_id_src_comp != -1) {
@@ -139,14 +140,14 @@ void Routing_info::build_2D_router()
         num_local_src_cells = src_decomp_info->get_num_local_cells();
 		*num_global_src_cells = src_decomp_info->get_num_global_cells();
 		gather_array_in_one_comp(num_src_procs, current_proc_id_src_comp, (void*)src_decomp_info->get_local_cell_global_indx(), num_local_src_cells, 
-			                     sizeof(int), num_cells_each_src_proc, (void**)(&cells_indx_each_src_proc), src_comp_node->get_comm_group());
+			                     sizeof(int), num_cells_each_src_proc, (void**)(&cells_indx_each_src_proc), total_src_cells, src_comp_node->get_comm_group());
     }
     if (current_proc_id_dst_comp != -1) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, dst_decomp_info != NULL, "Software error in Routing_info::build_2D_router: NULL dst decomp info");
         num_local_dst_cells = dst_decomp_info->get_num_local_cells();
 		*num_global_dst_cells = dst_decomp_info->get_num_global_cells();
 		gather_array_in_one_comp(num_dst_procs, current_proc_id_dst_comp, (void*)dst_decomp_info->get_local_cell_global_indx(), num_local_dst_cells, 
-								 sizeof(int), num_cells_each_dst_proc, (void**)(&cells_indx_each_dst_proc), dst_comp_node->get_comm_group());
+								 sizeof(int), num_cells_each_dst_proc, (void**)(&cells_indx_each_dst_proc), total_dst_cells, dst_comp_node->get_comm_group());
     }
 
 	long temp_size = num_src_procs*sizeof(int);
@@ -157,10 +158,10 @@ void Routing_info::build_2D_router()
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&num_global_src_cells), temp_size);	
 	if (current_proc_id_dst_comp != -1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, *num_global_src_cells == *num_global_dst_cells, "Software error in Routing_info::build_2D_router: different global decomp grid size: %d vs %d", *num_global_src_cells, *num_global_dst_cells);
-	long total_src_cells = 0;
+	total_src_cells = 0;
 	for (int i = 0; i < num_src_procs; i ++) 
 		total_src_cells += num_cells_each_src_proc[i] * sizeof(int);
-	long total_dst_cells = 0;
+	total_dst_cells = 0;
 	for (int i = 0; i < num_dst_procs; i ++) 
 		total_dst_cells += num_cells_each_dst_proc[i] * sizeof(int);
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), (char**)(&cells_indx_each_src_proc), total_src_cells);

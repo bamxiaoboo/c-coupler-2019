@@ -324,7 +324,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 
 Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, const char *specified_full_name, const char *XML_file_name)
 {
-	int line_number, current_proc_global_id;
+	int line_number;
 
 
 	comp_id = -1;
@@ -708,6 +708,48 @@ long Comp_comm_group_mgt_node::get_proc_latest_model_time(int proc_id)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, proc_id >= 0 && proc_id < get_num_procs(), "Software error in get_proc_latest_model_time: wrong proc id");
 	return proc_latest_model_time[proc_id];
+}
+
+
+void Comp_comm_group_mgt_node::get_all_descendant_real_comp_fullnames(int top_comp_id, std::vector<char*> &all_descendant_real_comp_fullnames, char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	char *local_temp_array_buffer = NULL, *gather_temp_array_buffer = NULL;
+	long local_buffer_max_size, local_buffer_content_size = 0, gather_buffer_content_size = 0;
+	
+
+	for (int i = 0; i < children.size(); i ++)
+		children[i]->get_all_descendant_real_comp_fullnames(top_comp_id, all_descendant_real_comp_fullnames, &local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
+
+	if (is_real_component_model() && current_proc_local_id == 0)
+		dump_string(full_name, -1, &local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
+
+	if (current_proc_local_id != -1) {
+		int *all_array_size = new int [get_num_procs()];
+		gather_array_in_one_comp(get_num_procs(), current_proc_local_id, local_temp_array_buffer, local_buffer_content_size, sizeof(char), all_array_size, (void**)(&gather_temp_array_buffer), gather_buffer_content_size, comm_group);
+		if (current_proc_local_id == 0)
+			write_data_into_array_buffer(gather_temp_array_buffer, gather_buffer_content_size, temp_array_buffer, buffer_max_size, buffer_content_size);
+		delete [] all_array_size;
+	}
+
+	if (local_temp_array_buffer != NULL)
+		delete [] local_temp_array_buffer;
+	if (gather_temp_array_buffer != NULL)
+		delete [] gather_temp_array_buffer;
+
+	if (comp_id == top_comp_id) {
+		bcast_array_in_one_comp(current_proc_local_id, temp_array_buffer, buffer_content_size, comm_group);
+		char temp_full_name[NAME_STR_SIZE];
+		long str_size;
+		while (buffer_content_size > 0) {
+			load_string(temp_full_name, str_size, NAME_STR_SIZE, *temp_array_buffer, buffer_content_size, "C-Coupler internal");
+			all_descendant_real_comp_fullnames.push_back(strdup(temp_full_name));
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "Software error in Comp_comm_group_mgt_node::get_all_descendant_real_comp_fullnames");
+		if (*temp_array_buffer != NULL) {
+			delete [] *temp_array_buffer;
+			*temp_array_buffer = NULL;
+		}
+	}
 }
 
 

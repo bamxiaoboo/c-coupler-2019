@@ -698,31 +698,26 @@ void transfer_array_from_one_comp_to_another(int current_proc_local_id_src_comp,
 		}
 	}
 
-	if (current_proc_local_id_dst_comp != -1) {
-		MPI_Bcast(&array_size, 1, MPI_LONG, 0, comm_dst_comp);
-		if (array_size > 0) {
-			if (current_proc_local_id_dst_comp != 0 && *array != NULL)
-				delete [] *array;
-			if (current_proc_local_id_dst_comp != 0)
-				*array = new char [array_size];
-			MPI_Bcast(*array, array_size, MPI_CHAR, 0, comm_dst_comp);
-		}
-	}		
+	if (current_proc_local_id_dst_comp != -1)
+		bcast_array_in_one_comp(current_proc_local_id_dst_comp, array, array_size, comm_dst_comp);
 }
 
 
 void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_id, void *local_array, int local_array_size, 
-	                          int data_type_size, int *all_array_size, void **global_array, MPI_Comm comm)
+	                          int data_type_size, int *all_array_size, void **global_array, long &global_size, MPI_Comm comm)
 {
     int *displs = new int [num_total_local_proc];
 	int *counts = new int [num_total_local_proc];
 
 	
     MPI_Gather(&local_array_size, 1, MPI_INT, all_array_size, 1, MPI_INT, 0, comm);
+	global_size = 0;
     if (current_proc_local_id == 0) {
         displs[0] = 0;
 		counts[0] = all_array_size[0] * data_type_size;
+		global_size = all_array_size[0];
         for (int i = 1; i < num_total_local_proc; i ++) {
+			global_size += all_array_size[i];
 			counts[i] = all_array_size[i] * data_type_size;
             displs[i] = displs[i-1] + counts[i-1];
         }
@@ -732,6 +727,19 @@ void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_i
 
     delete [] displs;
     delete [] counts;
+}
+
+
+void bcast_array_in_one_comp(int current_proc_local_id, char **array, long &array_size, MPI_Comm comm)
+{
+	MPI_Bcast(&array_size, 1, MPI_LONG, 0, comm);
+	if (array_size > 0) {
+		if (current_proc_local_id != 0 && *array != NULL)
+			delete [] *array;
+		if (current_proc_local_id != 0)
+			*array = new char [array_size];
+		MPI_Bcast(*array, array_size, MPI_CHAR, 0, comm);
+	}
 }
 
 

@@ -176,7 +176,7 @@ class Coupling_generator
 	public:
 		Coupling_generator() { latest_connection_id = 1; import_field_index_lookup_table = NULL; export_field_index_lookup_table = NULL; }
 		~Coupling_generator();
-		void generate_coupling_procedures();
+		void generate_coupling_procedures(int);
         void generate_IO_procedures();
 		int apply_connection_id() {  return (++latest_connection_id); }
 		int get_latest_connection_id() { return latest_connection_id; }

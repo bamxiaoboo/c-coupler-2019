@@ -873,7 +873,7 @@ void Coupling_generator::synchronize_latest_connection_id(MPI_Comm comm)
 }
 
 
-void Coupling_generator::generate_coupling_procedures()
+void Coupling_generator::generate_coupling_procedures(int comp_id)
 {
 	bool define_use_wrong = false;
 	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
@@ -881,12 +881,18 @@ void Coupling_generator::generate_coupling_procedures()
 	int temp_int;	
 	Coupling_connection *coupling_connection;
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
+	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures");
+	std::vector<char *> all_descendant_real_comp_fullnames;
 	
-
-	coupling_generator->synchronize_latest_connection_id(MPI_COMM_WORLD);
 	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedure");
+
+	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_descendant_real_comp_fullnames, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+	if ((comp_id & TYPE_ID_SUFFIX_MASK) != 1)
+		return;
+	
+	coupling_generator->synchronize_latest_connection_id(comm);
 	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
@@ -1002,10 +1008,10 @@ void Coupling_generator::generate_coupling_procedures()
 	}
 	
 
-	MPI_Bcast(&current_array_buffer_size, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&current_array_buffer_size, 1, MPI_LONG, 0, comm);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) 
 		temp_array_buffer = new char [current_array_buffer_size];
-	MPI_Bcast(temp_array_buffer, current_array_buffer_size, MPI_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Bcast(temp_array_buffer, current_array_buffer_size, MPI_CHAR, 0, comm);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) {
 		int num_connections, num_fields, num_sources;
 		long buffer_content_iter = current_array_buffer_size;

@@ -104,7 +104,8 @@ extern void check_and_verify_name_format_of_string_for_XML(int, const char*, con
 extern const char *get_XML_attribute(int, int, TiXmlElement*, const char*, const char*, int&, const char*, const char*);
 extern bool is_XML_setting_on(int, TiXmlElement*, const char*, const char*, const char*);
 extern void transfer_array_from_one_comp_to_another(int, int, int, int, MPI_Comm, char **, long &);
-extern void gather_array_in_one_comp(int, int, void *, int, int, int *, void **, MPI_Comm);
+extern void gather_array_in_one_comp(int, int, void *, int, int, int *, void **, long &, MPI_Comm);
+extern void bcast_array_in_one_comp(int, char **, long &, MPI_Comm);
 extern long calculate_checksum_of_array(const char *, int, int, const char *, const char *);
 extern char *check_and_aggregate_local_grid_data(int, int, MPI_Comm, const char *, int, int, int, char *, const char *, int, int *, int &, const char *);
 extern bool does_file_exist(const char *);

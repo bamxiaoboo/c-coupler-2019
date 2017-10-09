@@ -388,7 +388,7 @@ extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *
 }
 
 
-extern "C" void end_registration_(int *comp_id, const char * annotation)
+extern "C" void ccpl_end_registration_(int *comp_id, int *do_coupling_generation, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	
@@ -398,8 +398,10 @@ extern "C" void end_registration_(int *comp_id, const char * annotation)
 
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(*comp_id);
+	if ((*do_coupling_generation) == 1)
+		coupling_generator->generate_coupling_procedures(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
-		coupling_generator->generate_coupling_procedures();
+		coupling_generator->generate_coupling_procedures(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id());
 		coupling_generator->generate_IO_procedures();
 		delete all_H2D_remapping_wgt_files_info;
 	}

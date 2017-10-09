@@ -123,6 +123,7 @@ class Comp_comm_group_mgt_node
 		void set_current_proc_current_time(int, int);
 		void set_proc_latest_model_time(int, long);
 		long get_proc_latest_model_time(int);
+		void get_all_descendant_real_comp_fullnames(int, std::vector<char*>&, char **, long &, long &);
 };
 
 
