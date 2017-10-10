@@ -627,9 +627,8 @@ bool Coupling_connection::get_is_bottom_field_dynamic(int field_indx)
 }
 
 
-Import_direction_setting::Import_direction_setting(Import_interface_configuration *interface_configuration, const char *comp_full_name, const char *interface_name, TiXmlElement *redirection_element, const char *XML_file_name, std::vector<const char*> &interface_fields_name, int *fields_count)
+Import_direction_setting::Import_direction_setting(int host_comp_id, Import_interface_configuration *interface_configuration, const char *comp_full_name, const char *interface_name, TiXmlElement *redirection_element, const char *XML_file_name, std::vector<const char*> &interface_fields_name, int *fields_count, bool check_comp_existence)
 {
-	int comp_id = comp_comm_group_mgt_mgr->search_global_node(comp_full_name)->get_comp_id();
 	TiXmlElement *fields_element = NULL, *components_element = NULL, *remapping_element = NULL, *merge_element = NULL;
 	int i, line_number;
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> producer_info;
@@ -639,33 +638,33 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 	for (TiXmlNode *detailed_element_node = redirection_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		if (words_are_the_same(detailed_element->Value(), "fields")) {
-			if (!is_XML_setting_on(comp_id, detailed_element, XML_file_name, "the status of \"fields\"", "import interface configuration file"))
+			if (!is_XML_setting_on(host_comp_id, detailed_element, XML_file_name, "the status of \"fields\"", "import interface configuration file"))
 				continue;
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			fields_element = detailed_element;
-			const char *default_str = get_XML_attribute(comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file");
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all") || words_are_the_same(default_str, "remain"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"fields\" is wrong (legal values are \"off\", \"all\" and \"remain\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
+			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file");
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all") || words_are_the_same(default_str, "remain"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"fields\" is wrong (legal values are \"off\", \"all\" and \"remain\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				fields_default_setting = 0;
 				for (TiXmlNode *field_element_node = detailed_element->FirstChild(); field_element_node != NULL; field_element_node = field_element_node->NextSibling()) {
 					TiXmlElement *field_element = field_element_node->ToElement();
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field (arround line %d of the XML file)", interface_name, XML_file_name, field_element->Row());
-					const char *field_name = get_XML_attribute(comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file");	
-					check_and_verify_name_format_of_string_for_XML(comp_id, field_name, "the field", XML_file_name, line_number);
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_info->search_field_info(field_name) != NULL, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", an illegal field name (\"%s\") is detected. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_name, field_element->Row());
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field (arround line %d of the XML file)", interface_name, XML_file_name, field_element->Row());
+					const char *field_name = get_XML_attribute(host_comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file");	
+					check_and_verify_name_format_of_string_for_XML(host_comp_id, field_name, "the field", XML_file_name, line_number);
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", an illegal field name (\"%s\") is detected. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_name, field_element->Row());
 					for (i = 0; i < interface_fields_name.size(); i ++)
 						if (words_are_the_same(interface_fields_name[i], field_name))
 							break;
 					if (i < interface_fields_name.size())
 						fields_name.push_back(strdup(interface_fields_name[i]));
-					else EXECUTION_REPORT(REPORT_WARNING, comp_id, true, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the interface does not contain a field with the name of \"%s\"", interface_name, XML_file_name, field_name);
+					else EXECUTION_REPORT(REPORT_WARNING, host_comp_id, true, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the interface does not contain a field with the name of \"%s\"", interface_name, XML_file_name, field_name);
 				}
-				EXECUTION_REPORT(REPORT_WARNING, comp_id, fields_name.size() > 0, "When setting a redirection configuration of the import interface \"%s\" in the XML file \"%s\", there are no fields specified. Please note the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
+				EXECUTION_REPORT(REPORT_WARNING, host_comp_id, fields_name.size() > 0, "When setting a redirection configuration of the import interface \"%s\" in the XML file \"%s\", there are no fields specified. Please note the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			}
 			else if (words_are_the_same(default_str, "all")) {
 				fields_default_setting = 1;
 				for (i = 0; i < interface_fields_name.size(); i ++) {
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_count[i] == 0, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the configuration information of field \"%s\" has been set more than once. This is not allowed. Please note that the default value \"all\" means all fields. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, interface_fields_name[i], detailed_element->Row()); 
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_count[i] == 0, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the configuration information of field \"%s\" has been set more than once. This is not allowed. Please note that the default value \"all\" means all fields. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, interface_fields_name[i], detailed_element->Row()); 
 					fields_count[i] ++;
 					fields_name.push_back(strdup(interface_fields_name[i]));					
 				}
@@ -681,19 +680,20 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 			}
 		}
 		else if (words_are_the_same(detailed_element->Value(), "components")) {
-			if (!is_XML_setting_on(comp_id, detailed_element, XML_file_name, "the status of \"components\"", "import interface configuration file"))
+			if (!is_XML_setting_on(host_comp_id, detailed_element, XML_file_name, "the status of \"components\"", "import interface configuration file"))
 				continue;
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, components_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 			components_element = detailed_element;
-			const char *default_str = get_XML_attribute(comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file");
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"componets\" is wrong (legal values are \"off\" and \"all\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
+			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file");
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"componets\" is wrong (legal values are \"off\" and \"all\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				components_default_setting = 0;
 				for (TiXmlNode *component_element_node = detailed_element->FirstChild(); component_element_node != NULL; component_element_node = component_element_node->NextSibling()) {
 					TiXmlElement *component_element = component_element_node->ToElement();
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
-					const char *full_name = get_XML_attribute(comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
+					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
+					if (check_comp_existence)
+						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
 					strcpy(producer_info.first, full_name);
 					const char *interface_name = component_element->Attribute("interface_name", &line_number);
 					if (interface_name == NULL)
@@ -717,15 +717,15 @@ Import_direction_setting::Import_direction_setting(Import_interface_configuratio
 			}
 		}
 		else if (words_are_the_same(detailed_element->Value(), "merge_setting")) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"merge_setting\" is not supported currently", interface_name, XML_file_name);
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"merge_setting\" is not supported currently", interface_name, XML_file_name);
 		}
-		else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Value(), detailed_element->Row());
+		else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Value(), detailed_element->Row());
 	}		
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about fields is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, components_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about components is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about fields is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about components is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 	for (i = 0; i < fields_name.size(); i ++)
 		for (int j = 0; j < producers_info.size(); j ++)
-			interface_configuration->add_field_src_component(comp_id, fields_name[i], producers_info[j]);
+			interface_configuration->add_field_src_component(host_comp_id, fields_name[i], producers_info[j]);
 }
 
 
@@ -734,7 +734,7 @@ Import_direction_setting::~Import_direction_setting()
 }
 
 
-Import_interface_configuration::Import_interface_configuration(const char *comp_full_name, const char *interface_name, TiXmlElement *interface_element, const char *XML_file_name, Inout_interface_mgt *all_interfaces_mgr)
+Import_interface_configuration::Import_interface_configuration(int host_comp_id, const char *comp_full_name, const char *interface_name, TiXmlElement *interface_element, const char *XML_file_name, Inout_interface_mgt *all_interfaces_mgr, bool check_comp_existence)
 {
 	int *fields_count, line_number;
 	Inout_interface *interface_ptr = all_interfaces_mgr->get_interface(comp_full_name, interface_name);
@@ -755,7 +755,7 @@ Import_interface_configuration::Import_interface_configuration(const char *comp_
 		EXECUTION_REPORT(REPORT_ERROR, interface_ptr->get_comp_id(), words_are_the_same(redirection_element->Value(),"import_redirection"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the XML element for specifying the redirection configuration should be named \"import_redirection\". Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 		if (!is_XML_setting_on(interface_ptr->get_comp_id(), redirection_element, XML_file_name, "the status of some redirection configurations for an import interface", "import interface configuration file"))
 			continue;
-		import_directions.push_back(new Import_direction_setting(this, comp_full_name, interface_name, redirection_element, XML_file_name, fields_name, fields_count));
+		import_directions.push_back(new Import_direction_setting(host_comp_id, this, comp_full_name, interface_name, redirection_element, XML_file_name, fields_name, fields_count, check_comp_existence));
 	}
 
 	delete [] fields_count;
@@ -789,7 +789,7 @@ void Import_interface_configuration::get_field_import_configuration(const char *
 }
 
 
-Component_import_interfaces_configuration::Component_import_interfaces_configuration(int comp_id, Inout_interface_mgt *interface_mgr)
+Component_import_interfaces_configuration::Component_import_interfaces_configuration(int comp_id, Inout_interface_mgt *interface_mgr, bool check_comp_existence)
 {
 	char XML_file_name[NAME_STR_SIZE];
 	int line_number;
@@ -833,12 +833,63 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 		for (int i = 0; i < import_interfaces_configuration.size(); i ++)
 			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The redirection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
 				
-		import_interfaces_configuration.push_back(new Import_interface_configuration(comp_full_name, import_interface->get_interface_name(), interface_XML_element, XML_file_name, interface_mgr));
+		import_interfaces_configuration.push_back(new Import_interface_configuration(comp_id, comp_full_name, import_interface->get_interface_name(), interface_XML_element, XML_file_name, interface_mgr, check_comp_existence));
 	}
 
 	delete XML_file;
 	
-	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s", XML_file_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s\n", XML_file_name);
+}
+
+
+Component_import_interfaces_configuration::Component_import_interfaces_configuration(int host_comp_id, const char *comp_full_name, Inout_interface_mgt *interface_mgr, bool check_comp_existence)
+{
+	char XML_file_name[NAME_STR_SIZE];
+	int line_number;
+
+
+	strcpy(this->comp_full_name, comp_full_name);
+	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
+	TiXmlDocument *XML_file = open_XML_file_to_read(host_comp_id, XML_file_name, MPI_COMM_NULL, false);	
+	if (XML_file == NULL) {
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
+			             comp_full_name, comp_full_name);
+		return;
+	}
+	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
+	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(host_comp_id, XML_file_name, XML_file);
+	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+		root_XML_element = root_XML_element_node->ToElement();
+		if (words_are_the_same(root_XML_element->Value(),"component_import_interfaces_configuration"))
+			break;
+	}
+	if (root_XML_element_node == NULL) {
+		delete XML_file;
+		return;
+	}
+
+	for (TiXmlNode *interface_XML_element_node = root_XML_element->FirstChild(); interface_XML_element_node != NULL; interface_XML_element_node = interface_XML_element_node->NextSibling()) {
+		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
+		const char *interface_name = get_XML_attribute(host_comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file");
+		if (!is_XML_setting_on(host_comp_id, interface_XML_element, XML_file_name, "the \"status\" of the redirection configurations for an import interface", "import interface configuration file"))
+			continue;
+		check_and_verify_name_format_of_string_for_XML(-1, interface_name, "the import interface", XML_file_name, line_number);
+		Inout_interface *import_interface = interface_mgr->get_interface(comp_full_name, interface_name);
+		if (import_interface == NULL) {
+			EXECUTION_REPORT(REPORT_WARNING, -1, false, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" does not register the corresponding import interface. So this redirection configuration information is negleted.\"", 
+				             interface_name, XML_file_name, comp_full_name);
+			continue;
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_import_or_export_or_remap() == 0, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
+			             interface_name, XML_file_name, comp_full_name, interface_name);
+		for (int i = 0; i < import_interfaces_configuration.size(); i ++)
+			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The redirection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
+		import_interfaces_configuration.push_back(new Import_interface_configuration(host_comp_id, comp_full_name, import_interface->get_interface_name(), interface_XML_element, XML_file_name, interface_mgr, check_comp_existence));
+	}
+
+	delete XML_file;
+	EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s", XML_file_name);
 }
 
 
@@ -900,29 +951,122 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures");
 	std::vector<char *> all_descendant_real_comp_fullnames;
 	int current_proc_local_id;
+	Comp_comm_group_mgt_node *local_comp_node = NULL, *temp_comp_node;
+	bool is_overall_generation = ((comp_id & TYPE_ID_SUFFIX_MASK) == 0);
 	
 	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedure");
 
+	synchronize_latest_connection_id(comm);
 	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_descendant_real_comp_fullnames, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 	inout_interface_mgr->get_all_unconnected_inout_interface_fields_info(all_descendant_real_comp_fullnames, &temp_array_buffer, current_array_buffer_size, comm);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);
+	bcast_array_in_one_comp(current_proc_local_id, &temp_array_buffer, current_array_buffer_size, comm);
 	if (current_proc_local_id == 0) {
+		int num_pushed_comp_node = 0;
+		for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++) {
+			local_comp_node = comp_comm_group_mgt_mgr->search_global_node(all_descendant_real_comp_fullnames[i]);
+			if (local_comp_node != NULL && local_comp_node->get_current_proc_local_id() != -1)
+				break;
+			local_comp_node = NULL;
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, local_comp_node != NULL, "Software error in Coupling_generator::generate_coupling_procedures: wrong local_comp_node");
+/*
+		for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++) {
+			temp_comp_node = comp_comm_group_mgt_mgr->search_global_node(all_descendant_real_comp_fullnames[i]);
+			if (temp_comp_node == NULL) {
+				temp_comp_node = local_comp_node->load_comp_info_from_XML(all_descendant_real_comp_fullnames[i]);
+				comp_comm_group_mgt_mgr->push_comp_node(temp_comp_node);
+				num_pushed_comp_node ++;
+			}
+		}
+*/
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(temp_array_buffer, current_array_buffer_size);
 		generate_interface_fields_source_dst(temp_array_buffer, current_array_buffer_size);
+		for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++) {
+			std::vector<Inout_interface*> import_interfaces_of_a_component;
+			all_interfaces_mgr->get_all_import_interfaces_of_a_component(import_interfaces_of_a_component, all_descendant_real_comp_fullnames[i]);
+			Component_import_interfaces_configuration *comp_import_interfaces_config = new Component_import_interfaces_configuration(comp_id, all_descendant_real_comp_fullnames[i], all_interfaces_mgr, is_overall_generation);
+			for (int j = 0; j < import_interfaces_of_a_component.size(); j ++) {
+				std::vector<const char*> import_fields_name;
+				if (strlen(import_interfaces_of_a_component[j]->get_fixed_remote_comp_full_name()) > 0)
+					continue;
+				import_interfaces_of_a_component[j]->get_fields_name(&import_fields_name);
+				for (int k = 0; k < import_fields_name.size(); k ++) {
+					std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > configuration_export_producer_info;
+					coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
+					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_producer_info);
+					strcpy(coupling_connection->dst_comp_full_name, all_descendant_real_comp_fullnames[i]);
+					strcpy(coupling_connection->dst_interface_name, import_interfaces_of_a_component[j]->get_interface_name());
+					coupling_connection->fields_name.push_back(strdup(import_fields_name[k]));					
+					int field_index = export_field_index_lookup_table->search(import_fields_name[k],false);
+					if (field_index != 0) {
+						if (configuration_export_producer_info.size() == 0) {						
+							for (int l = 0; l < export_fields_dst_components[field_index].size(); l ++) {
+								if (words_are_the_same(export_fields_dst_components[field_index][l].first, all_descendant_real_comp_fullnames[i]))
+									continue;
+								strcpy(src_comp_interface.first, export_fields_dst_components[field_index][l].first);
+								strcpy(src_comp_interface.second, export_fields_dst_components[field_index][l].second);
+								coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
+							}
+						}
+						else {
+							for (int l = 0; l < configuration_export_producer_info.size(); l ++) {
+								for (int m = 0; m < export_fields_dst_components[field_index].size(); m ++)
+									if (words_are_the_same(configuration_export_producer_info[l].first, export_fields_dst_components[field_index][m].first)) {
+										if (strlen(configuration_export_producer_info[l].second) == 0 || words_are_the_same(configuration_export_producer_info[l].second, export_fields_dst_components[field_index][m].second)) {
+											strcpy(src_comp_interface.first, export_fields_dst_components[field_index][m].first);
+											strcpy(src_comp_interface.second, export_fields_dst_components[field_index][m].second);
+											coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
+										}
+									}
+							}
+						}
+					}
+					if (coupling_connection->src_comp_interfaces.size() == 1)
+						printf("field \"%s\" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
+					else if (coupling_connection->src_comp_interfaces.size() > 1) {
+						printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" have more than 1 (%d) sources as follows. Please add or modify the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
+						define_use_wrong = true;
+					}					
+					else if (is_overall_generation) {
+						define_use_wrong = true;
+						if (export_fields_dst_components[field_index].size() == 0)
+							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: no component exports this field. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
+						else {
+							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: there are components (as follows) exporting this field, however, none of which is specified in the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);						
+							for (int j = 0; j < export_fields_dst_components[field_index].size(); j ++)
+								printf("		Component is \"%s\", interface is \"%s\"\n", export_fields_dst_components[field_index][j].first, export_fields_dst_components[field_index][j].second);
+						}	
+					}
+					for (int j = 0; j < coupling_connection->src_comp_interfaces.size(); j ++)
+						printf("		component is \"%s\", interface is \"%s\"\n", coupling_connection->src_comp_interfaces[j].first, coupling_connection->src_comp_interfaces[j].second);
+					if (coupling_connection->src_comp_interfaces.size() == 1)
+						all_coupling_connections.push_back(coupling_connection);
+					else delete coupling_connection;
+				}
+
+			}
+			delete comp_import_interfaces_config;
+		}
+/*
+		for (int i = 0; i < num_pushed_comp_node; i ++)
+			comp_comm_group_mgt_mgr->pop_comp_node();
+*/
 		delete all_interfaces_mgr;
 	}
 	if (temp_array_buffer != NULL)
 		delete [] temp_array_buffer;
 	temp_array_buffer = NULL;
 	current_array_buffer_size = 0;
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");	
 	
 	clear();
-	if ((comp_id & TYPE_ID_SUFFIX_MASK) != 1)
+	if (!is_overall_generation)
 		return;
 	
-	coupling_generator->synchronize_latest_connection_id(comm);
 	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
@@ -931,7 +1075,7 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 		for (int i = 1; i < all_components_ids[0]; i ++) {
 			std::vector<Inout_interface*> import_interfaces_of_a_component;
 			all_interfaces_mgr->get_all_import_interfaces_of_a_component(import_interfaces_of_a_component, all_components_ids[i]);
-			Component_import_interfaces_configuration *comp_import_interfaces_config = new Component_import_interfaces_configuration(all_components_ids[i], all_interfaces_mgr);
+			Component_import_interfaces_configuration *comp_import_interfaces_config = new Component_import_interfaces_configuration(all_components_ids[i], all_interfaces_mgr, is_overall_generation);
 			for (int j = 0; j < import_interfaces_of_a_component.size(); j ++) {
 				std::vector<const char*> import_fields_name;
 				if (strlen(import_interfaces_of_a_component[j]->get_fixed_remote_comp_full_name()) > 0)

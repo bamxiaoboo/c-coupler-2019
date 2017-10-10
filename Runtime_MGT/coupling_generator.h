@@ -124,7 +124,7 @@ class Import_direction_setting
 		// ... remapping and merge setting;
 	
 	public:
-		Import_direction_setting(Import_interface_configuration *, const char*, const char*, TiXmlElement*, const char*, std::vector<const char*>&, int*);
+		Import_direction_setting(int, Import_interface_configuration *, const char*, const char*, TiXmlElement*, const char*, std::vector<const char*>&, int*, bool);
 		~Import_direction_setting();
 };
 
@@ -138,7 +138,7 @@ class Import_interface_configuration
 		std::vector<std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > > fields_src_producers_info;
 
 	public:
-		Import_interface_configuration(const char*, const char*, TiXmlElement*, const char*, Inout_interface_mgt *);
+		Import_interface_configuration(int, const char*, const char*, TiXmlElement*, const char*, Inout_interface_mgt *, bool);
 		~Import_interface_configuration();
 		const char *get_interface_name() { return interface_name; }
 		void add_field_src_component(int comp_id, const char*, std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]>);
@@ -152,8 +152,9 @@ class Component_import_interfaces_configuration
 		char comp_full_name[NAME_STR_SIZE];
 		std::vector<Import_interface_configuration*> import_interfaces_configuration;
 
-	public:
-		Component_import_interfaces_configuration(int, Inout_interface_mgt*);
+	public:	
+		Component_import_interfaces_configuration(int, const char *, Inout_interface_mgt *, bool);
+		Component_import_interfaces_configuration(int, Inout_interface_mgt*, bool);
 		~Component_import_interfaces_configuration();
 		void get_interface_field_import_configuration(const char*, const char*, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> >&);
 };

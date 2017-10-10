@@ -396,10 +396,10 @@ extern "C" void ccpl_end_registration_(int *comp_id, int *do_coupling_generation
 	
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
 
-	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
-	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(*comp_id);
 	if ((*do_coupling_generation) == 1)
 		coupling_generator->generate_coupling_procedures(*comp_id);
+	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
+	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
 		coupling_generator->generate_coupling_procedures(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id());
 		coupling_generator->generate_IO_procedures();

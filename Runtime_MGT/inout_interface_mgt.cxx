@@ -455,8 +455,10 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_con
 		buffer_content_iter -= NAME_STR_SIZE;
 	}
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_full_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_node != NULL, "Software error in Inout_interface::Inout_interface");
-	comp_id = comp_node->get_local_node_id();
+	if (comp_node != NULL)
+		comp_id = comp_node->get_local_node_id();
+	else comp_id = -1;
+	
 	inversed_dst_fraction = NULL;
 }
 
@@ -1083,12 +1085,8 @@ Inout_interface *Inout_interface_mgt::get_interface(int interface_id)
 
 Inout_interface *Inout_interface_mgt::get_interface(const char *comp_full_name, const char *interface_name)
 {
-	if (comp_comm_group_mgt_mgr->search_global_node(comp_full_name) == NULL)
-		return NULL;
-
-	int comp_id = comp_comm_group_mgt_mgr->search_global_node(comp_full_name)->get_comp_id();
 	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
+		if (words_are_the_same(interfaces[i]->get_comp_full_name(),comp_full_name) && words_are_the_same(interfaces[i]->get_interface_name(), interface_name))
 			return interfaces[i];
 
 	return NULL;
@@ -1125,8 +1123,6 @@ void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::v
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);
 	all_array_size = new int [num_total_local_proc];
 	gather_array_in_one_comp(num_total_local_proc, current_proc_local_id, local_temp_array_buffer, local_buffer_content_size, sizeof(char), all_array_size, (void**)temp_array_buffer, buffer_content_size, comm);
-	if (current_proc_local_id == 0)
-		printf("check in Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info: size is %ld\n", buffer_content_size);
 	delete [] all_array_size;
 }
 
@@ -1181,6 +1177,16 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 
 	for (int i = 0; i < interfaces.size(); i ++)
 		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() == 0)
+			import_interfaces.push_back(interfaces[i]);
+}
+
+
+void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<Inout_interface*> &import_interfaces, const char *comp_full_name)
+{
+	import_interfaces.clear();
+
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (words_are_the_same(interfaces[i]->get_comp_full_name(), comp_full_name) && interfaces[i]->get_import_or_export_or_remap() == 0)
 			import_interfaces.push_back(interfaces[i]);
 }
 
