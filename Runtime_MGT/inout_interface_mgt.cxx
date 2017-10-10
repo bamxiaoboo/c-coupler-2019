@@ -1105,6 +1105,32 @@ Inout_interface *Inout_interface_mgt::get_interface(int comp_id, const char *int
 }
 
 
+void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::vector<char*> &all_descendant_real_comp_fullnames, char **temp_array_buffer, long &buffer_content_size, MPI_Comm comm)
+{
+	char *local_temp_array_buffer = NULL;
+	long local_buffer_max_size = 0, local_buffer_content_size = 0;
+	int num_total_local_proc, current_proc_local_id, *all_array_size;
+
+
+	for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++) {
+		Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(all_descendant_real_comp_fullnames[i]);
+		if (comp_node == NULL || comp_node->get_current_proc_local_id() != 0)
+			continue;
+		for (int j = 0; j < interfaces.size(); j ++)
+			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id())
+				interfaces[j]->transform_interface_into_array(&local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
+	}
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_total_local_proc) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);
+	all_array_size = new int [num_total_local_proc];
+	gather_array_in_one_comp(num_total_local_proc, current_proc_local_id, local_temp_array_buffer, local_buffer_content_size, sizeof(char), all_array_size, (void**)temp_array_buffer, buffer_content_size, comm);
+	if (current_proc_local_id == 0)
+		printf("check in Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info: size is %ld\n", buffer_content_size);
+	delete [] all_array_size;
+}
+
+
 void Inout_interface_mgt::merge_unconnected_inout_interface_fields_info(int comp_id)
 {
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in merge_unconnected_inout_interface_fields_info");

@@ -858,10 +858,26 @@ void Component_import_interfaces_configuration::get_interface_field_import_confi
 
 Coupling_generator::~Coupling_generator()
 {
+	clear();
+}
+
+
+void Coupling_generator::clear()
+{
 	if (import_field_index_lookup_table != NULL)
 		delete import_field_index_lookup_table;
 	if (export_field_index_lookup_table != NULL)
 		delete export_field_index_lookup_table;
+	import_field_index_lookup_table = NULL;
+	export_field_index_lookup_table = NULL;
+
+	for (int i = 0; i < string_in_export_fields_dst_components.size(); i ++)
+		delete [] string_in_export_fields_dst_components[i];
+	string_in_export_fields_dst_components.clear();
+	export_fields_dst_components.clear();
+
+	all_coupling_connections.clear();
+	all_IO_connections.clear();
 }
 
 
@@ -883,12 +899,26 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures");
 	std::vector<char *> all_descendant_real_comp_fullnames;
+	int current_proc_local_id;
 	
 	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedure");
 
 	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_descendant_real_comp_fullnames, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+	inout_interface_mgr->get_all_unconnected_inout_interface_fields_info(all_descendant_real_comp_fullnames, &temp_array_buffer, current_array_buffer_size, comm);
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);
+	if (current_proc_local_id == 0) {
+		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(temp_array_buffer, current_array_buffer_size);
+		generate_interface_fields_source_dst(temp_array_buffer, current_array_buffer_size);
+		delete all_interfaces_mgr;
+	}
+	if (temp_array_buffer != NULL)
+		delete [] temp_array_buffer;
+	temp_array_buffer = NULL;
+	current_array_buffer_size = 0;
+	
+	clear();
 	if ((comp_id & TYPE_ID_SUFFIX_MASK) != 1)
 		return;
 	
@@ -1043,6 +1073,8 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure(false);
 	}
+
+	clear();
 	
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedure");
@@ -1077,38 +1109,40 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 	import_field_index_lookup_table = new Dictionary<int>(1024);
 	export_field_index_lookup_table = new Dictionary<int>(1024);
 
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
-		long buffer_content_iter = buffer_content_size;
-		int import_or_export, field_id_iter = 100, field_index, num_fields;
-		while (buffer_content_iter > 0) {
-			read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-			read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-			read_data_from_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-			read_data_from_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-			read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter, true);
-			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter, true);
-			is_fixed_interface = strlen(fixed_remote_comp_full_name) != 0;
-			for (int i = 0; i < num_fields; i ++) {
-				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-				if (is_fixed_interface)
-					continue;
-				if (import_or_export == 0) {
-					if (import_field_index_lookup_table->search(field_name, false) == 0) {
-						import_field_index_lookup_table->insert(field_name, field_id_iter++);
-						distinct_import_fields_name.push_back(strdup(field_name));
-					}
-					field_index = import_field_index_lookup_table->search(field_name, false);				}
-				else {
-					if (export_field_index_lookup_table->search(field_name, false) == 0) {
-						export_field_index_lookup_table->insert(field_name, field_id_iter++);
-						distinct_export_fields_name.push_back(strdup(field_name));
-					}
-					field_index = export_field_index_lookup_table->search(field_name, false);
-					export_fields_dst_components[field_index].push_back(std::pair<const char*,const char*>(strdup(comp_full_name),strdup(interface_name)));
+	long buffer_content_iter = buffer_content_size;
+	int import_or_export, field_id_iter = 100, field_index, num_fields;
+	while (buffer_content_iter > 0) {
+		read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter, true);
+		read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter, true);
+		is_fixed_interface = strlen(fixed_remote_comp_full_name) != 0;
+		for (int i = 0; i < num_fields; i ++) {
+			read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+			if (is_fixed_interface)
+				continue;
+			if (import_or_export == 0) {
+				if (import_field_index_lookup_table->search(field_name, false) == 0) {
+					import_field_index_lookup_table->insert(field_name, field_id_iter++);
+					distinct_import_fields_name.push_back(strdup(field_name));
 				}
+				field_index = import_field_index_lookup_table->search(field_name, false);				}
+			else {
+				if (export_field_index_lookup_table->search(field_name, false) == 0) {
+					export_field_index_lookup_table->insert(field_name, field_id_iter++);
+					distinct_export_fields_name.push_back(strdup(field_name));
+				}
+				field_index = export_field_index_lookup_table->search(field_name, false);
+				char *str1 = strdup(comp_full_name);
+				char *str2 = strdup(interface_name);
+				export_fields_dst_components[field_index].push_back(std::pair<const char*,const char*>(str1,str2));
+				string_in_export_fields_dst_components.push_back(str1);
+				string_in_export_fields_dst_components.push_back(str2);
 			}
 		}
-	}	
+	}
 }
 
 

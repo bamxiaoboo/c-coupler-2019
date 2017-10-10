@@ -164,6 +164,7 @@ class Coupling_generator
 {
 	private:
 		std::map<int,std::vector<std::pair<const char*, const char*> > > export_fields_dst_components;
+		std::vector<const char*> string_in_export_fields_dst_components;
 		Dictionary<int> *import_field_index_lookup_table;
 		Dictionary<int> *export_field_index_lookup_table;
 		std::vector<Coupling_connection*> all_coupling_connections;
@@ -176,6 +177,7 @@ class Coupling_generator
 	public:
 		Coupling_generator() { latest_connection_id = 1; import_field_index_lookup_table = NULL; export_field_index_lookup_table = NULL; }
 		~Coupling_generator();
+		void clear();
 		void generate_coupling_procedures(int);
         void generate_IO_procedures();
 		int apply_connection_id() {  return (++latest_connection_id); }
