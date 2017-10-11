@@ -791,59 +791,6 @@ void Import_interface_configuration::get_field_import_configuration(const char *
 }
 
 
-Component_import_interfaces_configuration::Component_import_interfaces_configuration(int comp_id, Inout_interface_mgt *interface_mgr, bool check_comp_existence)
-{
-	char XML_file_name[NAME_STR_SIZE];
-	int line_number;
-
-
-	strcpy(comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
-	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
-	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, false);	
-	if (XML_file == NULL) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
-			             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
-		return;
-	}
-	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
-	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file);
-	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
-		root_XML_element = root_XML_element_node->ToElement();
-		if (words_are_the_same(root_XML_element->Value(),"component_import_interfaces_configuration"))
-			break;
-	}
-	if (root_XML_element_node == NULL) {
-		delete XML_file;
-		return;
-	}
-
-	for (TiXmlNode *interface_XML_element_node = root_XML_element->FirstChild(); interface_XML_element_node != NULL; interface_XML_element_node = interface_XML_element_node->NextSibling()) {
-		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
-		const char *interface_name = get_XML_attribute(comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file");
-		if (!is_XML_setting_on(comp_id, interface_XML_element, XML_file_name, "the \"status\" of the redirection configurations for an import interface", "import interface configuration file"))
-			continue;
-		check_and_verify_name_format_of_string_for_XML(-1, interface_name, "the import interface", XML_file_name, line_number);
-		Inout_interface *import_interface = interface_mgr->get_interface(comp_full_name, interface_name);
-		if (import_interface == NULL) {
-			EXECUTION_REPORT(REPORT_WARNING, -1, false, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" does not register the corresponding import interface. So this redirection configuration information is negleted.\"", 
-				             interface_name, XML_file_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name());
-			continue;
-		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_import_or_export_or_remap() == 0, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
-			             interface_name, XML_file_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Component_import_interfaces_configuration")->get_full_name(), interface_name);
-		for (int i = 0; i < import_interfaces_configuration.size(); i ++)
-			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The redirection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
-				
-		import_interfaces_configuration.push_back(new Import_interface_configuration(comp_id, comp_full_name, import_interface->get_interface_name(), interface_XML_element, XML_file_name, interface_mgr, check_comp_existence));
-	}
-
-	delete XML_file;
-	
-	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish loading the configuration of import interfaces from the XML file %s\n", XML_file_name);
-}
-
-
 Component_import_interfaces_configuration::Component_import_interfaces_configuration(int host_comp_id, const char *comp_full_name, Inout_interface_mgt *interface_mgr, bool check_comp_existence)
 {
 	char XML_file_name[NAME_STR_SIZE];

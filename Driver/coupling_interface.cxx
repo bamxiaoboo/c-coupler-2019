@@ -399,7 +399,6 @@ extern "C" void ccpl_end_registration_(int *comp_id, int *do_coupling_generation
 	if ((*do_coupling_generation) == 1)
 		coupling_generator->generate_coupling_procedures(*comp_id);
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
-	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(*comp_id);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
 		coupling_generator->generate_coupling_procedures(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id());
 		coupling_generator->generate_IO_procedures();

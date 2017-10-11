@@ -983,18 +983,8 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 
 Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, long buffer_content_iter)
 {
-	this->temp_array_buffer = NULL;
 	while (buffer_content_iter > 0)
 		interfaces.push_back(new Inout_interface(temp_array_buffer, buffer_content_iter));
-}
-
-
-Inout_interface_mgt::Inout_interface_mgt()
-{
-	temp_array_buffer = NULL;
-	buffer_content_size = 0;
-	buffer_content_iter = 0;
-	buffer_max_size = 0;
 }
 
 
@@ -1002,9 +992,6 @@ Inout_interface_mgt::~Inout_interface_mgt()
 {
 	for (int i = 0; i < interfaces.size(); i ++)
 		delete interfaces[i];
-
-	if (temp_array_buffer != NULL)
-		delete [] temp_array_buffer;
 }
 
 
@@ -1149,50 +1136,6 @@ void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::v
 	gather_array_in_one_comp(num_total_local_proc, current_proc_local_id, local_temp_array_buffer, local_buffer_content_size, sizeof(char), all_array_size, (void**)temp_array_buffer, buffer_content_size, comm);
 	delete [] all_array_size;
 }
-
-
-void Inout_interface_mgt::merge_unconnected_inout_interface_fields_info(int comp_id)
-{
-	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in merge_unconnected_inout_interface_fields_info");
-	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in merge_unconnected_inout_interface_fields_info");
-	int num_local_procs = comp_comm_group_mgt_mgr->get_num_proc_in_comp(comp_id, "in merge_unconnected_inout_interface_fields_info");
-	int *counts = new int [num_local_procs];
-	int *displs = new int [num_local_procs];
-	char *temp_buffer;
-	int int_buffer_content_size = buffer_content_size;
-
-
-	MPI_Gather(&int_buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm);
-	if (local_proc_id == 0) {
-		displs[0] = 0;
-		for (int i = 1; i < num_local_procs; i ++)
-			displs[i] = displs[i-1]+counts[i-1];
-		buffer_max_size = displs[num_local_procs-1]+counts[num_local_procs-1] + 100;
-		temp_buffer = new char [buffer_max_size];
-		
-	}
-	MPI_Gatherv(temp_array_buffer, buffer_content_size, MPI_CHAR, temp_buffer, counts, displs, MPI_CHAR, 0, comm);
-	if (temp_array_buffer != NULL) {
-		delete [] temp_array_buffer;
-		temp_array_buffer = NULL;
-	}
-
-	if (local_proc_id == 0) {
-		temp_array_buffer = temp_buffer;
-		buffer_content_size = displs[num_local_procs-1]+counts[num_local_procs-1];
-		for (int i = 0; i < interfaces.size(); i ++)
-			if (interfaces[i]->get_comp_id() == comp_id)
-				interfaces[i]->transform_interface_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
-	}
-	else {
-		buffer_max_size = 0;
-		buffer_content_size = 0;
-	}
-	
-	delete [] counts;
-	delete [] displs;
-}
-
 
 
 void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<Inout_interface*> &import_interfaces, int comp_id)

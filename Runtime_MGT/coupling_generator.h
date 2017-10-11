@@ -154,7 +154,6 @@ class Component_import_interfaces_configuration
 
 	public:	
 		Component_import_interfaces_configuration(int, const char *, Inout_interface_mgt *, bool);
-		Component_import_interfaces_configuration(int, Inout_interface_mgt*, bool);
 		~Component_import_interfaces_configuration();
 		void get_interface_field_import_configuration(const char*, const char*, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> >&);
 };

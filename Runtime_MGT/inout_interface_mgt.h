@@ -167,15 +167,11 @@ class Inout_interface_mgt
 	private:
 		std::vector<Inout_interface*> interfaces;
 		std::vector<Runtime_trans_algorithm*> all_runtime_receive_algorithms;
-		char *temp_array_buffer;
-		long buffer_max_size;
-		long buffer_content_size;
-		long buffer_content_iter;
 		std::vector<MPI_Win> all_MPI_wins;
 
 	public:
 		Inout_interface_mgt(const char*, long);
-		Inout_interface_mgt();
+		Inout_interface_mgt() {}
 		~Inout_interface_mgt();
 		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, const char*, int);
 		void generate_remapping_interface_connection(Inout_interface *, int, int *, bool);
@@ -192,8 +188,6 @@ class Inout_interface_mgt
 		void get_all_unconnected_inout_interface_fields_info(std::vector<char*> & , char **, long &, MPI_Comm);
 		void merge_unconnected_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
-		const char *get_temp_array_buffer() { return temp_array_buffer; } 
-		int get_buffer_content_size()  { return buffer_content_size; }
 		void execute_interface(int, bool, int*, int, int*, const char*);
 		void execute_interface(int, const char*, bool, int *, int, int*, const char*);
 		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
