@@ -61,6 +61,7 @@ class Connection_field_time_info
 class Connection_coupling_procedure
 {
 	private:
+		friend class Inout_interface;
 		std::vector<Field_mem_info *> fields_mem_registered;
 		std::vector<Field_mem_info *> fields_mem_inner_step_averaged;
 		std::vector<Field_mem_info *> fields_mem_inter_step_averaged;
@@ -114,6 +115,7 @@ class Inout_interface
 		int inst_or_aver;
 		std::vector<Field_mem_info *> fields_mem_registered;
 		std::vector<const char*> fields_name;
+		std::vector<bool> fields_connected_status;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
 		std::vector<Inout_interface *> children_interfaces;           // only for remap interface 
 		int execution_checking_status;
@@ -122,6 +124,7 @@ class Inout_interface
 		char fixed_remote_interface_name[NAME_STR_SIZE];
 		char *inversed_dst_fraction;
 		long bypass_counter;
+		int num_fields_connected;
 
 	public:
 		Inout_interface(const char*, long&);

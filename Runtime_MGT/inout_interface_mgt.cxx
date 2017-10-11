@@ -500,8 +500,12 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(fixed_remote_comp_full_name) > 0 && strlen(fixed_remote_interface_name) > 0, "Error happens when registering an import/export interface \"%s\": the parameter of \"interface_tag\" cannot be seperated into a component model full name and an interface name when it contains a special character \"$\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
 	}
 
-	for (int i = 0; i < num_fields; i ++)
+	for (int i = 0; i < num_fields; i ++) {
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
+		fields_connected_status.push_back(false);
+	}
+	fields_connected_status.push_back(false);
+	num_fields_connected = 0;
 }
 
 
@@ -661,12 +665,18 @@ Field_mem_info *Inout_interface::search_registered_field_instance(const char *fi
 
 void Inout_interface::transform_interface_into_array(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
-	int temp_int;
+	int temp_int = 0;
 
+
+	if (import_or_export_or_remap == 0 && num_fields_connected == fields_mem_registered.size())
+		return;
 	
-	for (int i = fields_mem_registered.size()-1; i >= 0 ; i --)
+	for (int i = fields_mem_registered.size()-1; i >= 0 ; i --) {
+		if (import_or_export_or_remap == 0 && fields_connected_status[i])
+			continue;
 		write_data_into_array_buffer(fields_mem_registered[i]->get_field_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
-	temp_int = fields_mem_registered.size();
+		temp_int ++;
+	}
 	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
@@ -717,6 +727,17 @@ void Inout_interface::import_restart_data(const char *temp_array_buffer, long &b
 void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coupling_procedure)
 {
 	coupling_procedures.push_back(coupling_procedure);
+	if (import_or_export_or_remap == 0) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, fields_connected_status.size() > 0, "Software error in Inout_interface::add_coupling_procedure: %s", interface_name);
+		for (int i = 0; i < coupling_procedure->fields_mem_registered.size(); i ++)
+			for (int j = 0; j < fields_mem_registered.size(); j ++)
+				if (coupling_procedure->fields_mem_registered[i] == fields_mem_registered[j]) {
+					EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Add coupling procedures to the field \"%s\" of import interface \"%s", fields_mem_registered[j]->get_field_name(), interface_name);
+					EXECUTION_REPORT(REPORT_ERROR, -1, !fields_connected_status[j], "Software error in Inout_interface::add_coupling_procedure: %s %s %d", interface_name, fields_mem_registered[j]->get_field_name(), j);
+					fields_connected_status[j] = true;
+					num_fields_connected ++;
+				}
+	}
 }
 
 
@@ -942,6 +963,9 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	children_interfaces[1]->fields_mem_registered.push_back(frac_field_dst);
 	delete children_interfaces[0]->coupling_procedures[0];
 	delete children_interfaces[1]->coupling_procedures[0];
+	for (int i = 0; i < children_interfaces[1]->fields_connected_status.size(); i ++)
+		children_interfaces[1]->fields_connected_status[i] = false;
+	children_interfaces[1]->num_fields_connected = 0;
 	children_interfaces[0]->coupling_procedures.clear();
 	children_interfaces[1]->coupling_procedures.clear();
 	int num_fields = children_interfaces[0]->fields_mem_registered.size();
@@ -1115,8 +1139,7 @@ void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::v
 		if (comp_node == NULL || comp_node->get_current_proc_local_id() != 0)
 			continue;
 		for (int j = 0; j < interfaces.size(); j ++)
-			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id() && interfaces[j]->get_num_coupling_procedures() == 0)
-//			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id())
+			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id())
 				interfaces[j]->transform_interface_into_array(&local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
 	}
 
@@ -1158,7 +1181,7 @@ void Inout_interface_mgt::merge_unconnected_inout_interface_fields_info(int comp
 		temp_array_buffer = temp_buffer;
 		buffer_content_size = displs[num_local_procs-1]+counts[num_local_procs-1];
 		for (int i = 0; i < interfaces.size(); i ++)
-			if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_num_coupling_procedures() == 0)
+			if (interfaces[i]->get_comp_id() == comp_id)
 				interfaces[i]->transform_interface_into_array(&temp_array_buffer, buffer_max_size, buffer_content_size);
 	}
 	else {

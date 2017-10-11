@@ -190,6 +190,7 @@ class Comp_comm_group_mgt_mgr
 		Comp_comm_group_mgt_node *pop_comp_node();
 		void check_validation();
 		void set_current_proc_current_time(int, int, int);
+		Comp_comm_group_mgt_node *load_comp_info_from_XML(int, const char *, MPI_Comm);
 };
 
 

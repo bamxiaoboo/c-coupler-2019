@@ -1269,3 +1269,22 @@ void Comp_comm_group_mgt_mgr::set_current_proc_current_time(int comp_id, int day
 	get_global_node_of_local_comp(comp_id,"Comp_comm_group_mgt_mgr::set_current_proc_time")->set_current_proc_current_time(days, second);
 }
 
+
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::load_comp_info_from_XML(int host_comp_id, const char *comp_full_name, MPI_Comm comm)
+{
+	char XML_file_name[NAME_STR_SIZE];
+	TiXmlDocument *XML_file;
+	int i;
+
+
+	sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), comp_full_name);
+	XML_file = open_XML_file_to_read(host_comp_id, XML_file_name, comm, true);
+	TiXmlElement *XML_element = XML_file->FirstChildElement();
+	TiXmlElement *Online_Model = XML_element->FirstChildElement();
+	Comp_comm_group_mgt_node *pesudo_comp_node = new Comp_comm_group_mgt_node(Online_Model, comp_full_name, XML_file_name);
+	delete XML_file;
+		
+	return pesudo_comp_node;
+}
+
+
