@@ -558,6 +558,8 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 	
 	for (int i = fields_name.size() - 1; i >= 0; i --) {
 		Field_mem_info *field = inout_interface->search_registered_field_instance(fields_name[i], field_local_index);
+		if (field == NULL)
+		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), field != NULL, "%s %s", inout_interface->get_interface_name(), fields_name[i]);
 		write_field_info_into_array(field, array, buffer_max_size, buffer_content_size);
 	}
 	*timer = inout_interface->get_timer();
@@ -954,14 +956,14 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 	Comp_comm_group_mgt_node *local_comp_node = NULL, *temp_comp_node;
 	bool is_overall_generation = ((comp_id & TYPE_ID_SUFFIX_MASK) == 0);
 	
-	
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);	
+	if (current_proc_local_id == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedure");
 
 	synchronize_latest_connection_id(comm);
 	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_descendant_real_comp_fullnames, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 	inout_interface_mgr->get_all_unconnected_inout_interface_fields_info(all_descendant_real_comp_fullnames, &temp_array_buffer, current_array_buffer_size, comm);
-	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);
 	bcast_array_in_one_comp(current_proc_local_id, &temp_array_buffer, current_array_buffer_size, comm);
 	if (current_proc_local_id == 0) {
 		int num_pushed_comp_node = 0;
@@ -1050,25 +1052,63 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 			}
 			delete comp_import_interfaces_config;
 		}
+		
+		EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");	
+		
+		for (int j, i = all_coupling_connections.size() - 1; i >= 0; i --) {
+			for (j = 0; j < i; j ++)
+				if (words_are_the_same(all_coupling_connections[i]->src_comp_interfaces[0].first, all_coupling_connections[j]->src_comp_interfaces[0].first) &&
+					words_are_the_same(all_coupling_connections[i]->src_comp_interfaces[0].second, all_coupling_connections[j]->src_comp_interfaces[0].second) &&
+					words_are_the_same(all_coupling_connections[i]->dst_comp_full_name, all_coupling_connections[j]->dst_comp_full_name) &&
+					words_are_the_same(all_coupling_connections[i]->dst_interface_name, all_coupling_connections[j]->dst_interface_name))
+					break;
+			if (j < i) {
+				EXECUTION_REPORT(REPORT_ERROR, -1, all_coupling_connections[i]->fields_name.size() == 1,  "software error in Coupling_generator::generate_coupling_procedures: %d", all_coupling_connections[i]->fields_name.size());
+				all_coupling_connections[j]->fields_name.push_back(all_coupling_connections[i]->fields_name[0]);
+				all_coupling_connections.erase(all_coupling_connections.begin()+i);
+			}
+		}
+
+		std::vector<Inout_interface*> fixed_import_interfaces;
+		std::vector<Inout_interface*> fixed_export_interfaces;
+		all_interfaces_mgr->get_all_unconnected_fixed_interfaces(fixed_import_interfaces, -1, 0, NULL);
+		all_interfaces_mgr->get_all_unconnected_fixed_interfaces(fixed_export_interfaces, -1, 1, NULL);
+		build_coupling_connections_for_unconnected_fixed_interfaces(fixed_import_interfaces, fixed_export_interfaces, all_coupling_connections, is_overall_generation);
+		delete all_interfaces_mgr;
+
+		if (temp_array_buffer != NULL)
+			delete [] temp_array_buffer;
+		temp_array_buffer = NULL;
+		current_array_buffer_size = 0;
+
+		for (int i = all_coupling_connections.size() - 1; i >= 0; i --) {
+			// all_coupling_connections[i]->src_comp_interfaces.size() is 1
+			for (int j = all_coupling_connections[i]->src_comp_interfaces.size()-1; j >= 0; j --) {
+				write_data_into_array_buffer(all_coupling_connections[i]->src_comp_interfaces[j].second, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+				write_data_into_array_buffer(all_coupling_connections[i]->src_comp_interfaces[j].first, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			}
+			temp_int = all_coupling_connections[i]->src_comp_interfaces.size();
+			write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			for (int j = all_coupling_connections[i]->fields_name.size() - 1; j >= 0; j --)
+				write_data_into_array_buffer(all_coupling_connections[i]->fields_name[j], NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			temp_int = all_coupling_connections[i]->fields_name.size();
+			write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);			
+			write_data_into_array_buffer(all_coupling_connections[i]->dst_interface_name, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			write_data_into_array_buffer(all_coupling_connections[i]->dst_comp_full_name, NAME_STR_SIZE, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+			write_data_into_array_buffer(&(all_coupling_connections[i]->connection_id), sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+		}
+		temp_int = all_coupling_connections.size();
+		write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+
 /*
 		for (int i = 0; i < num_pushed_comp_node; i ++)
 			comp_comm_group_mgt_mgr->pop_comp_node();
 */
-		delete all_interfaces_mgr;
 	}
-	if (temp_array_buffer != NULL)
-		delete [] temp_array_buffer;
-	temp_array_buffer = NULL;
-	current_array_buffer_size = 0;
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");	
 	
-	clear();
-	if (!is_overall_generation)
-		return;
-	
+/*	
 	inout_interface_mgr->merge_unconnected_inout_interface_fields_info(TYPE_COMP_LOCAL_ID_PREFIX);
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0) {
+	if (current_proc_local_id == 0) {		
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
 		generate_interface_fields_source_dst(inout_interface_mgr->get_temp_array_buffer(), inout_interface_mgr->get_buffer_content_size());
 		const int *all_components_ids = comp_comm_group_mgt_mgr->get_all_components_ids();
@@ -1137,7 +1177,7 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 		}
 		
 		EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");
-
+		
 		for (int j, i = all_coupling_connections.size() - 1; i >= 0; i --) {
 			for (j = 0; j < i; j ++)
 				if (words_are_the_same(all_coupling_connections[i]->src_comp_interfaces[0].first, all_coupling_connections[j]->src_comp_interfaces[0].first) &&
@@ -1180,13 +1220,10 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 		temp_int = all_coupling_connections.size();
 		write_data_into_array_buffer(&temp_int, sizeof(int), &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 	}
-	
+*/	
 
-	MPI_Bcast(&current_array_buffer_size, 1, MPI_LONG, 0, comm);
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) 
-		temp_array_buffer = new char [current_array_buffer_size];
-	MPI_Bcast(temp_array_buffer, current_array_buffer_size, MPI_CHAR, 0, comm);
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() != 0) {
+	bcast_array_in_one_comp(current_proc_local_id, &temp_array_buffer, current_array_buffer_size, comm);
+	if (current_proc_local_id != 0) {
 		int num_connections, num_fields, num_sources;
 		long buffer_content_iter = current_array_buffer_size;
 		read_data_from_array_buffer(&num_connections, sizeof(int), temp_array_buffer, buffer_content_iter, true);
@@ -1199,7 +1236,8 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 			read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			for (int j = 0; j < num_fields; j ++) {
 				read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-				coupling_connection->fields_name.push_back(strdup(field_name));					
+				coupling_connection->fields_name.push_back(strdup(field_name));	
+				EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "connection field name %s for interface %s", coupling_connection->dst_interface_name, field_name);
 			}		
 			read_data_from_array_buffer(&num_sources, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			for (int j = 0; j < num_sources; j ++) {
@@ -1214,13 +1252,18 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 
 	delete [] temp_array_buffer;
 
+	if (!is_overall_generation) {
+		clear();
+		return;
+	}
+
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure(false);
 	}
 
 	clear();
 	
-	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
+	if (current_proc_local_id == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedure");
 }
 
@@ -1327,7 +1370,7 @@ void Coupling_generator::build_coupling_connections_for_unconnected_fixed_interf
 		strcpy(src_comp_interface.second, fixed_import_interfaces[i]->get_fixed_remote_interface_name());
 		coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 		for (k = 0; k < import_fields_name.size(); k ++)
-			coupling_connection->fields_name.push_back(import_fields_name[k]);
+			coupling_connection->fields_name.push_back(strdup(import_fields_name[k]));
 		coupling_connections.push_back(coupling_connection);
 	}
 }

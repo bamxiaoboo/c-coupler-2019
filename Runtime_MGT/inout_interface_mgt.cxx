@@ -1115,7 +1115,8 @@ void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::v
 		if (comp_node == NULL || comp_node->get_current_proc_local_id() != 0)
 			continue;
 		for (int j = 0; j < interfaces.size(); j ++)
-			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id())
+			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id() && interfaces[j]->get_num_coupling_procedures() == 0)
+//			if (interfaces[j]->get_comp_id() == comp_node->get_comp_id())
 				interfaces[j]->transform_interface_into_array(&local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
 	}
 
