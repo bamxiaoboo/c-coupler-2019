@@ -87,6 +87,9 @@
 #define API_ID_RESTART_MGT_WRITE                        ((int)(0X07000001))
 #define API_ID_RESTART_MGT_READ                         ((int)(0X07000002))
 #define API_ID_RESTART_MGT_IS_TIMER_ON                  ((int)(0X07000004))
+#define API_ID_COUPLING_GEN_FAMILY                      ((int)(0x08000001))
+#define API_ID_COUPLING_GEN_EXTERNAL                    ((int)(0x08000002))
+#define API_ID_COUPLING_GEN_INDIVIDUAL                  ((int)(0x08000003))
 
 
 extern void synchronize_comp_processes_for_API(int, int, MPI_Comm, const char *, const char *);

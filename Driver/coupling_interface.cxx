@@ -388,19 +388,39 @@ extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *
 }
 
 
+extern "C" void ccpl_family_coupling_generation_(int *comp_id, const char * annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
+	coupling_generator->generate_coupling_procedures_internal(*comp_id, true);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+}
+
+
+extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
+	coupling_generator->generate_coupling_procedures_internal(*comp_id, false);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+}
+
+
 extern "C" void ccpl_end_registration_(int *comp_id, int *do_coupling_generation, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
-	
-	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "first synchorization for ending the registration of a component", annotation);	
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());	
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_end_registration_"), "first synchorization for ending the registration of a component", annotation);
+	check_API_parameter_int(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_end_registration_"), NULL, *do_coupling_generation, "do_coupling_generation (specification and the value)", annotation);
 
 	if ((*do_coupling_generation) == 1)
-		coupling_generator->generate_coupling_procedures(*comp_id);
+		coupling_generator->generate_coupling_procedures_internal(*comp_id, true);
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
-		coupling_generator->generate_coupling_procedures(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id());
+		coupling_generator->generate_coupling_procedures_internal(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id(), true);
 		coupling_generator->generate_IO_procedures();
 		delete all_H2D_remapping_wgt_files_info;
 	}
@@ -456,7 +476,7 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 	}
 
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0 && is_array_in_sorting_order(temp_value3,*dim_size2) != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
+//	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
 	*grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, *comp_id, grid_name, *grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, annotation);
 
 	delete [] temp_value2;

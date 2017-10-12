@@ -82,6 +82,12 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool do_average)
                                          cumulate_average_fields[i]->num_elements_in_field,
                                          cumulate_average_fields[i]->current_computing_count,
                                          do_average);
+		else if (words_are_the_same(cumulate_average_fields[i]->field_data_type, DATA_TYPE_INT))
+            template_cumulate_or_average<int>((int *) (cumulate_average_fields[i]->mem_info_dst->get_data_buf()), 
+                                         (int *) (cumulate_average_fields[i]->mem_info_src->get_data_buf()), 
+                                         cumulate_average_fields[i]->num_elements_in_field,
+                                         cumulate_average_fields[i]->current_computing_count,
+                                         do_average);
         else EXECUTION_REPORT(REPORT_ERROR, -1, false, "error data type in cumulate_average algorithm\n"); 
         if (do_average) {
 			EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "do average at computing count is %d", cumulate_average_fields[i]->current_computing_count);

@@ -1907,9 +1907,6 @@ void Remap_grid_class::set_grid_boundary(double min_lon, double max_lon, double 
     if (words_are_the_same(leaf_grids[0]->get_coord_label(), COORD_LABEL_LON))
         lon_sub_grid = leaf_grids[0];
     else lon_sub_grid = leaf_grids[1];
-    if (lon_sub_grid->get_grid_cyclic())
-        EXECUTION_REPORT(REPORT_ERROR, -1, min_lon == 0 && max_lon == 360, 
-                         "As grid %s has cyclic longitude, its minimum and maximum longitude of the boundary must be 0 and 360 respectively", this->grid_name);
 
     boundary_min_lon = min_lon;
     boundary_max_lon = max_lon;

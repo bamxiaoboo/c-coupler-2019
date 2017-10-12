@@ -251,6 +251,15 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_RESTART_MGT_WRITE:
 			sprintf(API_label, "CCPL_do_restart_write");
 			break;
+		case API_ID_COUPLING_GEN_FAMILY:
+			sprintf(API_label, "CCPL_do_family_coupling_generation");
+			break;
+		case API_ID_COUPLING_GEN_INDIVIDUAL:
+			sprintf(API_label, "CCPL_do_individual_coupling_generation");
+			break;
+		case API_ID_COUPLING_GEN_EXTERNAL:
+			sprintf(API_label, "CCPL_do_external_coupling_generation");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;

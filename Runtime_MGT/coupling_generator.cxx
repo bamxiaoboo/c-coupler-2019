@@ -889,7 +889,7 @@ void Coupling_generator::synchronize_latest_connection_id(MPI_Comm comm)
 }
 
 
-void Coupling_generator::generate_coupling_procedures(int comp_id)
+void Coupling_generator::generate_coupling_procedures_common(std::vector<char *> &all_descendant_real_comp_fullnames, MPI_Comm comm, bool is_overall_generation)
 {
 	bool define_use_wrong = false;
 	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
@@ -897,19 +897,14 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 	int temp_int;	
 	Coupling_connection *coupling_connection;
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
-	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures");
-	std::vector<char *> all_descendant_real_comp_fullnames;
 	int current_proc_local_id;
 	Comp_comm_group_mgt_node *local_comp_node = NULL, *temp_comp_node, *existing_comp_node;
-	bool is_overall_generation = ((comp_id & TYPE_ID_SUFFIX_MASK) == 0);
 	
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);	
 	if (current_proc_local_id == 0)
-		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedure");
-
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedures commonly");
 	synchronize_latest_connection_id(comm);
-	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_descendant_real_comp_fullnames, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 	inout_interface_mgr->get_all_unconnected_inout_interface_fields_info(all_descendant_real_comp_fullnames, &temp_array_buffer, current_array_buffer_size, comm);
 	bcast_array_in_one_comp(current_proc_local_id, &temp_array_buffer, current_array_buffer_size, comm);
 	for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++) {
@@ -918,15 +913,15 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 			break;
 		local_comp_node = NULL;
 	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, local_comp_node != NULL, "Software error in Coupling_generator::generate_coupling_procedures: wrong local_comp_node");
 
 	if (current_proc_local_id == 0) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, local_comp_node != NULL, "Software error in Coupling_generator::generate_coupling_procedures: wrong local_comp_node");
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(temp_array_buffer, current_array_buffer_size);
 		generate_interface_fields_source_dst(temp_array_buffer, current_array_buffer_size);
 		for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++) {
 			std::vector<Inout_interface*> import_interfaces_of_a_component;
 			all_interfaces_mgr->get_all_import_interfaces_of_a_component(import_interfaces_of_a_component, all_descendant_real_comp_fullnames[i]);
-			Component_import_interfaces_configuration *comp_import_interfaces_config = new Component_import_interfaces_configuration(comp_id, all_descendant_real_comp_fullnames[i], all_interfaces_mgr, is_overall_generation);
+			Component_import_interfaces_configuration *comp_import_interfaces_config = new Component_import_interfaces_configuration(local_comp_node->get_comp_id(), all_descendant_real_comp_fullnames[i], all_interfaces_mgr, is_overall_generation);
 			for (int j = 0; j < import_interfaces_of_a_component.size(); j ++) {
 				std::vector<const char*> import_fields_name;
 				if (strlen(import_interfaces_of_a_component[j]->get_fixed_remote_comp_full_name()) > 0)
@@ -1083,10 +1078,28 @@ void Coupling_generator::generate_coupling_procedures(int comp_id)
 	for (int i = 0; i < num_pushed_comp_node; i ++)
 		comp_comm_group_mgt_mgr->pop_comp_node();
 
+	for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++)
+		delete [] all_descendant_real_comp_fullnames[i];
+
 	clear();
 	
 	if (current_proc_local_id == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedure");
+}
+
+
+
+void Coupling_generator::generate_coupling_procedures_internal(int comp_id, bool family_generation)
+{
+	std::vector<char *> all_descendant_real_comp_fullnames;
+	char *temp_array_buffer = NULL;
+	long current_array_buffer_size, max_array_buffer_size;
+
+
+	if (family_generation)
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_descendant_real_comp_fullnames, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+	else all_descendant_real_comp_fullnames.push_back(strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_full_name()));
+	generate_coupling_procedures_common(all_descendant_real_comp_fullnames, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures"), (comp_id & TYPE_ID_SUFFIX_MASK)==0);
 }
 
 

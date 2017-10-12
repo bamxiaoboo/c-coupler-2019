@@ -82,6 +82,8 @@
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write
    public :: CCPL_do_restart_read
+   public :: CCPL_do_individual_coupling_generation
+   public :: CCPL_do_family_coupling_generation
    public :: CCPL_is_restart_timer_on
    public :: CCPL_abort
 
@@ -2100,9 +2102,9 @@
    integer                                                 :: grid_id
 
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real8")//char(0), top_value, coef_A, coef_B, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_B), size(coef_A), trim("real8")//char(0), top_value, coef_B, coef_A, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real8")//char(0), top_value, coef_A, coef_B, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_B), size(coef_A), trim("real8")//char(0), top_value, coef_B, coef_A, trim("")//char(0))
    endif
 
    CCPL_register_V1D_HYBRID_grid_via_double_data = grid_id
@@ -2123,9 +2125,9 @@
    integer                                                 :: grid_id
 
    if (present(annotation)) then
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real4")//char(0), top_value, coef_A, coef_B, trim(annotation)//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_B), size(coef_A), trim("real4")//char(0), top_value, coef_B, coef_A, trim(annotation)//char(0))
    else
-       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_A), size(coef_B), trim("real4")//char(0), top_value, coef_A, coef_B, trim("")//char(0))
+       call register_V1D_grid_with_data(comp_id, grid_id, trim(grid_name)//char(0), 3, trim(coord_unit)//char(0), size(coef_B), size(coef_A), trim("real4")//char(0), top_value, coef_B, coef_A, trim("")//char(0))
    endif
 
    CCPL_register_V1D_HYBRID_grid_via_float_data = grid_id
@@ -2876,6 +2878,34 @@
    
    END SUBROUTINE CCPL_do_restart_write
  
+
+
+   SUBROUTINE CCPL_do_family_coupling_generation(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+
+   if (present(annotation)) then
+       call ccpl_family_coupling_generation(comp_id, trim(annotation)//char(0))
+   else
+       call ccpl_family_coupling_generation(comp_id, trim("")//char(0))
+   endif
+   END SUBROUTINE CCPL_do_family_coupling_generation
+
+
+
+   SUBROUTINE CCPL_do_individual_coupling_generation(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+
+   if (present(annotation)) then
+       call ccpl_individual_coupling_generation(comp_id, trim(annotation)//char(0))
+   else
+       call ccpl_individual_coupling_generation(comp_id, trim("")//char(0))
+   endif
+   END SUBROUTINE CCPL_do_individual_coupling_generation
+
 
 
    SUBROUTINE CCPL_do_restart_read(comp_id, specified_restart_file, annotation)
