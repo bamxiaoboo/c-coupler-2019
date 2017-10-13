@@ -402,9 +402,29 @@ extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * 
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
-	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_individual_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
 	coupling_generator->generate_coupling_procedures_internal(*comp_id, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+}
+
+
+extern "C" void ccpl_begin_external_coupling_generation_(int *num_comps, int *size_comps_full_names, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps >= 1, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be smaller than 1. Please verify the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps <= *size_comps_full_names, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be bigger than the size of \"comps_full_names\". Please verify the model code with the annotation \"%s\"", annotation); 
+	coupling_generator->begin_external_coupling_generation();
+}
+
+
+extern "C" void ccpl_add_comp_for_external_coupling_generation_(const char *comp_full_name, const char *annotation)
+{
+	coupling_generator->add_comp_for_external_coupling_generation(comp_full_name, annotation);
+}
+
+
+extern "C" void ccpl_end_external_coupling_generation_(const char *annotation)
+{
+	coupling_generator->do_external_coupling_generation(annotation);
 }
 
 

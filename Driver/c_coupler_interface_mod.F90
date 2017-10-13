@@ -82,6 +82,7 @@
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write
    public :: CCPL_do_restart_read
+   public :: CCPL_do_external_coupling_generation
    public :: CCPL_do_individual_coupling_generation
    public :: CCPL_do_family_coupling_generation
    public :: CCPL_is_restart_timer_on
@@ -253,7 +254,7 @@
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
 
    local_field_unit = "default_unit"
@@ -2905,6 +2906,30 @@
        call ccpl_individual_coupling_generation(comp_id, trim("")//char(0))
    endif
    END SUBROUTINE CCPL_do_individual_coupling_generation
+
+
+
+   SUBROUTINE CCPL_do_external_coupling_generation(num_comps, comps_full_names, annotation)
+   implicit none
+   integer,          intent(in)                :: num_comps
+   character(len=*), intent(in)                :: comps_full_names(:)
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: size_comps_full_names, i
+   character *2048                             :: local_annotation
+   
+   
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   
+   size_comps_full_names = size(comps_full_names)
+   call ccpl_begin_external_coupling_generation(num_comps, size_comps_full_names, trim(local_annotation)//char(0))
+   do i = 1, num_comps
+       call ccpl_add_comp_for_external_coupling_generation(trim(comps_full_names(i))//char(0), trim(local_annotation)//char(0)) 
+   enddo 
+   call ccpl_end_external_coupling_generation(trim(local_annotation)//char(0))
+   write(*,*) "size of comps_full_names is ", size_comps_full_names
+   
+   END SUBROUTINE CCPL_do_external_coupling_generation
 
 
 

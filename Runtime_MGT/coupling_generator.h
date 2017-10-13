@@ -165,6 +165,7 @@ class Coupling_generator
 	private:
 		std::map<int,std::vector<std::pair<const char*, const char*> > > export_fields_dst_components;
 		std::vector<const char*> string_in_export_fields_dst_components;
+		std::vector<char *> all_comp_fullnames_for_coupling_generation;
 		Dictionary<int> *import_field_index_lookup_table;
 		Dictionary<int> *export_field_index_lookup_table;
 		std::vector<Coupling_connection*> all_coupling_connections;
@@ -173,7 +174,7 @@ class Coupling_generator
 		
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();		
-		void generate_coupling_procedures_common(std::vector<char *> &, MPI_Comm, bool);
+		void generate_coupling_procedures_common(MPI_Comm, bool);
 
 	public:
 		Coupling_generator() { latest_connection_id = 1; import_field_index_lookup_table = NULL; export_field_index_lookup_table = NULL; }
@@ -188,6 +189,9 @@ class Coupling_generator
 		void build_coupling_connections_for_unconnected_fixed_interfaces(std::vector<Inout_interface*> &, std::vector<Inout_interface*> &, std::vector<Coupling_connection*> &, bool);
 		void connect_fixed_interfaces_between_two_components(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node*, const char*);		
 		void transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &, Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *);
+		void begin_external_coupling_generation();
+		void add_comp_for_external_coupling_generation(const char *, const char*);
+		void do_external_coupling_generation(const char*);
 };
 
 
