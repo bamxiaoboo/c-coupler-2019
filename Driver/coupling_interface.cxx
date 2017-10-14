@@ -391,28 +391,30 @@ extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *
 extern "C" void ccpl_family_coupling_generation_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
 	coupling_generator->generate_coupling_procedures_internal(*comp_id, true);
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
 
 extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_individual_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
 	coupling_generator->generate_coupling_procedures_internal(*comp_id, false);
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
 
 extern "C" void ccpl_begin_external_coupling_generation_(int *num_comps, int *size_comps_full_names, const char *annotation)
 {
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for a set of specified component model");
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps >= 1, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be smaller than 1. Please verify the model code with the annotation \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps <= *size_comps_full_names, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be bigger than the size of \"comps_full_names\". Please verify the model code with the annotation \"%s\"", annotation); 
-	coupling_generator->begin_external_coupling_generation();
+	coupling_generator->begin_external_coupling_generation();	
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for a set of specified component model");
 }
 
 
@@ -495,7 +497,7 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 		transform_datatype_of_arrays((double*)value3, temp_value3, *dim_size3);
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0 && is_array_in_sorting_order(temp_value3,*dim_size2) != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
 //	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
 	*grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, *comp_id, grid_name, *grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, annotation);
 

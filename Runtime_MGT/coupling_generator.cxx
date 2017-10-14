@@ -14,7 +14,7 @@
 
 
 
-MPI_Comm create_union_comm_comm(MPI_Comm comp1, MPI_Comm comm2, int current_proc_id1, int current_proc_id2, std::vector<int> &procs_global_ids1, std::vector<int> &procs_global_ids2, int connection_id, int *proc_ranks_in_union_comm1, int *proc_ranks_in_union_comm2)
+MPI_Comm create_union_comm_common(MPI_Comm comp1, MPI_Comm comm2, int current_proc_id1, int current_proc_id2, std::vector<int> &procs_global_ids1, std::vector<int> &procs_global_ids2, int connection_id, int *proc_ranks_in_union_comm1, int *proc_ranks_in_union_comm2)
 {
     MPI_Group common_group, comm_group1, comm_group2, union_group;
     MPI_Group intersection_group;
@@ -193,115 +193,13 @@ void Coupling_connection::create_union_comm()
     if (dst_proc_ranks_in_union_comm == NULL) 
 		dst_proc_ranks_in_union_comm = new int[dst_comp_num_procs]; 
 
-	union_comm = create_union_comm_comm(src_comp_node->get_comm_group(), dst_comp_node->get_comm_group(), current_proc_id_src_comp, current_proc_id_dst_comp, src_procs_global_ids, dst_procs_global_ids, connection_id, src_proc_ranks_in_union_comm, dst_proc_ranks_in_union_comm);
+	union_comm = create_union_comm_common(src_comp_node->get_comm_group(), dst_comp_node->get_comm_group(), current_proc_id_src_comp, current_proc_id_dst_comp, src_procs_global_ids, dst_procs_global_ids, connection_id, src_proc_ranks_in_union_comm, dst_proc_ranks_in_union_comm);
 	
 	if (current_proc_id_src_comp != -1)
 		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
 		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 }
-
-
-/*
-void Coupling_connection::create_union_comm()
-{
-    MPI_Group common_group, src_group, dst_group, union_group;
-    MPI_Group intersection_group;
-    MPI_Comm inter_comm, src_comm, dst_comm, exclusive_comm;
-    int * src_ranks, * dst_ranks;
-    int intersection_size;
-    int src_comp_num_procs = src_comp_node->get_num_procs();
-    int dst_comp_num_procs = dst_comp_node->get_num_procs();
-	
-
-    src_comm = src_comp_node->get_comm_group();
-    dst_comm = dst_comp_node->get_comm_group();
-    src_ranks = new int[src_comp_num_procs];
-    dst_ranks = new int[dst_comp_num_procs];
-    if (src_proc_ranks_in_union_comm == NULL) 
-		src_proc_ranks_in_union_comm = new int[src_comp_num_procs]; 
-    if (dst_proc_ranks_in_union_comm == NULL) 
-		dst_proc_ranks_in_union_comm = new int[dst_comp_num_procs]; 
-
-    for (int i = 0; i < src_comp_num_procs; i ++)
-        src_ranks[i] = src_comp_node->get_local_proc_global_id(i);
-    for (int i = 0; i < dst_comp_num_procs; i ++)
-        dst_ranks[i] = dst_comp_node->get_local_proc_global_id(i);
-
-	if (current_proc_id_src_comp != -1) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
-		MPI_Barrier(src_comm);
-	}
-	if (current_proc_id_dst_comp != -1) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "start to create union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
-		MPI_Barrier(dst_comm);
-	}
-
-    MPI_Comm_group(MPI_COMM_WORLD, &common_group);
-    MPI_Group_incl(common_group, src_comp_num_procs, src_ranks, &src_group);
-    MPI_Group_incl(common_group, dst_comp_num_procs, dst_ranks, &dst_group);
-    MPI_Group_intersection(src_group, dst_group, &intersection_group);
-    MPI_Group_size(intersection_group, &intersection_size);
-
-    if (intersection_size == src_comp_num_procs) 
-        union_comm = dst_comm;
-    else if (intersection_size == dst_comp_num_procs)
-        union_comm = src_comm;
-    else if (intersection_size == 0) {
-        if (current_proc_id_src_comp != -1) {
-            MPI_Intercomm_create(src_comm, 0, MPI_COMM_WORLD, dst_comp_node->get_local_proc_global_id(0), connection_id, &inter_comm);
-            MPI_Intercomm_merge(inter_comm, true, &union_comm);
-        }
-        else if (current_proc_id_dst_comp != -1) {
-            MPI_Intercomm_create(dst_comm, 0, MPI_COMM_WORLD, src_comp_node->get_local_proc_global_id(0), connection_id, &inter_comm);
-            MPI_Intercomm_merge(inter_comm, true, &union_comm);
-        }
-    }
-    else {
-        int * translate_ranks = new int[dst_comp_num_procs];
-        for (int i = 0; i < dst_comp_num_procs; i ++) dst_ranks[i] = i;
-        MPI_Group_translate_ranks(dst_group, dst_comp_num_procs, dst_ranks, src_group, translate_ranks);
-        if (current_proc_id_dst_comp != -1) {
-            int color = 1;
-            if (current_proc_id_src_comp != -1) 
-				color = 0;
-            MPI_Comm_split(dst_comm, color, 0, &exclusive_comm);
-        }
-        if (current_proc_id_src_comp != -1) {
-            int root_indx_in_exclusive_comm = -1;
-            for (int i = 0; i < dst_comp_num_procs; i ++)
-                if (translate_ranks[i] < 0) {
-                    root_indx_in_exclusive_comm = i;
-                    break;
-                }
-            MPI_Intercomm_create(src_comm, 0, MPI_COMM_WORLD, dst_comp_node->get_local_proc_global_id(root_indx_in_exclusive_comm), connection_id, &inter_comm);
-            MPI_Intercomm_merge(inter_comm, true, &union_comm);
-        }
-        else {
-            MPI_Intercomm_create(exclusive_comm, 0, MPI_COMM_WORLD, src_comp_node->get_local_proc_global_id(0), connection_id, &inter_comm);
-            MPI_Intercomm_merge(inter_comm, true, &union_comm);
-        }
-        delete [] translate_ranks;
-    }
-
-    for (int i = 0; i < src_comp_num_procs; i ++) 
-		src_ranks[i] = i;
-    for (int i = 0; i < dst_comp_num_procs; i ++) 
-		dst_ranks[i] = i;
-
-    MPI_Comm_group(union_comm, &union_group);
-    MPI_Group_translate_ranks(src_group, src_comp_num_procs, src_ranks, union_group, src_proc_ranks_in_union_comm);
-    MPI_Group_translate_ranks(dst_group, dst_comp_num_procs, dst_ranks, union_group, dst_proc_ranks_in_union_comm);
-
-    delete [] src_ranks;
-    delete [] dst_ranks;
-
-	if (current_proc_id_src_comp != -1)
-		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
-	if (current_proc_id_dst_comp != -1)
-		EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "Finish creating union comm between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
-}
-*/
 
 
 void Coupling_connection::generate_data_transfer()
@@ -1452,8 +1350,16 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	int i, j, k, num_comps = all_comp_fullnames_for_coupling_generation.size();
 	std::vector<Comp_comm_group_mgt_node*> all_comp_nodes, loaded_comp_nodes;
 	Comp_comm_group_mgt_node *temp_comp_node, *local_comp_node, *existing_comp_node;
+	char *local_temp_array_buffer = NULL, *remote_temp_array_buffer = NULL;
+	long local_current_array_buffer_size, local_max_array_buffer_size, remote_current_array_buffer_size, remote_max_array_buffer_size;
+	int current_connection_id, max_connection_id, remote_connection_id;
+	MPI_Request request_send, request_recv;
+	MPI_Status status;
+	MPI_Comm union_comm = -1;
+	bool is_current_proc_in_union_comm = false;
+	int current_proc_id_in_union_comm, size_union_comm;
+	std::vector<int> proc_global_ids_in_union_comm, proc_global_ids_in_current_comm;
 
-	return;
 
 	for (i = 0; i < num_comps; i ++) {
 		k = 0;
@@ -1467,6 +1373,7 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	
 	for (i = 0; i < temp_all_comp_fullnames_for_coupling_generation.size(); i ++)
 		all_comp_fullnames_for_coupling_generation.push_back(temp_all_comp_fullnames_for_coupling_generation[i]);
+
 
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		if (comp_comm_group_mgt_mgr->search_global_node(all_comp_fullnames_for_coupling_generation[i]) != NULL)
@@ -1497,7 +1404,111 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 				delete temp_comp_node;
 		}
 	}
-	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_nodes.size() == all_comp_fullnames_for_coupling_generation.size(), "Software error in Coupling_generator::do_external_coupling_generation: wrong all_comp_nodes.size()");	
+	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_nodes.size() == all_comp_fullnames_for_coupling_generation.size(), "Software error in Coupling_generator::do_external_coupling_generation: wrong all_comp_nodes.size()");
+
+	if (all_comp_fullnames_for_coupling_generation.size() == 1) {
+		generate_coupling_procedures_common(all_comp_nodes[0]->get_comm_group(), false);
+		return;
+	}	
+
+	for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		dump_string(all_comp_fullnames_for_coupling_generation[i], -1, &local_temp_array_buffer, local_max_array_buffer_size, local_current_array_buffer_size);
+	write_data_into_array_buffer(local_temp_array_buffer, local_current_array_buffer_size, &remote_temp_array_buffer, remote_max_array_buffer_size, remote_current_array_buffer_size);
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		if (all_comp_nodes[i]->get_current_proc_local_id() >= 0) {
+			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": before checking consistency of the parameters between all processes of this component model. Deadlock may happen if not all processes of this component model calls this API at the same time", annotation);
+			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_ID_COUPLING_GEN_EXTERNAL, all_comp_nodes[i]->get_comm_group(), "coupling generation", local_current_array_buffer_size, sizeof(char), local_temp_array_buffer, "comps_full_names", annotation);
+			coupling_generator->synchronize_latest_connection_id(all_comp_nodes[i]->get_comm_group());
+			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": after checking consistency of the parameters between all processes of this component model. Deadlock may happen if not all processes of this component model calls this API at the same time", annotation);			
+		}
+	max_connection_id = coupling_generator->get_latest_connection_id();
+	for (i = 1; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
+		if (all_comp_nodes[0]->get_current_proc_local_id() == 0) {
+			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[0]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": check consistency of the parameters between the compoment models \"%s\" and \"%s\". Deadlock may happen if these two component models do not call this API at the same time", annotation, all_comp_fullnames_for_coupling_generation[0], all_comp_fullnames_for_coupling_generation[i]);
+			MPI_Irecv(&remote_connection_id, 1, MPI_INT, all_comp_nodes[i]->get_local_proc_global_id(0), 10101, MPI_COMM_WORLD, &request_recv);
+		}
+		if (all_comp_nodes[i]->get_current_proc_local_id() == 0) {
+			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": check consistency of the parameters between the compoment models \"%s\" and \"%s\". Deadlock may happen if these two component models do not call this API at the same time", annotation, all_comp_fullnames_for_coupling_generation[i], all_comp_fullnames_for_coupling_generation[0]); 
+			MPI_Isend(&max_connection_id, 1, MPI_INT, all_comp_nodes[0]->get_local_proc_global_id(0), 10101, MPI_COMM_WORLD, &request_send);
+		}
+		if (all_comp_nodes[0]->get_current_proc_local_id() == 0) {
+			MPI_Wait(&request_recv, &status);
+			max_connection_id = remote_connection_id > max_connection_id? remote_connection_id : max_connection_id;
+		}
+		if (all_comp_nodes[i]->get_current_proc_local_id() == 0)
+			MPI_Wait(&request_send, &status);
+	}
+	for (i = 1; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
+		if (all_comp_nodes[0]->get_current_proc_local_id() == 0)
+			MPI_Isend(&max_connection_id, 1, MPI_INT, all_comp_nodes[i]->get_local_proc_global_id(0), 10101, MPI_COMM_WORLD, &request_send);
+		if (all_comp_nodes[i]->get_current_proc_local_id() == 0)
+			MPI_Irecv(&max_connection_id, 1, MPI_INT, all_comp_nodes[0]->get_local_proc_global_id(0), 10101, MPI_COMM_WORLD, &request_recv);
+		if (all_comp_nodes[0]->get_current_proc_local_id() == 0)
+			MPI_Wait(&request_send, &status);
+		if (all_comp_nodes[i]->get_current_proc_local_id() == 0)
+			MPI_Wait(&request_recv, &status);
+	}
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		if (all_comp_nodes[i]->get_current_proc_local_id() != -1)
+			MPI_Bcast(&max_connection_id, 1, MPI_INT, 0, all_comp_nodes[i]->get_comm_group());
+	coupling_generator->set_latest_connection_id(max_connection_id);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "The coupling connection id in Coupling_generator::do_external_coupling_generation is %d", coupling_generator->get_latest_connection_id());
+
+	for (i = 1; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		if (all_comp_nodes[0]->get_current_proc_local_id() != -1 || all_comp_nodes[i]->get_current_proc_local_id() != -1) {
+			transfer_array_from_one_comp_to_another(all_comp_nodes[0]->get_current_proc_local_id(), all_comp_nodes[0]->get_local_proc_global_id(0), all_comp_nodes[i]->get_current_proc_local_id(), all_comp_nodes[i]->get_local_proc_global_id(0), all_comp_nodes[i]->get_comm_group(), &remote_temp_array_buffer, remote_current_array_buffer_size);
+			if (all_comp_nodes[i]->get_current_proc_local_id() != -1) {
+				EXECUTION_REPORT(REPORT_ERROR, all_comp_nodes[i]->get_comp_id(), remote_current_array_buffer_size == local_current_array_buffer_size, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full names of component models specified through the input parameters are not consistency between the component models \"%s\" and \"%s\". Please check the model code with the annotation \:%s\"", all_comp_fullnames_for_coupling_generation[i], all_comp_fullnames_for_coupling_generation[0], annotation);
+				for (j = 0; j < local_current_array_buffer_size; j ++)
+					if (local_temp_array_buffer[j] != remote_temp_array_buffer[j])
+						break;
+				EXECUTION_REPORT(REPORT_ERROR, all_comp_nodes[i]->get_comp_id(), j == local_current_array_buffer_size, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full names of component models specified through the input parameters are not consistency between the component models \"%s\" and \"%s\". Please check the model code with the annotation \:%s\"", all_comp_fullnames_for_coupling_generation[i], all_comp_fullnames_for_coupling_generation[0], annotation);
+			}
+		}
+
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
+		current_connection_id = coupling_generator->apply_connection_id();
+		if (i == 0) {
+			if (all_comp_nodes[i]->get_current_proc_local_id() != -1)
+				union_comm = all_comp_nodes[i]->get_comm_group();
+		}
+		else if (is_current_proc_in_union_comm || all_comp_nodes[i]->get_current_proc_local_id() != -1) {
+			int *temp_proc_global_ids = NULL, proc_global_id;
+			long array_size;
+			MPI_Comm_rank(MPI_COMM_WORLD, &proc_global_id);
+			if (is_current_proc_in_union_comm) {
+				MPI_Comm_rank(union_comm, &current_proc_id_in_union_comm);
+				MPI_Comm_size(union_comm, &size_union_comm);
+				array_size = size_union_comm * sizeof(int);
+				temp_proc_global_ids = new int [size_union_comm];
+				MPI_Allgather(&proc_global_id, 1, MPI_INT, temp_proc_global_ids, 1, MPI_INT, union_comm);
+			}
+			else current_proc_id_in_union_comm = -1;
+			if (proc_global_id == all_comp_nodes[0]->get_local_proc_global_id(0) || all_comp_nodes[i]->get_current_proc_local_id() != -1) {
+				if (proc_global_id == all_comp_nodes[0]->get_local_proc_global_id(0))
+					transfer_array_from_one_comp_to_another(0, all_comp_nodes[0]->get_local_proc_global_id(0), all_comp_nodes[i]->get_current_proc_local_id(), all_comp_nodes[i]->get_local_proc_global_id(0), all_comp_nodes[i]->get_comm_group(), (char**) (&temp_proc_global_ids), array_size);
+				else transfer_array_from_one_comp_to_another(-1, all_comp_nodes[0]->get_local_proc_global_id(0), all_comp_nodes[i]->get_current_proc_local_id(), all_comp_nodes[i]->get_local_proc_global_id(0), all_comp_nodes[i]->get_comm_group(), (char**) (&temp_proc_global_ids), array_size);
+			}
+			proc_global_ids_in_union_comm.clear();
+			for (int i = 0; i < array_size/sizeof(int); i ++)
+				proc_global_ids_in_union_comm.push_back(temp_proc_global_ids[i]);
+			if (temp_proc_global_ids != NULL)
+				delete [] temp_proc_global_ids;
+			proc_global_ids_in_current_comm.clear();
+			for (j = 0; j < all_comp_nodes[i]->get_num_procs(); j ++)
+				proc_global_ids_in_current_comm.push_back(all_comp_nodes[i]->get_local_proc_global_id(j));
+			union_comm = create_union_comm_common(union_comm, all_comp_nodes[i]->get_comm_group(), current_proc_id_in_union_comm, all_comp_nodes[i]->get_current_proc_local_id(), proc_global_ids_in_union_comm, proc_global_ids_in_current_comm, current_connection_id, NULL, NULL);
+		}
+		if (all_comp_nodes[i]->get_current_proc_local_id() != -1)
+			is_current_proc_in_union_comm = true;
+	}
+
+	MPI_Comm_size(union_comm, &size_union_comm);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating the union comm (%d) for external coupling generation", size_union_comm);
+	
+	generate_coupling_procedures_common(union_comm, false);
+
+	clear();
 }
 
 

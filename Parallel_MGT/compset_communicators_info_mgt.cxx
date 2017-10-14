@@ -333,9 +333,10 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
 	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
 	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full_name of the component model", "internal configuration file of component information");
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "XML_full_name is %s\n", XML_full_name);
 	const char *XML_processes = get_XML_attribute(comp_id, -1, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information");
 	strcpy(this->comp_name, XML_comp_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(specified_full_name, XML_full_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: the full name specified is different from the full name in XML file");
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(specified_full_name, XML_full_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: the full name specified is different from the full name in XML file %s: %s vs %s", XML_file_name, specified_full_name, XML_full_name);
 	strcpy(this->full_name, XML_full_name);
 	int segment_start, segment_end;
 	for (int i = 1; i < strlen(XML_processes)+1; i ++) {
@@ -945,10 +946,11 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		sprintf(first_active_comp_config_dir, "%s/%s", runtime_config_root_dir, new_comp->get_comp_name());
 		if (change_dir == 1) {
 			char new_dir[NAME_STR_SIZE];
-			sprintf(new_dir, "%s/run/%s/%s", root_working_dir, new_comp->get_comp_type(), new_comp->get_comp_name());
+			sprintf(new_dir, "%s/run/%s/%s/data", root_working_dir, new_comp->get_comp_type(), new_comp->get_comp_name());
 			DIR *dir=opendir(new_dir);
 			EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), dir != NULL, "Fail to change working directory for the first active component model \"%s\": the directory \"%s\" does not exist.", new_comp->get_comp_name(), new_dir);
 			chdir(new_dir);
+			EXECUTION_REPORT_LOG(REPORT_LOG, new_comp->get_comp_id(), true, "change working directory to\"%s\"", new_dir);
 		}
 		original_grid_mgr->initialize_CoR_grids();
 	}
