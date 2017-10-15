@@ -388,6 +388,32 @@ extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *
 }
 
 
+extern "C" void ccpl_load_comps_full_names_from_config_file_(int *comp_id, const char *keyword, int *size_comps_full_names, int *num_comps, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, annotation, false);
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to the full names of a set of component models from the corresponding configuration file.");
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_load_omps_full_names_from_config_file_"), "first synchorization for getting the full names of a set of component models", annotation);
+	coupling_generator->load_comps_full_names_from_config_file(*comp_id, keyword, *size_comps_full_names, num_comps, annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "finish ccpl_load_comps_full_names_from_config_file");
+}
+
+
+extern "C" void ccpl_get_one_comp_full_name_(int *comp_id, int *str_size, int *index, char *comp_full_name, const char *annotation)
+{
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the beginning of cpl_get_one_comp_full_name_");
+	coupling_generator->get_one_comp_full_name(*comp_id, *str_size, *index-1, comp_full_name, annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the end of cpl_get_one_comp_full_name_");
+}
+
+
+extern "C" void ccpl_finish_getting_configurable_comps_full_names_(int *comp_id, const char *annotation)
+{
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the beginning of ccpl_finish_getting_configurable_comps_full_names_");
+	coupling_generator->clear();
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the end of ccpl_finish_getting_configurable_comps_full_names_");
+}
+
+
 extern "C" void ccpl_family_coupling_generation_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);

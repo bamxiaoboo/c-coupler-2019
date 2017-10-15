@@ -82,6 +82,7 @@
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write
    public :: CCPL_do_restart_read
+   public :: CCPL_get_configurable_comps_full_names
    public :: CCPL_do_external_coupling_generation
    public :: CCPL_do_individual_coupling_generation
    public :: CCPL_do_family_coupling_generation
@@ -2907,6 +2908,30 @@
    endif
    END SUBROUTINE CCPL_do_individual_coupling_generation
 
+
+   
+   SUBROUTINE CCPL_get_configurable_comps_full_names(comp_id, keyword, num_comps, comps_full_names, annotation)
+   integer,          intent(in)                 :: comp_id
+   character(len=*), intent(in)                 :: keyword
+   integer,          intent(out)                :: num_comps
+   character(len=*), intent(out)                :: comps_full_names(:)
+   character(len=*), intent(in), optional       :: annotation
+   character *2048                              :: local_annotation
+   integer                                      :: size_comps_full_names, i
+   
+
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   size_comps_full_names = size(comps_full_names)
+
+   call ccpl_load_comps_full_names_from_config_file(comp_id, trim(keyword)//char(0), size_comps_full_names, num_comps, trim(local_annotation)//char(0))
+   do i = 1, num_comps
+      call ccpl_get_one_comp_full_name(comp_id, len(comps_full_names(i)), i, comps_full_names(i), trim(local_annotation)//char(0)) 
+   enddo
+   call ccpl_finish_getting_configurable_comps_full_names(comp_id, trim(local_annotation)//char(0)) 
+
+   END SUBROUTINE CCPL_get_configurable_comps_full_names
+   
 
 
    SUBROUTINE CCPL_do_external_coupling_generation(num_comps, comps_full_names, annotation)

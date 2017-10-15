@@ -260,6 +260,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_COUPLING_GEN_EXTERNAL:
 			sprintf(API_label, "CCPL_do_external_coupling_generation");
 			break;
+		case API_ID_COUPLING_GEN_GET_COMPS:
+			sprintf(API_label, "CCPL_get_configurable_comps_full_names");
+			break;
 		default:
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
 			break;

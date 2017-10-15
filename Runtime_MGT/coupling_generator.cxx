@@ -1512,3 +1512,80 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 }
 
 
+void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, const char *keyword, int size_comps_full_names, int *num_comps, const char *annotation)
+{
+	char XML_file_name[NAME_STR_SIZE];
+	const char *current_comp_full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name();
+	const char *temp_full_name;
+	const char *XML_keyword;
+	int line_number, i;
+
+
+	*num_comps = 0;
+	
+	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), current_comp_full_name);
+	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file"), false);
+	if (XML_file == NULL)
+		return;
+	
+	TiXmlElement *root_XML_element, *XML_element, *detailed_XML_element;
+	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file), *XML_element_node = NULL, *detailed_XML_element_node = NULL;
+	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+		root_XML_element = root_XML_element_node->ToElement();
+		if (words_are_the_same(root_XML_element->Value(),"component_full_names_sets"))
+			break;
+	}
+	if (root_XML_element_node == NULL)
+		return;
+
+	for (XML_element_node = root_XML_element->FirstChild(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
+		XML_element = XML_element_node->ToElement();
+		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status for the full names of a set of component models", "the redirection configuration file"))
+			continue;
+		XML_keyword = get_XML_attribute(comp_id, -1, XML_element, "keyword", XML_file_name, line_number, "the keyword of the set of component models' full names", "the redirection configuration file");
+		if (words_are_the_same(keyword, XML_keyword))
+			break;
+	}	
+	if (XML_element_node == NULL)
+		return;
+
+	for (detailed_XML_element_node = XML_element->FirstChild(); detailed_XML_element_node != NULL; detailed_XML_element_node = detailed_XML_element_node->NextSibling()) {
+		detailed_XML_element = detailed_XML_element_node->ToElement();
+		temp_full_name = get_XML_attribute(comp_id, -1, detailed_XML_element, "comp_full_name", XML_file_name, line_number, "the full name of a component model", "the redirection configuration file");
+		if (temp_full_name != NULL) {
+			for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+				if (words_are_the_same(temp_full_name, all_comp_fullnames_for_coupling_generation[i]))
+					break;
+			if (i == all_comp_fullnames_for_coupling_generation.size())
+				all_comp_fullnames_for_coupling_generation.push_back(strdup(temp_full_name));
+		}
+	}
+
+	if (all_comp_fullnames_for_coupling_generation.size() > 0) {
+		for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+			if (words_are_the_same(current_comp_full_name, all_comp_fullnames_for_coupling_generation[i]))
+				break;
+		if (i == all_comp_fullnames_for_coupling_generation.size())
+			all_comp_fullnames_for_coupling_generation.push_back(strdup(current_comp_full_name));
+	}
+	
+	*num_comps = all_comp_fullnames_for_coupling_generation.size();
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_comps_full_names >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the array size of the input parameter \"comps_full_names\" (%d) is smaller than the number component models specified in the XML file \"%s\" (%d). Please verify the model code with the annotation \"%s\" or the configuration file.", size_comps_full_names, XML_file_name, *num_comps, annotation);
+	
+	delete XML_file;
+}
+
+
+void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int index, char *comp_full_name, const char *annotation)
+{
+	char XML_file_name[NAME_STR_SIZE];
+
+
+	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, str_size >= strlen(all_comp_fullnames_for_coupling_generation[index]), "Error happens when calling the API \"CCPL_get_configurable_comps_full_names\": the string length of the input parameter \"comps_full_names\" (%d) is smaller than the length of the full name of a component model (%s) that is loaded from the XML file \"%s\". Please verify the model code with the annotation \"%s\".", str_size, all_comp_fullnames_for_coupling_generation[index], XML_file_name, annotation);
+	strncpy(comp_full_name, all_comp_fullnames_for_coupling_generation[index], strlen(all_comp_fullnames_for_coupling_generation[index]));
+	for (int i = strlen(all_comp_fullnames_for_coupling_generation[index]); i < str_size; i ++)
+		comp_full_name[i] = ' ';
+}
+
