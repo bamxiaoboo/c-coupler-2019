@@ -120,8 +120,6 @@ class Inout_interface
 		std::vector<Inout_interface *> children_interfaces;           // only for remap interface 
 		int execution_checking_status;
 		long last_execution_time;
-		char fixed_remote_comp_full_name[NAME_STR_SIZE];
-		char fixed_remote_interface_name[NAME_STR_SIZE];
 		char *inversed_dst_fraction;
 		long bypass_counter;
 		int num_fields_connected;
@@ -129,7 +127,7 @@ class Inout_interface
 	public:
 		Inout_interface(const char*, long&);
 		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char*, const char *);
-		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, const char*, int, int);
+		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, int, int);
 		~Inout_interface();
 		void initialize_data(const char *, int, int, int, int, int *, int, const char *);	
 		void common_checking_for_interface_registration(int, int *, int, int, int, int, const char *, int, int, const char *, const char *);
@@ -152,8 +150,6 @@ class Inout_interface
 		int get_inst_or_aver() { return inst_or_aver; } 
 		void execute(bool, int*, int, const char*);
 		Inout_interface *get_child_interface(int i);
-		const char *get_fixed_remote_comp_full_name() { return fixed_remote_comp_full_name; }
-		const char *get_fixed_remote_interface_name() { return fixed_remote_interface_name; }
 		int get_num_coupling_procedures() { return coupling_procedures.size(); }
 		void add_remappling_fraction_processing(void *, void *, int, int, const char *, const char *, const char *);		
 		void preprocessing_for_frac_based_remapping();
@@ -173,7 +169,7 @@ class Inout_interface_mgt
 		Inout_interface_mgt(const char*, long);
 		Inout_interface_mgt() {}
 		~Inout_interface_mgt();
-		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, const char*, int);
+		int register_inout_interface(const char*, int, int, int*, int, int, int, const char*, int);
 		void generate_remapping_interface_connection(Inout_interface *, int, int *, bool);
 		int register_normal_remap_interface(const char *, int, int *, int *, int, int, int, int, const char *, const char *);
 		int register_frac_based_remap_interface(const char *, int, int *, int *, int, int, int, int, void *, void *, int, int, const char *, const char *, const char *);
@@ -183,8 +179,7 @@ class Inout_interface_mgt
 		Inout_interface *get_interface(const char*, const char*);
 		Inout_interface *get_interface(int, const char*);
 		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, int);	
-		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, const char*);
-		void get_all_unconnected_fixed_interfaces(std::vector<Inout_interface*> &, int, int, const char*);		
+		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, const char*);		
 		void get_all_unconnected_inout_interface_fields_info(std::vector<char*> & , char **, long &, MPI_Comm);
 		void merge_unconnected_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();

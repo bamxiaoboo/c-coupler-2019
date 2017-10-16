@@ -78,8 +78,6 @@
 #define API_ID_INTERFACE_REG_NORMAL_REMAP               ((int)(0X04000003))
 #define API_ID_INTERFACE_REG_FRAC_REMAP                 ((int)(0X04000004))
 #define API_ID_INTERFACE_EXECUTE                        ((int)(0X04000005))
-#define API_ID_INTERFACE_CONNECT_INTERFACES             ((int)(0X04000006))
-#define API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG          ((int)(0X04000007))
 #define API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME       ((int)(0X04000008))
 #define API_ID_REPORT_LOG                               ((int)(0X06000001))
 #define API_ID_REPORT_ERROR                             ((int)(0X06000002))

@@ -446,8 +446,6 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_con
 	interface_id = 0;
 	read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(&num_interfaces, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 	for (int i = 0; i < num_interfaces; i ++) {
@@ -469,12 +467,10 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 
 
 	sprintf(child_interface_name, "%s_child_export", interface_name);
-	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", "", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
 	sprintf(child_interface_name, "%s_child_import", interface_name);
-	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", "", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
 	initialize_data(interface_name, interface_id, 2, timer_id, inst_or_aver, field_ids_src, INTERFACE_TYPE_REGISTER, annotation);
-	fixed_remote_comp_full_name[0] = '\0';
-	fixed_remote_interface_name[0] = '\0';
 	this->timer->reset_remote_lag_count();
 	children_interfaces[0]->timer->reset_remote_lag_count();
 	children_interfaces[1]->timer->reset_remote_lag_count();
@@ -486,20 +482,10 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 }
 
 
-Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *interface_tag, const char *annotation, int API_id, int interface_type)
+Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *annotation, int API_id, int interface_type)
 {	
 	common_checking_for_interface_registration(num_fields, field_ids, array_size, timer_id, inst_or_aver, import_or_export_or_remap, interface_name, API_id, interface_type, field_ids_parameter_name, annotation);
 	initialize_data(interface_name, interface_id, import_or_export_or_remap, timer_id, inst_or_aver, field_ids, interface_type, annotation);
-	fixed_remote_comp_full_name[0] = '\0';
-	fixed_remote_interface_name[0] = '\0';
-	if (strlen(interface_tag) > 0) {			
-		char XML_file_name[NAME_STR_SIZE];
-		sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_full_name());
-		if (!comp_comm_group_mgt_mgr->search_coupling_interface_tag(comp_id,interface_tag,fixed_remote_comp_full_name,fixed_remote_interface_name))
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when registering an import/export interface \"%s\": cannot find the corresponding entry in the XML configuration file \"%s\" according to the parameter \"interface_tag\". Please check the model code with the annotation \"%s\" and the XML file. ", interface_name, XML_file_name, annotation);		
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(fixed_remote_comp_full_name) > 0 && strlen(fixed_remote_interface_name) > 0, "Error happens when registering an import/export interface \"%s\": the parameter of \"interface_tag\" cannot be seperated into a component model full name and an interface name when it contains a special character \"$\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
-	}
-
 	for (int i = 0; i < num_fields; i ++) {
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
 		fields_connected_status.push_back(false);
@@ -679,8 +665,6 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 	}
 	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 }
@@ -814,6 +798,7 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 
 
 	if (import_or_export_or_remap == 0) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_mem_registered.size() == num_fields_connected, "ERROR happens when executing the import interface \"%s\": the coupling procedures have not been fully generated. Please verify the model code with the annotation \"%s\".", interface_name, annotation);
 		if (fields_mem_registered.size() > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
@@ -840,10 +825,6 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 		return;
 	}
 
-	if (!(comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0))
-		if (strlen(fixed_remote_comp_full_name) > 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0, "Fail to execute the fixed interface \"%s\" (remote component model full name is \"%s\" and remote interface is \"%s\") corresponding to the model code with the annotation \"%s\" because the coupling procedures of this interface have not been generated. Please verify.", interface_name, fixed_remote_comp_full_name, fixed_remote_interface_name, annotation);
-		else EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized() || coupling_procedures.size() > 0, "Fail execute the dynamic interface \"%s\" corresponding to the model code with the annotation \"%s\" because the coupling procedures of this interface have not been generated. Please verify.", interface_name, annotation);
 	if (bypass_timer && (execution_checking_status & 0x2) != 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
@@ -1052,10 +1033,10 @@ int Inout_interface_mgt::register_frac_based_remap_interface(const char *interfa
 }
 
 
-int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *interface_tag, const char *annotation, int interface_type)
+int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
 {
 	int API_id = import_or_export_or_remap == 0? API_ID_INTERFACE_REG_IMPORT : API_ID_INTERFACE_REG_EXPORT;
-	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export_or_remap, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", interface_tag, annotation, API_id, interface_type);
+	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export_or_remap, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", annotation, API_id, interface_type);
 	for (int i = 0; i < interfaces.size(); i ++) {
 		if (new_interface->get_comp_id() != interfaces[i]->get_comp_id())
 			continue;
@@ -1154,15 +1135,6 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 
 	for (int i = 0; i < interfaces.size(); i ++)
 		if (words_are_the_same(interfaces[i]->get_comp_full_name(), comp_full_name) && interfaces[i]->get_import_or_export_or_remap() == 0)
-			import_interfaces.push_back(interfaces[i]);
-}
-
-
-void Inout_interface_mgt::get_all_unconnected_fixed_interfaces(std::vector<Inout_interface*> &import_interfaces, int comp_id, int import_or_export, const char *remote_comp_name)
-{
-	for (int i = 0; i < interfaces.size(); i ++)
-		if ((comp_id == -1 || interfaces[i]->get_comp_id() == comp_id) && interfaces[i]->get_import_or_export_or_remap() == import_or_export && interfaces[i]->get_num_coupling_procedures() == 0 && 
-			 strlen(interfaces[i]->get_fixed_remote_comp_full_name()) > 0 && (remote_comp_name == NULL || words_are_the_same(remote_comp_name, interfaces[i]->get_fixed_remote_comp_full_name())))
 			import_interfaces.push_back(interfaces[i]);
 }
 

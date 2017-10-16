@@ -74,8 +74,6 @@
    public :: CCPL_register_export_interface 
    public :: CCPL_execute_interface_using_id 
    public :: CCPL_execute_interface_using_name
-   public :: CCPL_connect_fixed_interfaces 
-   public :: CCPL_get_comp_full_name_via_interface_tag 
    public :: CCPL_get_local_comp_full_name 
    public :: CCPL_report_log 
    public :: CCPL_report_progress 
@@ -2624,25 +2622,21 @@
 
 
 
-   integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, interface_tag, annotation)
+   integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name
    character(len=*), intent(in), optional      :: annotation
-   character(len=*), intent(in), optional      :: interface_tag
    integer,          intent(in)                :: timer_ID
    integer,          intent(in)                :: inst_or_aver
    integer,          intent(in), dimension(:)  :: field_instance_IDs
    integer,          intent(in)                :: num_field_instances
    integer                                     :: interface_id
-   character*512                               :: local_interface_tag
 
    
-   local_interface_tag = ""
-   if (present(interface_tag)) local_interface_tag=interface_tag
    if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(local_interface_tag)//char(0), trim(annotation)//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs))
    else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(local_interface_tag)//char(0), trim("")//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs))
    endif
    CCPL_register_import_interface = interface_id;
 
@@ -2650,25 +2644,20 @@
 
 
 
-   integer FUNCTION CCPL_register_export_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, interface_tag, annotation)
+   integer FUNCTION CCPL_register_export_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, annotation)
    implicit none
    character(len=*), intent(in)                :: interface_name
    character(len=*), intent(in), optional      :: annotation
-   character(len=*), intent(in), optional      :: interface_tag
    integer,          intent(in)                :: timer_ID
    integer,          intent(in), dimension(:)  :: field_instance_IDs
    integer,          intent(in)                :: num_field_instances
    integer                                     :: interface_id
-   character*512                               :: local_interface_tag
 
    
-   local_interface_tag = ""
-   if (present(interface_tag)) local_interface_tag=interface_tag
-
    if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(local_interface_tag)//char(0), trim(annotation)//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(annotation)//char(0), size(field_instance_IDs))
    else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim(local_interface_tag)//char(0), trim("")//char(0), size(field_instance_IDs))
+       call register_inout_interface(trim(interface_name)//char(0), interface_id, 1, num_field_instances, field_instance_IDs, timer_ID, field_instance_IDs, trim("")//char(0), size(field_instance_IDs))
    endif
    CCPL_register_export_interface = interface_id;
 
@@ -2742,44 +2731,6 @@
    CCPL_execute_interface_using_name = .true.
 
    END FUNCTION CCPL_execute_interface_using_name
-
-
-
-   SUBROUTINE CCPL_connect_fixed_interfaces(comp_full_name1, comp_full_name2, annotation)
-   implicit none
-   character(len=*), intent(in)                :: comp_full_name1
-   character(len=*), intent(in)                :: comp_full_name2
-   character(len=*), intent(in), optional      :: annotation
-
-
-   if (present(annotation)) then
-       call connect_fixed_interfaces_between_two_components(trim(comp_full_name1)//char(0), trim(comp_full_name2)//char(0), trim(annotation)//char(0))
-   else 
-       call connect_fixed_interfaces_between_two_components(trim(comp_full_name1)//char(0), trim(comp_full_name2)//char(0), trim("")//char(0))
-   endif
-
-   END SUBROUTINE CCPL_connect_fixed_interfaces
-
-
-   
-   logical FUNCTION CCPL_get_comp_full_name_via_interface_tag(comp_id, interface_tag, comp_full_name, annotation)
-   implicit none
-   integer,          intent(in)                :: comp_id
-   character(len=*), intent(in)                :: interface_tag
-   character(len=*), intent(inout)             :: comp_full_name
-   character(len=*), intent(in), optional      :: annotation
-   integer                                     :: int_result
-   character(len=1024)                         :: local_comp_full_name
-
-   if (present(annotation)) then
-       call get_comp_name_via_interface_tag(comp_id, trim(interface_tag)//char(0), comp_full_name, int_result, len(comp_full_name), trim(annotation)//char(0))
-   else
-       call get_comp_name_via_interface_tag(comp_id, trim(interface_tag)//char(0), comp_full_name, int_result, len(comp_full_name), trim("")//char(0))
-   endif
-
-   CCPL_get_comp_full_name_via_interface_tag = (int_result .eq. 1)
-
-   END FUNCTION CCPL_get_comp_full_name_via_interface_tag
 
 
 

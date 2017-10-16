@@ -34,18 +34,6 @@
 #define NULL_COMM                  ((int)-1)
 
 
-class Coupling_interface_tag
-{
-	public:
-		char interface_tag[NAME_STR_SIZE];
-		char comp_full_name[NAME_STR_SIZE];
-		char interface_name[NAME_STR_SIZE];
-
-		Coupling_interface_tag(TiXmlElement *, int, const char *);
-		~Coupling_interface_tag() {}
-};
-
-
 class Comp_comm_group_mgt_node
 {
 	private:
@@ -60,7 +48,6 @@ class Comp_comm_group_mgt_node
 		char exe_log_file_name[NAME_STR_SIZE];
 		char working_dir[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
-		std::vector<Coupling_interface_tag*> coupling_interface_tags;
 		std::vector<Comp_comm_group_mgt_node*> children;
 		MPI_Comm comm_group;
 		std::vector<int> local_processes_global_ids;
@@ -112,8 +99,6 @@ class Comp_comm_group_mgt_node
 		void confirm_coupling_configuration_active(int, bool, const char*);
 		const char *get_full_name() { return full_name; }
 		Comp_comm_group_mgt_node *load_comp_info_from_XML(const char *);
-		void load_coupling_interface_tags();
-		bool search_coupling_interface_tag(const char*, char*, char*);
 		const char *get_comp_log_file_name() { return comp_log_file_name; } 
 		const char *get_exe_log_file_name() { return exe_log_file_name; } 
 		bool is_real_component_model();
@@ -185,7 +170,6 @@ class Comp_comm_group_mgt_mgr
 		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }
 		bool has_comp_ended_configuration(const char*);
-		bool search_coupling_interface_tag(int, const char*, char*, char*);
 		void push_comp_node(Comp_comm_group_mgt_node *);
 		Comp_comm_group_mgt_node *pop_comp_node();
 		void check_validation();

@@ -209,12 +209,6 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_INTERFACE_EXECUTE:
 			sprintf(API_label, "CCPL_execute_interface");
 			break;
-		case API_ID_INTERFACE_CONNECT_INTERFACES:
-			sprintf(API_label, "CCPL_connect_fixed_interfaces");
-			break;
-		case API_ID_INTERFACE_GET_COMP_NAME_VIA_TAG:
-			sprintf(API_label, "CCPL_get_comp_name_via_interface_tag");
-			break;
 		case API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME:
 			sprintf(API_label, "CCPL_get_local_comp_full_name");
 			break;

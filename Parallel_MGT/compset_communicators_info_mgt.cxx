@@ -81,26 +81,10 @@ void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool n
 }
 
 
-Coupling_interface_tag::Coupling_interface_tag(TiXmlElement *XML_element, int comp_id, const char *XML_file_name)
-{
-	int line_number; 
-
-
-	const char *XML_interface_tag = get_XML_attribute(comp_id, 600, XML_element, "interface_tag", XML_file_name, line_number, "the \"interface_tag\" used to register an export/import interface", "interface configuration file");
-	const char *XML_comp_full_name = get_XML_attribute(comp_id, 512, XML_element, "comp_full_name", XML_file_name, line_number, "the full name of the component model corresponding to the \"interface_tag\"", "interface configuration file");
-	const char *XML_interface_name = get_XML_attribute(comp_id, 80, XML_element, "interface_name", XML_file_name, line_number, "the interface name corresponding to the \"interface_tag\"", "interface configuration file");
-	strcpy(interface_tag, XML_interface_tag);
-	strcpy(comp_full_name, XML_comp_full_name);
-	strcpy(interface_name, XML_interface_name);
-}
-
-
 Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 {
 	if (temp_array_buffer != NULL)
 		delete [] temp_array_buffer;
-	for (int i = 0; i < coupling_interface_tags.size(); i ++)
-		delete coupling_interface_tags[i];
 
 	if (restart_mgr != NULL)
 		delete restart_mgr;
@@ -600,68 +584,9 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_node::load_comp_info_from_XML(cons
 }
 
 
-void Comp_comm_group_mgt_node::load_coupling_interface_tags()
-{
-	char XML_file_name[NAME_STR_SIZE];
-
-	
-	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), full_name);
-	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comm_group, false);
-	if (XML_file == NULL)
-		return;
-	
-	TiXmlElement *root_XML_element;
-	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file);
-	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
-		root_XML_element = root_XML_element_node->ToElement();
-		if (words_are_the_same(root_XML_element->Value(),"component_interface_tags"))
-			break;
-	}
-
-	if (root_XML_element_node != NULL) {
-		for (TiXmlNode *XML_element_node = root_XML_element->FirstChild(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
-			TiXmlElement *XML_element = XML_element_node->ToElement();
-			if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status for setting an interface tag", "the redirection configuration file"))
-				continue;
-			coupling_interface_tags.push_back(new Coupling_interface_tag(XML_element, comp_id, XML_file_name));
-		}	
-	}
-	delete XML_file;
-}
-
-
 bool Comp_comm_group_mgt_node::is_real_component_model()
 { 
 	return !words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED) && !words_are_the_same(comp_type, COMP_TYPE_ROOT); 
-}
-
-
-bool Comp_comm_group_mgt_node::search_coupling_interface_tag(const char *interface_tag, char *fixed_remote_comp_full_name, char *fixed_remote_interface_name)
-{
-	int i;
-
-
-	fixed_remote_comp_full_name[0] = '\0';
-	fixed_remote_interface_name[0] = '\0';
-	for (i = 0; i < strlen(interface_tag); i ++)
-		if (interface_tag[i] == '$')
-			break;
-	if (i < strlen(interface_tag)) {
-		strncpy(fixed_remote_comp_full_name, interface_tag, i);
-		fixed_remote_comp_full_name[i] = '\0';
-		strcpy(fixed_remote_interface_name, interface_tag+i+1);
-		return true;
-	}
-	
-	for (int i = 0; i < coupling_interface_tags.size(); i ++) {
-		if (words_are_the_same(coupling_interface_tags[i]->interface_tag, interface_tag)) {
-			strcpy(fixed_remote_comp_full_name, coupling_interface_tags[i]->comp_full_name);
-			strcpy(fixed_remote_interface_name, coupling_interface_tags[i]->interface_name);
-			return true;
-		}
-	}
-
-	return false;
 }
 
 
@@ -937,8 +862,6 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 	Comp_comm_group_mgt_node *temp_comp_node = new_comp->load_comp_info_from_XML(new_comp->get_full_name());
 	delete temp_comp_node;
-
-	new_comp->load_coupling_interface_tags();
 
 	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
@@ -1242,12 +1165,6 @@ bool Comp_comm_group_mgt_mgr::has_comp_ended_configuration(const char *comp_full
 
 	fclose(status_file);
 	return true;
-}
-
-
-bool Comp_comm_group_mgt_mgr::search_coupling_interface_tag(int comp_id, const char *interface_tag, char *comp_full_name, char *interface_name)
-{
-	return comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Comp_comm_group_mgt_mgr::search_coupling_interface_tag")->search_coupling_interface_tag(interface_tag, comp_full_name, interface_name);
 }
 
 

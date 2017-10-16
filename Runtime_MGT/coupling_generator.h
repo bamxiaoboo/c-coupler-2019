@@ -186,8 +186,6 @@ class Coupling_generator
 		int get_latest_connection_id() { return latest_connection_id; }
 		void set_latest_connection_id(int connection_id) { latest_connection_id = connection_id; }
 		void synchronize_latest_connection_id(MPI_Comm);
-		void build_coupling_connections_for_unconnected_fixed_interfaces(std::vector<Inout_interface*> &, std::vector<Inout_interface*> &, std::vector<Coupling_connection*> &, bool);
-		void connect_fixed_interfaces_between_two_components(Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node*, const char*);		
 		void transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &, Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *);
 		void begin_external_coupling_generation();
 		void add_comp_for_external_coupling_generation(const char *, const char*);

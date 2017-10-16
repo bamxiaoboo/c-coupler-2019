@@ -953,8 +953,6 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 			Component_import_interfaces_configuration *comp_import_interfaces_config = new Component_import_interfaces_configuration(local_comp_node->get_comp_id(), all_comp_fullnames_for_coupling_generation[i], all_interfaces_mgr, is_overall_generation);
 			for (int j = 0; j < import_interfaces_of_a_component.size(); j ++) {
 				std::vector<const char*> import_fields_name;
-				if (strlen(import_interfaces_of_a_component[j]->get_fixed_remote_comp_full_name()) > 0)
-					continue;
 				import_interfaces_of_a_component[j]->get_fields_name(&import_fields_name);
 				for (int k = 0; k < import_fields_name.size(); k ++) {
 					std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > configuration_export_producer_info;
@@ -1030,11 +1028,6 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 			}
 		}
 
-		std::vector<Inout_interface*> fixed_import_interfaces;
-		std::vector<Inout_interface*> fixed_export_interfaces;
-		all_interfaces_mgr->get_all_unconnected_fixed_interfaces(fixed_import_interfaces, -1, 0, NULL);
-		all_interfaces_mgr->get_all_unconnected_fixed_interfaces(fixed_export_interfaces, -1, 1, NULL);
-		build_coupling_connections_for_unconnected_fixed_interfaces(fixed_import_interfaces, fixed_export_interfaces, all_coupling_connections, is_overall_generation);
 		delete all_interfaces_mgr;
 
 		if (temp_array_buffer != NULL)
@@ -1147,10 +1140,9 @@ void Coupling_generator::generate_IO_procedures()
 
 void Coupling_generator::generate_interface_fields_source_dst(const char *temp_array_buffer, int buffer_content_size)
 {
-	char comp_full_name[NAME_STR_SIZE], interface_name[NAME_STR_SIZE], field_name[NAME_STR_SIZE], fixed_remote_comp_full_name[NAME_STR_SIZE], fixed_remote_interface_name[NAME_STR_SIZE];
+	char comp_full_name[NAME_STR_SIZE], interface_name[NAME_STR_SIZE], field_name[NAME_STR_SIZE];
 	std::vector<const char*> distinct_import_fields_name;
 	std::vector<const char*> distinct_export_fields_name;
-	bool is_fixed_interface;
 
 
 	import_field_index_lookup_table = new Dictionary<int>(1024);
@@ -1161,15 +1153,10 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 	while (buffer_content_iter > 0) {
 		read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 		read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-		read_data_from_array_buffer(fixed_remote_interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-		read_data_from_array_buffer(fixed_remote_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 		read_data_from_array_buffer(&import_or_export, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 		read_data_from_array_buffer(&num_fields, sizeof(int), temp_array_buffer, buffer_content_iter, true);
-		is_fixed_interface = strlen(fixed_remote_comp_full_name) != 0;
 		for (int i = 0; i < num_fields; i ++) {
 			read_data_from_array_buffer(field_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-			if (is_fixed_interface)
-				continue;
 			if (import_or_export == 0) {
 				if (import_field_index_lookup_table->search(field_name, false) == 0) {
 					import_field_index_lookup_table->insert(field_name, field_id_iter++);
@@ -1193,49 +1180,6 @@ void Coupling_generator::generate_interface_fields_source_dst(const char *temp_a
 }
 
 
-void Coupling_generator::build_coupling_connections_for_unconnected_fixed_interfaces(std::vector<Inout_interface*> &fixed_import_interfaces, std::vector<Inout_interface*> &fixed_export_interfaces, std::vector<Coupling_connection*> &coupling_connections, bool check_error)
-{
-	int i, j, k, l;
-
-
-	for (i = 0; i < fixed_import_interfaces.size(); i ++) {
-		for (j = 0; j < fixed_export_interfaces.size(); j ++)
-			if (words_are_the_same(fixed_import_interfaces[i]->get_fixed_remote_comp_full_name(), fixed_export_interfaces[j]->get_comp_full_name()) &&
-				words_are_the_same(fixed_import_interfaces[i]->get_fixed_remote_interface_name(), fixed_export_interfaces[j]->get_interface_name()) &&
-				words_are_the_same(fixed_export_interfaces[j]->get_fixed_remote_comp_full_name(), fixed_import_interfaces[i]->get_comp_full_name()) &&
-				words_are_the_same(fixed_export_interfaces[j]->get_fixed_remote_interface_name(), fixed_import_interfaces[i]->get_interface_name()))
-				break;
-		if (j == fixed_export_interfaces.size()) {
-			if (check_error)
-				EXECUTION_REPORT(REPORT_ERROR, fixed_import_interfaces[i]->get_comp_id(), false, "Error happens when building coupling connections for the import interface \"%s\" of the component model \"%s\": cannot find its fixed export interface \"%s\" of the component model \"%s\" (this interface does not exist, is not a fixed interface, is not an export interface, or does not match the fixed import interface). Please verify.", 
-				                 fixed_import_interfaces[i]->get_interface_name(), fixed_import_interfaces[i]->get_comp_full_name(), fixed_import_interfaces[i]->get_fixed_remote_interface_name(), fixed_import_interfaces[i]->get_fixed_remote_comp_full_name());
-			continue;
-		}
-		int comp_id = fixed_import_interfaces[i]->get_comp_id() != -1? fixed_import_interfaces[i]->get_comp_id() : fixed_export_interfaces[j]->get_comp_id();
-		std::vector<const char*> import_fields_name, export_fields_name;
-		fixed_import_interfaces[i]->get_fields_name(&import_fields_name);
-		fixed_export_interfaces[j]->get_fields_name(&export_fields_name);
-		for (k = 0; k < import_fields_name.size(); k ++) {
-			for (l = 0; l < export_fields_name.size(); l ++)
-				if (words_are_the_same(import_fields_name[k], export_fields_name[l]))
-					break;
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, l < export_fields_name.size(), "Error happens when building coupling connections from the fixed export interface \"%s\" of the component model \"%s\" to the import interface \"%s\" of the component model \"%s\": field \"%s\" included in the import interface is not included in the export interface. ", 
-				             fixed_export_interfaces[j]->get_fixed_remote_interface_name(), fixed_export_interfaces[j]->get_fixed_remote_comp_full_name(), fixed_import_interfaces[i]->get_interface_name(), fixed_import_interfaces[i]->get_comp_full_name(), import_fields_name[k]);
-		}
-		Coupling_connection *coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
-		strcpy(coupling_connection->dst_comp_full_name, fixed_export_interfaces[j]->get_fixed_remote_comp_full_name());
-		strcpy(coupling_connection->dst_interface_name, fixed_export_interfaces[j]->get_fixed_remote_interface_name());
-		std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
-		strcpy(src_comp_interface.first, fixed_import_interfaces[i]->get_fixed_remote_comp_full_name());
-		strcpy(src_comp_interface.second, fixed_import_interfaces[i]->get_fixed_remote_interface_name());
-		coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
-		for (k = 0; k < import_fields_name.size(); k ++)
-			coupling_connection->fields_name.push_back(strdup(import_fields_name[k]));
-		coupling_connections.push_back(coupling_connection);
-	}
-}
-
-
 void Coupling_generator::transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &interfaces, Comp_comm_group_mgt_node *comp_node_src, Comp_comm_group_mgt_node *comp_node_dst)
 {
 	long buffer_max_size = 0, buffer_content_size = 0;
@@ -1254,73 +1198,6 @@ void Coupling_generator::transfer_interfaces_info_from_one_component_to_another(
 
 	if (temp_array_buffer != NULL)
 		delete [] temp_array_buffer;
-}
-
-
-void Coupling_generator::connect_fixed_interfaces_between_two_components(Comp_comm_group_mgt_node *comp_node1, Comp_comm_group_mgt_node *comp_node2, const char *annotation)
-{
-	std::vector<Inout_interface*> unconnected_fixed_interfaces_comp1, unconnected_fixed_interfaces_comp2;
-	std::vector<Inout_interface*> unconnected_fixed_import_interfaces, unconnected_fixed_export_interfaces;
-	int *connection_id_comp1 = NULL, *connection_id_comp2 = NULL;
-	long data_size;
-	
-
-	if (comp_node1->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node1->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
-	if (comp_node2->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node2->get_comp_id(), true, "Start to connect fixed interfaces between two component models \"%s\" and \"%s\" at the model code with the annotation \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name(), annotation);
-	
-	if (comp_node1->get_current_proc_local_id() >= 0) {		
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp1, comp_node1->get_comp_id(), 0, comp_node1->get_full_name());
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp1, comp_node1->get_comp_id(), 1, comp_node1->get_full_name());
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp1, comp_node1->get_comp_id(), 0, comp_node2->get_full_name());
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp1, comp_node1->get_comp_id(), 1, comp_node2->get_full_name());
-		synchronize_latest_connection_id(comp_node1->get_comm_group());
-		connection_id_comp1 = new int [1];
-		*connection_id_comp1 = coupling_generator->get_latest_connection_id();
-	}
-	if (comp_node2->get_current_proc_local_id() >= 0) {
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp2, comp_node2->get_comp_id(), 0, comp_node2->get_full_name());
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp2, comp_node2->get_comp_id(), 1, comp_node2->get_full_name());
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp2, comp_node2->get_comp_id(), 0, comp_node1->get_full_name());
-		inout_interface_mgr->get_all_unconnected_fixed_interfaces(unconnected_fixed_interfaces_comp2, comp_node2->get_comp_id(), 1, comp_node1->get_full_name());
-		synchronize_latest_connection_id(comp_node2->get_comm_group());
-		connection_id_comp2 = new int [1];
-		*connection_id_comp2 = coupling_generator->get_latest_connection_id();
-	}
-	
-	transfer_interfaces_info_from_one_component_to_another(unconnected_fixed_interfaces_comp1, comp_node1, comp_node2);
-	transfer_interfaces_info_from_one_component_to_another(unconnected_fixed_interfaces_comp2, comp_node2, comp_node1);
-
-	for (int i = 0; i < unconnected_fixed_interfaces_comp1.size(); i ++)
-		if (unconnected_fixed_interfaces_comp1[i]->get_import_or_export_or_remap() == 0)
-			unconnected_fixed_import_interfaces.push_back(unconnected_fixed_interfaces_comp1[i]);
-		else unconnected_fixed_export_interfaces.push_back(unconnected_fixed_interfaces_comp1[i]);
-	for (int i = 0; i < unconnected_fixed_interfaces_comp2.size(); i ++)
-		if (unconnected_fixed_interfaces_comp2[i]->get_import_or_export_or_remap() == 0)
-			unconnected_fixed_import_interfaces.push_back(unconnected_fixed_interfaces_comp2[i]);
-		else unconnected_fixed_export_interfaces.push_back(unconnected_fixed_interfaces_comp2[i]);
-
-	data_size = sizeof(int);
-	transfer_array_from_one_comp_to_another(comp_node1->get_current_proc_local_id(), comp_node1->get_root_proc_global_id(), comp_node2->get_current_proc_local_id(), comp_node2->get_root_proc_global_id(), comp_node2->get_comm_group(), (char**)(&connection_id_comp1), data_size);	
-	transfer_array_from_one_comp_to_another(comp_node2->get_current_proc_local_id(), comp_node2->get_root_proc_global_id(), comp_node1->get_current_proc_local_id(), comp_node1->get_root_proc_global_id(), comp_node1->get_comm_group(), (char**)(&connection_id_comp2), data_size);
-	coupling_generator->set_latest_connection_id((*connection_id_comp1)>(*connection_id_comp2)? (*connection_id_comp1) : (*connection_id_comp2));
-
-	build_coupling_connections_for_unconnected_fixed_interfaces(unconnected_fixed_import_interfaces, unconnected_fixed_export_interfaces, all_coupling_connections, false);
-
-	for (int i = 0; i < all_coupling_connections.size(); i ++) {
-		all_coupling_connections[i]->generate_a_coupling_procedure(false);
-//		delete all_coupling_connections[i];
-	}	
-	all_coupling_connections.clear();
-
-	if (comp_node1->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node1->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
-	if (comp_node2->get_current_proc_local_id() == 0)
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node2->get_comp_id(), true, "Finish connecting fixed interfaces between two component models \"%s\" and \"%s\"", comp_node1->get_full_name(), comp_node2->get_full_name());
-
-	delete [] connection_id_comp1;
-	delete [] connection_id_comp2;
 }
 
 
