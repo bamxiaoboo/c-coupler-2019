@@ -285,3 +285,34 @@ bool is_string_decimal_number(const char *string)
 	return true;
 }
 
+
+char *load_string(char *str, long &str_size, long max_size, const char *array_buffer, long &buffer_content_iter, const char *file_name)
+{
+	char *local_str = str;
+	
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&str_size, sizeof(long), array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong", file_name);	
+	EXECUTION_REPORT(REPORT_ERROR, -1, str_size > 0, "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	if (local_str != NULL)
+		EXECUTION_REPORT(REPORT_ERROR, -1, str_size < max_size, "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	if (local_str == NULL)
+		local_str = new char [str_size+1];
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(local_str, str_size, array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	local_str[str_size] = '\0';
+
+	return local_str;
+}
+
+
+void dump_string(const char *str, long str_size, char **array_buffer, long &buffer_max_size, long &buffer_content_size)
+{
+	if (str_size == -1)
+		if (str != NULL)
+			str_size = strlen(str);
+		else str_size = 0;
+	if (str != NULL)
+		write_data_into_array_buffer(str, str_size, array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&str_size, sizeof(long), array_buffer, buffer_max_size, buffer_content_size);
+}
+
+

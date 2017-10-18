@@ -27,7 +27,7 @@
 class H2D_remapping_wgt_file_info
 {
 	private:
-		char wgt_file_name[NAME_STR_SIZE];
+		const char *wgt_file_name;
 		int src_grid_size;
 		int dst_grid_size;
 		double *src_center_lon;
@@ -108,7 +108,7 @@ class Remapping_algorithm_specification
 	private:
 		int comp_id;		
 		int type_id;
-		char algorithm_name[NAME_STR_SIZE];
+		const char *algorithm_name;
 		std::vector<char *> parameters_name;
 		std::vector<char *> parameters_value;
 
@@ -117,7 +117,7 @@ class Remapping_algorithm_specification
 		Remapping_algorithm_specification(const char*, int);
 		Remapping_algorithm_specification(const char *, long*);
 		Remapping_algorithm_specification(int, TiXmlElement*, const char*, int);
-		Remapping_algorithm_specification() {}
+		Remapping_algorithm_specification() { algorithm_name = NULL; }
 		~Remapping_algorithm_specification();
 		void print();
 		void clean();

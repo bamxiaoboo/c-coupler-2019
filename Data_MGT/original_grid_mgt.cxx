@@ -20,15 +20,15 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->grid_id = grid_id;
 	this->original_CoR_grid = original_CoR_grid;
 	this->bottom_field_variation_type = BOTTOM_FIELD_VARIATION_UNSET;
-	this->bottom_field_name[0] = '\0';
+	this->bottom_field_name = NULL;
 	this->bottom_field_id = -1;
 	this->checksum_H2D_mask = -1;
 	this->mid_point_grid = NULL;
 	this->interface_level_grid = NULL;
 	this->center_lon_values = NULL;
 	this->center_lat_values = NULL;
-	strcpy(this->grid_name, grid_name);
-	strcpy(comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+	this->grid_name = strdup(grid_name);
+	comp_full_name = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
 
@@ -78,6 +78,10 @@ Original_grid_info::~Original_grid_info()
 		delete [] center_lon_values;
 		delete [] center_lat_values;
 	}
+	delete [] grid_name;
+	delete [] comp_full_name;
+	if (bottom_field_name != NULL)
+		delete [] bottom_field_name;
 }
 
 
@@ -170,7 +174,7 @@ void Original_grid_info::set_unique_bottom_field(int field_id, int type, const c
 	bottom_field_variation_type = type;
 	if (type != BOTTOM_FIELD_VARIATION_EXTERNAL) {
 		Field_mem_info *field_inst = memory_manager->get_field_instance(field_id);
-		strcpy(bottom_field_name, field_inst->get_field_name());
+		bottom_field_name = strdup(field_inst->get_field_name());
 		bottom_field_id = field_id;
 		decomp_grids_mgr->search_decomp_grid_info(field_inst->get_decomp_id(), get_original_CoR_grid(), false)->get_decomp_grid()->set_sigma_grid_dynamic_surface_value_field(field_inst->get_field_data());
 	}
@@ -296,17 +300,18 @@ Original_grid_mgt::~Original_grid_mgt()
 }
 
 
-void Original_grid_mgt::delete_original_grid_CoR_grid(Original_grid_info *original_grid)
+void Original_grid_mgt::delete_external_original_grids()
 {
-	int i;
-
-	
-	for (i = 0; i < original_grids.size(); i ++)
-		if (original_grids[i] == original_grid)
-			break;
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, i < original_grids.size(), "Software error in Original_grid_mgt::delete_external_original_grid");
-	original_grid->reset_grid_data();
+	for (int i = 0; i < original_grids.size(); i ++) {
+		if (original_grids[i] == NULL)
+			continue;
+		Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(original_grids[i]->get_comp_full_name());
+		if (comp_node == NULL || comp_node->get_current_proc_local_id() == -1) {
+			original_grids[i]->reset_grid_data();
+			delete original_grids[i];
+			original_grids[i] = NULL;
+		}
+	}
 }
 
 
@@ -343,7 +348,7 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 	int line_number;
 
 
-	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
+	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp"), false);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the grid redirection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 

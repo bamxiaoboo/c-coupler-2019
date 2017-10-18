@@ -775,7 +775,7 @@ Import_interface_configuration::Import_interface_configuration(int host_comp_id,
 
 	for (TiXmlNode *redirection_element_node = interface_element->FirstChild(); redirection_element_node != NULL; redirection_element_node = redirection_element_node->NextSibling()) {
 		TiXmlElement *redirection_element = redirection_element_node->ToElement();
-		EXECUTION_REPORT(REPORT_ERROR, interface_ptr->get_comp_id(), words_are_the_same(redirection_element->Value(),"import_redirection"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the XML element for specifying the redirection configuration should be named \"import_redirection\". Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+		EXECUTION_REPORT(REPORT_ERROR, interface_ptr->get_comp_id(), words_are_the_same(redirection_element->Value(),"import_connection"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the XML element for specifying the redirection configuration should be named \"import_connection\". Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 		if (!is_XML_setting_on(interface_ptr->get_comp_id(), redirection_element, XML_file_name, "the status of some redirection configurations for an import interface", "import interface configuration file"))
 			continue;
 		import_directions.push_back(new Import_direction_setting(host_comp_id, this, comp_full_name, interface_name, redirection_element, XML_file_name, fields_name, fields_count, check_comp_existence));
@@ -819,10 +819,10 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 
 
 	strcpy(this->comp_full_name, comp_full_name);
-	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
+	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_full_name);
 	TiXmlDocument *XML_file = open_XML_file_to_read(host_comp_id, XML_file_name, MPI_COMM_NULL, false);	
 	if (XML_file == NULL) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.import.redirection.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "As there is no import interface configuration file (the file name should be \"%s.coupling_connections.xml\") specified for the component \"%s\", the coupling procedures of the import/export interfaces of this component will be generated automatically", 
 			             comp_full_name, comp_full_name);
 		return;
 	}
@@ -1097,6 +1097,8 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 		comp_comm_group_mgt_mgr->pop_comp_node();
 
 	clear();
+
+	//original_grid_mgr->delete_external_original_grids();
 	
 	if (current_proc_local_id == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedure");
@@ -1396,7 +1398,7 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 
 	*num_comps = 0;
 	
-	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), current_comp_full_name);
+	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), current_comp_full_name);
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file"), false);
 	if (XML_file == NULL)
 		return;
@@ -1455,7 +1457,7 @@ void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int i
 	char XML_file_name[NAME_STR_SIZE];
 
 
-	sprintf(XML_file_name, "%s/all/redirection_configs/%s.import.redirection.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
+	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, str_size >= strlen(all_comp_fullnames_for_coupling_generation[index]), "Error happens when calling the API \"CCPL_get_configurable_comps_full_names\": the string length of the input parameter \"comps_full_names\" (%d) is smaller than the length of the full name of a component model (%s) that is loaded from the XML file \"%s\". Please verify the model code with the annotation \"%s\".", str_size, all_comp_fullnames_for_coupling_generation[index], XML_file_name, annotation);
 	strncpy(comp_full_name, all_comp_fullnames_for_coupling_generation[index], strlen(all_comp_fullnames_for_coupling_generation[index]));
 	for (int i = strlen(all_comp_fullnames_for_coupling_generation[index]); i < str_size; i ++)

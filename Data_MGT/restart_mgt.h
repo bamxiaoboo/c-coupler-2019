@@ -65,8 +65,5 @@ class Restart_mgt
 };
 
 
-extern void dump_string(const char*, long, char **, long &, long &);
-extern char *load_string(char *, long &, long, const char *, long &, const char *);
-
 
 #endif

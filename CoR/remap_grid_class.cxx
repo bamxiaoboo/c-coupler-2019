@@ -1097,7 +1097,7 @@ void Remap_grid_class::calculate_lev_sigma_values()
 			}
 			else {
 	            for (j = 0; j < lev_leaf_grid_of_sigma_or_hybrid->grid_size; j ++)
-    	            tmp_vertical_coord_values[j] = (local_sigma_grid_top_value*hybrid_grid_coefficient_values[j]+fabs(data_sigma[j])*data_bot*full_ratio)*local_sigma_grid_scale_factor;		
+    	            tmp_vertical_coord_values[j] = (local_sigma_grid_top_value*hybrid_grid_coefficient_values[j]+fabs(data_sigma[j])*data_bot)*full_ratio*local_sigma_grid_scale_factor;		
 			}
         }
 		data_array_ptr = data_grid_field + i*lev_leaf_grid->grid_size;

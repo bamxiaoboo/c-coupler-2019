@@ -14,7 +14,7 @@
 
 H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_name)
 {	
-	strcpy(this->wgt_file_name, wgt_file_name);
+	this->wgt_file_name = strdup(wgt_file_name);
 	num_wgts = 0;
 	wgts_src_indexes = NULL;
 	wgts_dst_indexes = NULL;
@@ -32,7 +32,10 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_na
 
 H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, long *buffer_content_iter)
 {	
-	read_data_from_array_buffer(wgt_file_name, NAME_STR_SIZE, array, *buffer_content_iter, true);
+	long str_size; 
+
+
+	wgt_file_name = load_string(NULL, str_size, 4096, array, *buffer_content_iter, NULL);
 	read_data_from_array_buffer(&checksum_dst_mask, sizeof(long), array, *buffer_content_iter, true);
 	read_data_from_array_buffer(&dst_grid_size, sizeof(int), array, *buffer_content_iter, true);
 	read_data_from_array_buffer(&checksum_src_mask, sizeof(long), array, *buffer_content_iter, true);
@@ -59,7 +62,7 @@ void H2D_remapping_wgt_file_info::write_remapping_wgt_file_info_into_array(char 
 	write_data_into_array_buffer(&checksum_src_mask, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&dst_grid_size, sizeof(int), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&checksum_dst_mask, sizeof(long), array, buffer_max_size, buffer_content_size);
-	write_string_into_array_buffer(wgt_file_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	dump_string(wgt_file_name, -1, array, buffer_max_size, buffer_content_size);
 }
 
 
@@ -126,7 +129,7 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
 	}
 	clean();
 	
-	read_remapping_weights(dst_original_grid->get_comp_id());
+//	read_remapping_weights(dst_original_grid->get_comp_id());
 	return true;
 }
 
@@ -423,6 +426,7 @@ void H2D_remapping_wgt_file_info::clean()
 H2D_remapping_wgt_file_info::~H2D_remapping_wgt_file_info()
 {
 	clean();
+	delete [] wgt_file_name;
 }
 
 
@@ -567,7 +571,7 @@ void H2D_remapping_wgt_file_container::add_wgt_file_info(H2D_remapping_wgt_file_
 Remapping_algorithm_specification::Remapping_algorithm_specification(const Remapping_algorithm_specification *src_specification)
 {
 	this->type_id = src_specification->type_id;
-	strcpy(this->algorithm_name, src_specification->algorithm_name);
+	this->algorithm_name = strdup(src_specification->algorithm_name);
 	for (int i = 0; i < src_specification->parameters_name.size(); i ++) {
 		this->parameters_name.push_back(new char [NAME_STR_SIZE]);
 		strcpy(this->parameters_name[this->parameters_name.size()-1], src_specification->parameters_name[i]);
@@ -579,7 +583,7 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(const Remap
 
 Remapping_algorithm_specification::Remapping_algorithm_specification(const char *algorithm_name, int algorithm_type)
 {
-	strcpy(this->algorithm_name, algorithm_name);
+	this->algorithm_name = strdup(algorithm_name);
 	this->type_id = algorithm_type;
 }
 
@@ -598,7 +602,7 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, remap_operator_manager->get_remap_operator_num_dim(algorithm_name) == 1, "\"%s\" is not a legal remapping operator or not a 1D remapping operator. Please verify the XML file \"%s\" around the line number %d", algorithm_name, XML_file_name, line_number);
 	else EXECUTION_REPORT(REPORT_ERROR, -1, "Software error in Remapping_algorithm_specification::Remapping_algorithm_specification");
 
-	strcpy(this->algorithm_name, algorithm_name);
+	this->algorithm_name = strdup(algorithm_name);
 	for (TiXmlNode *detailed_element_node = XML_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(detailed_element->Value(), "parameter"), "When setting the remapping configuration in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", XML_file_name, detailed_element->Value(), detailed_element->Row());
@@ -618,8 +622,11 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 
 Remapping_algorithm_specification::Remapping_algorithm_specification(const char *array, long *buffer_content_iter)
 {
+	long str_size;
+
+	
 	read_data_from_array_buffer(&type_id, sizeof(int), array, *buffer_content_iter, true);
-	read_data_from_array_buffer(algorithm_name, NAME_STR_SIZE, array, *buffer_content_iter, true);
+	algorithm_name = load_string(NULL, str_size, NAME_STR_SIZE, array, *buffer_content_iter, NULL);
 	int temp_int;
 	read_data_from_array_buffer(&temp_int, sizeof(int), array, *buffer_content_iter, true);
 	for (int i = 0; i < temp_int; i ++) {
@@ -637,6 +644,7 @@ Remapping_algorithm_specification::~Remapping_algorithm_specification()
 		delete [] parameters_name[i];
 		delete [] parameters_value[i];
 	}
+	delete [] algorithm_name;
 }
 
 
@@ -662,7 +670,8 @@ void Remapping_algorithm_specification::clean()
 	}
 	parameters_name.clear();
 	parameters_value.clear();
-	algorithm_name[0] = '\0';
+	delete [] algorithm_name;
+	algorithm_name = NULL;
 	type_id = -1;
 }
 
@@ -675,7 +684,7 @@ void Remapping_algorithm_specification::write_remapping_algorithm_specification_
 	}
 	int temp_int = parameters_name.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), array, buffer_max_size, buffer_content_size);
-	write_string_into_array_buffer(algorithm_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+	dump_string(algorithm_name, -1, array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&type_id, sizeof(int), array, buffer_max_size, buffer_content_size);
 }
 
@@ -693,7 +702,8 @@ Remapping_algorithm_specification *Remapping_algorithm_specification::clone()
 	Remapping_algorithm_specification *cloned_specification = new Remapping_algorithm_specification;
 	cloned_specification->comp_id = this->comp_id;
 	cloned_specification->type_id = this->type_id;
-	strcpy(cloned_specification->algorithm_name, this->algorithm_name);
+	if (this->algorithm_name != NULL)
+		cloned_specification->algorithm_name = strdup(this->algorithm_name);
 	for (int i = 0; i < this->parameters_name.size(); i ++) {
 		cloned_specification->parameters_name.push_back(strdup(this->parameters_name[i]));
 		cloned_specification->parameters_value.push_back(strdup(this->parameters_value[i]));
