@@ -10,7 +10,7 @@
 #ifndef ONLY_CoR
 #include "global_data.h"
 #else
-#define NAME_STR_SIZE 1024
+#define NAME_STR_SIZE 512
 #endif
 #include "execution_report.h"
 #include "cor_global_data.h"

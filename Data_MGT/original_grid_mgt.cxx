@@ -28,6 +28,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->center_lon_values = NULL;
 	this->center_lat_values = NULL;
 	strcpy(this->grid_name, grid_name);
+	strcpy(comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
 
@@ -78,6 +79,23 @@ Original_grid_info::~Original_grid_info()
 		delete [] center_lat_values;
 	}
 }
+
+
+void Original_grid_info::reset_grid_data()
+{
+	if (original_CoR_grid != NULL) {
+		delete original_CoR_grid;
+		original_CoR_grid = NULL;
+	}
+
+	if (center_lon_values != NULL) {
+		delete [] center_lon_values;
+		delete [] center_lat_values;
+		center_lon_values = NULL;
+		center_lat_values = NULL;
+	}	
+}
+
 
 
 const char *Original_grid_info::get_annotation()
@@ -271,17 +289,33 @@ void Original_grid_mgt::initialize_CoR_grids()
 Original_grid_mgt::~Original_grid_mgt()
 {
 	for (int i = 0; i < original_grids.size(); i ++)
-		delete original_grids[i];
+		if (original_grids[i] != NULL)
+			delete original_grids[i];
 	
 	delete CoR_grids;
+}
+
+
+void Original_grid_mgt::delete_original_grid_CoR_grid(Original_grid_info *original_grid)
+{
+	int i;
+
+	
+	for (i = 0; i < original_grids.size(); i ++)
+		if (original_grids[i] == original_grid)
+			break;
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, i < original_grids.size(), "Software error in Original_grid_mgt::delete_external_original_grid");
+	original_grid->reset_grid_data();
 }
 
 
 Original_grid_info *Original_grid_mgt::search_grid_info(const char *grid_name, int comp_id)
 {
 	for (int i = 0; i < original_grids.size(); i ++)
-		if (words_are_the_same(original_grids[i]->get_grid_name(), grid_name) && original_grids[i]->get_comp_id() == comp_id)
-			return original_grids[i];
+		if (original_grids[i] != NULL)
+			if (words_are_the_same(original_grids[i]->get_grid_name(), grid_name) && original_grids[i]->get_comp_id() == comp_id)
+				return original_grids[i];
 
 	return NULL;
 }
@@ -869,21 +903,21 @@ bool Original_grid_mgt::is_grid_id_legal(int grid_id) const
 
 int Original_grid_mgt::get_comp_id_of_grid(int grid_id) const
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_comp_id_of_grid");
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id) && original_grids[grid_id&TYPE_ID_SUFFIX_MASK] != NULL, "Software error in Original_grid_mgt::get_comp_id_of_grid");
 	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_comp_id();
 }
 
 
 const char *Original_grid_mgt::get_name_of_grid(int grid_id) const
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_name_of_grid");
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id) && original_grids[grid_id&TYPE_ID_SUFFIX_MASK] != NULL, "Software error in Original_grid_mgt::get_name_of_grid");
 	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_grid_name();
 }
 
 
 Remap_grid_class *Original_grid_mgt::get_original_CoR_grid(int grid_id) const
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_original_CoR_grid");
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id) && original_grids[grid_id&TYPE_ID_SUFFIX_MASK] != NULL, "Software error in Original_grid_mgt::get_original_CoR_grid");
 	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_original_CoR_grid();
 }
 
@@ -928,7 +962,7 @@ int Original_grid_mgt::add_original_grid(int comp_id, const char *grid_name, Rem
 
 int Original_grid_mgt::get_num_grid_levels(int grid_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Software error in Original_grid_mgt::get_num_grid_levels: wrong grid id");		
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id) && original_grids[grid_id&TYPE_ID_SUFFIX_MASK] != NULL, "Software error in Original_grid_mgt::get_num_grid_levels: wrong grid id");		
 	if (original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->get_V1D_sub_CoR_grid() == NULL)
 		return 1;
 
@@ -939,7 +973,7 @@ int Original_grid_mgt::get_num_grid_levels(int grid_id)
 
 bool Original_grid_mgt::is_V1D_sub_grid_after_H2D_sub_grid(int grid_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id), "Original_grid_info::is_V1D_sub_grid_after_H2D_sub_grid: wrong grid id");		
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_grid_id_legal(grid_id) && original_grids[grid_id&TYPE_ID_SUFFIX_MASK] != NULL, "Original_grid_info::is_V1D_sub_grid_after_H2D_sub_grid: wrong grid id");		
 	return original_grids[grid_id&TYPE_ID_SUFFIX_MASK]->is_V1D_sub_grid_after_H2D_sub_grid();
 }
 

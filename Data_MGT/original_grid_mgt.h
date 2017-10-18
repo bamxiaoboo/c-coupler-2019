@@ -29,6 +29,7 @@ class Original_grid_info
 		int grid_id;
 		char grid_name[NAME_STR_SIZE];
 		char bottom_field_name[NAME_STR_SIZE];
+		char comp_full_name[NAME_STR_SIZE];
 		Remap_grid_class *original_CoR_grid;
 		Remap_grid_class *H2D_sub_CoR_grid;
 		Remap_grid_class *V1D_sub_CoR_grid;
@@ -76,6 +77,7 @@ class Original_grid_info
 		bool is_H2D_grid_and_the_same_as_another_grid(Original_grid_info *);
 		double *get_center_lon_values() { return center_lon_values; }
 		double *get_center_lat_values() { return center_lat_values; }
+		void reset_grid_data();
 };
 
 
@@ -116,6 +118,7 @@ class Original_grid_mgt
 		int register_md_grid_via_multi_grids(int, const char*, int, int, int, int, int *, const char*);
 		void set_3d_grid_bottom_field(int, int, int, int, int, const char*, const char*);
 		void register_mid_point_grid(int, int*, int*, int, const int*, const char*, const char *);
+		void delete_original_grid_CoR_grid(Original_grid_info *);
 };
 
 

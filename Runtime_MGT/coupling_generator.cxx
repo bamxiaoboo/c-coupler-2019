@@ -334,17 +334,10 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	if (original_grid_status == 0) {
 		char temp_string[NAME_STR_SIZE];
 		sprintf(temp_string, "%s%s", grid_name, sender_comp_node->get_full_name());
-		Remap_grid_class *mirror_grid = remap_grid_manager->search_remap_grid_with_grid_name(temp_string);
 		read_data_from_array_buffer(&checksum_mask, sizeof(long), temp_array_buffer, buffer_content_size, true);
 		read_data_from_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_content_size, true);
-		if (mirror_grid == NULL) {
-			mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
-			EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
-		}
-		else {
-			if (receiver_comp_node->get_current_proc_local_id() != -1) 
-				EXECUTION_REPORT_LOG(REPORT_LOG, receiver_comp_node->get_comp_id(), true, "Do not rebuild grid \"%s\" (\"%s\") again", grid_name, temp_string);
-		}
+		Remap_grid_class *mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
+		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
 		receiver_original_grid = original_grid_mgr->get_original_grid(original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid));
 		if (receiver_original_grid->get_bottom_field_variation_type() != bottom_field_variation_type)
 			EXECUTION_REPORT(REPORT_ERROR, -1, receiver_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Software error in Coupling_connection::exchange_grid regarding bottom_field_variation_type");
@@ -443,6 +436,9 @@ void Coupling_connection::generate_src_bottom_field_coupling_info()
 
 void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 {
+	Original_grid_info *src_original_grid = NULL, *dst_original_grid = NULL;
+
+	
 	if (current_proc_id_src_comp != -1)
 		EXECUTION_REPORT_LOG(REPORT_LOG, src_comp_node->get_comp_id(), true, "start to generate interpolation between components \"%s\" and \"%s\". The connection id is %d", src_comp_interfaces[0].first, dst_comp_full_name, connection_id);
 	if (current_proc_id_dst_comp != -1)
@@ -464,8 +460,8 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 //		exchange_grid(dst_comp_node, src_comp_node, dst_fields_info[i]->grid_name);
 		exchange_grid(src_comp_node, dst_comp_node, src_fields_info[i]->grid_name);
 		if (current_proc_id_dst_comp != -1) {
-			Original_grid_info *dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
-			Original_grid_info *src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
+			dst_original_grid = original_grid_mgr->search_grid_info(dst_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(dst_comp_full_name)->get_comp_id());
+			src_original_grid = original_grid_mgr->search_grid_info(src_fields_info[i]->grid_name, comp_comm_group_mgt_mgr->search_global_node(src_comp_interfaces[0].first)->get_comp_id());
 			if (src_original_grid->is_H2D_grid_and_the_same_as_another_grid(dst_original_grid)) {
 				EXECUTION_REPORT_LOG(REPORT_LOG, dst_comp_node->get_comp_id(), true, "The data interpolation from grid \"%s\" to \"%s\" is bypassed as these too grids are the same", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());
 				continue;

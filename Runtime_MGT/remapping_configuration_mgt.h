@@ -46,6 +46,7 @@ class H2D_remapping_wgt_file_info
 		H2D_remapping_wgt_file_info(const char*);
 		H2D_remapping_wgt_file_info(const char*, long*);
 		~H2D_remapping_wgt_file_info();
+		void clean();
 		long get_grid_field_checksum_value(const char *, IO_netcdf *, int, MPI_Comm, bool);
 		bool match_H2D_remapping_wgt(Original_grid_info*, Original_grid_info*);
 		const char *get_wgt_file_name() { return wgt_file_name; }
@@ -55,6 +56,14 @@ class H2D_remapping_wgt_file_info
 		long *get_wgts_src_indexes () { return wgts_src_indexes; }
 		long *get_wgts_dst_indexes () { return wgts_dst_indexes; }
 		double *get_wgts_values () { return wgts_values; }
+		void get_checksum_src_mask(int);
+		void get_checksum_dst_mask(int);
+		void read_src_grid_size(int);
+		void read_src_center_lon(int);
+		void read_src_center_lat(int);
+		void read_dst_grid_size(int);
+		void read_dst_center_lon(int);
+		void read_dst_center_lat(int);
 };
 
 
