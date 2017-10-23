@@ -714,8 +714,11 @@ void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_i
 {
     int *displs = new int [num_total_local_proc];
 	int *counts = new int [num_total_local_proc];
+	bool all_array_size_empty = all_array_size == NULL;
 
-	
+
+	if (all_array_size_empty)
+		all_array_size = new int [num_total_local_proc];
     MPI_Gather(&local_array_size, 1, MPI_INT, all_array_size, 1, MPI_INT, 0, comm);
 	global_size = 0;
     if (current_proc_local_id == 0) {
@@ -731,6 +734,8 @@ void gather_array_in_one_comp(int num_total_local_proc, int current_proc_local_i
     }
     MPI_Gatherv(local_array, local_array_size*data_type_size, MPI_CHAR, *global_array, counts, displs, MPI_CHAR, 0, comm);
 
+	if (all_array_size_empty)
+		delete [] all_array_size;
     delete [] displs;
     delete [] counts;
 }

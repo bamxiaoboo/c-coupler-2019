@@ -2885,25 +2885,46 @@
    
 
 
-   SUBROUTINE CCPL_do_external_coupling_generation(num_comps, comps_full_names, annotation)
+   SUBROUTINE CCPL_do_external_coupling_generation(num_comps, comps_full_names, individual_or_family, annotation)
    implicit none
    integer,          intent(in)                :: num_comps
    character(len=*), intent(in)                :: comps_full_names(:)
+   integer,          intent(in), optional      :: individual_or_family(:)
    character(len=*), intent(in), optional      :: annotation
-   integer                                     :: size_comps_full_names, i
+   integer                                     :: size_comps_full_names, i, j
    character *2048                             :: local_annotation
+   integer,          allocatable               :: local_individual_or_family(:)
+   integer                                     :: size_individual_or_family
    
-   
+
+   if (num_comps > 0) then
+       allocate(local_individual_or_family(num_comps))
+   else
+       allocate(local_individual_or_family(100))
+   endif
+   local_individual_or_family(:) = 1 
+   size_individual_or_family = num_comps
+   if (present(individual_or_family)) then
+      size_individual_or_family = size(individual_or_family)
+      j = num_comps
+      if (size_individual_or_family .lt. j) j = size_individual_or_family
+      do i = 1, j
+         local_individual_or_family(i) = individual_or_family(i)
+      enddo
+   endif
+
    local_annotation = ""
    if (present(annotation)) local_annotation = annotation
    
    size_comps_full_names = size(comps_full_names)
-   call ccpl_begin_external_coupling_generation(num_comps, size_comps_full_names, trim(local_annotation)//char(0))
+   call ccpl_begin_external_coupling_generation(num_comps, size_comps_full_names, size_individual_or_family, trim(local_annotation)//char(0))
    do i = 1, num_comps
-       call ccpl_add_comp_for_external_coupling_generation(trim(comps_full_names(i))//char(0), trim(local_annotation)//char(0)) 
+       call ccpl_add_comp_for_external_coupling_generation(trim(comps_full_names(i))//char(0), local_individual_or_family(i), trim(local_annotation)//char(0)) 
    enddo 
    call ccpl_end_external_coupling_generation(trim(local_annotation)//char(0))
    write(*,*) "size of comps_full_names is ", size_comps_full_names
+
+   deallocate(local_individual_or_family)
    
    END SUBROUTINE CCPL_do_external_coupling_generation
 

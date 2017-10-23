@@ -129,7 +129,7 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
 	}
 	clean();
 	
-//	read_remapping_weights(dst_original_grid->get_comp_id());
+	read_remapping_weights(dst_original_grid->get_comp_id());
 	return true;
 }
 

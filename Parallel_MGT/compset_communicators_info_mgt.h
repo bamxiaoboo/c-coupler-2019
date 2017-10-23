@@ -108,7 +108,7 @@ class Comp_comm_group_mgt_node
 		void set_current_proc_current_time(int, int);
 		void set_proc_latest_model_time(int, long);
 		long get_proc_latest_model_time(int);
-		void get_all_descendant_real_comp_fullnames(int, std::vector<char*>&, char **, long &, long &);
+		void get_all_descendant_real_comp_fullnames(int, std::vector<const char*>&, char **, long &, long &);
 };
 
 
@@ -129,6 +129,7 @@ class Comp_comm_group_mgt_mgr
 		char coupling_flow_config_dir[NAME_STR_SIZE];
 		char first_active_comp_config_dir[NAME_STR_SIZE];
 		int *sorted_comp_ids;
+		int unique_comp_id_indx;
 
 	public:
 		Comp_comm_group_mgt_mgr(const char*);

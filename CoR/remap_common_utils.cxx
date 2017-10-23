@@ -32,8 +32,15 @@ void match_degree_values(double &data_value1, double &data_value2)
 
 bool words_are_the_same(const char *word1, const char *word2)
 {
-	if (word1 == NULL || word2 == NULL)
-		return false;
+	if (word1 == NULL)
+		if (word2 == NULL || strlen(word2) == 0)
+			return true;
+		else return false;
+
+	if (word2 == NULL)
+		if (strlen(word1) == 0)
+			return true;
+		else return false;
 	
     return strcmp(word1, word2) == 0;
 }

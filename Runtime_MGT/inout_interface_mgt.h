@@ -180,7 +180,7 @@ class Inout_interface_mgt
 		Inout_interface *get_interface(int, const char*);
 		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, int);	
 		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, const char*);		
-		void get_all_unconnected_inout_interface_fields_info(std::vector<char*> & , char **, long &, MPI_Comm);
+		void get_all_unconnected_inout_interface_fields_info(std::vector<const char*> & , char **, long &, MPI_Comm);
 		void merge_unconnected_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
 		void execute_interface(int, bool, int*, int, int*, const char*);

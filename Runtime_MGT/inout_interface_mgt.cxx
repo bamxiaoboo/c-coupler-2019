@@ -1095,7 +1095,7 @@ Inout_interface *Inout_interface_mgt::get_interface(int comp_id, const char *int
 }
 
 
-void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::vector<char*> &all_descendant_real_comp_fullnames, char **temp_array_buffer, long &buffer_content_size, MPI_Comm comm)
+void Inout_interface_mgt::get_all_unconnected_inout_interface_fields_info(std::vector<const char*> &all_descendant_real_comp_fullnames, char **temp_array_buffer, long &buffer_content_size, MPI_Comm comm)
 {
 	char *local_temp_array_buffer = NULL;
 	long local_buffer_max_size = 0, local_buffer_content_size = 0;

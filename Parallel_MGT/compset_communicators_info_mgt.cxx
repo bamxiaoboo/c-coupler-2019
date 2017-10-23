@@ -637,7 +637,7 @@ long Comp_comm_group_mgt_node::get_proc_latest_model_time(int proc_id)
 }
 
 
-void Comp_comm_group_mgt_node::get_all_descendant_real_comp_fullnames(int top_comp_id, std::vector<char*> &all_descendant_real_comp_fullnames, char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+void Comp_comm_group_mgt_node::get_all_descendant_real_comp_fullnames(int top_comp_id, std::vector<const char*> &all_descendant_real_comp_fullnames, char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	char *local_temp_array_buffer = NULL, *gather_temp_array_buffer = NULL;
 	long local_buffer_max_size, local_buffer_content_size = 0, gather_buffer_content_size = 0;
@@ -685,7 +685,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	char temp_string[NAME_STR_SIZE];
 	std::vector<char*> unique_executable_name;
 
-	
+
+	unique_comp_id_indx = 0;
 	global_node_array.clear();
 	global_node_root = NULL;
 	definition_finalized = false;
@@ -806,7 +807,7 @@ void Comp_comm_group_mgt_mgr::update_global_nodes(Comp_comm_group_mgt_node **all
 				break;
 			if (j == old_global_array_size) {
 				EXECUTION_REPORT(REPORT_ERROR, -1, all_global_nodes[i]->get_comp_id() == -1 && !all_global_nodes[i]->have_local_process(comp_comm_group_mgt_mgr->get_current_proc_global_id()), "Software error in Comp_comm_group_mgt_mgr::update_global_nodes: fail2 to use component %s to replace", all_global_nodes[i]->get_full_name());
-				all_global_nodes[i]->reset_local_node_id(global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX);
+				all_global_nodes[i]->reset_local_node_id((unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX);
 				global_node_array.push_back(all_global_nodes[i]);
 			}
 	}
@@ -817,9 +818,11 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 {
 	if ((local_comp_id&TYPE_ID_PREFIX_MASK) != TYPE_COMP_LOCAL_ID_PREFIX)
 		return false;
+	for (int i = 0; i < global_node_array.size(); i ++)
+		if (local_comp_id == global_node_array[i]->get_comp_id())
+			return true;
 
-	int true_parent_id = (local_comp_id & TYPE_ID_SUFFIX_MASK);
-	return true_parent_id >= 0 && true_parent_id < global_node_array.size();
+	return false;
 }
 
 
@@ -845,18 +848,18 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		                 comp_name, annotation, global_node_array[i]->get_annotation_start());
 
 	if (parent_local_id == -1) {
-		root_local_node = new Comp_comm_group_mgt_node("ROOT", COMP_TYPE_ROOT, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, annotation);
+		root_local_node = new Comp_comm_group_mgt_node("ROOT", COMP_TYPE_ROOT, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, annotation);
 		global_node_array.push_back(root_local_node);
 		global_node_root = root_local_node;
-		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, annotation);
+		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, annotation);
 		global_node_array.push_back(new_comp);
 	}
 	else {
-		true_parent_id = (parent_local_id & TYPE_ID_SUFFIX_MASK);
-		EXECUTION_REPORT(REPORT_ERROR, -1, !global_node_array[true_parent_id]->is_definition_finalized(), 
+		Comp_comm_group_mgt_node *parent_comp_node = search_global_node(parent_local_id);
+		EXECUTION_REPORT(REPORT_ERROR, -1, !parent_comp_node->is_definition_finalized(), 
 			             "Cannot register component \"%s\" at the model code with the annotation \"%s\" because the registration corresponding to the parent \"%s\" has been ended at the model code with the annotation \"%s\"", 
-			             comp_name, annotation, global_node_array[true_parent_id]->get_comp_name(), global_node_array[true_parent_id]->get_annotation_end()); // add debug information
-		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX, global_node_array[true_parent_id], comm, annotation);
+			             comp_name, annotation, parent_comp_node->get_comp_name(), parent_comp_node->get_annotation_end()); // add debug information
+		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, parent_comp_node, comm, annotation);
 		global_node_array.push_back(new_comp);
 	}
 
@@ -884,11 +887,10 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char *annotation)
 {
-	Comp_comm_group_mgt_node *global_node;
+	Comp_comm_group_mgt_node *global_node = search_global_node(comp_local_id);
 	int true_local_id = (comp_local_id & TYPE_ID_SUFFIX_MASK), global_node_id;
 
 
-	global_node = global_node_array[true_local_id];
 	global_node->merge_comp_comm_info(annotation);
 
 	global_node_id = 0;
@@ -906,7 +908,6 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 
 	delete [] all_global_nodes;
 
-	global_node = global_node_array[true_local_id];
 	MPI_Barrier(global_node->get_comm_group());
 
 	if (true_local_id == 0) {
@@ -921,7 +922,7 @@ void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char
 	if (true_local_id == 1)
 		merge_comp_comm_info(global_node_array[0]->get_local_node_id(), annotation);
 
-	check_validation();
+//	check_validation();
 }
 
 
@@ -951,11 +952,11 @@ void Comp_comm_group_mgt_mgr::generate_sorted_comp_ids()
 
 Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp(int local_comp_id, const char *annotation)
 {	
-	EXECUTION_REPORT(REPORT_ERROR,-1, is_legal_local_comp_id(local_comp_id), 
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(local_comp_id), 
 		             "The id of component is wrong when getting the management node of a component. Please check the model code with the annotation \"%s\"", 
 		             annotation); 
 
-	return global_node_array[(local_comp_id&TYPE_ID_SUFFIX_MASK)];
+	return search_global_node(local_comp_id);
 }
 
 
@@ -967,39 +968,27 @@ MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_local_comp(int local_comp_id
 
 void Comp_comm_group_mgt_mgr::get_output_data_file_header(int comp_id, char *data_file_header)
 {
-	int true_comp_id;
-
-
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_data_file_header");
-	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);	
-	sprintf(data_file_header, "%s/%s", global_node_array[true_comp_id]->get_working_dir(), global_node_array[true_comp_id]->get_comp_name());
+	sprintf(data_file_header, "%s/%s", search_global_node(comp_id)->get_working_dir(), search_global_node(comp_id)->get_comp_name());
 }
 
 
 const char *Comp_comm_group_mgt_mgr::get_comp_log_file_name(int comp_id)
 {
-	int true_comp_id;
-
-
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_comp_log_file_name");
-	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
-	return global_node_array[true_comp_id]->get_comp_log_file_name();
+	return search_global_node(comp_id)->get_comp_log_file_name();
 }
 
 
 const char *Comp_comm_group_mgt_mgr::get_exe_log_file_name(int comp_id)
 {
-	int true_comp_id;
-
-
 	if (comp_id == -1) {
 		if (global_node_array.size() < 2)
 			return NULL;
 		return global_node_array[1]->get_exe_log_file_name();
 	}
 
-	true_comp_id = (comp_id & TYPE_ID_SUFFIX_MASK);
-	return global_node_array[true_comp_id]->get_exe_log_file_name();
+	search_global_node(comp_id)->get_exe_log_file_name();
 }
 
 
@@ -1104,10 +1093,8 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(const char
 Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(int global_node_id)
 {
 	for (int i = 0; i < global_node_array.size(); i ++)
-		if (global_node_array[i]->get_local_node_id() == global_node_id) {
-			EXECUTION_REPORT(REPORT_ERROR, -1, get_global_node_of_local_comp(global_node_id,"") == global_node_array[i], "Software error in Comp_comm_group_mgt_mgr::search_global_node");
+		if (global_node_array[i]->get_local_node_id() == global_node_id)
 			return global_node_array[i];
-		}
 		
 	return NULL;
 }
@@ -1170,7 +1157,7 @@ bool Comp_comm_group_mgt_mgr::has_comp_ended_configuration(const char *comp_full
 
 void Comp_comm_group_mgt_mgr::push_comp_node(Comp_comm_group_mgt_node *comp_node) 
 {
-	comp_node->reset_local_node_id(global_node_array.size()|TYPE_COMP_LOCAL_ID_PREFIX);
+	comp_node->reset_local_node_id((unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX);
 	global_node_array.push_back(comp_node); 
 }
 

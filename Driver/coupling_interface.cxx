@@ -393,6 +393,7 @@ extern "C" void ccpl_load_comps_full_names_from_config_file_(int *comp_id, const
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to the full names of a set of component models from the corresponding configuration file.");
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_load_omps_full_names_from_config_file_"), "first synchorization for getting the full names of a set of component models", annotation);
+	check_API_parameter_string_length(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, 80, keyword, "keyword", annotation);
 	coupling_generator->load_comps_full_names_from_config_file(*comp_id, keyword, *size_comps_full_names, num_comps, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "finish ccpl_load_comps_full_names_from_config_file");
 }
@@ -434,19 +435,20 @@ extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * 
 }
 
 
-extern "C" void ccpl_begin_external_coupling_generation_(int *num_comps, int *size_comps_full_names, const char *annotation)
+extern "C" void ccpl_begin_external_coupling_generation_(int *num_comps, int *size_comps_full_names, int *size_individual_or_family, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for a set of specified component model");
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps >= 1, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be smaller than 1. Please verify the model code with the annotation \"%s\"", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps <= *size_comps_full_names, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be bigger than the size of \"comps_full_names\". Please verify the model code with the annotation \"%s\"", annotation); 
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps <= *size_comps_full_names, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be bigger than the array size of \"comps_full_names\". Please verify the model code with the annotation \"%s\"", annotation); 
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps <= *size_individual_or_family, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be bigger than the array size of \"individual_or_family\". Please verify the model code with the annotation \"%s\"", annotation); 
 	coupling_generator->begin_external_coupling_generation();	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating coupling procedures for a set of specified component model");
 }
 
 
-extern "C" void ccpl_add_comp_for_external_coupling_generation_(const char *comp_full_name, const char *annotation)
+extern "C" void ccpl_add_comp_for_external_coupling_generation_(const char *comp_full_name, int *individual_or_family, const char *annotation)
 {
-	coupling_generator->add_comp_for_external_coupling_generation(comp_full_name, annotation);
+	coupling_generator->add_comp_for_external_coupling_generation(comp_full_name, *individual_or_family, annotation);
 }
 
 

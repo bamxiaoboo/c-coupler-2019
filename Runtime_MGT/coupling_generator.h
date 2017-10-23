@@ -165,7 +165,8 @@ class Coupling_generator
 	private:
 		std::map<int,std::vector<std::pair<const char*, const char*> > > export_fields_dst_components;
 		std::vector<const char*> string_in_export_fields_dst_components;
-		std::vector<char *> all_comp_fullnames_for_coupling_generation;
+		std::vector<const char *> all_comp_fullnames_for_coupling_generation;
+		std::vector<int> individual_or_family_generation;
 		Dictionary<int> *import_field_index_lookup_table;
 		Dictionary<int> *export_field_index_lookup_table;
 		std::vector<Coupling_connection*> all_coupling_connections;
@@ -175,6 +176,7 @@ class Coupling_generator
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();		
 		void generate_coupling_procedures_common(MPI_Comm, bool);
+		void sort_comp_full_names(std::vector<const char*> &, std::vector<int>*);
 
 	public:
 		Coupling_generator() { latest_connection_id = 1; import_field_index_lookup_table = NULL; export_field_index_lookup_table = NULL; }
@@ -188,7 +190,7 @@ class Coupling_generator
 		void synchronize_latest_connection_id(MPI_Comm);
 		void transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &, Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *);
 		void begin_external_coupling_generation();
-		void add_comp_for_external_coupling_generation(const char *, const char*);
+		void add_comp_for_external_coupling_generation(const char *, int, const char*);
 		void do_external_coupling_generation(const char*);
 		void load_comps_full_names_from_config_file(int, const char *, int, int *, const char *);
 		void get_one_comp_full_name(int, int, int, char *, const char *annotation);

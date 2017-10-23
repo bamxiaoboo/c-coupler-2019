@@ -830,7 +830,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(host_comp_id, XML_file_name, XML_file);
 	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
 		root_XML_element = root_XML_element_node->ToElement();
-		if (words_are_the_same(root_XML_element->Value(),"component_import_interfaces_configuration"))
+		if (words_are_the_same(root_XML_element->Value(),"local_import_interfaces"))
 			break;
 	}
 	if (root_XML_element_node == NULL) {
@@ -903,6 +903,7 @@ void Coupling_generator::clear()
 	for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		delete [] all_comp_fullnames_for_coupling_generation[i];
 	all_comp_fullnames_for_coupling_generation.clear();
+	individual_or_family_generation.clear();
 }
 
 
@@ -1201,32 +1202,66 @@ void Coupling_generator::transfer_interfaces_info_from_one_component_to_another(
 
 void Coupling_generator::begin_external_coupling_generation()
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_fullnames_for_coupling_generation.size() == 0, "Software error in Coupling_generator::begin_external_coupling_generation");
+	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_fullnames_for_coupling_generation.size() == 0 && individual_or_family_generation.size() == 0, "Software error in Coupling_generator::begin_external_coupling_generation");
 }
 
 
-void Coupling_generator::add_comp_for_external_coupling_generation(const char *comp_full_name, const char *annotation)
+void Coupling_generator::add_comp_for_external_coupling_generation(const char *comp_full_name, int individual_or_family, const char *annotation)
 {
 	int i;
 
 	
 	EXECUTION_REPORT(REPORT_ERROR, -1, strlen(comp_full_name) > 0, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full name of a component model cannot be an empty string. Please verify the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, individual_or_family == 1 || individual_or_family == 2, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of the parameter \"individual_or_family\" must be 1 (individual) or 2 (family). Please verify the model code with the annotation \"%s\"", annotation);
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
-		if (words_are_the_same(comp_full_name, all_comp_fullnames_for_coupling_generation[i]))
+		if (words_are_the_same(comp_full_name, all_comp_fullnames_for_coupling_generation[i])) {
+			if (individual_or_family_generation[i] == 1)
+				individual_or_family_generation[i] = individual_or_family;
 			break;
-	if (i == all_comp_fullnames_for_coupling_generation.size())
+		}
+	if (i == all_comp_fullnames_for_coupling_generation.size()) {
 		all_comp_fullnames_for_coupling_generation.push_back(strdup(comp_full_name));
+		individual_or_family_generation.push_back(individual_or_family);
+	}
+}
+
+
+void Coupling_generator::sort_comp_full_names(std::vector<const char*> &comp_full_names, std::vector<int> *comp_index)
+{
+	std::vector<const char *> temp_comp_full_names;
+	std::vector<int> temp_comp_index;
+	int i, j, k, num_comps = comp_full_names.size();
+
+
+	for (i = 0; i < num_comps; i ++) {
+		k = 0;
+		for (j = 1; j < comp_full_names.size(); j ++)
+			if (strcmp(comp_full_names[k], comp_full_names[j]) > 0)
+				k = j;
+		temp_comp_full_names.push_back(comp_full_names[k]);
+		comp_full_names.erase(comp_full_names.begin()+k);
+		if (comp_index != NULL) {
+			temp_comp_index.push_back((*comp_index)[k]);
+			comp_index->erase(comp_index->begin()+k);
+		}
+	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_comps == temp_comp_full_names.size() && comp_full_names.size() == 0, "Software error in Coupling_generator::do_external_coupling_generation");
+
+	for (i = 0; i < temp_comp_full_names.size(); i ++) {
+		comp_full_names.push_back(temp_comp_full_names[i]);
+		if (comp_index != NULL)
+			comp_index->push_back(temp_comp_index[i]);
+	}	
 }
 
 
 void Coupling_generator::do_external_coupling_generation(const char *annotation)
 {
-	std::vector<char *> temp_all_comp_fullnames_for_coupling_generation;
-	int i, j, k, num_comps = all_comp_fullnames_for_coupling_generation.size();
+	int i, j, k, num_comps = all_comp_fullnames_for_coupling_generation.size(), *temp_int_array;
 	std::vector<Comp_comm_group_mgt_node*> all_comp_nodes, loaded_comp_nodes;
 	Comp_comm_group_mgt_node *temp_comp_node, *local_comp_node, *existing_comp_node;
 	char *local_temp_array_buffer = NULL, *remote_temp_array_buffer = NULL;
-	long local_current_array_buffer_size, local_max_array_buffer_size, remote_current_array_buffer_size, remote_max_array_buffer_size;
+	long local_current_array_buffer_size, local_max_array_buffer_size, remote_current_array_buffer_size, remote_max_array_buffer_size, temp_array_size, str_size;
 	int current_connection_id, max_connection_id, remote_connection_id;
 	MPI_Request request_send, request_recv;
 	MPI_Status status;
@@ -1234,21 +1269,14 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	bool is_current_proc_in_union_comm = false;
 	int current_proc_id_in_union_comm, size_union_comm;
 	std::vector<int> proc_global_ids_in_union_comm, proc_global_ids_in_current_comm;
+	std::vector<const char*> temp_all_comp_fullnames_for_coupling_generation;
 
 
-	for (i = 0; i < num_comps; i ++) {
-		k = 0;
-		for (j = 1; j < all_comp_fullnames_for_coupling_generation.size(); j ++)
-			if (strcmp(all_comp_fullnames_for_coupling_generation[k], all_comp_fullnames_for_coupling_generation[j]) > 0)
-				k = j;
-		temp_all_comp_fullnames_for_coupling_generation.push_back(all_comp_fullnames_for_coupling_generation[k]);
-		all_comp_fullnames_for_coupling_generation.erase(all_comp_fullnames_for_coupling_generation.begin()+k);
+	sort_comp_full_names(all_comp_fullnames_for_coupling_generation, &individual_or_family_generation);
+	temp_int_array = new int [individual_or_family_generation.size()];
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
+		temp_int_array[i] = individual_or_family_generation[i];
 	}
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_comps == temp_all_comp_fullnames_for_coupling_generation.size() && all_comp_fullnames_for_coupling_generation.size() == 0, "Software error in Coupling_generator::do_external_coupling_generation");
-	
-	for (i = 0; i < temp_all_comp_fullnames_for_coupling_generation.size(); i ++)
-		all_comp_fullnames_for_coupling_generation.push_back(temp_all_comp_fullnames_for_coupling_generation[i]);
-
 
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		if (comp_comm_group_mgt_mgr->search_global_node(all_comp_fullnames_for_coupling_generation[i]) != NULL)
@@ -1282,7 +1310,8 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_nodes.size() == all_comp_fullnames_for_coupling_generation.size(), "Software error in Coupling_generator::do_external_coupling_generation: wrong all_comp_nodes.size()");
 
 	if (all_comp_fullnames_for_coupling_generation.size() == 1) {
-		generate_coupling_procedures_common(all_comp_nodes[0]->get_comm_group(), false);
+		generate_coupling_procedures_internal(all_comp_nodes[0]->get_comp_id(), individual_or_family_generation[i] == 2);
+		delete [] temp_int_array;
 		return;
 	}	
 
@@ -1293,6 +1322,7 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 		if (all_comp_nodes[i]->get_current_proc_local_id() >= 0) {
 			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": before checking consistency of the parameters between all processes of this component model. Deadlock may happen if not all processes of this component model calls this API at the same time", annotation);
 			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_ID_COUPLING_GEN_EXTERNAL, all_comp_nodes[i]->get_comm_group(), "coupling generation", local_current_array_buffer_size, sizeof(char), local_temp_array_buffer, "comps_full_names", annotation);
+			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_ID_COUPLING_GEN_EXTERNAL, all_comp_nodes[i]->get_comm_group(), "coupling generation", individual_or_family_generation.size(), sizeof(int), (const char*) temp_int_array, "individual_or_familiy", annotation);
 			coupling_generator->synchronize_latest_connection_id(all_comp_nodes[i]->get_comm_group());
 			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": after checking consistency of the parameters between all processes of this component model. Deadlock may happen if not all processes of this component model calls this API at the same time", annotation);			
 		}
@@ -1332,14 +1362,28 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	for (i = 1; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		if (all_comp_nodes[0]->get_current_proc_local_id() != -1 || all_comp_nodes[i]->get_current_proc_local_id() != -1) {
 			transfer_array_from_one_comp_to_another(all_comp_nodes[0]->get_current_proc_local_id(), all_comp_nodes[0]->get_local_proc_global_id(0), all_comp_nodes[i]->get_current_proc_local_id(), all_comp_nodes[i]->get_local_proc_global_id(0), all_comp_nodes[i]->get_comm_group(), &remote_temp_array_buffer, remote_current_array_buffer_size);
+			temp_array_size = individual_or_family_generation.size() * sizeof(int);
+			transfer_array_from_one_comp_to_another(all_comp_nodes[0]->get_current_proc_local_id(), all_comp_nodes[0]->get_local_proc_global_id(0), all_comp_nodes[i]->get_current_proc_local_id(), all_comp_nodes[i]->get_local_proc_global_id(0), all_comp_nodes[i]->get_comm_group(), (char**)(&temp_int_array), temp_array_size);
 			if (all_comp_nodes[i]->get_current_proc_local_id() != -1) {
 				EXECUTION_REPORT(REPORT_ERROR, all_comp_nodes[i]->get_comp_id(), remote_current_array_buffer_size == local_current_array_buffer_size, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full names of component models specified through the input parameters are not consistency between the component models \"%s\" and \"%s\". Please check the model code with the annotation \:%s\"", all_comp_fullnames_for_coupling_generation[i], all_comp_fullnames_for_coupling_generation[0], annotation);
 				for (j = 0; j < local_current_array_buffer_size; j ++)
 					if (local_temp_array_buffer[j] != remote_temp_array_buffer[j])
 						break;
 				EXECUTION_REPORT(REPORT_ERROR, all_comp_nodes[i]->get_comp_id(), j == local_current_array_buffer_size, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full names of component models specified through the input parameters are not consistency between the component models \"%s\" and \"%s\". Please check the model code with the annotation \:%s\"", all_comp_fullnames_for_coupling_generation[i], all_comp_fullnames_for_coupling_generation[0], annotation);
+				for (j = 0; j < individual_or_family_generation.size(); j ++)	
+					if (individual_or_family_generation[j] != temp_int_array[j])
+						break;
+				EXECUTION_REPORT(REPORT_ERROR, all_comp_nodes[i]->get_comp_id(), j == individual_or_family_generation.size(), "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the values of the parameter \"individual_or_family\" are not consistency between the component models \"%s\" and \"%s\". Please check the model code with the annotation \"%s\"", all_comp_fullnames_for_coupling_generation[i], all_comp_fullnames_for_coupling_generation[0], annotation);
 			}
 		}
+	if (local_temp_array_buffer != NULL) {
+		delete [] local_temp_array_buffer;
+		local_temp_array_buffer = NULL;
+	}
+	if (remote_temp_array_buffer != NULL) {
+		delete [] remote_temp_array_buffer;
+		remote_temp_array_buffer = NULL;
+	}	
 
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
 		current_connection_id = coupling_generator->apply_connection_id();
@@ -1379,11 +1423,51 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	}
 
 	MPI_Comm_size(union_comm, &size_union_comm);
+	MPI_Comm_rank(union_comm, &current_proc_id_in_union_comm);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish generating the union comm (%d) for external coupling generation", size_union_comm);
-	
+
+	remote_max_array_buffer_size = 0; 
+	remote_current_array_buffer_size = 0;
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
+		if (all_comp_nodes[i]->get_current_proc_local_id() != -1) {
+			if (individual_or_family_generation[i] == 2)
+				all_comp_nodes[i]->get_all_descendant_real_comp_fullnames(all_comp_nodes[i]->get_comp_id(), temp_all_comp_fullnames_for_coupling_generation, &local_temp_array_buffer, local_max_array_buffer_size, local_current_array_buffer_size);
+			else temp_all_comp_fullnames_for_coupling_generation.push_back(strdup(all_comp_fullnames_for_coupling_generation[i]));
+			if (all_comp_nodes[i]->get_current_proc_local_id() == 0)
+				for (j = 0; j < temp_all_comp_fullnames_for_coupling_generation.size(); j ++)
+					dump_string(temp_all_comp_fullnames_for_coupling_generation[j], -1, &remote_temp_array_buffer, remote_max_array_buffer_size, remote_current_array_buffer_size);
+			for (j = 0; j < temp_all_comp_fullnames_for_coupling_generation.size(); j ++)
+				delete [] temp_all_comp_fullnames_for_coupling_generation[j];
+			temp_all_comp_fullnames_for_coupling_generation.clear();
+		}
+	}
+	local_temp_array_buffer = NULL;
+	local_current_array_buffer_size = 0;
+	local_max_array_buffer_size = 0;
+	gather_array_in_one_comp(size_union_comm, current_proc_id_in_union_comm, remote_temp_array_buffer, remote_current_array_buffer_size, sizeof(char), NULL, (void**)(&local_temp_array_buffer), local_current_array_buffer_size, union_comm);
+	bcast_array_in_one_comp(current_proc_id_in_union_comm, &local_temp_array_buffer, local_current_array_buffer_size, union_comm);
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		delete [] all_comp_fullnames_for_coupling_generation[i];
+	all_comp_fullnames_for_coupling_generation.clear();
+	individual_or_family_generation.clear();
+	while (local_current_array_buffer_size > 0) {
+		const char *full_name = load_string(NULL, str_size, -1, local_temp_array_buffer, local_current_array_buffer_size, NULL);
+		add_comp_for_external_coupling_generation(full_name, 1, annotation);
+	}	
+	EXECUTION_REPORT(REPORT_ERROR, -1, local_current_array_buffer_size == 0, "Software error in Coupling_generator::do_external_coupling_generation");
+	if (local_temp_array_buffer != NULL)
+		delete [] local_temp_array_buffer;
+	if (remote_temp_array_buffer != NULL)
+		delete [] remote_temp_array_buffer;
+
+	if (current_proc_id_in_union_comm == 0) {		
+		for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+			printf("comp for external generation %s at proc %d\n", all_comp_fullnames_for_coupling_generation[i], current_proc_id_in_union_comm);
+	}
 	generate_coupling_procedures_common(union_comm, false);
 
 	clear();
+	delete [] temp_int_array;
 }
 
 
