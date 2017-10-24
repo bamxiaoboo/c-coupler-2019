@@ -1471,7 +1471,7 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 }
 
 
-void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, const char *keyword, int size_comps_full_names, int *num_comps, const char *annotation)
+void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, const char *keyword, int size_comps_full_names, int size_individual_or_family, int *num_comps, const char *annotation)
 {
 	char XML_file_name[NAME_STR_SIZE];
 	const char *current_comp_full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name();
@@ -1514,9 +1514,20 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 		if (temp_full_name != NULL) {
 			for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 				if (words_are_the_same(temp_full_name, all_comp_fullnames_for_coupling_generation[i]))
-					break;
-			if (i == all_comp_fullnames_for_coupling_generation.size())
+					break;			
+			const char *individual_or_family = detailed_XML_element->Attribute("individual_or_family", &line_number);
+			int value_individual_or_family = 1;
+			if (individual_or_family != NULL) {
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(individual_or_family, "individual") || words_are_the_same(individual_or_family, "family"), "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the value of \"individual_or_family\" in the XML file \"%s\" must be \"individual\" or \"family\". Please verify the XML file at line %d", XML_file_name, line_number);
+				if (words_are_the_same(individual_or_family, "family"))
+					value_individual_or_family = 2;
+			}
+			if (i == all_comp_fullnames_for_coupling_generation.size()) {
 				all_comp_fullnames_for_coupling_generation.push_back(strdup(temp_full_name));
+				individual_or_family_generation.push_back(value_individual_or_family);
+			}
+			else if (individual_or_family_generation[i] == 1)
+				individual_or_family_generation[i] = value_individual_or_family;
 		}
 	}
 
@@ -1531,12 +1542,14 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 	*num_comps = all_comp_fullnames_for_coupling_generation.size();
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_comps_full_names >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the array size of the input parameter \"comps_full_names\" (%d) is smaller than the number component models specified in the XML file \"%s\" (%d). Please verify the model code with the annotation \"%s\" or the configuration file.", size_comps_full_names, XML_file_name, *num_comps, annotation);
+	if (size_individual_or_family != -1)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_individual_or_family >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the array size of the input parameter \"individual_or_family\" (%d) is smaller than the number component models specified in the XML file \"%s\" (%d). Please verify the model code with the annotation \"%s\" or the configuration file.", size_comps_full_names, XML_file_name, *num_comps, annotation);
 	
 	delete XML_file;
 }
 
 
-void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int index, char *comp_full_name, const char *annotation)
+void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
 {
 	char XML_file_name[NAME_STR_SIZE];
 
@@ -1544,6 +1557,7 @@ void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int i
 	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, str_size >= strlen(all_comp_fullnames_for_coupling_generation[index]), "Error happens when calling the API \"CCPL_get_configurable_comps_full_names\": the string length of the input parameter \"comps_full_names\" (%d) is smaller than the length of the full name of a component model (%s) that is loaded from the XML file \"%s\". Please verify the model code with the annotation \"%s\".", str_size, all_comp_fullnames_for_coupling_generation[index], XML_file_name, annotation);
 	strncpy(comp_full_name, all_comp_fullnames_for_coupling_generation[index], strlen(all_comp_fullnames_for_coupling_generation[index]));
+	*local_individual_or_family = individual_or_family_generation[index];
 	for (int i = strlen(all_comp_fullnames_for_coupling_generation[index]); i < str_size; i ++)
 		comp_full_name[i] = ' ';
 }

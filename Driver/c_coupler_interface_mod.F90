@@ -2861,23 +2861,27 @@
 
 
    
-   SUBROUTINE CCPL_get_configurable_comps_full_names(comp_id, keyword, num_comps, comps_full_names, annotation)
+   SUBROUTINE CCPL_get_configurable_comps_full_names(comp_id, keyword, num_comps, comps_full_names, individual_or_family, annotation)
    integer,          intent(in)                 :: comp_id
    character(len=*), intent(in)                 :: keyword
    integer,          intent(out)                :: num_comps
    character(len=*), intent(out)                :: comps_full_names(:)
+   integer,          intent(out), optional      :: individual_or_family(:)
    character(len=*), intent(in), optional       :: annotation
    character *2048                              :: local_annotation
-   integer                                      :: size_comps_full_names, i
+   integer                                      :: size_comps_full_names, size_individual_or_family, i, local_individual_or_family
    
 
    local_annotation = ""
    if (present(annotation)) local_annotation = annotation
    size_comps_full_names = size(comps_full_names)
+   size_individual_or_family = -1
+   if (present(individual_or_family)) size_individual_or_family=size(individual_or_family)
 
-   call ccpl_load_comps_full_names_from_config_file(comp_id, trim(keyword)//char(0), size_comps_full_names, num_comps, trim(local_annotation)//char(0))
+   call ccpl_load_comps_full_names_from_config_file(comp_id, trim(keyword)//char(0), size_comps_full_names, size_individual_or_family, num_comps, trim(local_annotation)//char(0))
    do i = 1, num_comps
-      call ccpl_get_one_comp_full_name(comp_id, len(comps_full_names(i)), i, comps_full_names(i), trim(local_annotation)//char(0)) 
+      call ccpl_get_one_comp_full_name(comp_id, len(comps_full_names(i)), i, comps_full_names(i), local_individual_or_family, trim(local_annotation)//char(0)) 
+      if (present(individual_or_family)) individual_or_family(i) = local_individual_or_family
    enddo
    call ccpl_finish_getting_configurable_comps_full_names(comp_id, trim(local_annotation)//char(0)) 
 
