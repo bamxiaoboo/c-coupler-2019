@@ -54,9 +54,6 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 			int num_leaf_grids;
 			H2D_sub_CoR_grid->get_leaf_grids(&num_leaf_grids, leaf_grids, H2D_sub_CoR_grid);
 			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(leaf_grids[0]->get_coord_label(), COORD_LABEL_LON), "software error in Original_grid_info::Original_grid_info");
-			if (leaf_grids[0]->get_grid_cyclic())					
-				netcdf_file_object->put_global_attr("cyclic_or_acyclic", "cyclic", DATA_TYPE_STRING, DATA_TYPE_STRING, -1);
-			else netcdf_file_object->put_global_attr("cyclic_or_acyclic", "acyclic", DATA_TYPE_STRING, DATA_TYPE_STRING, -1);
 			double temp_double = H2D_sub_CoR_grid->get_boundary_min_lon();
 			netcdf_file_object->put_global_attr("min_lon", &temp_double, DATA_TYPE_DOUBLE, DATA_TYPE_DOUBLE, 1);
 			temp_double = H2D_sub_CoR_grid->get_boundary_max_lon();
@@ -65,7 +62,15 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 			netcdf_file_object->put_global_attr("min_lat", &temp_double, DATA_TYPE_DOUBLE, DATA_TYPE_DOUBLE, 1);
 			temp_double = H2D_sub_CoR_grid->get_boundary_max_lat();
 			netcdf_file_object->put_global_attr("max_lat", &temp_double, DATA_TYPE_DOUBLE, DATA_TYPE_DOUBLE, 1);
+			if (leaf_grids[0]->get_grid_cyclic())					
+				netcdf_file_object->put_global_attr("cyclic_or_acyclic", "cyclic", DATA_TYPE_STRING, DATA_TYPE_STRING, -1);
+			else netcdf_file_object->put_global_attr("cyclic_or_acyclic", "acyclic", DATA_TYPE_STRING, DATA_TYPE_STRING, -1);			
 			delete netcdf_file_object;
+			char status_file_name[NAME_STR_SIZE];
+			sprintf(status_file_name, "%s/%s@%s.nc.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+			FILE *status_file = fopen(status_file_name, "w+");
+			EXECUTION_REPORT(REPORT_ERROR, -1, status_file != NULL, "Software error in Comp_comm_group_mgt_node::merge_comp_comm_info: configuration ending status file cannot be created: %s", status_file_name);
+			fclose(status_file);
 		}
 		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "Original_grid_info::Original_grid_info"));
 	}
@@ -343,10 +348,10 @@ void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_
 
 int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_name, const char *annotation)
 {
-	char XML_file_name[NAME_STR_SIZE], nc_file_name[NAME_STR_SIZE];
+	char XML_file_name[NAME_STR_SIZE], nc_file_name[NAME_STR_SIZE], status_file_name[NAME_STR_SIZE];
 	const char *another_comp_full_name = NULL, *another_comp_grid_name = NULL;
 	int line_number;
-
+	
 
 	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp"), false);
@@ -374,22 +379,17 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL && another_comp_grid_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 	sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), another_comp_grid_name, another_comp_full_name);
+	sprintf(status_file_name, "%s/%s@%s.nc.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), another_comp_grid_name, another_comp_full_name);
 	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Wait to read NetCDF file \"%s\" to register H2D grid \"%s\" based on the grid \"%s\" of remote component \"%s\". Dead wait will be encounted if the full name of the remote component is wrong. So please make sure the full name of the remote component is correct in the the coupling connection configuration file (\"%s\")", nc_file_name, grid_name, another_comp_grid_name, another_comp_full_name, XML_file_name);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_H2D_grid_via_comp") == 0) {
 		while (true) {
-			sleep(1);
-			int ncfile_id;
-			int rcode = nc_open(nc_file_name, NC_NOWRITE, &ncfile_id);
-			if (rcode != NC_NOERR) {
+			FILE *status_file = fopen(status_file_name, "r");
+			if (status_file == NULL) {
 				if (comp_comm_group_mgt_mgr->has_comp_ended_configuration(another_comp_full_name))
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to read NetCDF file \"%s\" to register H2D grid \"%s\": remote component \"%s\" has ended its coupling configuration stage without registering the required grid (\"%s\") before. Please check the configuration file (\"%s\") or the corresponding model code.", nc_file_name, grid_name, another_comp_full_name, another_comp_grid_name, XML_file_name);
 				continue;
 			}
-			char cyclic_or_acyclic[NAME_STR_SIZE];
-			rcode = nc_get_att_text(ncfile_id, NC_GLOBAL, "cyclic_or_acyclic", cyclic_or_acyclic);
-			nc_close(ncfile_id);
-			if (rcode != NC_NOERR)
-				continue;
+			fclose(status_file);
 			break;
 		}
 	}
