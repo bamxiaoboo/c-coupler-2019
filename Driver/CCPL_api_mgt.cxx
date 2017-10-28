@@ -672,7 +672,7 @@ const char *get_XML_attribute(int comp_id, int max_string_length, TiXmlElement *
 {
 	const char *attribute_value = XML_element->Attribute(attribute_keyword, &line_number);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, attribute_value != NULL, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has not been specified. Please verify the XML file arround the line number %d.", 
-		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, line_number);
+		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, XML_element->Row());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) > 0, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has been specified but with an empty string. Please verify the XML file arround the line number %d.", 
 		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, line_number);
 	if (max_string_length > 0)	

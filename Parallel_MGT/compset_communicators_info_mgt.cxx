@@ -876,7 +876,7 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 			DIR *dir=opendir(new_dir);
 			EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), dir != NULL, "Fail to change working directory for the first active component model \"%s\": the directory \"%s\" does not exist.", new_comp->get_comp_name(), new_dir);
 			chdir(new_dir);
-			EXECUTION_REPORT_LOG(REPORT_LOG, new_comp->get_comp_id(), true, "change working directory to\"%s\"", new_dir);
+			EXECUTION_REPORT_LOG(REPORT_LOG, new_comp->get_comp_id(), true, "change working directory to \"%s\"", new_dir);
 		}
 		original_grid_mgr->initialize_CoR_grids();
 	}
