@@ -458,16 +458,13 @@ extern "C" void ccpl_end_external_coupling_generation_(const char *annotation)
 }
 
 
-extern "C" void ccpl_end_registration_(int *comp_id, int *do_coupling_generation, const char * annotation)
+extern "C" void ccpl_end_registration_(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());	
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_end_registration_"), "first synchorization for ending the registration of a component", annotation);
-	check_API_parameter_int(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_end_registration_"), NULL, *do_coupling_generation, "do_coupling_generation (specification and the value)", annotation);
 
-	if ((*do_coupling_generation) == 1)
-		coupling_generator->generate_coupling_procedures_internal(*comp_id, true);
 	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
 		coupling_generator->generate_coupling_procedures_internal(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id(), true);

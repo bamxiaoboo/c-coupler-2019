@@ -1514,23 +1514,18 @@
 
 
 
-   SUBROUTINE CCPL_end_coupling_configuration(comp_id, do_coupling_generation, annotation)
+   SUBROUTINE CCPL_end_coupling_configuration(comp_id, annotation)
    implicit none
    integer                                 :: comp_id
-   logical, intent(in), optional           :: do_coupling_generation
    character(len=*), optional              :: annotation
    character *1024                         :: local_annotation
-   integer                                 :: local_do_coupling_generation
    
    local_annotation = ""
    if (present(annotation)) then
        local_annotation = annotation
    endif
 
-   local_do_coupling_generation = 0
-   if (present(do_coupling_generation) .and. do_coupling_generation) local_do_coupling_generation = 1
-
-   call ccpl_end_registration(comp_id, local_do_coupling_generation, trim(local_annotation)//char(0))
+   call ccpl_end_registration(comp_id, trim(local_annotation)//char(0))
 
    END SUBROUTINE CCPL_end_coupling_configuration
 
