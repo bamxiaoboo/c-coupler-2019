@@ -166,7 +166,7 @@ class Coupling_generator
 		std::map<int,std::vector<std::pair<const char*, const char*> > > export_fields_dst_components;
 		std::vector<const char*> string_in_export_fields_dst_components;
 		std::vector<const char *> all_comp_fullnames_for_coupling_generation;
-		std::vector<int> individual_or_family_generation;
+		std::vector<int> individual_or_family_generation;  // must be 1 (individual) or 2 (family)
 		Dictionary<int> *import_field_index_lookup_table;
 		Dictionary<int> *export_field_index_lookup_table;
 		std::vector<Coupling_connection*> all_coupling_connections;
@@ -193,7 +193,8 @@ class Coupling_generator
 		void add_comp_for_external_coupling_generation(const char *, int, const char*);
 		void do_external_coupling_generation(const char*);
 		void load_comps_full_names_from_config_file(int, const char *, int, int, int *, const char *);
-		void get_one_comp_full_name(int, int, int, char *, int *, const char *annotation);
+		void get_one_comp_full_name(int, int, int, char *, int *, const char *);
+		void do_overall_coupling_generation(const char*, const char *);
 };
 
 

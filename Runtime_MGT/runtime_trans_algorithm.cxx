@@ -263,8 +263,13 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
-	if (comp_comm_group_mgt_mgr->get_is_definition_finalized() && !remote_comp_node_updated) {
-		remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_full_name);
+	if (!remote_comp_node_updated) {
+		remote_comp_node = comp_comm_group_mgt_mgr->load_comp_info_from_XML(local_comp_node->get_comp_id(), remote_comp_full_name, local_comp_node->get_comm_group());
+		Comp_comm_group_mgt_node *existing_remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_full_name);
+		if (existing_remote_comp_node != NULL) {
+			delete remote_comp_node;
+			remote_comp_node = existing_remote_comp_node;
+		}
 		remote_comp_node_updated = true;
 		remote_comp_node->allocate_proc_latest_model_time();
 	}

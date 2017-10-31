@@ -715,8 +715,8 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 					TiXmlElement *component_element = component_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
 					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
-					if (check_comp_existence)
-						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
+//					if (check_comp_existence)
+//						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
 					strcpy(producer_info.first, full_name);
 					const char *interface_name = component_element->Attribute("interface_name", &line_number);
 					if (interface_name == NULL)
@@ -920,7 +920,7 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 	bool define_use_wrong = false;
 	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
 	long current_array_buffer_size, max_array_buffer_size;
-	int temp_int;	
+	int temp_int, num_pushed_comp_node = 0;	
 	Coupling_connection *coupling_connection;
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 	int current_proc_local_id;
@@ -940,6 +940,16 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 		local_comp_node = NULL;
 	}
 	EXECUTION_REPORT(REPORT_ERROR, -1, local_comp_node != NULL, "Software error in Coupling_generator::generate_coupling_procedures: wrong local_comp_node");
+
+	for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
+		temp_comp_node = comp_comm_group_mgt_mgr->load_comp_info_from_XML(local_comp_node->get_comp_id(), all_comp_fullnames_for_coupling_generation[i], comm);
+		existing_comp_node = comp_comm_group_mgt_mgr->search_global_node(all_comp_fullnames_for_coupling_generation[i]);
+		if (existing_comp_node == NULL) {
+			comp_comm_group_mgt_mgr->push_comp_node(temp_comp_node);
+			num_pushed_comp_node ++;
+		}
+		else delete temp_comp_node;
+	}
 
 	if (current_proc_local_id == 0) {
 		Inout_interface_mgt *all_interfaces_mgr = new Inout_interface_mgt(temp_array_buffer, current_array_buffer_size);
@@ -1081,16 +1091,6 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 	}
 
 	delete [] temp_array_buffer;
-	int num_pushed_comp_node = 0;
-	for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
-		temp_comp_node = comp_comm_group_mgt_mgr->load_comp_info_from_XML(local_comp_node->get_comp_id(), all_comp_fullnames_for_coupling_generation[i], comm);
-		existing_comp_node = comp_comm_group_mgt_mgr->search_global_node(all_comp_fullnames_for_coupling_generation[i]);
-		if (existing_comp_node == NULL) {
-			comp_comm_group_mgt_mgr->push_comp_node(temp_comp_node);
-			num_pushed_comp_node ++;
-		}
-		else delete temp_comp_node;
-	}
 	for (int i = 0; i < all_coupling_connections.size(); i ++) {
 		all_coupling_connections[i]->generate_a_coupling_procedure(false);
 	}
@@ -1122,6 +1122,7 @@ void Coupling_generator::generate_coupling_procedures_internal(int comp_id, bool
 
 void Coupling_generator::generate_IO_procedures()
 {
+	return;   ////// to be modified
 	const int *sorted_comp_ids = comp_comm_group_mgt_mgr->get_sorted_comp_ids();
 
 	components_IO_output_procedures_mgr->add_all_components_IO_output_procedures();
@@ -1252,6 +1253,26 @@ void Coupling_generator::sort_comp_full_names(std::vector<const char*> &comp_ful
 		if (comp_index != NULL)
 			comp_index->push_back(temp_comp_index[i]);
 	}	
+}
+
+
+void Coupling_generator::do_overall_coupling_generation(const char *local_root_comp_full_name, const char *annotation)
+{
+	int i; 
+
+	
+	comp_comm_group_mgt_mgr->get_root_comps_for_overall_coupling_generation(all_comp_fullnames_for_coupling_generation);
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		if (words_are_the_same(local_root_comp_full_name, all_comp_fullnames_for_coupling_generation[i]))
+			break;
+	if (i == all_comp_fullnames_for_coupling_generation.size()) {
+		clear();
+		return;
+	}
+
+	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
+		individual_or_family_generation.push_back(2);	
+	do_external_coupling_generation(annotation);
 }
 
 

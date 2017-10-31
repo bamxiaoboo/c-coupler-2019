@@ -97,6 +97,7 @@ extern void check_API_parameter_int(int, int, MPI_Comm, const char*, int, const 
 extern void check_API_parameter_float(int, int, MPI_Comm, const char*, float, const char*, const char*);
 extern void check_API_parameter_double(int, int, MPI_Comm, const char*, double, const char*, const char*);
 extern void check_API_parameter_long(int, int, MPI_Comm, const char*, long, const char*, const char*);
+extern void check_API_parameter_bool(int, int, MPI_Comm, const char *, bool, const char *, const char *);
 extern void check_API_parameter_data_array(int, int, MPI_Comm, const char *, int, int, const char *, const char *, const char *);
 extern void check_API_parameter_timer(int, int, MPI_Comm, const char*, int, const char*, const char*);
 extern void check_API_parameter_field_instance(int, int, MPI_Comm, const char*, int, const char*, const char*);

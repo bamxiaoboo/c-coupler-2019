@@ -342,6 +342,7 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);	
+
 	values = new T [num_processes];
 	if (sizeof(T) == 1)
 		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather(&value, 1, MPI_CHAR, values, 1, MPI_CHAR, 0, comm) == MPI_SUCCESS);
@@ -356,7 +357,7 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 		get_API_hint(comp_id, API_id, API_label);
 		for (i = 1; i < num_processes; i ++) {
 			if (hint != NULL)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\": %s of parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
 			else EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\": parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                  API_label, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
@@ -513,6 +514,12 @@ void check_API_parameter_float(int comp_id, int API_id, MPI_Comm comm, const cha
 
 
 void check_API_parameter_double(int comp_id, int API_id, MPI_Comm comm, const char *hint, double value, const char *parameter_name, const char *annotation)
+{
+	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
+}
+
+
+void check_API_parameter_bool(int comp_id, int API_id, MPI_Comm comm, const char *hint, bool value, const char *parameter_name, const char *annotation)
 {
 	check_API_parameter_scalar(comp_id, API_id, comm, hint, value, parameter_name, annotation);
 }

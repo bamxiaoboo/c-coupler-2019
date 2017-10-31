@@ -798,7 +798,10 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 
 
 	if (import_or_export_or_remap == 0) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_mem_registered.size() == num_fields_connected, "ERROR happens when executing the import interface \"%s\": the coupling procedures have not been fully generated. Please verify the model code with the annotation \"%s\".", interface_name, annotation);
+		if (fields_mem_registered.size() != num_fields_connected)
+			for (int i = 0; i < fields_mem_registered.size(); i ++)
+				if (!fields_connected_status[i])
+					EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "ERROR happens when executing the import interface \"%s\": the coupling procedures for the import field \"%s\" have not been fully generated. Please verify the model code with the annotation \"%s\".", interface_name, fields_mem_registered[i]->get_field_name(), annotation);
 		if (fields_mem_registered.size() > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
 		for (int i = 0; i < fields_mem_registered.size(); i ++)

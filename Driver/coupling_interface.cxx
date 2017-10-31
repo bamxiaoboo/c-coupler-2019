@@ -239,7 +239,7 @@ extern "C" void check_fortran_api_int_type_(int *fortran_int_size)
 
 
 extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
-										int *change_dir, const char *executable_name)
+										int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_name)
 {
 	int flag;
 	MPI_Comm local_comm = -1;
@@ -264,6 +264,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_COMP, MPI_COMM_WORLD, "registering root component", annotation);
 
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
+	import_report_setting();
 
 	if (*comm != -1) {
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
@@ -273,7 +274,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 	}
 
 	original_grid_mgr = new Original_grid_mgt();
-	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, *change_dir, annotation);
+	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
 
 	if (*comm != -1) {
 		int input_comm_size, new_comm_size;
@@ -306,7 +307,6 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 
 	sprintf(file_name, "%s/all/env_run.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
 	components_time_mgrs->define_root_comp_time_mgr(root_comp_id, file_name);
-	import_report_setting();
 	fields_info = new Field_info_mgt();
 	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(root_comp_id,"")->is_real_component_model())
@@ -316,7 +316,7 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 }
 
 
-extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *change_dir, int *comp_id)
+extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *enabled_in_parent_coupling_gen, int *change_dir, int *comp_id)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register component model \%s\"", comp_name);
 
@@ -330,7 +330,7 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 	}
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, *change_dir, annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
@@ -465,10 +465,9 @@ extern "C" void ccpl_end_registration_(int *comp_id, const char * annotation)
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());	
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_end_registration_"), "first synchorization for ending the registration of a component", annotation);
 
-	comp_comm_group_mgt_mgr->merge_comp_comm_info(*comp_id, annotation);
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
-		coupling_generator->generate_coupling_procedures_internal(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_parent()->get_comp_id(), true);
-		coupling_generator->generate_IO_procedures();
+		coupling_generator->do_overall_coupling_generation(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_comp_full_name(), annotation);
+ 		coupling_generator->generate_IO_procedures();
 		delete all_H2D_remapping_wgt_files_info;
 	}
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
@@ -817,8 +816,7 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to advance time");
 	
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation, false);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_advance_time\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
-	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
+//	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
 	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "Component model \"%s\" advance time at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name(), annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish advancing time");
@@ -829,7 +827,6 @@ extern "C" void ccpl_write_restart_(int *comp_id, int *bypass_timer, const char 
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart write");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE, annotation, false);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_do_restart_write\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart write");
@@ -840,7 +837,6 @@ extern "C" void ccpl_read_restart_(int *comp_id, const char *specified_file_name
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart read");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ, annotation, false);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_do_restart_write\": the time of any component model cannot be advanced because the correponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_read(specified_file_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart read");
@@ -877,7 +873,6 @@ extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotat
 extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_RUN_ENDED, annotation, false);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_is_definition_finalized(), "Error happens when calling API \"CCPL_is_model_run_ended\": it cannot be called because the corresponding root component model (\"%s\") has not called the API \"CCPL_end_coupling_configuration\" to finalize the stage of coupling configuration of the whole coupled model. Please verify the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), annotation);
 	if (components_time_mgrs->is_model_run_ended(*comp_id, annotation))
 		*is_ended = 1;
 	else *is_ended = 0;

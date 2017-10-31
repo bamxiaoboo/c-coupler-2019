@@ -109,6 +109,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	read_data_from_array_buffer(comp_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(comp_type, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
+	read_data_from_array_buffer(&enabled_in_parent_coupling_generation, sizeof(bool), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(&num_procs, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
 	proc_id = new int [num_procs];
@@ -136,7 +137,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 }
 
 
-Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const char *comp_type, int comp_id, Comp_comm_group_mgt_node *parent, MPI_Comm &comm, const char *annotation)
+Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const char *comp_type, int comp_id, Comp_comm_group_mgt_node *parent, MPI_Comm &comm, bool enabled_in_parent_coupling_gen, const char *annotation)
 {
 	std::vector<char*> unique_comp_name;
 	int i, j, num_procs, current_proc_local_id_in_parent, *process_comp_id, *processes_global_id;
@@ -165,6 +166,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->definition_finalized = false;	
 	this->unified_global_id = 0;
 	this->proc_latest_model_time = NULL;
+	this->enabled_in_parent_coupling_generation = enabled_in_parent_coupling_gen;
 	restart_mgr = new Restart_mgt(comp_id);
 
 	if (comm != -1) {
@@ -315,9 +317,15 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	temp_array_buffer = NULL;
 	proc_latest_model_time = NULL;
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
-	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
-	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full_name of the component model", "internal configuration file of component information");
+	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "comp_name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
+	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full name of the component model", "internal configuration file of component information");
+	const char *XML_comp_type = get_XML_attribute(comp_id, 512, XML_element, "comp_type", XML_file_name, line_number, "the type of the component model", "internal configuration file of component information");
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "XML_full_name is %s\n", XML_full_name);
+	const char *XML_enabled_in_parent_coupling_generation = get_XML_attribute(comp_id, 80, XML_element, "enabled_in_parent_coupling_generation", XML_file_name, line_number, "enabled_in_parent_coupling_generation", "internal configuration file of component information");
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_enabled_in_parent_coupling_generation,"true") || words_are_the_same(XML_enabled_in_parent_coupling_generation,"false"), "software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: XML");
+	if (words_are_the_same(XML_enabled_in_parent_coupling_generation,"true"))
+		enabled_in_parent_coupling_generation = true;
+	else enabled_in_parent_coupling_generation = false;
 	const char *XML_processes = get_XML_attribute(comp_id, -1, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information");
 	strcpy(this->comp_name, XML_comp_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(specified_full_name, XML_full_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: the full name specified is different from the full name in XML file %s: %s vs %s", XML_file_name, specified_full_name, XML_full_name);
@@ -367,6 +375,7 @@ void Comp_comm_group_mgt_node::transform_node_into_array()
 		write_data_into_array_buffer(&proc_id, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
 	}
 	write_data_into_array_buffer(&num_procs, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&enabled_in_parent_coupling_generation, sizeof(bool), &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&comm_group, sizeof(MPI_Comm), &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_type, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
@@ -387,81 +396,6 @@ void Comp_comm_group_mgt_node::reset_dir(Comp_comm_group_mgt_node *another_node)
 }
 
 
-void Comp_comm_group_mgt_node::merge_comp_comm_info(const char *annotation)
-{
-	int i, num_children_at_root, *num_children_for_all, *counts, *displs;
-	char *temp_buffer, status_file_name[NAME_STR_SIZE];
-	int int_buffer_content_size;
-	
-
-	EXECUTION_REPORT(REPORT_ERROR,-1, !definition_finalized, 
-		             "The registration related to component \"%s\" has been finalized before (the corresponding model code annotation is \"%s\"). It cannot be finalized again at the model code with the annotation \"%s\". Please verify.",
-		             comp_name, annotation_end, annotation); 
-	this->definition_finalized = true;
-
-	sprintf(status_file_name, "%s/%s.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
-	if (current_proc_local_id == 0) {
-		FILE *status_file = fopen(status_file_name, "w+");
-		EXECUTION_REPORT(REPORT_ERROR, -1, status_file != NULL, "Software error in Comp_comm_group_mgt_node::merge_comp_comm_info: configuration ending status file cannot be created");
-		fclose(status_file);
-	}
-
-	strcpy(this->annotation_end, annotation);
-
-	for (int i = 0; i < children.size(); i ++)
-		EXECUTION_REPORT(REPORT_ERROR,-1, children[i]->definition_finalized, 
-		                 "The registration related to component \"%s\" has not been finalized yet. So the registration related to its parent component \"%s\" cannot be finalized. Please check the model code related to the annotations \"%s\" and \"%s\".",
-		                 children[i]->comp_name, comp_name, children[i]->annotation_start, annotation_end);
-	for (i = 0, num_children_at_root = 0; i < children.size(); i ++)
-		if (children[i]->current_proc_local_id == 0) {
-			num_children_at_root ++;
-			write_data_into_array_buffer(children[i]->temp_array_buffer, children[i]->buffer_content_size, &temp_array_buffer, buffer_max_size, buffer_content_size);
-		}
-	
-	if (current_proc_local_id == 0) {
-		num_children_for_all = new int [local_processes_global_ids.size()];
-		counts = new int [local_processes_global_ids.size()];
-		displs = new int [local_processes_global_ids.size()];
-	}
-
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&num_children_at_root, 1, MPI_INT, num_children_for_all, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
-	int_buffer_content_size = buffer_content_size;
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&int_buffer_content_size, 1, MPI_INT, counts, 1, MPI_INT, 0, comm_group) == MPI_SUCCESS);
-
-	if (current_proc_local_id == 0) {
-		displs[0] = 0;
-		for (i = 1; i < local_processes_global_ids.size(); i ++) {
-			displs[i] = displs[i-1]+counts[i-1];
-			num_children_at_root += num_children_for_all[i];
-		}
-		temp_buffer = new char [displs[i-1]+counts[i-1]+100];
-	}
-
-    EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gatherv(temp_array_buffer, buffer_content_size, MPI_CHAR, temp_buffer, counts, displs, MPI_CHAR, 0, comm_group) == MPI_SUCCESS);
-	
-	if (current_proc_local_id == 0) {		
-		delete [] temp_array_buffer;
-		temp_array_buffer = temp_buffer;
-		buffer_content_size = displs[i-1]+counts[i-1];
-		buffer_max_size = buffer_content_size+100;
-		write_data_into_array_buffer(&num_children_at_root, sizeof(int), &temp_array_buffer, buffer_max_size, buffer_content_size);
-		transform_node_into_array();
-		delete [] num_children_for_all;
-		delete [] counts;
-		delete [] displs;
-	}
-	
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(&buffer_content_size, 1, MPI_LONG, 0, comm_group)  == MPI_SUCCESS);
-	if (current_proc_local_id != 0) {
-		delete [] temp_array_buffer;
-		temp_array_buffer = new char [buffer_content_size];
-		buffer_max_size = buffer_content_size;
-	}
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Bcast(temp_array_buffer, buffer_content_size, MPI_CHAR, 0, comm_group)  == MPI_SUCCESS);
-	buffer_content_iter = buffer_content_size;
-}
-
-
 void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 {
 	int i, num_segments;
@@ -472,9 +406,16 @@ void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 	
 	current_element = new TiXmlElement("Online_Model");
 	parent_element->LinkEndChild(current_element);
-	current_element->SetAttribute("name", comp_name);
+	current_element->SetAttribute("comp_name", comp_name);
 	current_element->SetAttribute("full_name", full_name);
-	current_element->SetAttribute("global_id", unified_global_id);
+	current_element->SetAttribute("comp_type", comp_type);
+	if (parent != NULL)
+		current_element->SetAttribute("parent_full_name", parent->get_comp_full_name()); 
+	else current_element->SetAttribute("parent_full_name", "NULL"); 
+	
+	if (enabled_in_parent_coupling_generation)
+		current_element->SetAttribute("enabled_in_parent_coupling_generation", "true");
+	else current_element->SetAttribute("enabled_in_parent_coupling_generation", "false");
 
 	segments_start = new int [local_processes_global_ids.size()];
 	segments_end = new int [local_processes_global_ids.size()];
@@ -500,9 +441,6 @@ void Comp_comm_group_mgt_node::write_node_into_XML(TiXmlElement *parent_element)
 	delete [] segments_start;
 	delete [] segments_end;
 	delete [] string;
-
-	for (i = 0; i < children.size(); i ++)
-		children[i]->write_node_into_XML(current_element);
 }
 
 
@@ -566,24 +504,6 @@ int Comp_comm_group_mgt_node::get_local_proc_global_id(int local_indx)
 }
 
 
-Comp_comm_group_mgt_node *Comp_comm_group_mgt_node::load_comp_info_from_XML(const char *comp_full_name)
-{
-	char XML_file_name[NAME_STR_SIZE];
-	TiXmlDocument *XML_file;
-	int i;
-
-
-	sprintf(XML_file_name, "%s/%s.basic_info.xml", comp_comm_group_mgt_mgr->get_components_processes_dir(), comp_full_name);
-	XML_file = open_XML_file_to_read(comp_id, XML_file_name, comm_group, true);
-	TiXmlElement *XML_element = XML_file->FirstChildElement();
-	TiXmlElement *Online_Model = XML_element->FirstChildElement();
-	Comp_comm_group_mgt_node *pesudo_comp_node = new Comp_comm_group_mgt_node(Online_Model, comp_full_name, XML_file_name);
-	delete XML_file;
-		
-	return pesudo_comp_node;
-}
-
-
 bool Comp_comm_group_mgt_node::is_real_component_model()
 { 
 	return !words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED) && !words_are_the_same(comp_type, COMP_TYPE_ROOT); 
@@ -644,7 +564,8 @@ void Comp_comm_group_mgt_node::get_all_descendant_real_comp_fullnames(int top_co
 	
 
 	for (int i = 0; i < children.size(); i ++)
-		children[i]->get_all_descendant_real_comp_fullnames(top_comp_id, all_descendant_real_comp_fullnames, &local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
+		if (children[i]->enabled_in_parent_coupling_generation)
+			children[i]->get_all_descendant_real_comp_fullnames(top_comp_id, all_descendant_real_comp_fullnames, &local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
 
 	if (is_real_component_model() && current_proc_local_id == 0)
 		dump_string(full_name, -1, &local_temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
@@ -675,6 +596,9 @@ void Comp_comm_group_mgt_node::get_all_descendant_real_comp_fullnames(int top_co
 			delete [] *temp_array_buffer;
 			*temp_array_buffer = NULL;
 		}
+		if (current_proc_local_id == 0)
+			for (int i = 0; i < all_descendant_real_comp_fullnames.size(); i ++)
+				printf("%x comp %d for internal generation %s\n", top_comp_id, i, all_descendant_real_comp_fullnames[i]);
 	}
 }
 
@@ -759,6 +683,9 @@ Comp_comm_group_mgt_mgr::~Comp_comm_group_mgt_mgr()
 	for (int i = 0; i < global_node_array.size(); i ++)
 		delete global_node_array[i];
 
+	for (int i = 0; i < root_comps_full_names.size(); i ++)
+		delete root_comps_full_names[i];
+
 	delete [] sorted_comp_ids;
 }
 
@@ -826,11 +753,12 @@ bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
 }
 
 
-int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, int change_dir, const char *annotation)
+int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, bool enabled_in_parent_coupling_gen, int change_dir, const char *annotation)
 {
 	int i, true_parent_id = 0;
 	Comp_comm_group_mgt_node *root_local_node, *new_comp;
 	MPI_Comm global_comm = MPI_COMM_WORLD;
+	char hint[NAME_STR_SIZE];
 	
 	
 	if (definition_finalized)
@@ -848,10 +776,10 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		                 comp_name, annotation, global_node_array[i]->get_annotation_start());
 
 	if (parent_local_id == -1) {
-		root_local_node = new Comp_comm_group_mgt_node("ROOT", COMP_TYPE_ROOT, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, annotation);
+		root_local_node = new Comp_comm_group_mgt_node("ROOT", COMP_TYPE_ROOT, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, enabled_in_parent_coupling_gen, annotation);
 		global_node_array.push_back(root_local_node);
 		global_node_root = root_local_node;
-		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, annotation);
+		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, enabled_in_parent_coupling_gen, annotation);
 		global_node_array.push_back(new_comp);
 	}
 	else {
@@ -859,12 +787,35 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		EXECUTION_REPORT(REPORT_ERROR, -1, !parent_comp_node->is_definition_finalized(), 
 			             "Cannot register component \"%s\" at the model code with the annotation \"%s\" because the registration corresponding to the parent \"%s\" has been ended at the model code with the annotation \"%s\"", 
 			             comp_name, annotation, parent_comp_node->get_comp_name(), parent_comp_node->get_annotation_end()); // add debug information
-		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, parent_comp_node, comm, annotation);
+		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, parent_comp_node, comm, enabled_in_parent_coupling_gen, annotation);
 		global_node_array.push_back(new_comp);
 	}
+	sprintf(hint, "regietering a component model \"%s\"", comp_name);
+	check_API_parameter_bool(new_comp->get_comp_id(), API_ID_COMP_MGT_REG_COMP, new_comp->get_comm_group(), hint, enabled_in_parent_coupling_gen, "enabled_in_parent_coupling_gen", annotation);
 
-	Comp_comm_group_mgt_node *temp_comp_node = new_comp->load_comp_info_from_XML(new_comp->get_full_name());
-	delete temp_comp_node;
+	if (parent_local_id == -1) {
+		char *temp_array_buffer = NULL, *gather_array_buffer = NULL;
+		long local_buffer_max_size, local_buffer_content_size = 0, gather_buffer_content_size = 0, str_size;
+		bool temp_enabled_in_parent_coupling_gen;
+		char root_comp_full_name[NAME_STR_SIZE];
+		if (new_comp->get_current_proc_local_id() == 0) {
+			dump_string(new_comp->get_comp_full_name(), -1, &temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
+			write_data_into_array_buffer(&enabled_in_parent_coupling_gen, sizeof(bool), &temp_array_buffer, local_buffer_max_size, local_buffer_content_size);
+		}
+		gather_array_in_one_comp(num_total_global_procs, current_proc_global_id, temp_array_buffer, local_buffer_content_size, sizeof(char), NULL, (void**)(&gather_array_buffer), gather_buffer_content_size, MPI_COMM_WORLD);
+		bcast_array_in_one_comp(current_proc_global_id, &gather_array_buffer, gather_buffer_content_size, MPI_COMM_WORLD);
+		while(gather_buffer_content_size > 0) {
+			read_data_from_array_buffer(&temp_enabled_in_parent_coupling_gen, sizeof(bool), gather_array_buffer, gather_buffer_content_size, true);
+			load_string(root_comp_full_name, str_size, NAME_STR_SIZE, gather_array_buffer, gather_buffer_content_size, NULL);
+			root_comps_enabled_in_parent_coupling_generation.push_back(temp_enabled_in_parent_coupling_gen);
+			root_comps_full_names.push_back(strdup(root_comp_full_name));
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, gather_buffer_content_size == 0, "Software error in Comp_comm_group_mgt_mgr::register_component");
+		if (temp_array_buffer != NULL)
+			delete [] temp_array_buffer;
+		if (gather_array_buffer != NULL)
+			delete [] gather_array_buffer;
+	}
 
 	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
@@ -882,47 +833,6 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 	}
 
 	return new_comp->get_local_node_id();
-}
-
-
-void Comp_comm_group_mgt_mgr::merge_comp_comm_info(int comp_local_id, const char *annotation)
-{
-	Comp_comm_group_mgt_node *global_node = search_global_node(comp_local_id);
-	int true_local_id = (comp_local_id & TYPE_ID_SUFFIX_MASK), global_node_id;
-
-
-	global_node->merge_comp_comm_info(annotation);
-
-	global_node_id = 0;
-	Comp_comm_group_mgt_node *new_root = new Comp_comm_group_mgt_node(global_node, NULL, global_node_id);
-	EXECUTION_REPORT(REPORT_ERROR, -1, global_node->get_buffer_content_iter() == 0, "Software error1 in Comp_comm_group_mgt_mgr::merge_comp_comm_info");
-	Comp_comm_group_mgt_node **all_global_nodes = new Comp_comm_group_mgt_node *[global_node_id];
-	global_node_id = 0;
-	transform_global_node_tree_into_array(new_root, all_global_nodes, global_node_id);
-	if (global_node->get_parent() != NULL)
-		global_node->get_parent()->update_child(global_node, new_root);
-	global_node->transfer_data_buffer(new_root);
-	update_global_nodes(all_global_nodes, global_node_id);
-	for (int i = 0; i < global_node_id; i ++)
-		EXECUTION_REPORT(REPORT_ERROR, -1, all_global_nodes[i]->get_local_node_id() != -1, "Software error in Comp_comm_group_mgt_mgr::merge_comp_comm_info: wrong comp_id");
-
-	delete [] all_global_nodes;
-
-	MPI_Barrier(global_node->get_comm_group());
-
-	if (true_local_id == 0) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, global_node_array.size() == global_node_id, "software error in Comp_comm_group_mgt_mgr::merge_comp_comm_info");
-		global_node_root = global_node_array[0];
-		definition_finalized = true;
-		generate_sorted_comp_ids();
-		write_comp_comm_info_into_XML();
-//		read_comp_comm_info_from_XML();
-	}
-
-	if (true_local_id == 1)
-		merge_comp_comm_info(global_node_array[0]->get_local_node_id(), annotation);
-
-//	check_validation();
 }
 
 
@@ -989,65 +899,6 @@ const char *Comp_comm_group_mgt_mgr::get_exe_log_file_name(int comp_id)
 	}
 
 	search_global_node(comp_id)->get_exe_log_file_name();
-}
-
-
-void Comp_comm_group_mgt_mgr::write_comp_comm_info_into_XML()
-{
-	char XML_file_name[NAME_STR_SIZE];
-
-	
-	TiXmlDocument *XML_file;
-	TiXmlDeclaration *XML_declaration;
-	TiXmlElement * root_element;
-
-
-	if (current_proc_global_id != 0)
-		return;
-
-	XML_file = new TiXmlDocument;
-	XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
-	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file != NULL, "Software error: cannot create an xml file");
-	
-	XML_file->LinkEndChild(XML_declaration);
-	root_element = new TiXmlElement("Components");
-	XML_file->LinkEndChild(root_element);
-	global_node_root->write_node_into_XML(root_element);
-
-	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
-	
-	XML_file->SaveFile(XML_file_name);
-	delete XML_file;
-}
-
-
-void Comp_comm_group_mgt_mgr::read_global_node_from_XML(const TiXmlElement *current_element)
-{
-	Comp_comm_group_mgt_node *global_node;
-	const TiXmlNode *child;
-
-
-	global_node = search_global_node(current_element->Attribute("full_name"));
-	EXECUTION_REPORT(REPORT_ERROR, -1, global_node != NULL, "The XML file of component model hierarchy has been illegally modified by others or C-Coupler has software bugs");
-	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(global_node->get_comp_name(), current_element->Attribute("name")), "The XML file of component model hierarchy has been illegally modified by others or there are software errors");
-
-	for (child = current_element->FirstChild(); child != NULL; child = child->NextSibling())
-		read_global_node_from_XML(child->ToElement());
-}
-
-
-void Comp_comm_group_mgt_mgr::read_comp_comm_info_from_XML()
-{
-	char XML_file_name[NAME_STR_SIZE];
-
-
-	sprintf(XML_file_name, "%s/components.xml", coupling_flow_config_dir);
-	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_NULL, true);
-	
-	TiXmlElement *XML_element = XML_file->FirstChildElement();
-	TiXmlElement *Online_Model = XML_element->FirstChildElement();
-	read_global_node_from_XML(Online_Model);
-	delete XML_file;
 }
 
 
@@ -1193,4 +1044,11 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::load_comp_info_from_XML(int h
 	return pesudo_comp_node;
 }
 
+
+void Comp_comm_group_mgt_mgr::get_root_comps_for_overall_coupling_generation(std::vector<const char *> &all_comp_fullnames_for_coupling_generation)
+{
+	for (int i = 0; i < root_comps_full_names.size(); i ++) 
+		if (root_comps_enabled_in_parent_coupling_generation[i])
+			all_comp_fullnames_for_coupling_generation.push_back(strdup(root_comps_full_names[i]));
+}
 
