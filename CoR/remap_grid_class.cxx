@@ -830,7 +830,7 @@ void Remap_grid_class::set_lev_grid_sigma_info(double top_value, const double *s
 		remap_data_field->required_data_size = remap_data_field->read_data_size = grid_size;
 		remap_data_field->data_buf = new double [grid_size];
 		memcpy(remap_data_field->data_buf, hybrid_grid_coefficients, grid_size*sizeof(double));
-		sigma_value_field = new Remap_grid_data_class(this, remap_data_field);
+		hybrid_grid_coefficient_field = new Remap_grid_data_class(this, remap_data_field);
 	}
 	allocate_sigma_grid_specific_fields(hybrid_grid_coefficient_field, sigma_value_field, NULL, top_value, scale_factor);
 }
