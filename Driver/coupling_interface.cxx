@@ -420,7 +420,7 @@ extern "C" void ccpl_family_coupling_generation_(int *comp_id, const char * anno
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
-	coupling_generator->generate_coupling_procedures_internal(*comp_id, true);
+	coupling_generator->generate_coupling_procedures_internal(*comp_id, true, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
@@ -430,7 +430,7 @@ extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * 
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_individual_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
-	coupling_generator->generate_coupling_procedures_internal(*comp_id, false);
+	coupling_generator->generate_coupling_procedures_internal(*comp_id, false, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
 
@@ -454,7 +454,7 @@ extern "C" void ccpl_add_comp_for_external_coupling_generation_(const char *comp
 
 extern "C" void ccpl_end_external_coupling_generation_(const char *annotation)
 {
-	coupling_generator->do_external_coupling_generation(annotation);
+	coupling_generator->do_external_coupling_generation(API_ID_COUPLING_GEN_EXTERNAL, annotation);
 }
 
 
@@ -960,6 +960,17 @@ extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, in
 	strncpy(comp_full_name, full_name, strlen(full_name));
 	for (int i = strlen(full_name); i < *comp_full_name_size; i ++)
 		comp_full_name[i] = ' ';
+}
+
+
+extern "C" void get_CCPL_platform_log_dir_(char *CCPL_platform_log_dir, int *CCPL_platform_log_dir_max_size, int *CCPL_platform_log_dir_size, const char *annotation)
+{
+	const char *dir = comp_comm_group_mgt_mgr->get_CCPL_platform_log_dir();
+	EXECUTION_REPORT(REPORT_ERROR, -1, *CCPL_platform_log_dir_max_size >= strlen(dir), "Software error happens when calling get_CCPL_platform_log_dir_: the string buffer size (%d) is smaller than the size of the dir (%d)", *CCPL_platform_log_dir_max_size, strlen(dir));
+	*CCPL_platform_log_dir_size = strlen(dir);
+	strncpy(CCPL_platform_log_dir, dir, strlen(dir));
+	for (int i = strlen(dir); i < *CCPL_platform_log_dir_max_size; i ++)
+		CCPL_platform_log_dir[i] = ' ';	
 }
 
 

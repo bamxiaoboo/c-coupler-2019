@@ -499,15 +499,15 @@ void Coupling_connection::exchange_connection_fields_info()
 
 
 	if (current_proc_id_dst_comp != -1)
-		write_connection_fields_info_into_array(import_interface, &dst_fields_info_array, buffer_max_size, dst_fields_info_array_size, &dst_timer, dst_inst_or_aver, dst_time_step_in_second);
+		write_connection_fields_info_into_array(import_interface, &dst_fields_info_array, buffer_max_size, dst_fields_info_array_size, &dst_timer, dst_inst_or_aver, dst_time_step_in_second, dst_current_year, dst_current_month, dst_current_day, dst_current_second);
 	if (current_proc_id_src_comp != -1)
-		write_connection_fields_info_into_array(export_interface, &src_fields_info_array, buffer_max_size, src_fields_info_array_size, &src_timer, src_inst_or_aver, src_time_step_in_second);
+		write_connection_fields_info_into_array(export_interface, &src_fields_info_array, buffer_max_size, src_fields_info_array_size, &src_timer, src_inst_or_aver, src_time_step_in_second, src_current_year, src_current_month, src_current_day, src_current_second);
 	transfer_array_from_one_comp_to_another(current_proc_id_src_comp, src_comp_root_proc_global_id, current_proc_id_dst_comp, dst_comp_root_proc_global_id, dst_comp_node->get_comm_group(), &src_fields_info_array, src_fields_info_array_size);
 	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_root_proc_global_id, current_proc_id_src_comp, src_comp_root_proc_global_id, src_comp_node->get_comm_group(), &dst_fields_info_array, dst_fields_info_array_size);
 	comp_id = export_interface != NULL? export_interface->get_comp_id() : import_interface->get_comp_id();
-	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size, comp_id, &src_timer, src_inst_or_aver, src_time_step_in_second);
+	read_connection_fields_info_from_array(src_fields_info, src_fields_info_array, src_fields_info_array_size, comp_id, &src_timer, src_inst_or_aver, src_time_step_in_second, src_current_year, src_current_month, src_current_day, src_current_second);
 	comp_id = import_interface != NULL? import_interface->get_comp_id() : export_interface->get_comp_id();
-	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id, &dst_timer, dst_inst_or_aver, dst_time_step_in_second);
+	read_connection_fields_info_from_array(dst_fields_info, dst_fields_info_array, dst_fields_info_array_size, comp_id, &dst_timer, dst_inst_or_aver, dst_time_step_in_second, dst_current_year, dst_current_month, dst_current_day, dst_current_second);
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_name.size() == src_fields_info.size() && fields_name.size() == dst_fields_info.size(), "Software error in Coupling_connection::exchange_connection_fields_info");
 
 	src_timer->reset_remote_lag_count();
@@ -534,11 +534,15 @@ void Coupling_connection::read_fields_info_from_array(std::vector<Interface_fiel
 }
 
 
-void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, long buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
+void Coupling_connection::read_connection_fields_info_from_array(std::vector<Interface_field_info*> &fields_info, const char *array_buffer, long buffer_content_iter, int comp_id, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second,
+	                                                                             int &current_year, int &current_month, int &current_day, int &current_second)
 {
 	bool successful;
 
-	
+	read_data_from_array_buffer(&current_second, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&current_day, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&current_month, sizeof(int), array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&current_year, sizeof(int), array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(&inst_or_aver, sizeof(int), array_buffer, buffer_content_iter, true);
 	*timer = new Coupling_timer(array_buffer, buffer_content_iter, comp_id, true, successful);
@@ -571,7 +575,8 @@ void Coupling_connection::write_field_info_into_array(Field_mem_info *field, cha
 }
  
 
-void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, long &buffer_max_size, long &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second)
+void Coupling_connection::write_connection_fields_info_into_array(Inout_interface *inout_interface, char **array, long &buffer_max_size, long &buffer_content_size, Coupling_timer **timer, int &inst_or_aver, int &time_step_in_second, 
+	                                                                               int &current_year, int &current_month, int &current_day, int &current_second)
 {
 	char tmp_string[NAME_STR_SIZE];
 	int field_local_index;
@@ -586,9 +591,14 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 	*timer = inout_interface->get_timer();
 	inst_or_aver = inout_interface->get_inst_or_aver();
 	time_step_in_second = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_time_step_in_second();
+	components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(current_year, current_month, current_day, current_second, 0, "in Coupling_connection::write_connection_fields_info_into_array");
 	(*timer)->write_timer_into_array(array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&inst_or_aver, sizeof(int), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&time_step_in_second, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_year, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_month, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_day, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&current_second, sizeof(int), array, buffer_max_size, buffer_content_size);
 }
 
 
@@ -915,7 +925,7 @@ void Coupling_generator::synchronize_latest_connection_id(MPI_Comm comm)
 }
 
 
-void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool is_overall_generation)
+void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Comm comm, bool is_overall_generation, const char *annotation)
 {
 	bool define_use_wrong = false;
 	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
@@ -925,14 +935,17 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
 	int current_proc_local_id;
 	Comp_comm_group_mgt_node *local_comp_node = NULL, *temp_comp_node, *existing_comp_node;
+	char API_label[NAME_STR_SIZE];
 	
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &current_proc_local_id) == MPI_SUCCESS);	
+	get_API_hint(-1, API_id, API_label);
 	if (current_proc_local_id == 0)
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to generate coupling procedures commonly");
 	synchronize_latest_connection_id(comm);
 	inout_interface_mgr->get_all_unconnected_inout_interface_fields_info(all_comp_fullnames_for_coupling_generation, &temp_array_buffer, current_array_buffer_size, comm);
 	bcast_array_in_one_comp(current_proc_local_id, &temp_array_buffer, current_array_buffer_size, comm);
+
 	for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++) {
 		local_comp_node = comp_comm_group_mgt_mgr->search_global_node(all_comp_fullnames_for_coupling_generation[i]);
 		if (local_comp_node != NULL && local_comp_node->get_current_proc_local_id() != -1)
@@ -947,8 +960,11 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 		if (existing_comp_node == NULL) {
 			comp_comm_group_mgt_mgr->push_comp_node(temp_comp_node);
 			num_pushed_comp_node ++;
+			existing_comp_node = temp_comp_node;
 		}
 		else delete temp_comp_node;
+		if (existing_comp_node->get_current_proc_local_id() != -1)
+			EXECUTION_REPORT(REPORT_ERROR, existing_comp_node->get_comp_id(), !components_time_mgrs->get_time_mgr(existing_comp_node->get_comp_id())->get_time_has_been_advanced(), "Error happens when calling the API \"%s\": fail to generate coupling procedures because the time of the component model \"%s\" has been advanced before this API call. Please check the model code related to the annotation \"%s\"", API_label, all_comp_fullnames_for_coupling_generation[i], annotation);
 	}
 
 	if (current_proc_local_id == 0) {
@@ -1107,16 +1123,20 @@ void Coupling_generator::generate_coupling_procedures_common(MPI_Comm comm, bool
 
 
 
-void Coupling_generator::generate_coupling_procedures_internal(int comp_id, bool family_generation)
+void Coupling_generator::generate_coupling_procedures_internal(int comp_id, bool family_generation, const char *annotation)
 {
 	char *temp_array_buffer = NULL;
 	long current_array_buffer_size, max_array_buffer_size;
 
 
-	if (family_generation)
+	if (family_generation) {
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_comp_fullnames_for_coupling_generation, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
-	else all_comp_fullnames_for_coupling_generation.push_back(strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_full_name()));
-	generate_coupling_procedures_common(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures"), (comp_id & TYPE_ID_SUFFIX_MASK)==0);
+		generate_coupling_procedures_common(API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures"), (comp_id & TYPE_ID_SUFFIX_MASK)==0, annotation);
+	}
+	else {
+		all_comp_fullnames_for_coupling_generation.push_back(strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_full_name()));
+		generate_coupling_procedures_common(API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures"), (comp_id & TYPE_ID_SUFFIX_MASK)==0, annotation);
+	}
 }
 
 
@@ -1272,11 +1292,11 @@ void Coupling_generator::do_overall_coupling_generation(const char *local_root_c
 
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		individual_or_family_generation.push_back(2);	
-	do_external_coupling_generation(annotation);
+	do_external_coupling_generation(API_ID_COMP_MGT_END_COMP_REG, annotation);
 }
 
 
-void Coupling_generator::do_external_coupling_generation(const char *annotation)
+void Coupling_generator::do_external_coupling_generation(int API_id, const char *annotation)
 {
 	int i, j, k, num_comps = all_comp_fullnames_for_coupling_generation.size(), *temp_int_array;
 	std::vector<Comp_comm_group_mgt_node*> all_comp_nodes, loaded_comp_nodes;
@@ -1331,7 +1351,7 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_nodes.size() == all_comp_fullnames_for_coupling_generation.size(), "Software error in Coupling_generator::do_external_coupling_generation: wrong all_comp_nodes.size()");
 
 	if (all_comp_fullnames_for_coupling_generation.size() == 1) {
-		generate_coupling_procedures_internal(all_comp_nodes[0]->get_comp_id(), individual_or_family_generation[i] == 2);
+		generate_coupling_procedures_internal(all_comp_nodes[0]->get_comp_id(), individual_or_family_generation[i] == 2, annotation);
 		delete [] temp_int_array;
 		return;
 	}	
@@ -1342,8 +1362,8 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		if (all_comp_nodes[i]->get_current_proc_local_id() >= 0) {
 			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": before checking consistency of the parameters between all processes of this component model. Deadlock may happen if not all processes of this component model calls this API at the same time", annotation);
-			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_ID_COUPLING_GEN_EXTERNAL, all_comp_nodes[i]->get_comm_group(), "coupling generation", local_current_array_buffer_size, sizeof(char), local_temp_array_buffer, "comps_full_names", annotation);
-			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_ID_COUPLING_GEN_EXTERNAL, all_comp_nodes[i]->get_comm_group(), "coupling generation", individual_or_family_generation.size(), sizeof(int), (const char*) temp_int_array, "individual_or_familiy", annotation);
+			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_id, all_comp_nodes[i]->get_comm_group(), "coupling generation", local_current_array_buffer_size, sizeof(char), local_temp_array_buffer, "comps_full_names", annotation);
+			check_API_parameter_data_array(all_comp_nodes[i]->get_comp_id(), API_id, all_comp_nodes[i]->get_comm_group(), "coupling generation", individual_or_family_generation.size(), sizeof(int), (const char*) temp_int_array, "individual_or_familiy", annotation);
 			coupling_generator->synchronize_latest_connection_id(all_comp_nodes[i]->get_comm_group());
 			EXECUTION_REPORT_LOG(REPORT_LOG, all_comp_nodes[i]->get_comp_id(), true, "In the flowchart of executing the API \"CCPL_do_external_coupling_generation\" at the model code with the annotation \"%s\": after checking consistency of the parameters between all processes of this component model. Deadlock may happen if not all processes of this component model calls this API at the same time", annotation);			
 		}
@@ -1485,7 +1505,7 @@ void Coupling_generator::do_external_coupling_generation(const char *annotation)
 		for (int i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 			printf("comp for external generation %s at proc %d\n", all_comp_fullnames_for_coupling_generation[i], current_proc_id_in_union_comm);
 	}
-	generate_coupling_procedures_common(union_comm, false);
+	generate_coupling_procedures_common(API_id, union_comm, false, annotation);
 
 	clear();
 	delete [] temp_int_array;

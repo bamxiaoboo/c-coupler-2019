@@ -173,6 +173,7 @@ class Time_mgt
 		int rest_refdate;
 		int rest_refsecond;
 		bool advance_time_synchronized;
+		bool time_has_been_advanced;
 		int stop_n;
 
     public:
@@ -238,6 +239,7 @@ class Time_mgt
 		int get_rest_refsecond() { return rest_refsecond; }
 		bool is_first_restart_step() { return current_step_id == restarted_step_id; }
 		void calculate_stop_time(int, int, int, int);
+		bool get_time_has_been_advanced() { return time_has_been_advanced; }
 };
 
 

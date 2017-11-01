@@ -394,6 +394,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	this->comp_id = comp_id;
 	this->restart_timer = NULL;
 	this->advance_time_synchronized = false;
+	this->time_has_been_advanced = false;
 
 	{
 		int start_date, stop_date, reference_date, rest_freq_count, time_step;
@@ -595,6 +596,8 @@ void Time_mgt::advance_time(int &current_year, int &current_month, int &current_
     int i, num_days_in_current_month;
 
 
+	if (&current_year == &(this->current_year))
+		time_has_been_advanced = true;
     current_second += time_step_in_second;
 	for (i = 0; i < current_second / SECONDS_PER_DAY; i ++) {
         current_num_elapsed_day ++;
@@ -847,6 +850,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->rest_refdate = this->rest_refdate;
 	new_time_mgr->rest_refsecond = this->rest_refsecond;
 	new_time_mgr->restart_timer = NULL;
+	new_time_mgr->time_has_been_advanced = false;
 
 	return new_time_mgr;
 }

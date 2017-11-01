@@ -14,11 +14,14 @@
 #include "inout_interface_mgt.h"
 
 
-Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_interface, Coupling_timer *timer, int time_step_in_second, int inst_or_aver)
+Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_interface, Coupling_timer *timer, int time_step_in_second, int current_year, int current_month, int current_day, int current_second, int inst_or_aver)
 {
 	this->inout_interface = inout_interface;
 	this->timer = timer;
-	components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_time(current_year, current_month, current_day, current_second, 0, "CCPL internal");
+	this->current_year = current_year;
+	this->current_month = current_month;
+	this->current_day = current_day;
+	this->current_second = current_second;
 	current_num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
 	this->time_step_in_second = time_step_in_second;
 	this->inst_or_aver = inst_or_aver;
@@ -96,8 +99,8 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			                 "Software error in Connection_coupling_procedure::Connection_coupling_procedure: duplicated field name \"%s\" in a coonection", 
 			                 coupling_connection->fields_name[i]);
 
-	fields_time_info_src = new Connection_field_time_info(inout_interface, coupling_connection->src_timer, coupling_connection->src_time_step_in_second, -1);
-	fields_time_info_dst = new Connection_field_time_info(inout_interface, coupling_connection->dst_timer, coupling_connection->dst_time_step_in_second, coupling_connection->dst_inst_or_aver);
+	fields_time_info_src = new Connection_field_time_info(inout_interface, coupling_connection->src_timer, coupling_connection->src_time_step_in_second, coupling_connection->src_current_year, coupling_connection->src_current_month, coupling_connection->src_current_day, coupling_connection->src_current_second, -1);
+	fields_time_info_dst = new Connection_field_time_info(inout_interface, coupling_connection->dst_timer, coupling_connection->dst_time_step_in_second, coupling_connection->dst_current_year, coupling_connection->dst_current_month, coupling_connection->dst_current_day, coupling_connection->dst_current_second, coupling_connection->dst_inst_or_aver);
 	if (inout_interface->get_import_or_export_or_remap() == 0)
 		fields_time_info_src->reset_last_timer_info();
 	else fields_time_info_dst->reset_last_timer_info();
@@ -246,7 +249,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), !((local_fields_time_info->last_timer_num_elapsed_days != -1)) || ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
 	                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
-	                 "Please make sure that the import/export interface \"%s\" is called when the timer of any field is on. Please check the model code with the annotation \"%s\"", 
+	                 "Please make sure that the import/export interface \"%s\" is called when its timer is on. Please check the model code with the annotation \"%s\"", 
 	                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
 	if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_local_lag_count())) {
 		if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {

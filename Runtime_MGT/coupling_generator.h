@@ -76,6 +76,8 @@ class Coupling_connection
 		int dst_time_step_in_second;
 		int src_inst_or_aver;
 	    int dst_inst_or_aver;
+		int src_current_year, src_current_month, src_current_day, src_current_second;
+		int dst_current_year, dst_current_month, dst_current_day, dst_current_second;
 		Connection_coupling_procedure *import_procedure;
 		Connection_coupling_procedure *export_procedure;
 		Comp_comm_group_mgt_node *src_comp_node;
@@ -89,9 +91,9 @@ class Coupling_connection
         int * dst_proc_ranks_in_union_comm;
 
 		void write_field_info_into_array(Field_mem_info *, char **, long &, long &);
-		void write_connection_fields_info_into_array(Inout_interface *, char **, long &, long &, Coupling_timer**, int&, int&);	
+		void write_connection_fields_info_into_array(Inout_interface *, char **, long &, long &, Coupling_timer**, int&, int&, int&, int&, int&, int&);	
 		void read_fields_info_from_array(std::vector<Interface_field_info*> &, const char*, long);
-		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, long, int, Coupling_timer **, int &, int &);
+		void read_connection_fields_info_from_array(std::vector<Interface_field_info*>&, const char *, long, int, Coupling_timer **, int&, int&, int&, int&, int&, int&);
 		void exchange_connection_fields_info();
 		void exchange_bottom_fields_info();
 		void generate_interpolation(bool);
@@ -175,14 +177,14 @@ class Coupling_generator
 		
 		void generate_interface_fields_source_dst(const char*, int);
 		void generate_components_connections();		
-		void generate_coupling_procedures_common(MPI_Comm, bool);
+		void generate_coupling_procedures_common(int, MPI_Comm, bool, const char*);
 		void sort_comp_full_names(std::vector<const char*> &, std::vector<int>*);
 
 	public:
 		Coupling_generator() { latest_connection_id = 1; import_field_index_lookup_table = NULL; export_field_index_lookup_table = NULL; }
 		~Coupling_generator();
 		void clear();
-		void generate_coupling_procedures_internal(int, bool);
+		void generate_coupling_procedures_internal(int, bool, const char*);
         void generate_IO_procedures();
 		int apply_connection_id() {  return (++latest_connection_id); }
 		int get_latest_connection_id() { return latest_connection_id; }
@@ -191,7 +193,7 @@ class Coupling_generator
 		void transfer_interfaces_info_from_one_component_to_another(std::vector<Inout_interface*> &, Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *);
 		void begin_external_coupling_generation();
 		void add_comp_for_external_coupling_generation(const char *, int, const char*);
-		void do_external_coupling_generation(const char*);
+		void do_external_coupling_generation(int, const char*);
 		void load_comps_full_names_from_config_file(int, const char *, int, int, int *, const char *);
 		void get_one_comp_full_name(int, int, int, char *, int *, const char *);
 		void do_overall_coupling_generation(const char*, const char *);

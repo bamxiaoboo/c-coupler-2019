@@ -821,9 +821,12 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 	if (strlen(first_active_comp_config_dir) == 0 && new_comp->is_real_component_model()) {
 		sprintf(first_active_comp_config_dir, "%s/%s", runtime_config_root_dir, new_comp->get_comp_name());
+		CCPL_platform_log_dir[0] = '\0';
+		check_API_parameter_int(new_comp->get_comp_id(), API_ID_COMP_MGT_REG_COMP, new_comp->get_comm_group(), "registering a component model", change_dir, "change_dir", annotation);
 		if (change_dir == 1) {
 			char new_dir[NAME_STR_SIZE];
 			sprintf(new_dir, "%s/run/%s/%s/data", root_working_dir, new_comp->get_comp_type(), new_comp->get_comp_name());
+			sprintf(CCPL_platform_log_dir, "%s/run/%s/%s/run_logs", root_working_dir, new_comp->get_comp_type(), new_comp->get_comp_name());
 			DIR *dir=opendir(new_dir);
 			EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), dir != NULL, "Fail to change working directory for the first active component model \"%s\": the directory \"%s\" does not exist.", new_comp->get_comp_name(), new_dir);
 			chdir(new_dir);

@@ -50,7 +50,7 @@ class Connection_field_time_info
 		Coupling_timer *timer;
 		Inout_interface *inout_interface;
 
-		Connection_field_time_info(Inout_interface*, Coupling_timer*, int, int);
+		Connection_field_time_info(Inout_interface*, Coupling_timer*, int, int, int, int, int, int);
 		void get_time_of_next_timer_on(bool);
 		void reset_last_timer_info() { last_timer_num_elapsed_days = -1; last_timer_second = -1; }
 		void write_into_array_for_restart(char**, long&, long&);		

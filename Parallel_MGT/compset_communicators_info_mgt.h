@@ -129,6 +129,7 @@ class Comp_comm_group_mgt_mgr
 		char runtime_config_root_dir[NAME_STR_SIZE];
 		char coupling_flow_config_dir[NAME_STR_SIZE];
 		char first_active_comp_config_dir[NAME_STR_SIZE];
+		char CCPL_platform_log_dir[NAME_STR_SIZE];
 		int *sorted_comp_ids;
 		int unique_comp_id_indx;
 
@@ -173,6 +174,7 @@ class Comp_comm_group_mgt_mgr
 		void check_validation();
 		void set_current_proc_current_time(int, int, int);
 		Comp_comm_group_mgt_node *load_comp_info_from_XML(int, const char *, MPI_Comm);
+		const char *get_CCPL_platform_log_dir() { return CCPL_platform_log_dir; }
 };
 
 
