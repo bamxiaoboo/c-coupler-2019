@@ -12,6 +12,10 @@
 #include "runtime_cumulate_average_algorithm.h"
 #include "runtime_datatype_transformer.h"
 #include "inout_interface_mgt.h"
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 
 Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_interface, Coupling_timer *timer, int time_step_in_second, int current_year, int current_month, int current_day, int current_second, int inst_or_aver)
@@ -803,8 +807,23 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 	if (import_or_export_or_remap == 0) {
 		if (fields_mem_registered.size() != num_fields_connected)
 			for (int i = 0; i < fields_mem_registered.size(); i ++)
-				if (!fields_connected_status[i])
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "ERROR happens when executing the import interface \"%s\": the coupling procedures for the import field \"%s\" have not been fully generated. Please verify the model code with the annotation \"%s\".", interface_name, fields_mem_registered[i]->get_field_name(), annotation);
+				if (!fields_connected_status[i]) {
+					std::vector<const char *> export_comp_full_names, export_interface_names;
+					inout_interface_mgr->get_all_export_interfaces_of_a_field(comp_id, fields_mem_registered[i]->get_field_name(), export_comp_full_names, export_interface_names);
+					char *error_string = NULL;
+					long string_size;
+					if (comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_current_proc_local_id() == 0) {
+						error_string = new char [NAME_STR_SIZE*(export_comp_full_names.size()+2)];
+						error_string[0] = '\0';
+						for (int i = 0; i < export_comp_full_names.size(); i ++)
+							sprintf(error_string, "%s                   %d) Component model is \"%s\", export interface is \"%s\"\n", error_string, i+1, export_comp_full_names[i], export_interface_names[i]);
+						string_size = strlen(error_string) + 1;
+					}
+					bcast_array_in_one_comp(comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_current_proc_local_id(), &error_string, string_size, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comm_group());
+					EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "ERROR happens when executing the import interface \"%s\" (the corresponding code annotation is \"%s\"): the coupling procedures for the import field \"%s\" have not been fully generated. The export interfaces that have been registered with this field are listed as follows. Please make sure the correct coupling generation.\n%s", interface_name, annotation, fields_mem_registered[i]->get_field_name(), error_string);
+					if (error_string != NULL)
+						delete [] error_string;
+				}	
 		if (fields_mem_registered.size() > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
@@ -968,6 +987,19 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 }
 
 
+void Inout_interface::write_export_info_into_XML_file(TiXmlElement *parent_element)
+{
+	TiXmlElement *current_element = new TiXmlElement("export_interface");
+	parent_element->LinkEndChild(current_element);
+	current_element->SetAttribute("interface_name", interface_name);
+	for (int i = 0; i < fields_mem_registered.size(); i ++) {
+		TiXmlElement *field_element = new TiXmlElement("export_field");
+		current_element->LinkEndChild(field_element);
+		field_element->SetAttribute("field_name", fields_mem_registered[i]->get_field_name());
+	}
+}
+
+
 Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, long buffer_content_iter)
 {
 	while (buffer_content_iter > 0)
@@ -1053,6 +1085,10 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 		
 	}
 	interfaces.push_back(new_interface);
+
+	if (import_or_export_or_remap == 1)
+		write_comp_export_info_into_XML_file(new_interface->get_comp_id());
+	
 	return new_interface->get_interface_id();
 }
 
@@ -1229,4 +1265,76 @@ void Inout_interface_mgt::import_restart_data(Restart_mgt *restart_mgr, const ch
 		}
 }
 
+
+void Inout_interface_mgt::write_comp_export_info_into_XML_file(int comp_id)
+{
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_id);
+	char XML_file_name[NAME_STR_SIZE];
+
+
+	if (comp_node->get_current_proc_local_id() == 0) {
+		TiXmlDocument *XML_file = new TiXmlDocument;
+		TiXmlDeclaration *XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
+		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file != NULL, "Software error: cannot create an xml file");
+		XML_file->LinkEndChild(XML_declaration);
+		TiXmlElement *root_element = new TiXmlElement("export_interfaces");
+		root_element->SetAttribute("comp_full_name", comp_node->get_comp_full_name());
+		XML_file->LinkEndChild(root_element);
+		for (int i = 0; i < interfaces.size(); i ++)
+			if (interfaces[i]->get_import_or_export_or_remap() == 1 && interfaces[i]->get_comp_id() == comp_id)
+				interfaces[i]->write_export_info_into_XML_file(root_element);
+			sprintf(XML_file_name, "%s/%s.exports_info.xml", comp_comm_group_mgt_mgr->get_components_exports_dir(), comp_node->get_full_name());
+			XML_file->SaveFile(XML_file_name);
+			delete XML_file;	
+	}
+	MPI_Barrier(comp_node->get_comm_group());
+}
+
+
+void Inout_interface_mgt::get_all_export_interfaces_of_a_field(int comp_id, const char *field_name, std::vector<const char*> &export_comp_full_names, std::vector<const char*> &export_interface_names)
+{
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_id);
+	int line_number;
+	char XML_file_name[NAME_STR_SIZE];
+
+
+	for (int i = 0; i < export_comp_full_names.size(); i ++) {
+		delete [] export_comp_full_names[i];
+		delete [] export_interface_names[i];
+	}
+	export_comp_full_names.clear();
+	export_interface_names.clear();
+	 
+	if (comp_node->get_current_proc_local_id() == 0) {
+		DIR *cur_dir = opendir(comp_comm_group_mgt_mgr->get_components_exports_dir());
+		struct dirent *ent = NULL;
+		struct stat st;
+		EXECUTION_REPORT(REPORT_ERROR, -1, cur_dir != NULL, "Software error in Inout_interface_mgt::get_all_export_interfaces_of_a_field");
+		while ((ent = readdir(cur_dir)) != NULL) {
+			stat(ent->d_name, &st);
+			if (!(strlen(ent->d_name) > 4 && words_are_the_same(ent->d_name+strlen(ent->d_name)-4, ".xml")))
+				continue;
+			sprintf(XML_file_name, "%s/%s", comp_comm_group_mgt_mgr->get_components_exports_dir(), ent->d_name);
+			TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, MPI_COMM_NULL, false);
+			EXECUTION_REPORT(REPORT_ERROR, -1, XML_file != NULL, "Software error in Inout_interface_mgt::get_all_export_interfaces_of_a_field: no XML file");
+			TiXmlElement *root_element = XML_file->FirstChildElement();
+			const char *comp_full_name = get_XML_attribute(comp_id, -1, root_element, "comp_full_name", XML_file_name, line_number, "the full name of the corresponding component model", "internal XML files generated by C-Coupler");
+			for (TiXmlNode *export_interface_node = root_element->FirstChildElement(); export_interface_node != NULL; export_interface_node = export_interface_node->NextSibling()) {
+				TiXmlElement *export_interface_element = export_interface_node->ToElement();
+				const char *interface_name = get_XML_attribute(comp_id, -1, export_interface_element, "interface_name", XML_file_name, line_number, "the name of the export interface", "internal XML files generated by C-Coupler");
+				for (TiXmlNode *export_field_node = export_interface_element->FirstChildElement(); export_field_node != NULL; export_field_node = export_field_node->NextSibling()) {
+					TiXmlElement *export_field_element = export_field_node->ToElement();
+					const char *XML_field_name = get_XML_attribute(comp_id, -1, export_field_element, "field_name", XML_file_name, line_number, "the name of the export field", "internal XML files generated by C-Coupler");
+					if (words_are_the_same(XML_field_name, field_name)) {
+						export_comp_full_names.push_back(strdup(comp_full_name));
+						export_interface_names.push_back(strdup(interface_name));
+					}
+				}
+			}
+			
+			delete XML_file;
+		}
+	}
+	MPI_Barrier(comp_node->get_comm_group());
+}
 

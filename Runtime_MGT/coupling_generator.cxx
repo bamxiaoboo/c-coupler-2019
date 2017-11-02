@@ -927,7 +927,6 @@ void Coupling_generator::synchronize_latest_connection_id(MPI_Comm comm)
 
 void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Comm comm, bool is_overall_generation, const char *annotation)
 {
-	bool define_use_wrong = false;
 	char *temp_array_buffer = NULL, field_name[NAME_STR_SIZE];
 	long current_array_buffer_size, max_array_buffer_size;
 	int temp_int, num_pushed_comp_node = 0;	
@@ -1008,34 +1007,26 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 							}
 						}
 					}
-					if (coupling_connection->src_comp_interfaces.size() == 1)
-						printf("field \"%s\" of import interface \"%s\" in component \"%s\" have %d source as follows. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
-					else if (coupling_connection->src_comp_interfaces.size() > 1) {
-						printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" have more than 1 (%d) sources as follows. Please add or modify the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, coupling_connection->src_comp_interfaces.size());
-						define_use_wrong = true;
-					}					
-					else if (is_overall_generation) {
-						define_use_wrong = true;
-						if (export_fields_dst_components[field_index].size() == 0)
-							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: no component exports this field. \n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);
-						else {
-							printf("ERROR: field \"%s\" of import interface \"%s\" in component \"%s\" does not have source: there are components (as follows) exporting this field, however, none of which is specified in the corresponding configuration XML file\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name);						
-							for (int j = 0; j < export_fields_dst_components[field_index].size(); j ++)
-								printf("		Component is \"%s\", interface is \"%s\"\n", export_fields_dst_components[field_index][j].first, export_fields_dst_components[field_index][j].second);
-						}	
+					char *report_string = NULL;
+					if (coupling_connection->src_comp_interfaces.size() > 0) {
+						report_string = new char [NAME_STR_SIZE*coupling_connection->src_comp_interfaces.size()];
+						report_string[0] = '\0';
+						for (int j = 0; j < coupling_connection->src_comp_interfaces.size(); j ++)
+							sprintf(report_string, "%s             %d) Component model is \"%s\", export interface is \"%s\"\n", report_string, j+1, coupling_connection->src_comp_interfaces[j].first, coupling_connection->src_comp_interfaces[j].second);					
 					}
-					for (int j = 0; j < coupling_connection->src_comp_interfaces.size(); j ++)
-						printf("		component is \"%s\", interface is \"%s\"\n", coupling_connection->src_comp_interfaces[j].first, coupling_connection->src_comp_interfaces[j].second);
-					if (coupling_connection->src_comp_interfaces.size() == 1)
+					if (coupling_connection->src_comp_interfaces.size() == 1) {
+						EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Field \"%s\" of the import interface \"%s\" in the component model \"%s\" have one source as follows. %s\n", coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, report_string);
 						all_coupling_connections.push_back(coupling_connection);
+					}	
+					else if (coupling_connection->src_comp_interfaces.size() > 1)
+						EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling the API \"%s\" for coupling generation: Field \"%s\" of the import interface \"%s\" in the component model \"%s\" have more than one source as follows. Please verify. %s\n", API_label, coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, report_string);
 					else delete coupling_connection;
+					if (report_string != NULL)
+						delete [] report_string;
 				}
-
 			}
 			delete comp_import_interfaces_config;
 		}
-		
-		EXECUTION_REPORT(REPORT_ERROR, -1, !define_use_wrong, "Errors are reported when automatically generating coupling procedures");	
 		
 		for (int j, i = all_coupling_connections.size() - 1; i >= 0; i --) {
 			for (j = 0; j < i; j ++)

@@ -217,7 +217,6 @@ class Time_mgt
 		void get_elapsed_days_from_start_date(int*, int*);
 		void get_elapsed_days_from_reference_date(int*, int*);
 		void get_current_time(int&, int&, int&, int&, int, const char*);
-		void reset_timer();
 		bool check_is_time_legal(int, int, int, int, const char*);
 		bool get_is_leap_year_on() { return leap_year_on; }
 		int get_comp_id() { return comp_id; }

@@ -614,6 +614,7 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	global_node_array.clear();
 	global_node_root = NULL;
 	definition_finalized = false;
+	CCPL_platform_log_dir[0] = '\0';
 	EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(root_working_dir,NAME_STR_SIZE) != NULL, 
 		             "Cannot get the current working directory for running the model");
 
@@ -642,6 +643,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	create_directory(internal_H2D_grids_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(components_processes_dir, "%s/CCPL_dir/run/data/all/components_processes", root_working_dir);
 	create_directory(components_processes_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	sprintf(components_exports_dir, "%s/CCPL_dir/run/data/all/components_exports", root_working_dir);
+	create_directory(components_exports_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/data/all/comps_ending_config_status", root_working_dir);
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);

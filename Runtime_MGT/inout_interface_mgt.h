@@ -155,6 +155,7 @@ class Inout_interface
 		void preprocessing_for_frac_based_remapping();
 		void postprocessing_for_frac_based_remapping(bool);
 		long get_bypass_counter() { return bypass_counter; } 
+		void write_export_info_into_XML_file(TiXmlElement*);
 };
 
 
@@ -192,6 +193,8 @@ class Inout_interface_mgt
 		void free_all_MPI_wins(); 
 		void write_into_restart_buffers(std::vector<Restart_buffer_container*> *, int);
 		void import_restart_data(Restart_mgt *, const char *, int, const char *);
+		void write_comp_export_info_into_XML_file(int);
+		void get_all_export_interfaces_of_a_field(int, const char *, std::vector<const char*> &, std::vector<const char*> &);
 };
 
 #endif

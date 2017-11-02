@@ -545,22 +545,6 @@ Time_mgt::~Time_mgt()
 }
 
 
-void Time_mgt::reset_timer()
-{
-	EXECUTION_REPORT(REPORT_ERROR,-1, false, "software error: Time_mgt::reset_timer is not enabled");
-
-	current_year = start_year;
-	current_month = start_month;
-	current_day = start_day;
-	current_second = start_second;
-	current_step_id = 0;
-	
-	current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
-	start_num_elapsed_day = current_num_elapsed_day;
-	stop_num_elapsed_day = calculate_elapsed_day(stop_year,stop_month,stop_day);
-}
-
-
 int Time_mgt::get_current_num_days_in_year()
 {
 	if (leap_year_on && is_a_leap_year(current_year))
