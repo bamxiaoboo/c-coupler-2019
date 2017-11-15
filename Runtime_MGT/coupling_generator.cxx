@@ -1019,7 +1019,7 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 						all_coupling_connections.push_back(coupling_connection);
 					}	
 					else if (coupling_connection->src_comp_interfaces.size() > 1)
-						EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling the API \"%s\" for coupling generation: Field \"%s\" of the import interface \"%s\" in the component model \"%s\" have more than one source as follows. Please verify. %s\n", API_label, coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, report_string);
+						EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling the API \"%s\" for coupling generation: Field \"%s\" of the import interface \"%s\" in the component model \"%s\" have more than one source as follows. Please verify.\n%s\n", API_label, coupling_connection->fields_name[0], coupling_connection->dst_interface_name, coupling_connection->dst_comp_full_name, report_string);
 					else delete coupling_connection;
 					if (report_string != NULL)
 						delete [] report_string;
@@ -1342,7 +1342,7 @@ void Coupling_generator::do_external_coupling_generation(int API_id, const char 
 	EXECUTION_REPORT(REPORT_ERROR, -1, all_comp_nodes.size() == all_comp_fullnames_for_coupling_generation.size(), "Software error in Coupling_generator::do_external_coupling_generation: wrong all_comp_nodes.size()");
 
 	if (all_comp_fullnames_for_coupling_generation.size() == 1) {
-		generate_coupling_procedures_internal(all_comp_nodes[0]->get_comp_id(), individual_or_family_generation[i] == 2, annotation);
+		generate_coupling_procedures_internal(all_comp_nodes[0]->get_comp_id(), individual_or_family_generation[0] == 2, annotation);
 		delete [] temp_int_array;
 		return;
 	}	
@@ -1547,6 +1547,9 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 			for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 				if (words_are_the_same(temp_full_name, all_comp_fullnames_for_coupling_generation[i]))
 					break;			
+			if (i == all_comp_fullnames_for_coupling_generation.size())
+				all_comp_fullnames_for_coupling_generation.push_back(strdup(temp_full_name));
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": when loading the set of component models corresponding to the keyword \"%s\" from the XML file \"%s\", there are more than one entry of the component model \"%s\". Please check the XML file around the line number %d", keyword, XML_file_name, temp_full_name, line_number);
 			const char *individual_or_family = detailed_XML_element->Attribute("individual_or_family", &line_number);
 			int value_individual_or_family = 1;
 			if (individual_or_family != NULL) {
@@ -1554,12 +1557,7 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 				if (words_are_the_same(individual_or_family, "family"))
 					value_individual_or_family = 2;
 			}
-			if (i == all_comp_fullnames_for_coupling_generation.size()) {
-				all_comp_fullnames_for_coupling_generation.push_back(strdup(temp_full_name));
-				individual_or_family_generation.push_back(value_individual_or_family);
-			}
-			else if (individual_or_family_generation[i] == 1)
-				individual_or_family_generation[i] = value_individual_or_family;
+			individual_or_family_generation.push_back(value_individual_or_family);
 		}
 	}
 
