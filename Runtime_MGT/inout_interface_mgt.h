@@ -148,7 +148,7 @@ class Inout_interface
 		Coupling_timer *get_timer() { return timer; }
 		void add_coupling_procedure(Connection_coupling_procedure*);
 		int get_inst_or_aver() { return inst_or_aver; } 
-		void execute(bool, int*, int, const char*);
+		void execute(bool, int, int*, int, const char*);
 		Inout_interface *get_child_interface(int i);
 		int get_num_coupling_procedures() { return coupling_procedures.size(); }
 		void add_remappling_fraction_processing(void *, void *, int, int, const char *, const char *, const char *);		
@@ -184,8 +184,8 @@ class Inout_interface_mgt
 		void get_all_unconnected_inout_interface_fields_info(std::vector<const char*> & , char **, long &, MPI_Comm);
 		void merge_unconnected_inout_interface_fields_info(int);
 		void write_all_interfaces_fields_info();
-		void execute_interface(int, bool, int*, int, int*, const char*);
-		void execute_interface(int, const char*, bool, int *, int, int*, const char*);
+		void execute_interface(int, int, bool, int*, int, int*, const char*);
+		void execute_interface(int, int, const char*, bool, int *, int, int*, const char*);
 		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
 		void erase_runtime_receive_algorithm(Runtime_trans_algorithm *);
 		void runtime_receive_algorithms_receive_data();

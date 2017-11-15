@@ -933,8 +933,8 @@ extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to execute an interface");
 
-	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
-	inout_interface_mgr->execute_interface(*interface_id, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE_WITH_ID, annotation);
+	inout_interface_mgr->execute_interface(*interface_id, API_ID_INTERFACE_EXECUTE_WITH_ID, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish executing an interface");
 }
@@ -944,9 +944,9 @@ extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *int
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to execute an interface");
 
-	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE, annotation);
-	check_API_parameter_string_length(-1, API_ID_INTERFACE_EXECUTE, 80, interface_name, "interface_name", annotation);
-	inout_interface_mgr->execute_interface(*comp_id, interface_name, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE_WITH_NAME, annotation);
+	check_API_parameter_string_length(-1, API_ID_INTERFACE_EXECUTE_WITH_NAME, 80, interface_name, "interface_name", annotation);
+	inout_interface_mgr->execute_interface(*comp_id, API_ID_INTERFACE_EXECUTE_WITH_NAME, interface_name, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish executing an interface");
 }

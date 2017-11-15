@@ -232,44 +232,47 @@ Connection_coupling_procedure::~Connection_coupling_procedure()
 void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update_status, const char *annotation)
 {
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id());
-	Connection_field_time_info *local_fields_time_info, *remote_fields_time_info;
 	int lag_seconds;
+
 
 	finish_status = false;
 	transfer_data = false;
-	
-	if (inout_interface->get_import_or_export_or_remap() == 0) {
-		local_fields_time_info = fields_time_info_dst;
-		remote_fields_time_info = fields_time_info_src;
-		lag_seconds = local_fields_time_info->lag_seconds;
-	}
-	else {
-		local_fields_time_info = fields_time_info_src;
-		remote_fields_time_info = fields_time_info_dst;
-		lag_seconds = -remote_fields_time_info->lag_seconds;
-	}
-	time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0, "CCPL internal");
-	local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();  
-	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), !((local_fields_time_info->last_timer_num_elapsed_days != -1)) || ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
-	                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
-	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
-	                 "Please make sure that the import/export interface \"%s\" is called when its timer is on. Please check the model code with the annotation \"%s\"", 
-	                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
-	if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_local_lag_count())) {
-		if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {
-			local_fields_time_info->last_timer_num_elapsed_days = local_fields_time_info->next_timer_num_elapsed_days;
-			local_fields_time_info->last_timer_second = local_fields_time_info->next_timer_second;
-			local_fields_time_info->get_time_of_next_timer_on(true);
+
+	if (!bypass_timer) {	
+		Connection_field_time_info *local_fields_time_info, *remote_fields_time_info;		
+		if (inout_interface->get_import_or_export_or_remap() == 0) {
+			local_fields_time_info = fields_time_info_dst;
+			remote_fields_time_info = fields_time_info_src;
+			lag_seconds = local_fields_time_info->lag_seconds;
 		}
-		while((((long)remote_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY))+remote_fields_time_info->current_second+lag_seconds <= (((long)local_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY)) + local_fields_time_info->current_second) {
-			if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, 
-				                                            time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
-				remote_fields_time_info->last_timer_num_elapsed_days = remote_fields_time_info->current_num_elapsed_days;
-				remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
-			}	
-			time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
-		}			
-		remote_fields_time_info->get_time_of_next_timer_on(false);
+		else {
+			local_fields_time_info = fields_time_info_src;
+			remote_fields_time_info = fields_time_info_dst;
+			lag_seconds = -remote_fields_time_info->lag_seconds;
+		}
+		time_mgr->get_current_time(local_fields_time_info->current_year, local_fields_time_info->current_month, local_fields_time_info->current_day, local_fields_time_info->current_second, 0, "CCPL internal");
+		local_fields_time_info->current_num_elapsed_days = time_mgr->get_current_num_elapsed_day();  
+		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), !((local_fields_time_info->last_timer_num_elapsed_days != -1)) || ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
+		                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
+		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
+		                 "Please make sure that the import/export interface \"%s\" is called when its timer is on. Please check the model code with the annotation \"%s\"", 
+		                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
+		if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_local_lag_count())) {
+			if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {
+				local_fields_time_info->last_timer_num_elapsed_days = local_fields_time_info->next_timer_num_elapsed_days;
+				local_fields_time_info->last_timer_second = local_fields_time_info->next_timer_second;
+				local_fields_time_info->get_time_of_next_timer_on(true);
+			}
+			while((((long)remote_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY))+remote_fields_time_info->current_second+lag_seconds <= (((long)local_fields_time_info->current_num_elapsed_days)*((long)SECONDS_PER_DAY)) + local_fields_time_info->current_second) {
+				if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, 
+					                                            time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
+					remote_fields_time_info->last_timer_num_elapsed_days = remote_fields_time_info->current_num_elapsed_days;
+					remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
+				}	
+				time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
+			}			
+			remote_fields_time_info->get_time_of_next_timer_on(false);
+		}
 	}
 	
 	if (inout_interface->get_import_or_export_or_remap() == 0) { 
@@ -799,7 +802,7 @@ void Inout_interface::postprocessing_for_frac_based_remapping(bool bypass_timer)
 }
 
 
-void Inout_interface::execute(bool bypass_timer, int *field_update_status, int size_field_update_status, const char *annotation)
+void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_status, int size_field_update_status, const char *annotation)
 {
 	bool at_first_normal_step = false;
 
@@ -853,13 +856,13 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 	if (bypass_timer && (execution_checking_status & 0x2) != 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
-		synchronize_comp_processes_for_API(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "software error")->get_comm_group(), "executing an import/export interface", annotation);
-		check_API_parameter_string(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", interface_name, "the corresponding interface name", annotation);
+		synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "software error")->get_comm_group(), "executing an import/export interface", annotation);
+		check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", interface_name, "the corresponding interface name", annotation);
 		int bypass_timer_int;
 		if (bypass_timer)
 			bypass_timer_int = 0;
 		else bypass_timer_int = 1;
-		check_API_parameter_int(comp_id, API_ID_INTERFACE_EXECUTE, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), NULL, bypass_timer_int, "the value for specifying whether bypass timers", annotation);
+		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), NULL, bypass_timer_int, "the value for specifying whether bypass timers", annotation);
 		if (bypass_timer) {
 			execution_checking_status = execution_checking_status | 0x1;
 			annotation_mgr->add_annotation(interface_id, "bypassing timer", annotation);
@@ -885,8 +888,8 @@ void Inout_interface::execute(bool bypass_timer, int *field_update_status, int s
 	if (import_or_export_or_remap >= 2) {
 		if (import_or_export_or_remap == 3)
 			preprocessing_for_frac_based_remapping();
-		children_interfaces[0]->execute(bypass_timer, field_update_status, size_field_update_status+1, annotation);
-		children_interfaces[1]->execute(bypass_timer, field_update_status, size_field_update_status+1, annotation);
+		children_interfaces[0]->execute(bypass_timer, API_id, field_update_status, size_field_update_status+1, annotation);
+		children_interfaces[1]->execute(bypass_timer, API_id, field_update_status, size_field_update_status+1, annotation);
 		if (import_or_export_or_remap == 3)
 			postprocessing_for_frac_based_remapping(bypass_timer);
 		return;
@@ -1181,7 +1184,7 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 }
 
 
-void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
+void Inout_interface_mgt::execute_interface(int interface_id, int API_id, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	Inout_interface *inout_interface;
 
@@ -1189,13 +1192,13 @@ void Inout_interface_mgt::execute_interface(int interface_id, bool bypass_timer,
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
 	inout_interface = get_interface(interface_id);
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
-	inout_interface->execute(bypass_timer, field_update_status, size_field_update_status, annotation);
+	inout_interface->execute(bypass_timer, API_id, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }
 
 
-void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_name, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
+void Inout_interface_mgt::execute_interface(int comp_id, int API_id, const char *interface_name, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	Inout_interface *inout_interface;
 
@@ -1205,7 +1208,7 @@ void Inout_interface_mgt::execute_interface(int comp_id, const char *interface_n
 	if (inout_interface == NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Registered interface of this component does not contain an import/export interface named \"%s\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
-	inout_interface->execute(bypass_timer, field_update_status, size_field_update_status, annotation);
+	inout_interface->execute(bypass_timer, API_id, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
 }

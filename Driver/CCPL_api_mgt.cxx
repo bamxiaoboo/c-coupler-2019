@@ -206,8 +206,11 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_INTERFACE_REG_FRAC_REMAP:
 			sprintf(API_label, "CCPL_register_frac_based_remap_interface");
 			break;
-		case API_ID_INTERFACE_EXECUTE:
-			sprintf(API_label, "CCPL_execute_interface");
+		case API_ID_INTERFACE_EXECUTE_WITH_ID:
+			sprintf(API_label, "CCPL_execute_interface_using_id");
+			break;
+		case API_ID_INTERFACE_EXECUTE_WITH_NAME:
+			sprintf(API_label, "CCPL_execute_interface_using_name");
 			break;
 		case API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME:
 			sprintf(API_label, "CCPL_get_local_comp_full_name");

@@ -201,10 +201,10 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 void IO_output_procedure::execute()
 {
 	if (export_interface != NULL)
-		export_interface->execute(false, field_update_status, IO_fields.size(), "IO output procedure export interface execute");
+		export_interface->execute(false, API_ID_INTERFACE_EXECUTE_WITH_ID, field_update_status, IO_fields.size(), "IO output procedure export interface execute");
 
 	if (import_interface != NULL) {
-		import_interface->execute(false, field_update_status, IO_fields.size(), "IO output procedure import interface execute");
+		import_interface->execute(false, API_ID_INTERFACE_EXECUTE_WITH_ID, field_update_status, IO_fields.size(), "IO output procedure import interface execute");
 		if (field_timer->is_timer_on()) {
 			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in IO_output_procedure::execute") == 0) {
 				if (netcdf_file_object == NULL || file_timer->is_timer_on()) {
