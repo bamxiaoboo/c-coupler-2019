@@ -128,6 +128,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_SET_TIME_STEP:
 			sprintf(API_label, "CCPL_set_time_step");
 			break;
+		case API_ID_TIME_MGT_RESET_TIME_TO_START:
+			sprintf(API_label, "CCPL_reset_current_time_to_start_time");
+			break;			
 		case API_ID_TIME_MGT_ADVANCE_TIME:
 			sprintf(API_label, "CCPL_advance_time");
 			break;

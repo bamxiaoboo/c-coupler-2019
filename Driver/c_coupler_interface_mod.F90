@@ -64,6 +64,7 @@
    public :: CCPL_define_single_timer
    public :: CCPL_define_complex_timer 
    public :: CCPL_set_time_step
+   public :: CCPL_reset_current_time_to_start_time
    public :: CCPL_advance_time
    public :: CCPL_is_timer_on
    public :: CCPL_check_current_time
@@ -2423,6 +2424,21 @@
    endif
 
    end SUBROUTINE CCPL_set_time_step
+
+
+
+   SUBROUTINE CCPL_reset_current_time_to_start_time(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+
+   if (present(annotation)) then
+       call reset_component_current_time_to_start_time(comp_id, trim(annotation)//char(0))
+   else
+       call reset_component_current_time_to_start_time(comp_id, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_reset_current_time_to_start_time
 
 
 

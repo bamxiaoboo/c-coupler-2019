@@ -1341,3 +1341,13 @@ void Inout_interface_mgt::get_all_export_interfaces_of_a_field(int comp_id, cons
 	MPI_Barrier(comp_node->get_comm_group());
 }
 
+
+Inout_interface *Inout_interface_mgt::search_an_executed_inout_interface(int comp_id)
+{
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() < 2 && interfaces[i]->has_been_executed())
+			return interfaces[i];
+
+	return NULL;
+}
+

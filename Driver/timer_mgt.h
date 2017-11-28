@@ -180,6 +180,7 @@ class Time_mgt
 		Time_mgt() {}
 		Time_mgt(int, const char *);
         ~Time_mgt();
+		void initialize_to_start_time();
         void advance_model_time(const char*, bool);
 		void advance_time(int &, int &, int &, int &, int &, int);
         int get_current_year() { return current_year; }
@@ -239,6 +240,7 @@ class Time_mgt
 		bool is_first_restart_step() { return current_step_id == restarted_step_id; }
 		void calculate_stop_time(int, int, int, int);
 		bool get_time_has_been_advanced() { return time_has_been_advanced; }
+		void reset_current_time_to_start_time(const char*);
 };
 
 

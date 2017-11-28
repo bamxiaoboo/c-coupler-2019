@@ -50,6 +50,7 @@
 #define API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER       ((int)(0X01000004))
 #define API_ID_TIME_MGT_SET_TIME_STEP                   ((int)(0X02000001))
 #define API_ID_TIME_MGT_ADVANCE_TIME                    ((int)(0X02000002))
+#define API_ID_TIME_MGT_RESET_TIME_TO_START             ((int)(0X02000003))
 #define API_ID_TIME_MGT_DEFINE_SINGLE_TIMER             ((int)(0X02000004))
 #define API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER            ((int)(0X02000008))
 #define API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR	((int)(0X02100001))
