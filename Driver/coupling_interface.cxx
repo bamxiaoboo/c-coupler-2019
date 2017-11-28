@@ -351,8 +351,17 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling API \"CCPL_get_component_id\" to get the ID of component \"%s\": no component with the name of \"%s\" has been registerred. Please check the model code at the annotation \"%s\"", comp_name, comp_name, annotation);
 		*comp_id = -1;
 	}
-	else *comp_id = node->get_local_node_id();
-	
+	else *comp_id = node->get_local_node_id();	
+}
+
+
+extern "C" void check_is_comp_type_coupled_(int *comp_id, const char *comp_type, int *is_coupled, const char *annotation)
+{
+	check_for_component_registered(-1, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, annotation, true);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "check_is_comp_type_coupled_"), "synchorization for checking whether a type of component models is coupled", annotation);
+	if (comp_comm_group_mgt_mgr->is_comp_type_coupled(*comp_id, comp_type, annotation))
+		*is_coupled = 1; 
+	else *is_coupled = 0;
 }
 
 

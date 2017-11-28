@@ -46,6 +46,7 @@
    public :: CCPL_register_component
    public :: CCPL_get_component_id
    public :: CCPL_get_current_process_id_in_component
+   public :: CCPL_is_comp_type_coupled
    public :: CCPL_get_component_process_global_id
    public :: CCPL_is_current_process_in_component
    public :: CCPL_get_num_process_in_component
@@ -1480,6 +1481,25 @@
    CCPL_get_current_process_id_in_component = proc_id
 
    END FUNCTION CCPL_get_current_process_id_in_component
+
+
+
+   LOGICAL FUNCTION CCPL_is_comp_type_coupled(comp_id, comp_type, annotation)
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in)            :: comp_type
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: is_coupled
+   character *1024                         :: local_annotation
+
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+
+   call check_is_comp_type_coupled(comp_id, trim(comp_type)//char(0), is_coupled, trim(local_annotation)//char(0))
+
+   CCPL_is_comp_type_coupled = .false.
+   if (is_coupled .eq. 1) CCPL_is_comp_type_coupled = .true.
+
+   END FUNCTION CCPL_is_comp_type_coupled
 
 
 

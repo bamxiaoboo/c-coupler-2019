@@ -177,6 +177,7 @@ class Comp_comm_group_mgt_mgr
 		void set_current_proc_current_time(int, int, int);
 		Comp_comm_group_mgt_node *load_comp_info_from_XML(int, const char *, MPI_Comm);
 		const char *get_CCPL_platform_log_dir() { return CCPL_platform_log_dir; }
+		bool is_comp_type_coupled(int, const char *, const char *);
 };
 
 
