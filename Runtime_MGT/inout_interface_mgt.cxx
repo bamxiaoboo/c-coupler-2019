@@ -1342,10 +1342,10 @@ void Inout_interface_mgt::get_all_export_interfaces_of_a_field(int comp_id, cons
 }
 
 
-Inout_interface *Inout_interface_mgt::search_an_executed_inout_interface(int comp_id)
+Inout_interface *Inout_interface_mgt::search_an_inout_interface_executed_with_timer(int comp_id)
 {
 	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() < 2 && interfaces[i]->has_been_executed())
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() < 2 && interfaces[i]->has_been_executed_with_timer())
 			return interfaces[i];
 
 	return NULL;

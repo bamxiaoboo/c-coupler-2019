@@ -986,9 +986,9 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 
 void Time_mgt::reset_current_time_to_start_time(const char *annotation)
 {
-	Inout_interface *executed_interface = inout_interface_mgr->search_an_executed_inout_interface(comp_id);
+	Inout_interface *executed_interface = inout_interface_mgr->search_an_inout_interface_executed_with_timer(comp_id);
 	if (executed_interface != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API CCPL_reset_current_time_to_start_time: the current time cannot be reset because a coupling interface \"%s\" of the current component model has been executed. Please check the model code with the annotation \"%s\"", executed_interface->get_interface_name(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API CCPL_reset_current_time_to_start_time: the current time cannot be reset because a coupling interface \"%s\" of the current component model has been executed without its timer bypassed. Please check the model code with the annotation \"%s\"", executed_interface->get_interface_name(), annotation);
 	initialize_to_start_time();
 }
 
