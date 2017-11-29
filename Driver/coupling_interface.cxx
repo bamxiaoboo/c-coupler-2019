@@ -359,6 +359,7 @@ extern "C" void check_is_comp_type_coupled_(int *comp_id, const char *comp_type,
 {
 	check_for_component_registered(-1, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, annotation, true);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "check_is_comp_type_coupled_"), "synchorization for checking whether a type of component models is coupled", annotation);
+	check_API_parameter_string(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "check_is_comp_type_coupled_"), "checking whether a type of component models have been registered to C-Coupler", comp_type, "comp_type", annotation);
 	if (comp_comm_group_mgt_mgr->is_comp_type_coupled(*comp_id, comp_type, annotation))
 		*is_coupled = 1; 
 	else *is_coupled = 0;
