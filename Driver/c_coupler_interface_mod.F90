@@ -70,6 +70,7 @@
    public :: CCPL_is_timer_on
    public :: CCPL_check_current_time
    public :: CCPL_finalize
+   public :: CCPL_is_last_step_of_model_run
    public :: CCPL_is_model_run_ended
    public :: CCPL_register_normal_remap_interface
    public :: CCPL_register_import_interface 
@@ -2536,6 +2537,23 @@
 
    END SUBROUTINE  CCPL_finalize
 
+
+   
+   logical FUNCTION CCPL_is_last_step_of_model_run(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+   integer                                     :: is_last_step
+
+   if (present(annotation)) then
+       call check_is_ccpl_model_last_step(comp_id, is_last_step, trim(annotation)//char(0))
+   else
+       call check_is_ccpl_model_last_step(comp_id, is_last_step, trim("")//char(0))
+   endif
+   CCPL_is_last_step_of_model_run=.false.
+   if (is_last_step .eq. 1) CCPL_is_last_step_of_model_run = .false.
+
+   END FUNCTION CCPL_is_last_step_of_model_run
 
 
    logical FUNCTION CCPL_is_model_run_ended(comp_id, annotation)

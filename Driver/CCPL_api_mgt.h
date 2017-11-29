@@ -74,6 +74,7 @@
 #define API_ID_TIME_MGT_GET_TIME_STEP                   ((int)(0X02110000))
 #define API_ID_TIME_MGT_CHECK_CURRENT_TIME              ((int)(0X02120000))
 #define API_ID_TIME_MGT_IS_TIMER_ON                     ((int)(0X02140000))
+#define API_ID_TIME_MGT_IS_MODEL_LAST_STEP              ((int)(0X02170000))
 #define API_ID_TIME_MGT_IS_MODEL_RUN_ENDED              ((int)(0X02180000))
 #define API_ID_INTERFACE_REG_IMPORT                     ((int)(0X04000001))
 #define API_ID_INTERFACE_REG_EXPORT                     ((int)(0X04000002))

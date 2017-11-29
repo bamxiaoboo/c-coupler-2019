@@ -200,6 +200,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_IS_MODEL_RUN_ENDED:
 			sprintf(API_label, "CCPL_is_model_run_ended");
 			break;
+		case API_ID_TIME_MGT_IS_MODEL_LAST_STEP:
+			sprintf(API_label, "CCPL_is_last_step_of_model_run");
+			break;			
 		case API_ID_INTERFACE_REG_IMPORT:
 			sprintf(API_label, "CCPL_register_import_interface");
 			break;
