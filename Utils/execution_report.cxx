@@ -202,7 +202,7 @@ void execution_report(int report_type, int comp_id, bool condition, const char *
 		va_end(pArgList);
 		fclose(log_file);
 		if (comp_id != -1) {
-			log_file_name = comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
+			log_file_name = comp_comm_group_mgt_mgr->get_comp_ccpl_log_file_name(comp_id);
 			log_file = fopen(log_file_name, "a+");
 			va_start(pArgList, format);
 			vfprintf(log_file, output_string, pArgList);
@@ -242,7 +242,7 @@ void execution_report(int report_type, int comp_id, bool condition)
 		fprintf(log_file, "%s\n\n", output_string);
 		fclose(log_file);
 		if (comp_id != -1) {
-			log_file_name = comp_comm_group_mgt_mgr->get_comp_log_file_name(comp_id);
+			log_file_name = comp_comm_group_mgt_mgr->get_comp_ccpl_log_file_name(comp_id);
 			log_file = fopen(log_file_name, "a+");
 			fprintf(log_file, "%s\n\n", output_string);
 			fclose(log_file);

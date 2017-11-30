@@ -339,6 +339,30 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 }
 
 
+extern "C" void get_ccpl_comp_log_file_name_(int *comp_id, char *file_name, int *size_file_name, int *log_file_opened, const char *annotation)
+{
+	int log_file_device_id;
+
+	
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_LOG_FILE_NAME, annotation, true);
+	const char *log_file_name = comp_comm_group_mgt_mgr->get_comp_model_log_file(*comp_id, log_file_device_id);
+	if (log_file_device_id == -1)
+		*log_file_opened = 0;
+	else *log_file_opened = 1;
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *size_file_name >= strlen(log_file_name), "Error happens when calling the API \"CCPL_get_comp_log_file_name\": the parameter string \"file_name\" is too short: only %d while the size of the log file name is %d", *size_file_name, strlen(log_file_name));
+	strncpy(file_name, log_file_name, strlen(log_file_name));
+	for (int i = strlen(log_file_name); i < *size_file_name; i ++)
+		file_name[i] = ' ';	
+}
+
+
+extern "C" void get_ccpl_comp_log_file_device_(int *comp_id, int *log_file_device_id, int *log_file_opened, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_LOG_FILE_DEVICE, annotation, true);
+	*log_file_opened = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "get_ccpl_comp_log_file_device_")->open_comp_model_log_file(log_file_device_id);
+}
+
+
 extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);

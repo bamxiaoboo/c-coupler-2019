@@ -44,7 +44,9 @@ class Comp_comm_group_mgt_node
 		char comp_type[NAME_STR_SIZE];
 		char annotation_start[NAME_STR_SIZE];
 		char annotation_end[NAME_STR_SIZE];
-		char comp_log_file_name[NAME_STR_SIZE];
+		char comp_ccpl_log_file_name[NAME_STR_SIZE];
+		char comp_model_log_file_name[NAME_STR_SIZE];
+		int comp_model_log_file_device;
 		char exe_log_file_name[NAME_STR_SIZE];
 		char working_dir[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
@@ -84,7 +86,6 @@ class Comp_comm_group_mgt_node
 		void reset_local_node_id(int new_id) { comp_id = new_id; if (restart_mgr != NULL) restart_mgr->reset_comp_id(comp_id); }
 		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
-		void reset_dir(Comp_comm_group_mgt_node *);
 		bool is_definition_finalized() { return definition_finalized; }
 		const char *get_annotation_start() { return annotation_start; }
 		const char *get_annotation_end() { return annotation_end; }
@@ -98,7 +99,9 @@ class Comp_comm_group_mgt_node
 		int get_local_proc_global_id(int);
 		void confirm_coupling_configuration_active(int, bool, const char*);
 		const char *get_full_name() { return full_name; }
-		const char *get_comp_log_file_name() { return comp_log_file_name; } 
+		int open_comp_model_log_file(int*);
+		const char *get_comp_ccpl_log_file_name() { return comp_ccpl_log_file_name; } 
+		const char *get_comp_model_log_file(int &device_id) { device_id = comp_model_log_file_device; return comp_model_log_file_name; }
 		const char *get_exe_log_file_name() { return exe_log_file_name; } 
 		bool is_real_component_model();
 		Restart_mgt *get_restart_mgr() { return restart_mgr; }
@@ -139,14 +142,14 @@ class Comp_comm_group_mgt_mgr
 		~Comp_comm_group_mgt_mgr();
 		int register_component(const char*, const char*, MPI_Comm&, int, bool, int, const char*);
 		bool is_legal_local_comp_id(int);
-		void update_global_nodes(Comp_comm_group_mgt_node**, int);
 		void transform_global_node_tree_into_array(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node**, int&);
 		Comp_comm_group_mgt_node *get_global_node_of_local_comp(int, const char*);
 		MPI_Comm get_comm_group_of_local_comp(int, const char*);
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
 		Comp_comm_group_mgt_node *get_root_component_model() { return global_node_array[1]; }
-		const char *get_comp_log_file_name(int);
+		const char *get_comp_ccpl_log_file_name(int);
+		const char *get_comp_model_log_file(int, int &);
 		const char *get_exe_log_file_name(int);
 		void get_output_data_file_header(int, char*);
 		Comp_comm_group_mgt_node *search_global_node(int);

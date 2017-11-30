@@ -44,6 +44,8 @@
    public :: CCPL_is_end_current_month
    public :: CCPL_allreduce_real16
    public :: CCPL_register_component
+   public :: CCPL_get_comp_log_file_name
+   public :: CCPL_get_comp_log_file_device
    public :: CCPL_get_component_id
    public :: CCPL_get_current_process_id_in_component
    public :: CCPL_is_comp_type_coupled
@@ -1451,6 +1453,45 @@
 
 
 
+   logical FUNCTION CCPL_get_comp_log_file_name(comp_id, file_name, annotation)
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(out)           :: file_name
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: log_file_opened 
+   character *1024                         :: local_annotation
+
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+
+   call get_ccpl_comp_log_file_name(comp_id, file_name, len(file_name), log_file_opened, trim(local_annotation)//char(0))
+   CCPL_get_comp_log_file_name = .false.
+   if (log_file_opened .eq. 1) CCPL_get_comp_log_file_name = .true.
+
+   END FUNCTION CCPL_get_comp_log_file_name
+   
+
+
+   integer FUNCTION CCPL_get_comp_log_file_device(comp_id, annotation)
+   integer, intent(in)                     :: comp_id
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: log_file_device, log_file_opened 
+   character *1024                         :: local_annotation
+   character *4096                         :: file_name
+
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   call get_ccpl_comp_log_file_device(comp_id, log_file_device, log_file_opened, trim(local_annotation)//char(0))
+   if (log_file_opened .eq. 0) then
+       call get_ccpl_comp_log_file_name(comp_id, file_name, len(file_name), log_file_opened, trim("C-Coupler CCPL_get_comp_log_file_device internal")//char(0))
+       write(*,*) 'open the file to device ', log_file_device, file_name
+       open(unit=log_file_device,file=file_name,position='APPEND')
+   endif 
+   CCPL_get_comp_log_file_device = log_file_device
+
+   END FUNCTION CCPL_get_comp_log_file_device
+
+
+
    logical FUNCTION CCPL_is_current_process_in_component(comp_full_name, annotation)
    implicit none
    character(len=*), intent(in)            :: comp_full_name
@@ -2791,7 +2832,7 @@
    SUBROUTINE CCPL_get_local_comp_full_name(comp_id, comp_full_name, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
-   character(len=*), intent(inout)             :: comp_full_name
+   character(len=*), intent(out)             :: comp_full_name
    character(len=*), intent(in), optional      :: annotation
 
    if (present(annotation)) then

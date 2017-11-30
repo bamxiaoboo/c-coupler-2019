@@ -41,6 +41,12 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_COMP_MGT_REG_COMP:
 			sprintf(API_label, "CCPL_register_component");
 			break;
+		case API_ID_COMP_MGT_GET_COMP_LOG_FILE_NAME:
+			sprintf(API_label, "CCPL_get_comp_log_file_name");
+			break;			
+		case API_ID_COMP_MGT_GET_COMP_LOG_FILE_DEVICE:
+			sprintf(API_label, "CCPL_get_comp_log_file_device");
+			break;
         case API_ID_COMP_MGT_END_COMP_REG:
 			sprintf(API_label, "CCPL_end_coupling_configuration");
 			break;
