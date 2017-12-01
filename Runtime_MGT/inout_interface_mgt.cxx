@@ -203,6 +203,9 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(last_field_instance, fields_mem_registered[i]);
 		}
 	}
+	
+	if (inout_interface->get_import_or_export_or_remap() == 0)
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"Connection_coupling_procedure::Connection_coupling_procedure")->update_min_remote_lag_seconds(fields_time_info_dst->lag_seconds);
 }
 
 

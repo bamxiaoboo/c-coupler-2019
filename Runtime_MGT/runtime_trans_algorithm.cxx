@@ -86,7 +86,9 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     }
     strcpy(remote_comp_full_name, remote_comp_node->get_comp_full_name());
 	remote_comp_node_updated = false;
+	timer_not_bypassed = false;
     comp_id = local_comp_node->get_comp_id();
+	comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Runtime_trans_algorithm::Runtime_trans_algorithm");
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
     time_mgr = components_time_mgrs->get_time_mgr(comp_id);
@@ -324,6 +326,16 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
     if (last_receive_field_sender_time == current_receive_field_sender_time)
         return;
 
+	if (timer_not_bypassed) {
+		int comp_min_remote_lag_seconds = comp_node->get_min_remote_lag_seconds();
+		long current_receiver_full_seconds = ((long)time_mgr->get_current_num_elapsed_day())*86400 + time_mgr->get_current_second();
+		long current_sender_full_seconds = ((current_receive_field_sender_time%((long)100000000000000))/((long)100000))*86400 + (current_receive_field_sender_time%((long)100000));
+		if (current_sender_full_seconds + 2*comp_min_remote_lag_seconds > current_receiver_full_seconds) {
+			printf("wuwu %s %s %ld %d %ld\n", comp_node->get_full_name(), remote_comp_full_name, current_sender_full_seconds, 2*comp_min_remote_lag_seconds, current_receiver_full_seconds);
+			return;
+		}
+	}
+
     int empty_history_receive_buffer_index = -1;
     if (last_history_receive_buffer_index != -1) {
         for (int i = 0; i < history_receive_data_buffer.size(); i ++) {
@@ -390,6 +402,8 @@ void Runtime_trans_algorithm::receve_data_in_temp_buffer()
 
 bool Runtime_trans_algorithm::run(bool bypass_timer)
 {
+	if (!bypass_timer)
+		timer_not_bypassed = true;
     if (send_or_receive)
         return send(bypass_timer);
     else return recv(bypass_timer);

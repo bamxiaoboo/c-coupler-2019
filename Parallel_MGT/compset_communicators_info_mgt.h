@@ -63,6 +63,7 @@ class Comp_comm_group_mgt_node
 		bool definition_finalized;
 		bool enabled_in_parent_coupling_generation;
 		Restart_mgt *restart_mgr;
+		int min_remote_lag_seconds;
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, bool, const char*);
@@ -111,6 +112,8 @@ class Comp_comm_group_mgt_node
 		void set_proc_latest_model_time(int, long);
 		long get_proc_latest_model_time(int);
 		void get_all_descendant_real_comp_fullnames(int, std::vector<const char*>&, char **, long &, long &);
+		int get_min_remote_lag_seconds();
+		void update_min_remote_lag_seconds(int);
 };
 
 

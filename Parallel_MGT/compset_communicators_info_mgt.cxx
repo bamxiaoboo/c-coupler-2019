@@ -121,6 +121,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->comp_id = -1;
 	this->comm_group = -1;
 	this->current_proc_local_id = -1;
+	this->min_remote_lag_seconds = 0;
 	this->working_dir[0] = '\0';
 	this->comp_ccpl_log_file_name[0] = '\0';
 	this->comp_model_log_file_name[0] = '\0';
@@ -174,6 +175,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	comp_ccpl_log_file_name[0] = '\0';
 	comp_model_log_file_name[0] = '\0';
 	comp_model_log_file_device = -1;
+	min_remote_lag_seconds = 0;
 
 	if (comm != -1) {
 		comm_group = comm;
@@ -621,6 +623,21 @@ int Comp_comm_group_mgt_node::open_comp_model_log_file(int *log_file_device_id)
 	*log_file_device_id = comp_model_log_file_device;
 	
 	return log_file_opened;
+}
+
+
+int Comp_comm_group_mgt_node::get_min_remote_lag_seconds()
+{
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, current_proc_local_id != -1, "Software error in Comp_comm_group_mgt_node::get_min_remote_lag_seconds");	
+	return min_remote_lag_seconds;
+}
+
+
+void Comp_comm_group_mgt_node::update_min_remote_lag_seconds(int new_min_remote_lag_seconds)
+{
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, current_proc_local_id != -1, "Software error in Comp_comm_group_mgt_node::update_min_remote_lag_seconds");
+	if (new_min_remote_lag_seconds < this->min_remote_lag_seconds)
+		this->min_remote_lag_seconds = new_min_remote_lag_seconds;
 }
 
 

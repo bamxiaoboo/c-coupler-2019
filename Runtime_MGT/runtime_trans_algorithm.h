@@ -25,6 +25,7 @@ class Runtime_trans_algorithm
         int remote_proc_idx_begin;
         bool send_or_receive;    // true means send and false means receive
         int comp_id;
+		Comp_comm_group_mgt_node *comp_node;
         int num_transfered_fields;
         Field_mem_info **fields_mem;
         void **fields_data_buffers;
@@ -75,6 +76,7 @@ class Runtime_trans_algorithm
         int num_recv_procs_related;
         int recv_proc_start;
 		int bypass_counter;
+		bool timer_not_bypassed;
 
         bool send(bool);
         bool recv(bool);
