@@ -56,8 +56,8 @@
    public :: CCPL_register_CoR_defined_grid
    public :: CCPL_register_H2D_grid_via_file
    public :: CCPL_register_H2D_grid_from_another_component
-   public :: CCPL_set_3D_grid_dynamic_surface_field
-   public :: CCPL_set_3D_grid_static_surface_field
+   public :: CCPL_set_3D_grid_variable_surface_field
+   public :: CCPL_set_3D_grid_constant_surface_field
    public :: CCPL_set_3D_grid_external_surface_field
    public :: CCPL_register_MD_grid_via_multi_grids
    public :: CCPL_register_mid_point_grid
@@ -2236,7 +2236,7 @@
 
 
 
-   SUBROUTINE CCPL_set_3D_grid_dynamic_surface_field(grid_id, field_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_variable_surface_field(grid_id, field_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    integer, intent(in)                                     :: field_id
@@ -2249,11 +2249,11 @@
        call set_3D_grid_surface_field(grid_id, field_id, 1, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_3D_grid_dynamic_surface_field
+   END SUBROUTINE CCPL_set_3D_grid_variable_surface_field
    
 
 
-   SUBROUTINE CCPL_set_3D_grid_static_surface_field(grid_id, field_id, annotation)
+   SUBROUTINE CCPL_set_3D_grid_constant_surface_field(grid_id, field_id, annotation)
    implicit none
    integer, intent(in)                                     :: grid_id
    integer, intent(in)                                     :: field_id
@@ -2266,7 +2266,7 @@
        call set_3D_grid_surface_field(grid_id, field_id, 0, trim("")//char(0))
    endif
 
-   END SUBROUTINE CCPL_set_3D_grid_static_surface_field
+   END SUBROUTINE CCPL_set_3D_grid_constant_surface_field
 
 
 

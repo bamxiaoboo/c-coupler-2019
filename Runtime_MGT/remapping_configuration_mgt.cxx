@@ -107,22 +107,26 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
 		clean();
 		return false;
 	}
-	read_src_center_lon(dst_original_grid->get_comp_id());
+	read_weight_grid_data(dst_original_grid->get_comp_id(), "xc_a", DATA_TYPE_DOUBLE, (void**)(&src_center_lon), src_grid_size);
+//	read_src_center_lon(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(src_original_grid->get_center_lon_values(), this->src_center_lon, src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->src_grid_size)) {
 		clean();
 		return false;
 	}
-	read_dst_center_lon(dst_original_grid->get_comp_id());
+	read_weight_grid_data(dst_original_grid->get_comp_id(), "xc_b", DATA_TYPE_DOUBLE, (void**)(&dst_center_lon), dst_grid_size);
+//	read_dst_center_lon(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(dst_original_grid->get_center_lon_values(), this->dst_center_lon, dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->dst_grid_size)) {
 		clean();
 		return false;
 	}
-	read_src_center_lat(dst_original_grid->get_comp_id());
+	read_weight_grid_data(dst_original_grid->get_comp_id(), "yc_a", DATA_TYPE_DOUBLE, (void**)(&src_center_lat), src_grid_size);
+//	read_src_center_lat(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(src_original_grid->get_center_lat_values(), this->src_center_lat, src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->src_grid_size)) {
 		clean();
 		return false;
 	}
-	read_dst_center_lat(dst_original_grid->get_comp_id());
+	read_weight_grid_data(dst_original_grid->get_comp_id(), "yc_b", DATA_TYPE_DOUBLE, (void**)(&dst_center_lat), dst_grid_size);
+//	read_dst_center_lat(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(dst_original_grid->get_center_lat_values(), this->dst_center_lat, dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->dst_grid_size)) {
 		clean();
 		return false;
@@ -258,6 +262,32 @@ void H2D_remapping_wgt_file_info::read_src_center_lon(int comp_id)
 	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
 	netcdf_file_object->read_file_field("xc_a", (void**)(&src_center_lon), &field_size, data_type, file_read_comm, local_proc_id_in_file_read_comm == 0);
 	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
+	delete netcdf_file_object;
+
+	MPI_Comm_free(&file_read_comm);
+}
+
+
+void H2D_remapping_wgt_file_info::read_weight_grid_data(int comp_id, const char *label, const char *required_data_type, void **buffer_ptr, int buffer_size)
+{
+	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
+	char data_type[NAME_STR_SIZE];
+	int wgts_status_tag = (*buffer_ptr) != NULL? 1 : 0;
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
+	MPI_Comm file_read_comm;
+
+
+	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
+	if (wgts_status_tag == 1) {
+		MPI_Comm_free(&file_read_comm);
+		return;
+	}
+	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
+	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
+
+	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
+	netcdf_file_object->read_file_field(label, buffer_ptr, &field_size, data_type, file_read_comm, local_proc_id_in_file_read_comm == 0);
+	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == buffer_size && words_are_the_same(data_type, required_data_type), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"%s\" because of wrong array size or wrong data type (should be %s). Please verify.", wgt_file_name, label, required_data_type);
 	delete netcdf_file_object;
 
 	MPI_Comm_free(&file_read_comm);

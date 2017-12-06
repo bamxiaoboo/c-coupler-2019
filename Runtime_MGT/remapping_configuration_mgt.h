@@ -64,6 +64,7 @@ class H2D_remapping_wgt_file_info
 		void read_dst_grid_size(int);
 		void read_dst_center_lon(int);
 		void read_dst_center_lat(int);
+		void read_weight_grid_data(int, const char *, const char *, void **, int);
 };
 
 
