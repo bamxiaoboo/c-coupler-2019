@@ -87,46 +87,42 @@ long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *fiel
 
 bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid)
 {
-	read_src_grid_size(dst_original_grid->get_comp_id());
+	read_grid_size(dst_original_grid->get_comp_id(), "n_a", src_grid_size);
 	if (src_grid_size != src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size()) {
 		clean();
 		return false;
 	}
-	read_dst_grid_size(dst_original_grid->get_comp_id());
+	read_grid_size(dst_original_grid->get_comp_id(), "n_b", dst_grid_size);
 	if (dst_grid_size != dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size()) {
 		clean();
 		return false;
 	}
-	get_checksum_src_mask(dst_original_grid->get_comp_id());
+	get_checksum_mask(dst_original_grid->get_comp_id(), "mask_a", src_grid_size, checksum_src_mask);
 	if (src_original_grid->get_checksum_H2D_mask() != this->checksum_src_mask) {
 		clean();
 		return false;
 	}
-	get_checksum_dst_mask(dst_original_grid->get_comp_id());
+	get_checksum_mask(dst_original_grid->get_comp_id(), "mask_b", dst_grid_size, checksum_dst_mask);
 	if (dst_original_grid->get_checksum_H2D_mask() != this->checksum_dst_mask) {
 		clean();
 		return false;
 	}
 	read_weight_grid_data(dst_original_grid->get_comp_id(), "xc_a", DATA_TYPE_DOUBLE, (void**)(&src_center_lon), src_grid_size);
-//	read_src_center_lon(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(src_original_grid->get_center_lon_values(), this->src_center_lon, src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->src_grid_size)) {
 		clean();
 		return false;
 	}
 	read_weight_grid_data(dst_original_grid->get_comp_id(), "xc_b", DATA_TYPE_DOUBLE, (void**)(&dst_center_lon), dst_grid_size);
-//	read_dst_center_lon(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(dst_original_grid->get_center_lon_values(), this->dst_center_lon, dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->dst_grid_size)) {
 		clean();
 		return false;
 	}
 	read_weight_grid_data(dst_original_grid->get_comp_id(), "yc_a", DATA_TYPE_DOUBLE, (void**)(&src_center_lat), src_grid_size);
-//	read_src_center_lat(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(src_original_grid->get_center_lat_values(), this->src_center_lat, src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->src_grid_size)) {
 		clean();
 		return false;
 	}
 	read_weight_grid_data(dst_original_grid->get_comp_id(), "yc_b", DATA_TYPE_DOUBLE, (void**)(&dst_center_lat), dst_grid_size);
-//	read_dst_center_lat(dst_original_grid->get_comp_id());
 	if (!are_two_coord_arrays_same(dst_original_grid->get_center_lat_values(), this->dst_center_lat, dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size(), this->dst_grid_size)) {
 		clean();
 		return false;
@@ -138,10 +134,10 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
 }
 
 
-void H2D_remapping_wgt_file_info::get_checksum_src_mask(int comp_id)
+void H2D_remapping_wgt_file_info::get_checksum_mask(int comp_id, const char *mask_label, int grid_size, long &checksum_mask)
 {
 	int local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	int wgts_status_tag = checksum_src_mask != -1? 1 : 0;
+	int wgts_status_tag = checksum_mask != -1? 1 : 0;
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
 	MPI_Comm file_read_comm;
 
@@ -155,48 +151,18 @@ void H2D_remapping_wgt_file_info::get_checksum_src_mask(int comp_id)
 	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
 	
 	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);	
-	src_grid_size = netcdf_file_object->get_dimension_size("n_a", file_read_comm, local_proc_id_in_file_read_comm == 0);
-	checksum_src_mask = get_grid_field_checksum_value("mask_a", netcdf_file_object, src_grid_size, file_read_comm, local_proc_id_in_file_read_comm == 0);	
+	checksum_mask = get_grid_field_checksum_value(mask_label, netcdf_file_object, grid_size, file_read_comm, local_proc_id_in_file_read_comm == 0);	
 	delete netcdf_file_object;
 	
 	MPI_Comm_free(&file_read_comm);
 }
 
 
-void H2D_remapping_wgt_file_info::get_checksum_dst_mask(int comp_id)
-{
-	int local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	int wgts_status_tag = checksum_dst_mask != -1? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
-	MPI_Comm file_read_comm;
-
-
-	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
-	if (wgts_status_tag == 1) {
-		MPI_Comm_free(&file_read_comm);
-		return;
-	}
-	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
-	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
-	
-	if (num_procs_in_file_read_comm < comp_node->get_num_procs()) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Partially load remapping weight file %s", wgt_file_name);
-	}
-	else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Load remapping weight file %s", wgt_file_name);
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);	
-	dst_grid_size = netcdf_file_object->get_dimension_size("n_b", file_read_comm, local_proc_id_in_file_read_comm == 0);
-	checksum_dst_mask = get_grid_field_checksum_value("mask_b", netcdf_file_object, dst_grid_size, file_read_comm, local_proc_id_in_file_read_comm == 0);	
-	delete netcdf_file_object;
-	
-	MPI_Comm_free(&file_read_comm);
-}
-
-
-void H2D_remapping_wgt_file_info::read_src_grid_size(int comp_id)
+void H2D_remapping_wgt_file_info::read_grid_size(int comp_id, const char *label, int &grid_size)
 {
 	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
 	char data_type[NAME_STR_SIZE];
-	int wgts_status_tag = src_grid_size != -1? 1 : 0;
+	int wgts_status_tag = grid_size != -1? 1 : 0;
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
 	MPI_Comm file_read_comm;
 
@@ -210,63 +176,12 @@ void H2D_remapping_wgt_file_info::read_src_grid_size(int comp_id)
 	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
 
 	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	src_grid_size = netcdf_file_object->get_dimension_size("n_a", file_read_comm, local_proc_id_in_file_read_comm == 0);
+	grid_size = netcdf_file_object->get_dimension_size(label, file_read_comm, local_proc_id_in_file_read_comm == 0);
 	delete netcdf_file_object;
 
 	MPI_Comm_free(&file_read_comm);
 }
-
-
-void H2D_remapping_wgt_file_info::read_dst_grid_size(int comp_id)
-{
-	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	char data_type[NAME_STR_SIZE];
-	int wgts_status_tag = dst_grid_size != -1? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
-	MPI_Comm file_read_comm;
-
-
-	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
-	if (wgts_status_tag == 1) {
-		MPI_Comm_free(&file_read_comm);
-		return;
-	}
-	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
-	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
-
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	dst_grid_size = netcdf_file_object->get_dimension_size("n_b", file_read_comm, local_proc_id_in_file_read_comm == 0);
-	delete netcdf_file_object;
-
-	MPI_Comm_free(&file_read_comm);
-}
-
 			
-void H2D_remapping_wgt_file_info::read_src_center_lon(int comp_id)
-{
-	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	char data_type[NAME_STR_SIZE];
-	int wgts_status_tag = src_center_lon != NULL? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
-	MPI_Comm file_read_comm;
-
-
-	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
-	if (wgts_status_tag == 1) {
-		MPI_Comm_free(&file_read_comm);
-		return;
-	}
-	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
-	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
-
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	netcdf_file_object->read_file_field("xc_a", (void**)(&src_center_lon), &field_size, data_type, file_read_comm, local_proc_id_in_file_read_comm == 0);
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	delete netcdf_file_object;
-
-	MPI_Comm_free(&file_read_comm);
-}
-
 
 void H2D_remapping_wgt_file_info::read_weight_grid_data(int comp_id, const char *label, const char *required_data_type, void **buffer_ptr, int buffer_size)
 {
@@ -293,85 +208,7 @@ void H2D_remapping_wgt_file_info::read_weight_grid_data(int comp_id, const char 
 	MPI_Comm_free(&file_read_comm);
 }
 
-
-void H2D_remapping_wgt_file_info::read_src_center_lat(int comp_id)
-{
-	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	char data_type[NAME_STR_SIZE];
-	int wgts_status_tag = src_center_lat != NULL? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
-	MPI_Comm file_read_comm;
-
-
-	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
-	if (wgts_status_tag == 1) {
-		MPI_Comm_free(&file_read_comm);
-		return;
-	}
-	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
-	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
-
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	netcdf_file_object->read_file_field("yc_a", (void**)(&src_center_lat), &field_size, data_type, file_read_comm, local_proc_id_in_file_read_comm == 0);
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == src_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"yc_a\" because of wrong array size (should be dimension of \"n_a\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	delete netcdf_file_object;
-
-	MPI_Comm_free(&file_read_comm);
-}
-
-
-void H2D_remapping_wgt_file_info::read_dst_center_lon(int comp_id)
-{
-	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	char data_type[NAME_STR_SIZE];
-	int wgts_status_tag = dst_center_lon != NULL? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
-	MPI_Comm file_read_comm;
-
-
-	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
-	if (wgts_status_tag == 1) {
-		MPI_Comm_free(&file_read_comm);
-		return;
-	}
-	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
-	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
-
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	netcdf_file_object->read_file_field("xc_b", (void**)(&dst_center_lon), &field_size, data_type, file_read_comm, local_proc_id_in_file_read_comm == 0);
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == dst_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"xc_b\" because of wrong array size (should be dimension of \"n_b\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	delete netcdf_file_object;
-
-	MPI_Comm_free(&file_read_comm);
-}
-
-
-void H2D_remapping_wgt_file_info::read_dst_center_lat(int comp_id)
-{
-	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
-	char data_type[NAME_STR_SIZE];
-	int wgts_status_tag = dst_center_lat != NULL? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
-	MPI_Comm file_read_comm;
-
-
-	MPI_Comm_split(comp_node->get_comm_group(), wgts_status_tag, 0, &file_read_comm);
-	if (wgts_status_tag == 1) {
-		MPI_Comm_free(&file_read_comm);
-		return;
-	}
-	MPI_Comm_rank(file_read_comm, &local_proc_id_in_file_read_comm);
-	MPI_Comm_size(file_read_comm, &num_procs_in_file_read_comm);
-
-	IO_netcdf *netcdf_file_object = new IO_netcdf("remapping weights file for H2D interpolation", wgt_file_name, "r", false);
-	netcdf_file_object->read_file_field("yc_b", (void**)(&dst_center_lat), &field_size, data_type, file_read_comm, local_proc_id_in_file_read_comm == 0);
-	EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), field_size == dst_grid_size && words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when reading the remapping weights file \"%s\": fail to read the variable \"yc_b\" because of wrong array size (should be dimension of \"n_b\") or wrong data type (should be double). Please verify.", wgt_file_name);
-	delete netcdf_file_object;
-
-	MPI_Comm_free(&file_read_comm);
-}
-
-			
+	
 void H2D_remapping_wgt_file_info::read_remapping_weights(int comp_id)
 {
 	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
