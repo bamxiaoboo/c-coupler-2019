@@ -96,7 +96,6 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 	this->inout_interface = inout_interface;
 	this->coupling_connection = coupling_connection; 
 
-
 	for (int i = 0; i < coupling_connection->fields_name.size(); i ++)
 		for (int j=i+1; j < coupling_connection->fields_name.size(); j ++)
 			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(coupling_connection->fields_name[i], coupling_connection->fields_name[j]), 
@@ -724,15 +723,17 @@ void Inout_interface::import_restart_data(const char *temp_array_buffer, long &b
 void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coupling_procedure)
 {
 	coupling_procedures.push_back(coupling_procedure);
-	if (import_or_export_or_remap == 0) {
+	if (import_or_export_or_remap == 0 || import_or_export_or_remap == 1) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, fields_connected_status.size() > 0, "Software error in Inout_interface::add_coupling_procedure: %s", interface_name);
 		for (int i = 0; i < coupling_procedure->fields_mem_registered.size(); i ++)
 			for (int j = 0; j < fields_mem_registered.size(); j ++)
 				if (coupling_procedure->fields_mem_registered[i] == fields_mem_registered[j]) {
-					EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Add coupling procedures to the field \"%s\" of import interface \"%s", fields_mem_registered[j]->get_field_name(), interface_name);
-					EXECUTION_REPORT(REPORT_ERROR, -1, !fields_connected_status[j], "Software error in Inout_interface::add_coupling_procedure: %s %s %d", interface_name, fields_mem_registered[j]->get_field_name(), j);
+					EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Add coupling procedures to the field \"%s\" of import/export interface \"%s", fields_mem_registered[j]->get_field_name(), interface_name);
+					if (import_or_export_or_remap == 0)
+						EXECUTION_REPORT(REPORT_ERROR, -1, !fields_connected_status[j], "Software error in Inout_interface::add_coupling_procedure: %s %s %d", interface_name, fields_mem_registered[j]->get_field_name(), j);
+					if (!fields_connected_status[i])
+						num_fields_connected ++;
 					fields_connected_status[j] = true;
-					num_fields_connected ++;
 				}
 	}
 }
@@ -990,6 +991,64 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 
 	if (frac_field_dst->get_size_of_field() > 0)
 		inversed_dst_fraction = new char [frac_field_dst->get_size_of_field()*get_data_type_size(frac_field_dst->get_data_type())];
+}
+
+
+int Inout_interface::get_h2d_grid_area_in_remapping_weights(const char *interface_name, int field_index, void *output_area_data, int area_array_size, const char *data_type, const char *annotation)
+{
+	int i, j;
+	double *selected_area_array_in_wgts = NULL;
+
+	
+	if (children_interfaces.size() > 0)
+		return children_interfaces[0]->get_h2d_grid_area_in_remapping_weights(interface_name, field_index, output_area_data, area_array_size, data_type, annotation);
+
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, field_index >= 0 && field_index < fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the parameter of field index (%d) is out of bounds ([1,%d]). Please verify the model code with the annotation \"%s\"", interface_name, field_index+1, fields_mem_registered.size(), annotation);
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, fields_mem_registered[field_index]->get_grid_id() != -1, "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) is not on a grid. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, fields_mem_registered.size()-1, annotation);
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, original_grid_mgr->search_grid_info(fields_mem_registered[field_index]->get_grid_id())->is_H2D_grid(), "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) is not on a horizontal grid. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, annotation);
+	if (!fields_connected_status[i])
+		EXECUTION_REPORT(REPORT_WARNING, comp_id, false, "WARNING happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) has not been used in model coupling. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, annotation);
+
+	for (i = 0; i < coupling_procedures.size(); i ++) {
+		for (j = 0; j < coupling_procedures[i]->coupling_connection->fields_name.size(); j ++)
+			if (words_are_the_same(fields_mem_registered[field_index]->get_field_name(),coupling_procedures[i]->coupling_connection->fields_name[j])) {
+				if (import_or_export_or_remap == 0) {
+					if (coupling_procedures[i]->coupling_connection->dst_fields_info[j]->runtime_remapping_weights != NULL && coupling_procedures[i]->coupling_connection->dst_fields_info[j]->runtime_remapping_weights->get_src_H2D_grid_area() != NULL) {
+						selected_area_array_in_wgts = coupling_procedures[i]->coupling_connection->dst_fields_info[j]->runtime_remapping_weights->get_dst_H2D_grid_area();
+						break;
+					}
+				}
+				else if (import_or_export_or_remap == 1) {
+					if (coupling_procedures[i]->coupling_connection->src_fields_info[j]->runtime_remapping_weights != NULL && coupling_procedures[i]->coupling_connection->src_fields_info[j]->runtime_remapping_weights->get_src_H2D_grid_area() != NULL) {
+						selected_area_array_in_wgts = coupling_procedures[i]->coupling_connection->src_fields_info[j]->runtime_remapping_weights->get_src_H2D_grid_area();
+						break;
+					}					
+				}
+				else EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error in Inout_interface::get_h2d_grid_area_in_remapping_weights");
+			}	
+		if (selected_area_array_in_wgts != NULL)
+			break;
+	}
+	if (selected_area_array_in_wgts == NULL)
+		return 0;
+
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, area_array_size >= fields_mem_registered[field_index]->get_size_of_field(), "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the field \"%s\" of the coupling interface \"%s\": the array size (%d) of the parameter \"area_array\" is smaller than required (%d). ", fields_mem_registered[field_index]->get_field_name(), interface_name, area_array_size, fields_mem_registered[field_index]->get_size_of_field());
+	Decomp_info *decomp_info = decomps_info_mgr->get_decomp_info(fields_mem_registered[field_index]->get_decomp_id());	
+	const int *local_cells_global_index = decomp_info->get_local_cell_global_indx();
+	if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
+		float *float_output_area = (float*) output_area_data;
+		for (i = 0; i < decomp_info->get_num_local_cells(); i ++) {
+			float_output_area[i] = (float) (selected_area_array_in_wgts[local_cells_global_index[i]]);
+		}
+	}
+	else if (words_are_the_same(data_type, DATA_TYPE_DOUBLE)) {
+		double *double_output_area = (double*) output_area_data;
+		for (i = 0; i < decomp_info->get_num_local_cells(); i ++)
+			double_output_area[i] = selected_area_array_in_wgts[local_cells_global_index[i]];
+	}
+	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Inout_interface::get_h2d_grid_area_in_remapping_weights: wrong data type");
+
+	return 1;
 }
 
 
@@ -1352,5 +1411,13 @@ Inout_interface *Inout_interface_mgt::search_an_inout_interface_executed_with_ti
 			return interfaces[i];
 
 	return NULL;
+}
+
+
+int Inout_interface_mgt::get_h2d_grid_area_in_remapping_weights(int interface_id, int field_index, void *output_area_data, int area_array_size, const char *data_type, const char *annotation)
+{
+	Inout_interface *inout_interface = get_interface(interface_id);
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, inout_interface != NULL, "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\": the parameter of interface ID is wrong. Please verify the model code with the annotation \"%s\"", annotation);
+	return inout_interface->get_h2d_grid_area_in_remapping_weights(inout_interface->get_interface_name(), field_index, output_area_data, area_array_size, data_type, annotation);
 }
 

@@ -21,8 +21,10 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *wgt_file_na
 	wgts_values = NULL;
 	src_center_lon = NULL;
 	src_center_lat = NULL;
+	src_area = NULL;
 	dst_center_lon = NULL;
 	dst_center_lat = NULL;
+	dst_area = NULL;
 	checksum_src_mask = -1;
 	checksum_dst_mask = -1;
 	src_grid_size = -1;
@@ -47,8 +49,10 @@ H2D_remapping_wgt_file_info::H2D_remapping_wgt_file_info(const char *array, long
 	wgts_values = NULL;	
 	src_center_lon = NULL;
 	src_center_lat = NULL;
+	src_area = NULL;
 	dst_center_lon = NULL;
 	dst_center_lat = NULL;
+	dst_area = NULL;
 	checksum_src_mask = -1;
 	checksum_dst_mask = -1;
 	src_grid_size = -1;
@@ -128,7 +132,9 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
 		return false;
 	}
 	clean();
-	
+
+	read_weight_grid_data(dst_original_grid->get_comp_id(), "area_a", DATA_TYPE_DOUBLE, (void**)(&src_area), src_grid_size);
+	read_weight_grid_data(dst_original_grid->get_comp_id(), "area_b", DATA_TYPE_DOUBLE, (void**)(&dst_area), dst_grid_size);
 	read_remapping_weights(dst_original_grid->get_comp_id());
 	return true;
 }
@@ -286,6 +292,14 @@ void H2D_remapping_wgt_file_info::clean()
 	if (dst_center_lat != NULL) {
 		delete [] dst_center_lat;
 		dst_center_lat = NULL;		
+	}
+	if (src_area != NULL) {
+		delete [] src_area;
+		src_area = NULL;
+	}
+	if (dst_area != NULL) {
+		delete [] dst_area;
+		dst_area = NULL;
 	}
 }
 

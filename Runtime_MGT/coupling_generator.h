@@ -58,6 +58,7 @@ class Coupling_connection
 		friend class Coupling_generator;
 		friend class Connection_coupling_procedure;
 		friend class IO_output_procedure;
+		friend class Inout_interface;
 		friend class Inout_interface_mgt;
 		int connection_id;
 		std::vector<const char*> fields_name;

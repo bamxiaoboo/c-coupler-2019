@@ -22,6 +22,7 @@
    public :: CCPL_register_H2D_grid_via_global_data 
    public :: CCPL_register_H2D_grid_via_local_data
    public :: CCPL_get_H2D_grid_data
+   public :: CCPL_get_H2D_grid_area_in_remapping_wgts
    public :: CCPL_register_frac_based_remap_interface
    public :: CCPL_register_IO_field_from_field_instance 
    public :: CCPL_register_IO_fields_from_field_instances 
@@ -182,6 +183,15 @@
        CCPL_get_H2D_grid_float_data, &
        CCPL_get_H2D_grid_double_data
    end interface
+
+
+
+   interface CCPL_get_H2D_grid_area_in_remapping_wgts; module procedure &
+        CCPL_get_H2D_grid_float_area_in_remapping_wgts, &
+        CCPL_get_H2D_grid_double_area_in_remapping_wgts
+   end interface
+
+
 
 
 
@@ -2348,6 +2358,48 @@
    CCPL_get_grid_id = grid_id
     
    END FUNCTION CCPL_get_grid_id
+
+
+
+   logical FUNCTION CCPL_get_H2D_grid_float_area_in_remapping_wgts(interface_id, field_index, area_array, annotation)
+   implicit none
+   integer, intent(in)                     :: interface_id
+   integer, intent(in)                     :: field_index
+   real(R4), intent(out), dimension(:)     :: area_array
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: have_area
+
+   if (present(annotation)) then
+      call get_h2d_grid_area_in_remapping_weights(interface_id, field_index, area_array, size(area_array), trim("real4")//char(0), have_area, trim(annotation)//char(0))
+   else
+      call get_h2d_grid_area_in_remapping_weights(interface_id, field_index, area_array, size(area_array), trim("real4")//char(0), have_area, trim("")//char(0))
+   endif
+
+   CCPL_get_H2D_grid_float_area_in_remapping_wgts = .false.
+   if (have_area .eq. 1) CCPL_get_H2D_grid_float_area_in_remapping_wgts = .true.
+
+   END FUNCTION CCPL_get_H2D_grid_float_area_in_remapping_wgts
+
+
+
+   logical FUNCTION CCPL_get_H2D_grid_double_area_in_remapping_wgts(interface_id, field_index, area_array, annotation)
+   implicit none
+   integer, intent(in)                     :: interface_id
+   integer, intent(in)                     :: field_index
+   real(R8), intent(out), dimension(:)     :: area_array
+   character(len=*), intent(in), optional  :: annotation
+   integer                                 :: have_area
+
+   if (present(annotation)) then
+      call get_h2d_grid_area_in_remapping_weights(interface_id, field_index, area_array, size(area_array), trim("real8")//char(0), have_area, trim(annotation)//char(0))
+   else
+      call get_h2d_grid_area_in_remapping_weights(interface_id, field_index, area_array, size(area_array), trim("real8")//char(0), have_area, trim("")//char(0))
+   endif
+
+   CCPL_get_H2D_grid_double_area_in_remapping_wgts = .false.
+   if (have_area .eq. 1) CCPL_get_H2D_grid_double_area_in_remapping_wgts = .true.
+
+   END FUNCTION CCPL_get_H2D_grid_double_area_in_remapping_wgts
 
 
 

@@ -156,7 +156,8 @@ class Inout_interface
 		void postprocessing_for_frac_based_remapping(bool);
 		long get_bypass_counter() { return bypass_counter; } 
 		void write_export_info_into_XML_file(TiXmlElement*);
-		bool has_been_executed_with_timer() { return (execution_checking_status & 0x2) != 0; }
+		bool has_been_executed_with_timer() { return (execution_checking_status & 0x2) != 0; }		
+		int get_h2d_grid_area_in_remapping_weights(const char *, int, void *, int, const char *, const char *);
 };
 
 
@@ -196,7 +197,8 @@ class Inout_interface_mgt
 		void import_restart_data(Restart_mgt *, const char *, int, const char *);
 		void write_comp_export_info_into_XML_file(int);
 		void get_all_export_interfaces_of_a_field(int, const char *, std::vector<const char*> &, std::vector<const char*> &);
-		Inout_interface *search_an_inout_interface_executed_with_timer(int);
+		Inout_interface *search_an_inout_interface_executed_with_timer(int);		
+		int get_h2d_grid_area_in_remapping_weights(int, int, void *, int, const char *, const char *);
 };
 
 #endif

@@ -332,11 +332,10 @@ bool Coupling_connection::exchange_grid(Comp_comm_group_mgt_node *sender_comp_no
 	transfer_array_from_one_comp_to_another(sender_comp_node->get_current_proc_local_id(), sender_comp_node->get_root_proc_global_id(), receiver_comp_node->get_current_proc_local_id(), receiver_comp_node->get_root_proc_global_id(), receiver_comp_node->get_comm_group(), &temp_array_buffer, buffer_content_size);
 
 	if (original_grid_status == 0) {
-		char temp_string[NAME_STR_SIZE];
-		sprintf(temp_string, "%s%s", grid_name, sender_comp_node->get_full_name());
 		read_data_from_array_buffer(&checksum_mask, sizeof(long), temp_array_buffer, buffer_content_size, true);
 		read_data_from_array_buffer(&bottom_field_variation_type, sizeof(int), temp_array_buffer, buffer_content_size, true);
 		Remap_grid_class *mirror_grid = new Remap_grid_class(NULL, sender_comp_node->get_full_name(), temp_array_buffer, buffer_content_size);
+		mirror_grid = remap_grid_manager->search_remap_grid_with_grid_name(mirror_grid->get_grid_name());
 		EXECUTION_REPORT(REPORT_ERROR, -1, buffer_content_size == 0, "software error in Coupling_connection::exchange_grid: wrong buffer_content_size");
 		receiver_original_grid = original_grid_mgr->get_original_grid(original_grid_mgr->add_original_grid(sender_comp_node->get_comp_id(), grid_name, mirror_grid));
 		if (receiver_original_grid->get_bottom_field_variation_type() != bottom_field_variation_type)
@@ -437,6 +436,7 @@ void Coupling_connection::generate_src_bottom_field_coupling_info()
 void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 {
 	Original_grid_info *src_original_grid = NULL, *dst_original_grid = NULL;
+	int i, j;
 
 	
 	if (current_proc_id_src_comp != -1)
@@ -481,8 +481,32 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid())
 				add_bottom_field_coupling_info(i, dst_fields_info[i]->runtime_remapping_weights, &field_remapping_setting);
-		}	
-	}	
+		}
+	}
+	
+	int *remapping_weights_index_table = new int [fields_name.size()];
+	long array_size = fields_name.size()*sizeof(int);
+	if (current_proc_id_dst_comp != -1) 
+		for (int i = 0; i < fields_name.size(); i ++)
+			if (dst_fields_info[i]->runtime_remapping_weights == NULL || !dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->is_H2D_grid())
+				remapping_weights_index_table[i] = -1;
+			else {
+				for (j = 0; j < i; j ++)
+					if (dst_fields_info[i]->runtime_remapping_weights == dst_fields_info[j]->runtime_remapping_weights)
+						break;
+				remapping_weights_index_table[i] = j;
+			}
+	transfer_array_from_one_comp_to_another(current_proc_id_dst_comp, dst_comp_node->get_local_proc_global_id(0), current_proc_id_src_comp, src_comp_node->get_local_proc_global_id(0), src_comp_node->get_comm_group(), (char**)(&remapping_weights_index_table), array_size);
+	for (int i = 0; i < fields_name.size(); i ++) {
+		if (remapping_weights_index_table[i] == -1)
+			continue;
+		if (remapping_weights_index_table[i] != i) {
+			if (current_proc_id_src_comp != -1)
+				src_fields_info[i]->runtime_remapping_weights = src_fields_info[remapping_weights_index_table[i]]->runtime_remapping_weights;	
+		}
+		else runtime_remapping_weights_mgr->transfer_runtime_remapping_weights(dst_fields_info[i]->runtime_remapping_weights, &(src_fields_info[i]->runtime_remapping_weights), dst_comp_node, src_comp_node);
+	}
+	delete [] remapping_weights_index_table;
 
 	generate_src_bottom_field_coupling_info();
 	exchange_bottom_fields_info();

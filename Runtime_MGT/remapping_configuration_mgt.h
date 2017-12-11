@@ -32,9 +32,11 @@ class H2D_remapping_wgt_file_info
 		int dst_grid_size;
 		double *src_center_lon;
 		double *src_center_lat;
+		double *src_area;
 		long checksum_src_mask;
 		double *dst_center_lon;
 		double *dst_center_lat;
+		double *dst_area;
 		long checksum_dst_mask;
 		long num_wgts;
 		long *wgts_src_indexes;
@@ -59,6 +61,8 @@ class H2D_remapping_wgt_file_info
 		void get_checksum_mask(int, const char *, int, long &);
 		void read_grid_size(int, const char *, int &);
 		void read_weight_grid_data(int, const char *, const char *, void **, int);
+		double *get_src_area() { return src_area; }
+		double *get_dst_area() { return dst_area; }
 };
 
 

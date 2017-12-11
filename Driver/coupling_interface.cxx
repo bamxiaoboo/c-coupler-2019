@@ -717,6 +717,13 @@ extern "C" void get_grid_id_(int *comp_id, const char *grid_name, int *grid_id, 
 }
 
 
+extern "C" void get_h2d_grid_area_in_remapping_weights_(int *interface_id, int *field_index, void *output_area_data, int *area_array_size, const char *data_type, int *have_area, const char *annotation)
+{
+	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_H2D_GRID_AREA_FROM_WGTS, annotation);
+	*have_area = inout_interface_mgr->get_h2d_grid_area_in_remapping_weights(*interface_id, (*field_index)-1, output_area_data, *area_array_size, data_type, annotation);
+}
+
+
 extern "C" void get_h2d_grid_data_(int *grid_id, int *decomp_id, const char *label, const char *data_type, int *array_size, char *grid_data, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];

@@ -113,6 +113,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_GRID_MGT_GET_H2D_GRID_DATA:
 			sprintf(API_label, "CCPL_get_H2D_grid_data");
 			break;
+		case API_ID_GRID_MGT_GET_H2D_GRID_AREA_FROM_WGTS:
+			sprintf(API_label, "CCPL_get_H2D_grid_area_in_remapping_wgts");
+			break;
         case API_ID_GRID_MGT_REG_MID_POINT_GRID:
 			sprintf(API_label, "CCPL_register_mid_point_grid");
 			break;
