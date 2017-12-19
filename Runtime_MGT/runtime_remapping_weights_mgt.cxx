@@ -333,19 +333,14 @@ void Runtime_remapping_weights_mgt::transfer_runtime_remapping_weights(Runtime_r
 			memcpy(temp_dst_H2D_grid_area, remapping_weights_from->get_dst_H2D_grid_area(), temp_dst_H2D_grid_size);
 		}
 	}
-	printf("qiguai %s %s %d %d %d %d %x %lx %ld\n", comp_node_from->get_full_name(), comp_node_to->get_full_name(), comp_node_from->get_current_proc_local_id(), comp_node_from->get_local_proc_global_id(0), comp_node_to->get_current_proc_local_id(), comp_node_to->get_local_proc_global_id(0), comp_node_to->get_comm_group(), temp_src_H2D_grid_area, temp_src_H2D_grid_size);
-	fflush(NULL);
 	transfer_array_from_one_comp_to_another(comp_node_from->get_current_proc_local_id(), comp_node_from->get_local_proc_global_id(0), comp_node_to->get_current_proc_local_id(), comp_node_to->get_local_proc_global_id(0), comp_node_to->get_comm_group(), (char**)(&temp_src_H2D_grid_area), temp_src_H2D_grid_size);
 	transfer_array_from_one_comp_to_another(comp_node_from->get_current_proc_local_id(), comp_node_from->get_local_proc_global_id(0), comp_node_to->get_current_proc_local_id(), comp_node_to->get_local_proc_global_id(0), comp_node_to->get_comm_group(), (char**)(&temp_dst_H2D_grid_area), temp_dst_H2D_grid_size);
 	
 	if (comp_node_to->get_current_proc_local_id() != -1) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, *remapping_weights_to == NULL, "Software error in Runtime_remapping_weights_mgt::transfer_runtime_remapping_weights");
 		*remapping_weights_to = new Runtime_remapping_weights();
-		if (temp_src_H2D_grid_size != 0) {
-			for (int i = 0; i < temp_src_H2D_grid_size/8; i ++)
-				printf("check area value %d: %lf\n", i, temp_src_H2D_grid_area[i]);
+		if (temp_src_H2D_grid_size != 0)
 			(*remapping_weights_to)->set_H2D_grids_area(temp_src_H2D_grid_area, temp_dst_H2D_grid_area, temp_src_H2D_grid_size/sizeof(double), temp_dst_H2D_grid_size/sizeof(double));
-		}	
 		runtime_remapping_weights.push_back(*remapping_weights_to);
 	}
 

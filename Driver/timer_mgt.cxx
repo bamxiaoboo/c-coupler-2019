@@ -674,7 +674,7 @@ bool Time_mgt::check_is_model_run_finished()
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "check_is_model_run_finished %d %ld", current_step_id, num_total_steps);
 	if (num_total_steps == -1)
 		return false;
-    return current_step_id > num_total_steps;
+    return current_step_id >= num_total_steps;
 }
 
 

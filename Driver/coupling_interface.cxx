@@ -926,7 +926,7 @@ extern "C" void check_is_ccpl_model_last_step_(int *comp_id, int *is_last_step, 
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_LAST_STEP, annotation, false);
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(*comp_id);
-	if (time_mgr->get_current_num_time_step() == time_mgr->get_num_total_step())
+	if (time_mgr->get_current_num_time_step() == time_mgr->get_num_total_step() - 1)
 		*is_last_step = 1;
 	else *is_last_step = 0;
 }
