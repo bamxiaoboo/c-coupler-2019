@@ -998,6 +998,7 @@ int Inout_interface::get_h2d_grid_area_in_remapping_weights(const char *interfac
 {
 	int i, j;
 	double *selected_area_array_in_wgts = NULL;
+	bool field_has_connection = false;
 
 	
 	if (children_interfaces.size() > 0)
@@ -1006,8 +1007,6 @@ int Inout_interface::get_h2d_grid_area_in_remapping_weights(const char *interfac
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, field_index >= 0 && field_index < fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the parameter of field index (%d) is out of bounds ([1,%d]). Please verify the model code with the annotation \"%s\"", interface_name, field_index+1, fields_mem_registered.size(), annotation);
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, fields_mem_registered[field_index]->get_grid_id() != -1, "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) is not on a grid. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, fields_mem_registered.size()-1, annotation);
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, original_grid_mgr->search_grid_info(fields_mem_registered[field_index]->get_grid_id())->is_H2D_grid(), "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) is not on a horizontal grid. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, annotation);
-	if (!fields_connected_status[i])
-		EXECUTION_REPORT(REPORT_WARNING, comp_id, false, "WARNING happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) has not been used in model coupling. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, annotation);
 
 	for (i = 0; i < coupling_procedures.size(); i ++) {
 		for (j = 0; j < coupling_procedures[i]->coupling_connection->fields_name.size(); j ++)
@@ -1025,10 +1024,14 @@ int Inout_interface::get_h2d_grid_area_in_remapping_weights(const char *interfac
 					}					
 				}
 				else EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error in Inout_interface::get_h2d_grid_area_in_remapping_weights");
+				field_has_connection = true;
 			}	
 		if (selected_area_array_in_wgts != NULL)
 			break;
 	}
+
+	EXECUTION_REPORT(REPORT_WARNING, comp_id, field_has_connection, "WARNING happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\" based on the coupling interface \"%s\": the field \"%s\" corresponding to the field index (%d) has not been used in model coupling. Please verify the model code with the annotation \"%s\"", interface_name, fields_mem_registered[field_index]->get_field_name(), field_index+1, annotation);
+
 	if (selected_area_array_in_wgts == NULL)
 		return 0;
 
