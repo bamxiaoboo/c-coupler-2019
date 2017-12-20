@@ -80,6 +80,7 @@
    public :: CCPL_register_export_interface 
    public :: CCPL_execute_interface_using_id 
    public :: CCPL_execute_interface_using_name
+   public :: CCPL_check_is_import_field_connected
    public :: CCPL_get_local_comp_full_name 
    public :: CCPL_report_log 
    public :: CCPL_report_progress 
@@ -2769,21 +2770,43 @@
 
 
 
-   integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, annotation)
+   logical FUNCTION CCPL_check_is_import_field_connected(interface_id, field_instance_id, annotation)
    implicit none
-   character(len=*), intent(in)                :: interface_name
-   character(len=*), intent(in), optional      :: annotation
-   integer,          intent(in)                :: timer_ID
-   integer,          intent(in)                :: inst_or_aver
-   integer,          intent(in), dimension(:)  :: field_instance_IDs
-   integer,          intent(in)                :: num_field_instances
-   integer                                     :: interface_id
+   integer,          intent(in)                         :: interface_id
+   integer,          intent(in)                         :: field_instance_id
+   character(len=*), intent(in), optional               :: annotation
+   character *2048                                      :: local_annotation
+   integer                                              :: check_result
 
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   call check_is_ccpl_import_field_connected(interface_id, field_instance_id, check_result, trim(local_annotation)//char(0))
+   CCPL_check_is_import_field_connected = .true.
+   if (check_result .eq. 0) CCPL_check_is_import_field_connected = .false.
    
-   if (present(annotation)) then
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(annotation)//char(0), size(field_instance_IDs))
-   else
-       call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim("")//char(0), size(field_instance_IDs))
+   END FUNCTION CCPL_check_is_import_field_connected
+   
+
+
+   integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, necessity, annotation)
+   implicit none
+   character(len=*), intent(in)                         :: interface_name
+   character(len=*), intent(in), optional               :: annotation
+   integer,          intent(in)                         :: timer_ID
+   integer,          intent(in)                         :: inst_or_aver
+   integer,          intent(in), dimension(:)           :: field_instance_IDs
+   integer,          intent(in), dimension(:), optional :: necessity
+   integer,          intent(in)                         :: num_field_instances
+   integer                                              :: interface_id
+   integer                                              :: local_necessity(2)
+   character *2048                                      :: local_annotation
+   
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   
+   call register_inout_interface(trim(interface_name)//char(0), interface_id, 0, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, trim(local_annotation)//char(0), size(field_instance_IDs))
+   if (present(necessity)) then
+      call set_import_interface_fields_necessity(interface_id, necessity, size(necessity), trim(local_annotation)//char(0))
    endif
    CCPL_register_import_interface = interface_id;
 

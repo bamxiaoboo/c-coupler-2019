@@ -27,6 +27,8 @@
 #define INTERFACE_TYPE_IO_OUTPUT            ((int)1)
 #define INTERFACE_TYPE_IO_WRITE             ((int)2)
 
+#define FIELD_NECESSITY_NECESSARY           ((int)1)
+#define FIELD_NECESSITY_OPTIONAL            ((int)0)
 
 class Inout_interface;
 class Coupling_connection;
@@ -116,6 +118,7 @@ class Inout_interface
 		std::vector<Field_mem_info *> fields_mem_registered;
 		std::vector<const char*> fields_name;
 		std::vector<bool> fields_connected_status;
+		std::vector<int> imported_fields_necessity;
 		std::vector<Connection_coupling_procedure*> coupling_procedures;
 		std::vector<Inout_interface *> children_interfaces;           // only for remap interface 
 		int execution_checking_status;
@@ -158,6 +161,8 @@ class Inout_interface
 		void write_export_info_into_XML_file(TiXmlElement*);
 		bool has_been_executed_with_timer() { return (execution_checking_status & 0x2) != 0; }		
 		int get_h2d_grid_area_in_remapping_weights(const char *, int, void *, int, const char *, const char *);
+		void set_fields_necessity(int*, int, const char *);
+		int check_is_import_field_connected(int, const char *);
 };
 
 

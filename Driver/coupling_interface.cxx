@@ -991,6 +991,21 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 }
 
 
+extern "C" void check_is_ccpl_import_field_connected_(int *interface_id, int *field_instance_id, int *check_result, const char *annotation)
+{
+	check_for_ccpl_managers_allocated(API_ID_INTERFACE_CHECK_IMPORT_FIELD_CONNECTED, annotation);
+	Inout_interface *import_interface = inout_interface_mgr->get_interface(*interface_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, import_interface != NULL, "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the parameter \"interface_id\" is not a legal ID of a coupling interface. Please verify the model code with the annotation \"%s\".", annotation);
+	*check_result = import_interface->check_is_import_field_connected(*field_instance_id, annotation);
+}
+
+
+extern "C" void set_import_interface_fields_necessity_(int *import_interface_id, int *necessity, int *size_necessity, const char *annotation)
+{
+	inout_interface_mgr->get_interface(*import_interface_id)->set_fields_necessity(necessity, *size_necessity, annotation);
+}
+
+
 extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to execute an interface");

@@ -814,7 +814,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	if (import_or_export_or_remap == 0) {
 		if (fields_mem_registered.size() != num_fields_connected)
 			for (int i = 0; i < fields_mem_registered.size(); i ++)
-				if (!fields_connected_status[i]) {
+				if (!fields_connected_status[i] && (imported_fields_necessity.size() == 0 || imported_fields_necessity[i] == FIELD_NECESSITY_NECESSARY)) {
 					std::vector<const char *> export_comp_full_names, export_interface_names;
 					inout_interface_mgr->get_all_export_interfaces_of_a_field(comp_id, fields_mem_registered[i]->get_field_name(), export_comp_full_names, export_interface_names);
 					char *error_string = NULL;
@@ -1065,6 +1065,29 @@ void Inout_interface::write_export_info_into_XML_file(TiXmlElement *parent_eleme
 		current_element->LinkEndChild(field_element);
 		field_element->SetAttribute("field_name", fields_mem_registered[i]->get_field_name());
 	}
+}
+
+
+void Inout_interface::set_fields_necessity(int *necessity, int size_necessity, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_necessity >= fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_register_import_interface\" to register the export interface \"%s\": the array size (%d) of the parameter \"necessity\" is smaller than the number of field instances in this interface. Please verify the model code with the annotation \"%s\".", interface_name, size_necessity, fields_mem_registered.size(), annotation);
+	for (int i = 0; i < fields_mem_registered.size(); i ++) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, necessity[i] == FIELD_NECESSITY_NECESSARY || necessity[i] == FIELD_NECESSITY_OPTIONAL, "CCPL_register_import_interface\" to register the export interface \"%s\": the number %d value (%d) in the parameter \"necessity\" is not either %d (means necessary) nor %d (means optional). Please verify the model code with the annotation \"%s\".", interface_name, i, necessity[i], FIELD_NECESSITY_NECESSARY, FIELD_NECESSITY_OPTIONAL, annotation);
+		imported_fields_necessity.push_back(necessity[i]);
+	}
+}
+
+
+int Inout_interface::check_is_import_field_connected(int field_instance_id, const char *annotation)
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, import_or_export_or_remap == 0, "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the corresponding coupling interface \"%s\" is not an import interface. Please verify the model code with the annotation \"%s\".", interface_name, annotation);
+	int i;
+	for (i = 0; i < fields_mem_registered.size(); i ++)
+		if (fields_mem_registered[i]->get_field_instance_id() == field_instance_id)
+			break;
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the parameter \"field_instance_id\" fails to specify a field instance in the corresponding coupling interface \"%s\". Please verify the model code with the annotation \"%s\".", interface_name, annotation);
+
+	return (fields_connected_status[i]? 1 : 0);
 }
 
 
