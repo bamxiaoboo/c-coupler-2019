@@ -693,6 +693,7 @@ void Inout_interface::write_into_array_for_restart(char **temp_array_buffer, lon
 	temp_int = children_interfaces.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&last_execution_time, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&bypass_counter, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
 	timer->write_timer_into_array(temp_array_buffer, buffer_max_size, buffer_content_size);
 }
 
@@ -707,6 +708,7 @@ void Inout_interface::import_restart_data(const char *temp_array_buffer, long &b
 	EXECUTION_REPORT(REPORT_ERROR, -1, successful, "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_timer->is_the_same_with(timer), "Error happens when loading the restart data file \"%s\": the timer of the interface \"%s\" in the restart data file is different from the current timer speicifed by the model code. Please verify.", file_name, interface_name);
 
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&bypass_counter, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_execution_time, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_children, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_children == children_interfaces.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, get_interface_name());
@@ -1071,6 +1073,7 @@ void Inout_interface::write_export_info_into_XML_file(TiXmlElement *parent_eleme
 void Inout_interface::set_fields_necessity(int *necessity, int size_necessity, const char *annotation)
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_necessity >= fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_register_import_interface\" to register the export interface \"%s\": the array size (%d) of the parameter \"necessity\" is smaller than the number of field instances in this interface. Please verify the model code with the annotation \"%s\".", interface_name, size_necessity, fields_mem_registered.size(), annotation);
+	check_API_parameter_data_array(comp_id, API_ID_INTERFACE_REG_IMPORT, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comm_group(), "registerring an import interface", fields_mem_registered.size(), sizeof(int), (const char*)necessity, "necessity", annotation);
 	for (int i = 0; i < fields_mem_registered.size(); i ++) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, necessity[i] == FIELD_NECESSITY_NECESSARY || necessity[i] == FIELD_NECESSITY_OPTIONAL, "CCPL_register_import_interface\" to register the export interface \"%s\": the number %d value (%d) in the parameter \"necessity\" is not either %d (means necessary) nor %d (means optional). Please verify the model code with the annotation \"%s\".", interface_name, i, necessity[i], FIELD_NECESSITY_NECESSARY, FIELD_NECESSITY_OPTIONAL, annotation);
 		imported_fields_necessity.push_back(necessity[i]);
