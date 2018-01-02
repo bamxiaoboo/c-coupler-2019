@@ -137,6 +137,7 @@ class Time_mgt
         int start_month;
         int start_day;
         int start_second;
+        int restart_second;
         int previous_year;   
         int previous_month;
         int previous_day; 
@@ -155,6 +156,7 @@ class Time_mgt
         int time_step_in_second; 
         int current_num_elapsed_day;
 		int start_num_elapsed_day;
+		int restart_num_elapsed_day;		
 		int stop_num_elapsed_day;
         int current_step_id;
 		int restarted_step_id;

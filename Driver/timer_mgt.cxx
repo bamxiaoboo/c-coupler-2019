@@ -442,6 +442,8 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		const char *start_date_string = get_XML_attribute(-1, -1, XML_element, "start_date", XML_file_name, line_number, "the start date to run the simulation", "the overall parameters to run the model");		
 		EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(start_date_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, start_date_string, "start_date", line_number);
 		sscanf(start_date_string, "%d", &start_date);
+		restart_second = -1;
+		restart_num_elapsed_day = -1;
 	    start_year = start_date / 10000;
     	start_month = (start_date%10000) / 100;
     	start_day = start_date % 100;
@@ -536,6 +538,8 @@ void Time_mgt::initialize_to_start_time()
 	else stop_num_elapsed_day = -1;
 	current_step_id = 0;
 	restarted_step_id = -1;
+	restart_second = -1;
+	restart_num_elapsed_day = -1;
 }
 
 
@@ -799,6 +803,9 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	Time_mgt *new_time_mgr = new Time_mgt();
 
 
+	new_time_mgr->restart_second = this->restart_second;
+	new_time_mgr->restart_num_elapsed_day = this->restart_num_elapsed_day;
+	new_time_mgr->restarted_step_id = this->restarted_step_id;
 	new_time_mgr->start_year = this->start_year;
 	new_time_mgr->start_month = this->start_month;
 	new_time_mgr->start_day = this->start_day;
@@ -887,7 +894,9 @@ void Time_mgt::check_consistency_of_current_time(int date, int second, const cha
 
 bool Time_mgt::is_time_out_of_execution(long another_time)
 {
-	return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time > ((long)stop_num_elapsed_day)*100000+stop_second;
+	if (restart_second == -1)
+		return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time >= ((long)stop_num_elapsed_day)*100000+stop_second;
+	else return another_time < ((long)restart_num_elapsed_day)*100000+restart_second || another_time >= ((long)stop_num_elapsed_day)*100000+stop_second;
 }
 
 
@@ -973,6 +982,8 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
 	current_step_id = ((current_num_elapsed_day-start_num_elapsed_day)*SECONDS_PER_DAY+current_second-start_second)/time_step_in_second;
 	restarted_step_id = current_step_id;
+	restart_second = current_second;
+	restart_num_elapsed_day = current_num_elapsed_day;
 
 	if ((words_are_the_same(RUNTYPE_CONTINUE, run_type) || words_are_the_same(RUNTYPE_BRANCH, run_type)) && !words_are_the_same(stop_option, "date")) {
 		calculate_stop_time(current_year, current_month, current_day, current_second);
