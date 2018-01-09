@@ -62,7 +62,7 @@ class Coupling_connection
 		friend class Inout_interface_mgt;
 		int connection_id;
 		std::vector<const char*> fields_name;
-		std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > src_comp_interfaces;
+		std::vector<std::pair<const char*, const char*> > src_comp_interfaces;
 		char dst_comp_full_name[NAME_STR_SIZE];
 		char dst_interface_name[NAME_STR_SIZE];
 		std::vector<Interface_field_info*> src_fields_info;
@@ -122,7 +122,7 @@ class Import_direction_setting
 		int fields_default_setting;       // 0 means off; 1 means all; 2 means remain"
 		int components_default_setting;  // 0 means off; 1 means all;
 		std::vector<const char*> fields_name;
-		std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > producers_info;
+		std::vector<std::pair<const char*, const char*> > producers_info;
 		
 		// ... remapping and merge setting;
 	
@@ -138,14 +138,14 @@ class Import_interface_configuration
 		char interface_name[NAME_STR_SIZE];
 		std::vector<Import_direction_setting*> import_directions;
 		std::vector<const char*> fields_name;
-		std::vector<std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > > fields_src_producers_info;
+		std::vector<std::vector<std::pair<const char*, const char*> > > fields_src_producers_info;
 
 	public:
 		Import_interface_configuration(int, const char*, const char*, TiXmlElement*, const char*, Inout_interface_mgt *, bool);
 		~Import_interface_configuration();
 		const char *get_interface_name() { return interface_name; }
-		void add_field_src_component(int comp_id, const char*, std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]>);
-		void get_field_import_configuration(const char*, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> >&);
+		void add_field_src_component(int comp_id, const char*, std::pair<const char*, const char*>);
+		void get_field_import_configuration(const char*, std::vector<std::pair<const char*, const char*> >&);
 };
 
 
@@ -158,7 +158,7 @@ class Component_import_interfaces_configuration
 	public:	
 		Component_import_interfaces_configuration(int, const char *, Inout_interface_mgt *, bool);
 		~Component_import_interfaces_configuration();
-		void get_interface_field_import_configuration(const char*, const char*, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> >&);
+		void get_interface_field_import_configuration(const char*, const char*, std::vector<std::pair<const char*,const char*> >&);
 };
 
 

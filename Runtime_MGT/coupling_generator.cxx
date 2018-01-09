@@ -14,6 +14,16 @@
 
 
 
+void clean_string_pair_vector(std::vector< std::pair<const char*, const char *> > &string_pair_vector)
+{
+	for (int i = 0; i < string_pair_vector.size(); i ++) {
+		delete [] string_pair_vector[i].first;
+		delete [] string_pair_vector[i].second;
+	}
+	string_pair_vector.clear();
+}
+
+
 MPI_Comm create_union_comm_common(MPI_Comm comp1, MPI_Comm comm2, int current_proc_id1, int current_proc_id2, std::vector<int> &procs_global_ids1, std::vector<int> &procs_global_ids2, int connection_id, int *proc_ranks_in_union_comm1, int *proc_ranks_in_union_comm2)
 {
     MPI_Group common_group, comm_group1, comm_group2, union_group;
@@ -118,6 +128,7 @@ Coupling_connection::Coupling_connection(int id)
 
 Coupling_connection::~Coupling_connection()
 {
+	clean_string_pair_vector(src_comp_interfaces);
 }
 
 
@@ -690,7 +701,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 {
 	TiXmlElement *fields_element = NULL, *components_element = NULL, *remapping_element = NULL, *merge_element = NULL;
 	int i, line_number;
-	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> producer_info;
+	std::pair<const char*, const char*> producer_info;
 
 
 	strcpy(this->interface_name, interface_name);
@@ -753,11 +764,11 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
 //					if (check_comp_existence)
 //						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
-					strcpy(producer_info.first, full_name);
+					producer_info.first = strdup(full_name);
 					const char *interface_name = component_element->Attribute("interface_name", &line_number);
 					if (interface_name == NULL)
-						producer_info.second[0] = '\0';
-					else strcpy(producer_info.second, interface_name);
+						producer_info.second = strdup("\0");
+					else producer_info.second = strdup(interface_name);
 					for (i = 0; i < producers_info.size(); i ++)
 						if (words_are_the_same(producers_info[i].first, producer_info.first) && words_are_the_same(producers_info[i].second, producer_info.second))
 							break;
@@ -769,8 +780,8 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 				components_default_setting = 1;
 				const int *all_components_ids = comp_comm_group_mgt_mgr->get_all_components_ids();
 				for (i = 1; i < all_components_ids[0]; i ++) {
-					strcpy(producer_info.first, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Import_direction_setting()")->get_comp_full_name());
-					producer_info.second[0] = '\0';
+					producer_info.first = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Import_direction_setting()")->get_comp_full_name());
+					producer_info.second = strdup("\0");
 					producers_info.push_back(producer_info);
 				}
 			}
@@ -790,6 +801,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 
 Import_direction_setting::~Import_direction_setting()
 {
+	clean_string_pair_vector(producers_info);
 }
 
 
@@ -797,7 +809,7 @@ Import_interface_configuration::Import_interface_configuration(int host_comp_id,
 {
 	int *fields_count, line_number;
 	Inout_interface *interface_ptr = all_interfaces_mgr->get_interface(comp_full_name, interface_name);
-	std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > producers_info;
+	std::vector<std::pair<const char*, const char*> > producers_info;
 	
 	
 	strcpy(this->interface_name, interface_name);
@@ -821,18 +833,19 @@ Import_interface_configuration::Import_interface_configuration(int host_comp_id,
 }
 
 
-void Import_interface_configuration::add_field_src_component(int comp_id, const char *field_name, std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> producer_info)
+void Import_interface_configuration::add_field_src_component(int comp_id, const char *field_name, std::pair<const char*, const char*> producer_info)
 {
 	int i;
+	
 	for (i = 0; i < fields_name.size(); i ++)
 		if (words_are_the_same(field_name, fields_name[i]))
 			break;
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_name.size(), "Software error in Import_interface_configuration::add_field_src_component");
-	fields_src_producers_info[i].push_back(producer_info);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_name.size(), "Software error in Import_interface_configuration::add_field_src_component");	
+	fields_src_producers_info[i].push_back(std::make_pair(strdup(producer_info.first), strdup(producer_info.second)));
 }
 
 
-void Import_interface_configuration::get_field_import_configuration(const char *field_name, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > &producers_info)
+void Import_interface_configuration::get_field_import_configuration(const char *field_name, std::vector<std::pair<const char*, const char*> > &producers_info)
 {
 	int i;
 
@@ -840,11 +853,18 @@ void Import_interface_configuration::get_field_import_configuration(const char *
 	for (i = 0; i < fields_name.size(); i ++)
 		if (words_are_the_same(fields_name[i], field_name)) {
 			for (int j = 0; j < fields_src_producers_info[i].size(); j ++)
-				producers_info.push_back(fields_src_producers_info[i][j]);
+				producers_info.push_back(std::make_pair(strdup(fields_src_producers_info[i][j].first), strdup(fields_src_producers_info[i][j].second)));
 			break;
 		}
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, i < fields_name.size(), "Software error in Import_interface_configuration::get_field_import_configuration");
+}
+
+
+Import_interface_configuration::~Import_interface_configuration()
+{
+	for (int i = 0; i < fields_src_producers_info.size(); i ++)
+		clean_string_pair_vector(fields_src_producers_info[i]);
 }
 
 
@@ -904,9 +924,9 @@ Component_import_interfaces_configuration::~Component_import_interfaces_configur
 }
 
 
-void Component_import_interfaces_configuration::get_interface_field_import_configuration(const char *interface_name, const char *field_name, std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > &producers_info)
+void Component_import_interfaces_configuration::get_interface_field_import_configuration(const char *interface_name, const char *field_name, std::vector<std::pair<const char*, const char*> > &producers_info)
 {
-	producers_info.clear();
+	clean_string_pair_vector(producers_info);
 	for (int i = 0; i < import_interfaces_configuration.size(); i ++)
 		if (words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), interface_name)) 
 			import_interfaces_configuration[i]->get_field_import_configuration(field_name, producers_info);
@@ -957,7 +977,7 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 	long current_array_buffer_size, max_array_buffer_size;
 	int temp_int, num_pushed_comp_node = 0;	
 	Coupling_connection *coupling_connection;
-	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
+	std::pair<const char *,const char*> src_comp_interface;
 	int current_proc_local_id;
 	Comp_comm_group_mgt_node *local_comp_node = NULL, *temp_comp_node, *existing_comp_node;
 	char API_label[NAME_STR_SIZE];
@@ -1003,7 +1023,7 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 				std::vector<const char*> import_fields_name;
 				import_interfaces_of_a_component[j]->get_fields_name(&import_fields_name);
 				for (int k = 0; k < import_fields_name.size(); k ++) {
-					std::vector<std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> > configuration_export_producer_info;
+					std::vector<std::pair<const char*, const char*> > configuration_export_producer_info;
 					coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 					comp_import_interfaces_config->get_interface_field_import_configuration(import_interfaces_of_a_component[j]->get_interface_name(), import_fields_name[k], configuration_export_producer_info);
 					strcpy(coupling_connection->dst_comp_full_name, all_comp_fullnames_for_coupling_generation[i]);
@@ -1015,8 +1035,8 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 							for (int l = 0; l < export_fields_dst_components[field_index].size(); l ++) {
 								if (words_are_the_same(export_fields_dst_components[field_index][l].first, all_comp_fullnames_for_coupling_generation[i]))
 									continue;
-								strcpy(src_comp_interface.first, export_fields_dst_components[field_index][l].first);
-								strcpy(src_comp_interface.second, export_fields_dst_components[field_index][l].second);
+								src_comp_interface.first = strdup(export_fields_dst_components[field_index][l].first);
+								src_comp_interface.second = strdup(export_fields_dst_components[field_index][l].second);
 								coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 							}
 						}
@@ -1025,8 +1045,8 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 								for (int m = 0; m < export_fields_dst_components[field_index].size(); m ++)
 									if (words_are_the_same(configuration_export_producer_info[l].first, export_fields_dst_components[field_index][m].first)) {
 										if (strlen(configuration_export_producer_info[l].second) == 0 || words_are_the_same(configuration_export_producer_info[l].second, export_fields_dst_components[field_index][m].second)) {
-											strcpy(src_comp_interface.first, export_fields_dst_components[field_index][m].first);
-											strcpy(src_comp_interface.second, export_fields_dst_components[field_index][m].second);
+											src_comp_interface.first = strdup(export_fields_dst_components[field_index][m].first);
+											src_comp_interface.second = strdup(export_fields_dst_components[field_index][m].second);
 											coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 										}
 									}
@@ -1114,8 +1134,11 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 			}		
 			read_data_from_array_buffer(&num_sources, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 			for (int j = 0; j < num_sources; j ++) {
-				read_data_from_array_buffer(src_comp_interface.first, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-				read_data_from_array_buffer(src_comp_interface.second, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+				char tmp_str[NAME_STR_SIZE];
+				read_data_from_array_buffer(tmp_str, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+				src_comp_interface.first = strdup(tmp_str);
+				read_data_from_array_buffer(tmp_str, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
+				src_comp_interface.second = strdup(tmp_str);
 				coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 			}
 			all_coupling_connections.push_back(coupling_connection);

@@ -1114,7 +1114,7 @@ void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interfac
 	Coupling_connection *coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 	Inout_interface *child_interface_export = new_interface->get_child_interface(0);
 	Inout_interface *child_interface_import = new_interface->get_child_interface(1);
-	std::pair<char[NAME_STR_SIZE],char[NAME_STR_SIZE]> src_comp_interface;
+	std::pair<const char*, const char*> src_comp_interface;
 
 	if (!has_frac_remapping)
 		interfaces.push_back(new_interface);
@@ -1122,8 +1122,8 @@ void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interfac
 	strcpy(coupling_connection->dst_interface_name, child_interface_import->get_interface_name());
 	for (int i = 0; i < num_fields; i ++)
 		coupling_connection->fields_name.push_back(strdup(memory_manager->get_field_instance(field_ids_src[i])->get_field_name()));
-	strcpy(src_comp_interface.first, coupling_connection->dst_comp_full_name);
-	strcpy(src_comp_interface.second, child_interface_export->get_interface_name());
+	src_comp_interface.first = strdup(coupling_connection->dst_comp_full_name);
+	src_comp_interface.second = strdup(child_interface_export->get_interface_name());
 	coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 
 	interfaces.push_back(child_interface_export);
