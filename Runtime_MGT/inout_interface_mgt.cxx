@@ -532,7 +532,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 Inout_interface::~Inout_interface()
 {
 	if (inversed_dst_fraction != NULL) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "inout interface %s %lx release %lx", interface_name, (int)this, (int)inversed_dst_fraction);
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "inout interface %s %lx release %lx", interface_name, this, inversed_dst_fraction);
 		delete [] inversed_dst_fraction;
 	}
 
