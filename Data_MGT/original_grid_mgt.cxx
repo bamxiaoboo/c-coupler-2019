@@ -360,12 +360,16 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 	TiXmlElement *root_XML_element;
 	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file);
 	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+		if (root_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		root_XML_element = root_XML_element_node->ToElement();
 		if (words_are_the_same(root_XML_element->Value(),"local_grids"))
 			break;
 	}
 	if (root_XML_element_node != NULL) {
 		for (TiXmlNode *grid_XML_element_node = root_XML_element->FirstChild(); grid_XML_element_node != NULL; grid_XML_element_node = grid_XML_element_node->NextSibling()) {
+			if (grid_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+				continue;
 			TiXmlElement *grid_XML_element = grid_XML_element_node->ToElement();
 			const char *xml_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "local_grid_name", XML_file_name, line_number, "grid name of the current component", "the coupling connection configuration file");
 			if (words_are_the_same(xml_grid_name, grid_name)) {

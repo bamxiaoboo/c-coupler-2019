@@ -705,7 +705,9 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 
 
 	strcpy(this->interface_name, interface_name);
-	for (TiXmlNode *detailed_element_node = redirection_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {
+	for (TiXmlNode *detailed_element_node = redirection_element->FirstChild(); detailed_element_node != NULL; detailed_element_node = detailed_element_node->NextSibling()) {		
+		if (detailed_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		if (words_are_the_same(detailed_element->Value(), "fields")) {
 			if (!is_XML_setting_on(host_comp_id, detailed_element, XML_file_name, "the status of \"fields\"", "import interface configuration file"))
@@ -717,6 +719,8 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 			if (words_are_the_same(default_str, "off")) {
 				fields_default_setting = 0;
 				for (TiXmlNode *field_element_node = detailed_element->FirstChild(); field_element_node != NULL; field_element_node = field_element_node->NextSibling()) {
+					if (field_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+						continue;					
 					TiXmlElement *field_element = field_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field (arround line %d of the XML file)", interface_name, XML_file_name, field_element->Row());
 					const char *field_name = get_XML_attribute(host_comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file");	
@@ -759,6 +763,8 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 			if (words_are_the_same(default_str, "off")) {
 				components_default_setting = 0;
 				for (TiXmlNode *component_element_node = detailed_element->FirstChild(); component_element_node != NULL; component_element_node = component_element_node->NextSibling()) {
+					if (component_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+						continue;
 					TiXmlElement *component_element = component_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
 					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
@@ -822,6 +828,8 @@ Import_interface_configuration::Import_interface_configuration(int host_comp_id,
 		fields_src_producers_info.push_back(producers_info);
 
 	for (TiXmlNode *redirection_element_node = interface_element->FirstChild(); redirection_element_node != NULL; redirection_element_node = redirection_element_node->NextSibling()) {
+		if (redirection_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		TiXmlElement *redirection_element = redirection_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, interface_ptr->get_comp_id(), words_are_the_same(redirection_element->Value(),"import_connection"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the XML element for specifying the redirection configuration should be named \"import_connection\". Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 		if (!is_XML_setting_on(interface_ptr->get_comp_id(), redirection_element, XML_file_name, "the status of some redirection configurations for an import interface", "import interface configuration file"))
@@ -884,7 +892,9 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	}
 	TiXmlElement *root_XML_element = XML_file->FirstChildElement();
 	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(host_comp_id, XML_file_name, XML_file);
-	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {	
+		if (root_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		root_XML_element = root_XML_element_node->ToElement();
 		if (words_are_the_same(root_XML_element->Value(),"local_import_interfaces"))
 			break;
@@ -895,6 +905,8 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 	}
 
 	for (TiXmlNode *interface_XML_element_node = root_XML_element->FirstChild(); interface_XML_element_node != NULL; interface_XML_element_node = interface_XML_element_node->NextSibling()) {
+		if (interface_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
 		const char *interface_name = get_XML_attribute(host_comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file");
@@ -1571,6 +1583,8 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 	TiXmlElement *root_XML_element, *XML_element, *detailed_XML_element;
 	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file), *XML_element_node = NULL, *detailed_XML_element_node = NULL;
 	for (; root_XML_element_node != NULL; root_XML_element_node = root_XML_element_node->NextSibling()) {
+		if (root_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		root_XML_element = root_XML_element_node->ToElement();
 		if (words_are_the_same(root_XML_element->Value(),"component_full_names_sets"))
 			break;

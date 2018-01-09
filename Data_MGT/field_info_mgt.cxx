@@ -76,6 +76,8 @@ Field_info_mgt::Field_info_mgt()
 	}
 	
 	for (TiXmlNode *field_XML_node = XML_file->FirstChildElement(); field_XML_node != NULL; field_XML_node = field_XML_node->NextSibling()) {
+		if (field_XML_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
 		TiXmlElement *field_XML_element = field_XML_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_XML_element->Value(),"field"), "The XML element for specifying the attributes of a public field in the XML configuration file \"%s\" should be named \"field\". Please verify the XML file arround the line number %d.", XML_file_name, field_XML_element->Row());
 		const char *field_name = get_XML_attribute(-1, 80, field_XML_element, "name", XML_file_name, line_number, "name of a field", "configuration of the attributes of shared fields for coupling");
