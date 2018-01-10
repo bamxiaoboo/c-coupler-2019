@@ -19,6 +19,37 @@
 #include <dirent.h>
 
 
+#define LOG_BUFFER_MAX_SIZE              ((int)1024*1024*5)
+#define LOG_BUFFER_MAX_CONTENT_SIZE      (LOG_BUFFER_MAX_SIZE/5*4)
+
+
+void output_CCPL_log(const char *log_string, const char *log_file_name, char **log_buffer, int &log_buffer_content_size, bool flush_log_file)
+{
+	if (*log_buffer == NULL) {
+		*log_buffer = new char [LOG_BUFFER_MAX_SIZE];
+		*log_buffer[0] = '\0';
+		log_buffer_content_size = 0;
+	}
+
+	strcat(*log_buffer, log_string);
+	log_buffer_content_size += strlen(log_string);
+
+	if (log_buffer_content_size >= LOG_BUFFER_MAX_CONTENT_SIZE)
+		flush_log_file = true;
+
+	if (flush_log_file) {
+		FILE *log_file = stdout;
+		if (log_file_name != NULL)
+			log_file = fopen(log_file_name, "a+");
+		fprintf(log_file, *log_buffer);
+		fflush(log_file);
+		if (log_file_name != NULL)
+			fclose(log_file);
+		*log_buffer[0] = '\0';
+		log_buffer_content_size = 0;
+	}
+}
+
 
 void recursively_remove_directory()
 {
@@ -83,6 +114,11 @@ void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool n
 
 Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 {
+	if (log_buffer != NULL) {
+		output_log("", true);
+		delete [] log_buffer;
+	}
+
 	if (temp_array_buffer != NULL)
 		delete [] temp_array_buffer;
 
@@ -103,7 +139,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	read_data_from_array_buffer(annotation_end, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(annotation_start, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(working_dir, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(exe_log_file_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(comp_ccpl_log_file_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(comp_model_log_file_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
 	read_data_from_array_buffer(full_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
@@ -126,8 +161,8 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->comp_ccpl_log_file_name[0] = '\0';
 	this->comp_model_log_file_name[0] = '\0';
 	this->comp_model_log_file_device = -1;
-	this->exe_log_file_name[0] = '\0';
 	this->proc_latest_model_time = NULL;
+	this->log_buffer = NULL;
 	global_node_id ++;
 	this->parent = parent;
 	temp_array_buffer = NULL;
@@ -171,6 +206,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->unified_global_id = 0;
 	this->proc_latest_model_time = NULL;
 	this->enabled_in_parent_coupling_generation = enabled_in_parent_coupling_gen;
+	this->log_buffer = NULL;
 	restart_mgr = new Restart_mgt(comp_id);
 	comp_ccpl_log_file_name[0] = '\0';
 	comp_model_log_file_name[0] = '\0';
@@ -293,7 +329,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		MPI_Barrier(get_comm_group());
 		sprintf(comp_ccpl_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_components/%s/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, full_name, get_comp_name(), get_current_proc_local_id());
 		sprintf(comp_model_log_file_name, "%s/CCPL_dir/run/model_logs/%s/%s/%s.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_type, full_name, get_comp_name(), get_current_proc_local_id());
-		sprintf(exe_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_executables/%s/%s.CCPL.log.%d", comp_comm_group_mgt_mgr->get_root_working_dir(), comp_comm_group_mgt_mgr->get_executable_name(), comp_comm_group_mgt_mgr->get_executable_name(), comp_comm_group_mgt_mgr->get_global_node_root()->get_current_proc_local_id());
 	}
 
 	if (parent != NULL)
@@ -330,6 +365,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	temp_array_buffer = NULL;
 	proc_latest_model_time = NULL;
 	comp_model_log_file_device = -1;
+	log_buffer = NULL;
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
 	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "comp_name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
 	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full name of the component model", "internal configuration file of component information");
@@ -396,7 +432,6 @@ void Comp_comm_group_mgt_node::transform_node_into_array()
 	write_data_into_array_buffer(full_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_model_log_file_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_ccpl_log_file_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(exe_log_file_name, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(working_dir, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(annotation_start, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(annotation_end, NAME_STR_SIZE, &temp_array_buffer, buffer_max_size, buffer_content_size);
@@ -641,6 +676,12 @@ void Comp_comm_group_mgt_node::update_min_remote_lag_seconds(int new_min_remote_
 }
 
 
+void Comp_comm_group_mgt_node::output_log(const char *log_string, bool flush_log_file)
+{
+	output_CCPL_log(log_string, comp_ccpl_log_file_name, &log_buffer, log_buffer_content_size, flush_log_file);
+}
+
+
 Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 {
 	int i, j, num_procs, proc_id;
@@ -653,6 +694,7 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	global_node_root = NULL;
 	definition_finalized = false;
 	CCPL_platform_log_dir[0] = '\0';
+	log_buffer = NULL; 
 	EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(root_working_dir,NAME_STR_SIZE) != NULL, 
 		             "Cannot get the current working directory for running the model");
 
@@ -692,7 +734,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	sprintf(coupling_flow_config_dir, "%s/CCPL_dir/run/data/all/coupling_flow_config", root_working_dir);
 	create_directory(coupling_flow_config_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(temp_string, "%s/CCPL_dir/run/CCPL_logs/by_executables", root_working_dir);
-	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
+	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);	
+	sprintf(exe_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_executables/%s/%s.CCPL.log.%d", root_working_dir, this->executable_name, this->executable_name, current_proc_global_id);
 	MPI_Barrier(MPI_COMM_WORLD);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(MPI_COMM_WORLD, &num_procs) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &proc_id) == MPI_SUCCESS);
@@ -723,6 +766,11 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 
 Comp_comm_group_mgt_mgr::~Comp_comm_group_mgt_mgr()
 {
+	if (log_buffer != NULL) {
+		output_log("", true);
+		delete [] log_buffer;
+	}
+
 	for (int i = 0; i < global_node_array.size(); i ++)
 		delete global_node_array[i];
 
@@ -895,18 +943,6 @@ const char *Comp_comm_group_mgt_mgr::get_comp_model_log_file(int comp_id, int &d
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_comp_model_log_file");
 	return search_global_node(comp_id)->get_comp_model_log_file(device_id);
-}
-
-
-const char *Comp_comm_group_mgt_mgr::get_exe_log_file_name(int comp_id)
-{
-	if (comp_id == -1) {
-		if (global_node_array.size() < 2)
-			return NULL;
-		return global_node_array[1]->get_exe_log_file_name();
-	}
-
-	search_global_node(comp_id)->get_exe_log_file_name();
 }
 
 
@@ -1088,5 +1124,11 @@ bool Comp_comm_group_mgt_mgr::is_comp_type_coupled(int host_comp_id, const char 
 	}
 	
 	return false;
+}
+
+
+void Comp_comm_group_mgt_mgr::output_log(const char *log_string, bool flush_log_file)
+{
+	output_CCPL_log(log_string, exe_log_file_name, &log_buffer, log_buffer_content_size, flush_log_file);
 }
 

@@ -47,7 +47,6 @@ class Comp_comm_group_mgt_node
 		char comp_ccpl_log_file_name[NAME_STR_SIZE];
 		char comp_model_log_file_name[NAME_STR_SIZE];
 		int comp_model_log_file_device;
-		char exe_log_file_name[NAME_STR_SIZE];
 		char working_dir[NAME_STR_SIZE];
 		Comp_comm_group_mgt_node *parent;
 		std::vector<Comp_comm_group_mgt_node*> children;
@@ -64,6 +63,8 @@ class Comp_comm_group_mgt_node
 		bool enabled_in_parent_coupling_generation;
 		Restart_mgt *restart_mgr;
 		int min_remote_lag_seconds;
+		char *log_buffer;
+		int log_buffer_content_size;
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, bool, const char*);
@@ -103,7 +104,6 @@ class Comp_comm_group_mgt_node
 		int open_comp_model_log_file(int*);
 		const char *get_comp_ccpl_log_file_name() { return comp_ccpl_log_file_name; } 
 		const char *get_comp_model_log_file(int &device_id) { device_id = comp_model_log_file_device; return comp_model_log_file_name; }
-		const char *get_exe_log_file_name() { return exe_log_file_name; } 
 		bool is_real_component_model();
 		Restart_mgt *get_restart_mgr() { return restart_mgr; }
 		bool have_local_process(int);
@@ -114,6 +114,7 @@ class Comp_comm_group_mgt_node
 		void get_all_descendant_real_comp_fullnames(int, std::vector<const char*>&, char **, long &, long &);
 		int get_min_remote_lag_seconds();
 		void update_min_remote_lag_seconds(int);
+		void output_log(const char *, bool);
 };
 
 
@@ -137,8 +138,11 @@ class Comp_comm_group_mgt_mgr
 		char coupling_flow_config_dir[NAME_STR_SIZE];
 		char root_comp_config_dir[NAME_STR_SIZE];
 		char CCPL_platform_log_dir[NAME_STR_SIZE];
+		char exe_log_file_name[NAME_STR_SIZE];
 		int *sorted_comp_ids;
 		int unique_comp_id_indx;
+		char *log_buffer;
+		int log_buffer_content_size;
 
 	public:
 		Comp_comm_group_mgt_mgr(const char*);
@@ -153,7 +157,6 @@ class Comp_comm_group_mgt_mgr
 		Comp_comm_group_mgt_node *get_root_component_model() { return global_node_array[1]; }
 		const char *get_comp_ccpl_log_file_name(int);
 		const char *get_comp_model_log_file(int, int &);
-		const char *get_exe_log_file_name(int);
 		void get_output_data_file_header(int, char*);
 		Comp_comm_group_mgt_node *search_global_node(int);
 		Comp_comm_group_mgt_node *search_global_node(const char*);
@@ -184,6 +187,8 @@ class Comp_comm_group_mgt_mgr
 		Comp_comm_group_mgt_node *load_comp_info_from_XML(int, const char *, MPI_Comm);
 		const char *get_CCPL_platform_log_dir() { return CCPL_platform_log_dir; }
 		bool is_comp_type_coupled(int, const char *, const char *);
+		void output_log(const char *, bool);
+		const char *get_exe_log_file_name() { return exe_log_file_name; }
 };
 
 
