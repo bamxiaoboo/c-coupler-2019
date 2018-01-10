@@ -327,7 +327,7 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(TiXmlElement *XML_element
 		char full_file_name[NAME_STR_SIZE];
 		if (words_are_the_same(overall_XML_file_name, XML_file_name))
 			sprintf(full_file_name, "%s/all/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), short_file_name);
-		else sprintf(full_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir(), short_file_name);
+		else sprintf(full_file_name, "%s/grids_weights/%s", comp_comm_group_mgt_mgr->get_root_comp_config_dir(), short_file_name);
 		H2D_remapping_wgt_file_info *existing_wgt_file_info = all_H2D_remapping_wgt_files_info->search_wgt_file_info(full_file_name);
 		if (existing_wgt_file_info == NULL) {
 			H2D_remapping_wgt_files.push_back(new H2D_remapping_wgt_file_info(full_file_name));
@@ -1037,7 +1037,7 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration");
 	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
 		sprintf(XML_file_name, "%s/all/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
-	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
+	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_root_comp_config_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration"), false);
 	if (XML_file == NULL) {
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);

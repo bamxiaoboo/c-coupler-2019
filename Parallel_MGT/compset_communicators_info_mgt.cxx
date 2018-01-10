@@ -688,7 +688,7 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/data/all/comps_ending_config_status", root_working_dir);
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);
-	first_active_comp_config_dir[0] = '\0';
+	root_comp_config_dir[0] = '\0';
 	sprintf(coupling_flow_config_dir, "%s/CCPL_dir/run/data/all/coupling_flow_config", root_working_dir);
 	create_directory(coupling_flow_config_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(temp_string, "%s/CCPL_dir/run/CCPL_logs/by_executables", root_working_dir);
@@ -815,12 +815,8 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 			delete [] temp_array_buffer;
 		if (gather_array_buffer != NULL)
 			delete [] gather_array_buffer;
-	}
 
-	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
-
-	if (strlen(first_active_comp_config_dir) == 0 && new_comp->is_real_component_model()) {
-		sprintf(first_active_comp_config_dir, "%s/%s", runtime_config_root_dir, new_comp->get_comp_name());
+		sprintf(root_comp_config_dir, "%s/%s", runtime_config_root_dir, new_comp->get_comp_name());
 		CCPL_platform_log_dir[0] = '\0';
 		check_API_parameter_int(new_comp->get_comp_id(), API_ID_COMP_MGT_REG_COMP, new_comp->get_comm_group(), "registering a component model", change_dir, "change_dir", annotation);
 		if (change_dir == 1) {
@@ -834,6 +830,8 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 		}
 		original_grid_mgr->initialize_CoR_grids();
 	}
+
+	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
 	return new_comp->get_local_node_id();
 }

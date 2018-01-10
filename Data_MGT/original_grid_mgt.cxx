@@ -278,7 +278,7 @@ void Original_grid_mgt::initialize_CoR_grids()
 	if (CoR_grids != NULL)
 		return;
 	
-	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir());
+	sprintf(CoR_script_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_root_comp_config_dir());
 	FILE *fp = fopen(CoR_script_name, "r");
 	if (fp == NULL)
 		CoR_script_name[0] = '\0';
@@ -286,7 +286,7 @@ void Original_grid_mgt::initialize_CoR_grids()
 	if (strlen(CoR_script_name) != 0) {
 		char current_dir[NAME_STR_SIZE], grids_dir[NAME_STR_SIZE];
 		EXECUTION_REPORT(REPORT_ERROR, -1, getcwd(current_dir,NAME_STR_SIZE) != NULL, "Cannot get the current working directory for running the model");
-		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir());
+		sprintf(grids_dir, "%s/grids_weights", comp_comm_group_mgt_mgr->get_root_comp_config_dir());
 		EXECUTION_REPORT(REPORT_ERROR, -1, chdir(grids_dir) == 0, "Fail to access the directory of the CoR grid data files: \"%s\". Please verify.", grids_dir);
 		CoR_grids = new Remap_mgt(CoR_script_name);
 		chdir(current_dir);
@@ -445,7 +445,7 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 	transform_datatype_of_arrays(min_lat, (char*)(&min_lat_value), data_type, DATA_TYPE_DOUBLE, 1);
 	transform_datatype_of_arrays(max_lat, (char*)(&max_lat_value), data_type, DATA_TYPE_DOUBLE, 1);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, max_lat_value > min_lat_value, "Error happens when registering an H2D grid \"%s\" through API \"%s\": \"min_lat\" is not smaller than \"max_lat\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, max_lat_value > min_lat_value, "Error happens when registering an H2D grid \"%s\" through API \"%s\": \"min_lat\" (%lf) is not smaller than \"max_lat\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, max_lat_value, annotation);
 	if (words_are_the_same(coord_unit, COORD_UNIT_DEGREES)) {
 		if (words_are_the_same(cyclic_or_acyclic, "acyclic")) {
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) min_lon, 1, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"min_lon\" is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
@@ -885,7 +885,7 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	char CoR_script_file_name[NAME_STR_SIZE];
 
 	
-	sprintf(CoR_script_file_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_first_active_comp_config_dir());
+	sprintf(CoR_script_file_name, "%s/CCPL_grid.cor", comp_comm_group_mgt_mgr->get_root_comp_config_dir());
 	original_CoR_grid = remap_grid_manager->search_remap_grid_with_grid_name(CoR_grid_name);
 	if (original_CoR_grid == NULL)
 		if (strlen(CoR_script_name) > 0)
@@ -895,6 +895,8 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 				              grid_name, CoR_grid_name, CoR_script_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->format_sub_grids(original_CoR_grid), "Please modify the definition of grid \"%s\" in the CoR script \"%s\". We propose to order the dimensions of the grid into the order such as lon, lat, level and time");
 	original_CoR_grid->end_grid_definition_stage(NULL);
+	if (original_CoR_grid->get_is_sphere_grid() && original_CoR_grid->get_boundary_min_lon() == NULL_COORD_VALUE)
+		original_CoR_grid->set_grid_boundary(-360.0, 360.0, -90.0, 90.0);
 	original_grid = new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, original_CoR_grid, true);
 	original_grids.push_back(original_grid);
 	if (original_grid->get_H2D_sub_CoR_grid() != NULL) {
