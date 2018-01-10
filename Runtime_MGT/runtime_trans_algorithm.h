@@ -102,7 +102,7 @@ class Runtime_trans_algorithm
         void pass_transfer_parameters(long, int);
         void set_data_win(MPI_Win win) {data_win = win;}
         void set_tag_win(MPI_Win win) {tag_win = win;}
-        void receve_data_in_temp_buffer();
+        void receive_data_in_temp_buffer();
         long get_history_receive_sender_time(int);
 };
 

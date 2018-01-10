@@ -300,7 +300,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 }
 
 
-void Runtime_trans_algorithm::receve_data_in_temp_buffer()
+void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 {
     bool is_ready = true;
 
@@ -503,7 +503,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
         preprocess();
 
         while (!received_data_ready) {
-            receve_data_in_temp_buffer();
+            receive_data_in_temp_buffer();
             received_data_ready = last_history_receive_buffer_index != -1 && history_receive_buffer_status[last_history_receive_buffer_index];
             if (!received_data_ready)
                 inout_interface_mgr->runtime_receive_algorithms_receive_data();
