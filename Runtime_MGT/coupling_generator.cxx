@@ -390,7 +390,7 @@ void Coupling_connection::add_bottom_field_coupling_info(int field_connection_in
 	bottom_field_coupling_info->field_connection_indx = field_connection_indx;
 	bottom_field_coupling_info->is_dynamic_bottom_field = V3D_remapping_weights->get_src_original_grid()->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_DYNAMIC;
 	bottom_field_coupling_info->bottom_field_inst = V3D_remapping_weights->allocate_intermediate_V3D_grid_bottom_field();
-	bottom_field_coupling_info->H2D_runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), 
+	bottom_field_coupling_info->H2D_runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_full_name(), dst_comp_node->get_comp_full_name(), 
 		original_grid_mgr->get_original_grid(V3D_remapping_weights->get_src_decomp_info()->get_grid_id()), original_grid_mgr->get_original_grid(V3D_remapping_weights->get_dst_decomp_info()->get_grid_id()), 
 		remapping_setting, V3D_remapping_weights->get_dst_decomp_info());
 
@@ -489,7 +489,7 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 				if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL)
 					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate interpolation from component \"%s\" to \"%s\": when the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has external surface field, the source 3-D grid \"%s\" must include SIGMA or HYBRID vertical coordinate. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
 			}	
-			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_id(), dst_comp_node->get_comp_id(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
+			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_full_name(), dst_comp_node->get_comp_full_name(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid())
 				add_bottom_field_coupling_info(i, dst_fields_info[i]->runtime_remapping_weights, &field_remapping_setting);
 		}

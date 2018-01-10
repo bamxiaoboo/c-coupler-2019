@@ -25,8 +25,8 @@
 class Runtime_remapping_weights
 {
 	private:
-		int src_comp_id;
-		int dst_comp_id;
+		const char *src_comp_full_name;
+		const char *dst_comp_full_name;
 		Original_grid_info *src_original_grid;
 		Original_grid_info *dst_original_grid;
 		Decomp_info *src_decomp_info;
@@ -47,18 +47,16 @@ class Runtime_remapping_weights
 		void generate_parallel_remapping_weights();
 		
 	public:
-		Runtime_remapping_weights(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
+		Runtime_remapping_weights(const char*, const char*, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
 		Runtime_remapping_weights();
 		~Runtime_remapping_weights();
 		Remap_weight_of_strategy_class *get_sequential_remapping_weights() { return sequential_remapping_weights; }
 		Remap_weight_of_strategy_class *get_parallel_remapping_weights() { return parallel_remapping_weights; }
-		int get_src_comp_id() { return src_comp_id; }
-		int get_dst_comp_id() { return dst_comp_id; }
 		Original_grid_info *get_src_original_grid() { return src_original_grid; }
 		Original_grid_info *get_dst_original_grid() { return dst_original_grid; }
 		Decomp_info *get_src_decomp_info() { return src_decomp_info; }
 		Decomp_info *get_dst_decomp_info() { return dst_decomp_info; }
-		bool match_requirements(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
+		bool match_requirements(const char*, const char*, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
 		Field_mem_info *allocate_intermediate_V3D_grid_bottom_field();
 		void renew_dynamic_V1D_remapping_weights();
 		void set_H2D_grids_area(const double*, const double*, long, long);
@@ -75,7 +73,7 @@ class Runtime_remapping_weights_mgt
 	public:
 		Runtime_remapping_weights_mgt() {}
 		~Runtime_remapping_weights_mgt();
-		Runtime_remapping_weights *search_or_generate_runtime_remapping_weights(int, int, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
+		Runtime_remapping_weights *search_or_generate_runtime_remapping_weights(const char *, const char*, Original_grid_info *, Original_grid_info *, Remapping_setting *, Decomp_info*);
 		void transfer_runtime_remapping_weights(Runtime_remapping_weights *, Runtime_remapping_weights **, Comp_comm_group_mgt_node *, Comp_comm_group_mgt_node *);
 };
 

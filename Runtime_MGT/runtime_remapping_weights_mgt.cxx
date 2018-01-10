@@ -19,8 +19,8 @@
 
 Runtime_remapping_weights::Runtime_remapping_weights()
 {
-	src_comp_id = -1;
-	dst_comp_id = -1;
+	src_comp_full_name = NULL;
+	dst_comp_full_name = NULL;
 	src_original_grid = NULL;
 	dst_original_grid = NULL;
 	src_decomp_info = NULL;
@@ -38,7 +38,7 @@ Runtime_remapping_weights::Runtime_remapping_weights()
 }
 
 
-Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
+Runtime_remapping_weights::Runtime_remapping_weights(const char *src_comp_full_name, const char *dst_comp_full_name, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
 {
 	Remap_operator_basis *remap_operator_H2D = NULL;
 	Remap_operator_basis *remap_operator_V1D = NULL;
@@ -50,9 +50,9 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	int num_remap_operators = 0;
 	H2D_remapping_wgt_file_info *H2D_remapping_weight_file = NULL;
 
-	
-	this->src_comp_id = src_comp_id;
-	this->dst_comp_id = dst_comp_id;
+
+	this->src_comp_full_name = strdup(src_comp_full_name);
+	this->dst_comp_full_name = strdup(dst_comp_full_name);
 	this->src_original_grid = src_original_grid;
 	this->dst_original_grid = dst_original_grid;
 	this->remapping_setting = cloned_remapping_setting;
@@ -117,7 +117,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_remap_operators > 0, "Software error in Runtime_remapping_weights::Runtime_remapping_weights: no remapping operator");
 	remapping_strategy = new Remap_strategy_class("runtime_remapping_strategy", num_remap_operators, remap_operators);
 	EXECUTION_REPORT_LOG(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "before generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());	
-	sprintf(remap_weight_name, "weights_%lx_%s(%s)_to_%s(%s)", remapping_setting->calculate_checksum(), src_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_comp_id,"")->get_full_name(), dst_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(dst_comp_id,"")->get_full_name());
+	sprintf(remap_weight_name, "weights_%lx_%s(%s)_to_%s(%s)", remapping_setting->calculate_checksum(), src_original_grid->get_grid_name(), src_comp_full_name, dst_original_grid->get_grid_name(), dst_comp_full_name);
 	if (H2D_remapping_weight_file != NULL) {
 		sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name());
 		if (src_original_grid->is_H2D_grid()) 
@@ -146,6 +146,10 @@ Runtime_remapping_weights::Runtime_remapping_weights(int src_comp_id, int dst_co
 
 Runtime_remapping_weights::~Runtime_remapping_weights()
 {
+	if (src_comp_full_name != NULL)
+		delete [] src_comp_full_name;
+	if (dst_comp_full_name != NULL)
+		delete [] dst_comp_full_name;
 	if (remapping_setting != NULL)
 		delete remapping_setting;
 	if (remapping_strategy != NULL)
@@ -171,9 +175,9 @@ Field_mem_info *Runtime_remapping_weights::allocate_intermediate_V3D_grid_bottom
 }
 
 
-bool Runtime_remapping_weights::match_requirements(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
+bool Runtime_remapping_weights::match_requirements(const char *src_comp_full_name, const char *dst_comp_full_name, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
 {
-	return this->src_comp_id == src_comp_id && this->dst_comp_id == dst_comp_id && 
+	return words_are_the_same(this->src_comp_full_name,src_comp_full_name)&& words_are_the_same(this->dst_comp_full_name, dst_comp_full_name) && 
 		   this->src_original_grid == src_original_grid && this->dst_original_grid == dst_original_grid && 
 		   this->remapping_setting->is_the_same_as_another(remapping_setting) && this->dst_decomp_info == dst_decomp_info;
 }
@@ -304,15 +308,15 @@ Runtime_remapping_weights_mgt::~Runtime_remapping_weights_mgt()
 }
 
 
-Runtime_remapping_weights *Runtime_remapping_weights_mgt::search_or_generate_runtime_remapping_weights(int src_comp_id, int dst_comp_id, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
+Runtime_remapping_weights *Runtime_remapping_weights_mgt::search_or_generate_runtime_remapping_weights(const char *src_comp_full_name, const char *dst_comp_full_name, Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid, Remapping_setting *remapping_setting, Decomp_info *dst_decomp_info)
 {
 	remapping_setting->shrink(src_original_grid, dst_original_grid);
 	
 	for (int i = 0; i < runtime_remapping_weights.size(); i ++)
-		if (runtime_remapping_weights[i]->match_requirements(src_comp_id, dst_comp_id, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info))
+		if (runtime_remapping_weights[i]->match_requirements(src_comp_full_name, dst_comp_full_name, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info))
 			return runtime_remapping_weights[i];
 
-	runtime_remapping_weights.push_back(new Runtime_remapping_weights(src_comp_id, dst_comp_id, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info));
+	runtime_remapping_weights.push_back(new Runtime_remapping_weights(src_comp_full_name, dst_comp_full_name, src_original_grid, dst_original_grid, remapping_setting, dst_decomp_info));
 	return runtime_remapping_weights[runtime_remapping_weights.size()-1];
 }
 
