@@ -37,7 +37,12 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 }
 
 
-extern "C" void finalize_ccpl_(int *to_finalize_MPI, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void finalize_ccpl
+#else
+extern "C" void finalize_ccpl_
+#endif
+(int *to_finalize_MPI, const char *annotation)
 {
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Start to finalize C-Coupler at the model code with the annotation \"%s\"", annotation);
@@ -72,70 +77,120 @@ extern "C" void finalize_ccpl_(int *to_finalize_MPI, const char *annotation)
 }
 
 
-extern "C" void get_ccpl_double_current_calendar_time_(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_double_current_calendar_time
+#else
+extern "C" void get_ccpl_double_current_calendar_time_
+#endif
+(int *comp_id, double *cal_time, int *shift_seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation, false);
     *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_double_current_calendar_time(*shift_seconds, annotation);
 }
 
 
-extern "C" void get_ccpl_float_current_calendar_time_(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_float_current_calendar_time
+#else
+extern "C" void get_ccpl_float_current_calendar_time_
+#endif
+(int *comp_id, float *cal_time, int *shift_seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_CAL_TIME, annotation, false);
     *cal_time = components_time_mgrs->get_time_mgr(*comp_id)->get_float_current_calendar_time(*shift_seconds, annotation);
 }
 
 
-extern "C" void get_ccpl_current_date_(int *comp_id, int *date, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_current_date
+#else
+extern "C" void get_ccpl_current_date_
+#endif
+(int *comp_id, int *date, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_DATE, annotation, false);
     *date = components_time_mgrs->get_time_mgr(*comp_id)->get_current_date();
 }
 
 
-extern "C" void get_ccpl_current_second_(int *comp_id, int *second, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_current_second
+#else
+extern "C" void get_ccpl_current_second_
+#endif
+(int *comp_id, int *second, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_SECOND, annotation, false);
     *second = components_time_mgrs->get_time_mgr(*comp_id)->get_current_second();
 }
 
 
-extern "C" void is_comp_first_step_(int *comp_id, int *result, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void is_comp_first_step
+#else
+extern "C" void is_comp_first_step_
+#endif
+(int *comp_id, int *result, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_FIRST_STEP, annotation, false);
 	*result = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step() == 0? 1 : 0;
 }
 
 
-extern "C" void is_comp_first_restart_step_(int *comp_id, int *result, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void is_comp_first_restart_step
+#else
+extern "C" void is_comp_first_restart_step_
+#endif
+(int *comp_id, int *result, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_FIRST_RESTART_STEP, annotation, false);
 	*result = components_time_mgrs->get_time_mgr(*comp_id)->is_first_restart_step()? 1 : 0;
 }
 
 
-extern "C" void get_ccpl_current_number_of_step_(int *comp_id, int *nstep, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_current_number_of_step
+#else
+extern "C" void get_ccpl_current_number_of_step_
+#endif
+(int *comp_id, int *nstep, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_CURRENT_STEP, annotation, false);
 	*nstep = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_time_step();
 }
 
 
-extern "C" void get_ccpl_num_total_step_(int *comp_id, int *nstep, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_num_total_step
+#else
+extern "C" void get_ccpl_num_total_step_
+#endif
+(int *comp_id, int *nstep, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS, annotation, false);
 	*nstep = (int) components_time_mgrs->get_time_mgr(*comp_id)->get_num_total_step();
 }
 
 
-extern "C" void get_ccpl_time_step_(int *comp_id, int *time_step, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_time_step
+#else
+extern "C" void get_ccpl_time_step_
+#endif
+(int *comp_id, int *time_step, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_TIME_STEP, annotation, false);
     *time_step = components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second();
 }
 
 
-extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_start_time
+#else
+extern "C" void get_ccpl_start_time_
+#endif
+(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_START_TIME, annotation, false);
 
@@ -146,7 +201,12 @@ extern "C" void get_ccpl_start_time_(int *comp_id, int *year, int *month, int *d
 }
 
 
-extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *day, int *second, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_stop_time
+#else
+extern "C" void get_ccpl_stop_time_
+#endif
+(int *comp_id, int *year, int *month, int *day, int *second, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_STOP_TIME, annotation, false);
 
@@ -157,7 +217,12 @@ extern "C" void get_ccpl_stop_time_(int *comp_id, int *year, int *month, int *da
 }
 
 
-extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_previous_time
+#else
+extern "C" void get_ccpl_previous_time_
+#endif
+(int *comp_id, int *year, int *month, int *day, int *seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_PREVIOUS_TIME, annotation, false);
 
@@ -168,48 +233,83 @@ extern "C" void get_ccpl_previous_time_(int *comp_id, int *year, int *month, int
 }
 
 
-extern "C" void get_ccpl_current_time_(int *comp_id, int *year, int *month, int *day, int *second, int *shift_second, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_current_time
+#else
+extern "C" void get_ccpl_current_time_
+#endif
+(int *comp_id, int *year, int *month, int *day, int *second, int *shift_second, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_TIME, annotation, false);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_current_time(*year, *month, *day, *second, *shift_second, annotation);
 }
 
 
-extern "C" void get_ccpl_current_num_days_in_year_(int *comp_id, int *days, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_current_num_days_in_year
+#else
+extern "C" void get_ccpl_current_num_days_in_year_
+#endif
+(int *comp_id, int *days, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_NUM_DAYS_IN_YEAR, annotation, false);
 	*days = components_time_mgrs->get_time_mgr(*comp_id)->get_current_num_days_in_year();
 }
 
 
-extern "C" void get_ccpl_current_year_(int *comp_id, int *year, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_current_year
+#else
+extern "C" void get_ccpl_current_year_
+#endif
+(int *comp_id, int *year, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_CURRENT_YEAR, annotation, false);
 	*year = components_time_mgrs->get_time_mgr(*comp_id)->get_current_year();
 }
 
 
-extern "C" void get_ccpl_num_elapsed_days_from_start_date_(int *comp_id, int *days, int *seconds, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_num_elapsed_days_from_start_date
+#else
+extern "C" void get_ccpl_num_elapsed_days_from_start_date_
+#endif
+(int *comp_id, int *days, int *seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_START, annotation, false);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_start_date(days, seconds);
 }
 
 
-extern "C" void get_ccpl_num_elapsed_days_from_reference_date_(int *comp_id, int *days, int *seconds, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_num_elapsed_days_from_reference_date
+#else
+extern "C" void get_ccpl_num_elapsed_days_from_reference_date_
+#endif
+(int *comp_id, int *days, int *seconds, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_ELAPSED_DAYS_FROM_REF, annotation, false);
 	components_time_mgrs->get_time_mgr(*comp_id)->get_elapsed_days_from_reference_date(days, seconds);
 }
 
 
-extern "C" void coupling_abort_(const char *error_string)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void coupling_abort
+#else
+extern "C" void coupling_abort_
+#endif
+(const char *error_string)
 {
         EXECUTION_REPORT(REPORT_ERROR,-1, false, error_string);
 }
 
 
-extern "C" void initialize_ccpl_mgrs_()
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void initialize_ccpl_mgrs
+#else
+extern "C" void initialize_ccpl_mgrs_
+#endif
+()
 {
 	execution_phase_number = 1;
 	annotation_mgr = new Annotation_mgt();
@@ -231,15 +331,24 @@ extern "C" void initialize_ccpl_mgrs_()
 }
 
 
-extern "C" void check_fortran_api_int_type_(int *fortran_int_size)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void check_fortran_api_int_type
+#else
+extern "C" void check_fortran_api_int_type_
+#endif
+(int *fortran_int_size)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, *fortran_int_size == 4, "Error happens when using C-Coupler for model coupling: the size of an integer value in C-Coupler FORTRAN APIs is not 4 types. Please verify the compiler flag for C-Coupler and then recompile C-Coupler, to force the usage of 4-byte integer.");
 }
 
 
-
-extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
-										int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_name)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_root_component
+#else
+extern "C" void register_root_component_
+#endif
+(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
+int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_name)
 {
 	int flag;
 	MPI_Comm local_comm = -1;
@@ -316,7 +425,12 @@ extern "C" void register_root_component_(MPI_Comm *comm, const char *comp_name, 
 }
 
 
-extern "C" void register_component_(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *enabled_in_parent_coupling_gen, int *change_dir, int *comp_id)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_component
+#else
+extern "C" void register_component_
+#endif
+(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *enabled_in_parent_coupling_gen, int *change_dir, int *comp_id)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register component model \%s\"", comp_name);
 
@@ -339,7 +453,12 @@ extern "C" void register_component_(int *parent_comp_id, const char *comp_name, 
 }
 
 
-extern "C" void get_ccpl_comp_log_file_name_(int *comp_id, char *file_name, int *size_file_name, int *log_file_opened, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_comp_log_file_name
+#else
+extern "C" void get_ccpl_comp_log_file_name_
+#endif
+(int *comp_id, char *file_name, int *size_file_name, int *log_file_opened, const char *annotation)
 {
 	int log_file_device_id;
 
@@ -356,14 +475,24 @@ extern "C" void get_ccpl_comp_log_file_name_(int *comp_id, char *file_name, int 
 }
 
 
-extern "C" void get_ccpl_comp_log_file_device_(int *comp_id, int *log_file_device_id, int *log_file_opened, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_comp_log_file_device
+#else
+extern "C" void get_ccpl_comp_log_file_device_
+#endif
+(int *comp_id, int *log_file_device_id, int *log_file_opened, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_LOG_FILE_DEVICE, annotation, true);
 	*log_file_opened = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "get_ccpl_comp_log_file_device_")->open_comp_model_log_file(log_file_device_id);
 }
 
 
-extern "C" void get_id_of_component_(const char *comp_name, const char *annotation, int *comp_id)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_id_of_component
+#else
+extern "C" void get_id_of_component_
+#endif
+(const char *comp_name, const char *annotation, int *comp_id)
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
 	check_for_component_registered(-1, API_ID_COMP_MGT_GET_COMP_ID, annotation, true);
@@ -379,7 +508,12 @@ extern "C" void get_id_of_component_(const char *comp_name, const char *annotati
 }
 
 
-extern "C" void check_is_comp_type_coupled_(int *comp_id, const char *comp_type, int *is_coupled, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void check_is_comp_type_coupled
+#else
+extern "C" void check_is_comp_type_coupled_
+#endif
+(int *comp_id, const char *comp_type, int *is_coupled, const char *annotation)
 {
 	check_for_component_registered(-1, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, annotation, true);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "check_is_comp_type_coupled_"), "synchorization for checking whether a type of component models is coupled", annotation);
@@ -390,7 +524,12 @@ extern "C" void check_is_comp_type_coupled_(int *comp_id, const char *comp_type,
 }
 
 
-extern "C" void is_current_process_in_component_(const char *comp_full_name, int *is_in_comp, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void is_current_process_in_component
+#else
+extern "C" void is_current_process_in_component_
+#endif
+(const char *comp_full_name, int *is_in_comp, const char *annotation)
 {
 	check_for_component_registered(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, annotation, true);
 	check_API_parameter_string_length(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, 512, comp_full_name, "comp_full_name", annotation);
@@ -399,21 +538,36 @@ extern "C" void is_current_process_in_component_(const char *comp_full_name, int
 }
 
 
-extern "C" void get_current_proc_id_in_comp_(int *comp_id, int *proc_id, const char * annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_current_proc_id_in_comp
+#else
+extern "C" void get_current_proc_id_in_comp_
+#endif
+(int *comp_id, int *proc_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_CURRENT_PROC_ID_IN_COMP, annotation, false);
 	*proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(*comp_id, annotation);
 }
 
 
-extern "C" void get_num_proc_in_comp_(int *comp_id, int *num_proc, const char * annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_num_proc_in_comp
+#else
+extern "C" void get_num_proc_in_comp_
+#endif
+(int *comp_id, int *num_proc, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_NUM_PROC_IN_COMP, annotation, false);
 	*num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
 }
 
 
-extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *global_proc_id, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_comp_proc_global_id
+#else
+extern "C" void get_comp_proc_global_id_
+#endif
+(int *comp_id, int *local_proc_id, int *global_proc_id, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_PROC_GLOBAL_ID, annotation, false);
 	int num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
@@ -422,7 +576,12 @@ extern "C" void get_comp_proc_global_id_(int *comp_id, int *local_proc_id, int *
 }
 
 
-extern "C" void ccpl_load_comps_full_names_from_config_file_(int *comp_id, const char *keyword, int *size_comps_full_names, int *size_individual_or_family, int *num_comps, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_load_comps_full_names_from_config_file
+#else
+extern "C" void ccpl_load_comps_full_names_from_config_file_
+#endif
+(int *comp_id, const char *keyword, int *size_comps_full_names, int *size_individual_or_family, int *num_comps, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to the full names of a set of component models from the corresponding configuration file.");
@@ -433,7 +592,12 @@ extern "C" void ccpl_load_comps_full_names_from_config_file_(int *comp_id, const
 }
 
 
-extern "C" void ccpl_get_one_comp_full_name_(int *comp_id, int *str_size, int *index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_get_one_comp_full_name
+#else
+extern "C" void ccpl_get_one_comp_full_name_
+#endif
+(int *comp_id, int *str_size, int *index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the beginning of cpl_get_one_comp_full_name_");
 	coupling_generator->get_one_comp_full_name(*comp_id, *str_size, *index-1, comp_full_name, local_individual_or_family , annotation);
@@ -441,7 +605,12 @@ extern "C" void ccpl_get_one_comp_full_name_(int *comp_id, int *str_size, int *i
 }
 
 
-extern "C" void ccpl_finish_getting_configurable_comps_full_names_(int *comp_id, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_finish_getting_configurable_comps_full_names
+#else
+extern "C" void ccpl_finish_getting_configurable_comps_full_names_
+#endif
+(int *comp_id, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the beginning of ccpl_finish_getting_configurable_comps_full_names_");
 	coupling_generator->clear();
@@ -449,7 +618,12 @@ extern "C" void ccpl_finish_getting_configurable_comps_full_names_(int *comp_id,
 }
 
 
-extern "C" void ccpl_family_coupling_generation_(int *comp_id, const char * annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_family_coupling_generation
+#else
+extern "C" void ccpl_family_coupling_generation_
+#endif
+(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
@@ -459,7 +633,12 @@ extern "C" void ccpl_family_coupling_generation_(int *comp_id, const char * anno
 }
 
 
-extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_individual_coupling_generation
+#else
+extern "C" void ccpl_individual_coupling_generation_
+#endif
+(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
@@ -469,7 +648,12 @@ extern "C" void ccpl_individual_coupling_generation_(int *comp_id, const char * 
 }
 
 
-extern "C" void ccpl_begin_external_coupling_generation_(int *num_comps, int *size_comps_full_names, int *size_individual_or_family, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_begin_external_coupling_generation
+#else
+extern "C" void ccpl_begin_external_coupling_generation_
+#endif
+(int *num_comps, int *size_comps_full_names, int *size_individual_or_family, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to generate coupling procedures for a set of specified component model");
 	EXECUTION_REPORT(REPORT_ERROR, -1, *num_comps >= 1, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of \"num_comps\" cannot be smaller than 1. Please verify the model code with the annotation \"%s\"", annotation);
@@ -480,19 +664,34 @@ extern "C" void ccpl_begin_external_coupling_generation_(int *num_comps, int *si
 }
 
 
-extern "C" void ccpl_add_comp_for_external_coupling_generation_(const char *comp_full_name, int *individual_or_family, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_add_comp_for_external_coupling_generation
+#else
+extern "C" void ccpl_add_comp_for_external_coupling_generation_
+#endif
+(const char *comp_full_name, int *individual_or_family, const char *annotation)
 {
 	coupling_generator->add_comp_for_external_coupling_generation(comp_full_name, *individual_or_family, annotation);
 }
 
 
-extern "C" void ccpl_end_external_coupling_generation_(const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_end_external_coupling_generation
+#else
+extern "C" void ccpl_end_external_coupling_generation_
+#endif
+(const char *annotation)
 {
 	coupling_generator->do_external_coupling_generation(API_ID_COUPLING_GEN_EXTERNAL, annotation);
 }
 
 
-extern "C" void ccpl_end_registration_(int *comp_id, const char * annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_end_registration
+#else
+extern "C" void ccpl_end_registration_
+#endif
+(int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	
@@ -511,8 +710,13 @@ extern "C" void ccpl_end_registration_(int *comp_id, const char * annotation)
 }
 
 
-extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const char *grid_name, int *grid_type, const char *coord_unit, int *dim_size2,  
-	                                         int *dim_size3, const char *data_type, void *value1, void *value2, void *value3, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_v1d_grid_with_data
+#else
+extern "C" void register_v1d_grid_with_data_
+#endif
+(int *comp_id, int *grid_id, const char *grid_name, int *grid_type, const char *coord_unit, int *dim_size2,  
+ int *dim_size3, const char *data_type, void *value1, void *value2, void *value3, const char *annotation)
 {
 	double temp_value1, *temp_value2, *temp_value3;
 	int API_id;
@@ -566,7 +770,12 @@ extern "C" void register_v1d_grid_with_data_(int *comp_id, int *grid_id, const c
 }
 
 
-extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *static_or_dynamic_or_external, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void set_3d_grid_surface_field
+#else
+extern "C" void set_3d_grid_surface_field_
+#endif
+(int *grid_id, int *field_id, int *static_or_dynamic_or_external, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 	int comp_id, API_id;
@@ -597,7 +806,12 @@ extern "C" void set_3d_grid_surface_field_(int *grid_id, int *field_id, int *sta
 }
 
 
-extern "C" void register_md_grid_via_multi_grids_(int *comp_id, int *grid_id, const char *grid_name, int *sub_grid1_id, int *sub_grid2_id, int *sub_grid3_id, int *size_mask, int *mask, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_md_grid_via_multi_grids
+#else
+extern "C" void register_md_grid_via_multi_grids_
+#endif
+(int *comp_id, int *grid_id, const char *grid_name, int *sub_grid1_id, int *sub_grid2_id, int *sub_grid3_id, int *size_mask, int *mask, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an MD grid %s", grid_name);
 
@@ -608,8 +822,13 @@ extern "C" void register_md_grid_via_multi_grids_(int *comp_id, int *grid_id, co
 }
 
 
-extern "C" void register_h2d_grid_with_global_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
-	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_h2d_grid_with_global_data
+#else
+extern "C" void register_h2d_grid_with_global_data_
+#endif
+(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
+ int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *annotation)
 {
 	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA, annotation);
 
@@ -628,8 +847,13 @@ extern "C" void register_h2d_grid_with_global_data_(int *comp_id, int *grid_id, 
 }
 
 
-extern "C" void register_h2d_grid_with_local_data_(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *grid_size, int *num_local_cells, int *size_local_cells_global_index, int *size_center_lon, int *size_center_lat, 
-	                                        int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, int *local_cells_global_index, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *decomp_name, int *decomp_id, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_h2d_grid_with_local_data
+#else
+extern "C" void register_h2d_grid_with_local_data_
+#endif
+(int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *grid_size, int *num_local_cells, int *size_local_cells_global_index, int *size_center_lon, int *size_center_lat, 
+ int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, int *local_cells_global_index, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *decomp_name, int *decomp_id, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
 
@@ -642,7 +866,12 @@ extern "C" void register_h2d_grid_with_local_data_(int *comp_id, int *grid_id, c
 }
 
 
-extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const char *grid_name, const char *data_file_name, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_h2d_grid_with_file
+#else
+extern "C" void register_h2d_grid_with_file_
+#endif
+(int *comp_id, int *grid_id, const char *grid_name, const char *data_file_name, const char *annotation)
 {
 	char full_data_file_name[NAME_STR_SIZE];
 
@@ -658,7 +887,12 @@ extern "C" void register_h2d_grid_with_file_(int *comp_id, int *grid_id, const c
 }
 
 
-extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *grid_id, const char *grid_name, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_h2d_grid_from_another_component
+#else
+extern "C" void register_h2d_grid_from_another_component_
+#endif
+(int *comp_id, int *grid_id, const char *grid_name, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
 
@@ -670,7 +904,12 @@ extern "C" void register_h2d_grid_from_another_component_(int *comp_id, int *gri
 }
 
 
-extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_cor_defined_grid
+#else
+extern "C" void register_cor_defined_grid_
+#endif
+(int *comp_id, const char *CCPL_grid_name, const char *CoR_grid_name, const char *annotation, int *grid_id)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a CoR grid %s", CCPL_grid_name);
 
@@ -684,7 +923,12 @@ extern "C" void register_cor_defined_grid_(int *comp_id, const char *CCPL_grid_n
 }
 
 
-extern "C" void register_mid_point_grid_(int *level_3D_grid_id, int *mid_3D_grid_id, int *mid_1D_grid_id, int *size_mask, int *mask, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_mid_point_grid
+#else
+extern "C" void register_mid_point_grid_
+#endif
+(int *level_3D_grid_id, int *mid_3D_grid_id, int *mid_1D_grid_id, int *size_mask, int *mask, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 
@@ -701,7 +945,12 @@ extern "C" void register_mid_point_grid_(int *level_3D_grid_id, int *mid_3D_grid
 }
 
 
-extern "C" void get_grid_size_(int *grid_id, int *grid_size, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_grid_size
+#else
+extern "C" void get_grid_size_
+#endif
+(int *grid_id, int *grid_size, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_GRID_SIZE, annotation);
 
@@ -709,7 +958,12 @@ extern "C" void get_grid_size_(int *grid_id, int *grid_size, const char *annotat
 }
 
 
-extern "C" void get_grid_id_(int *comp_id, const char *grid_name, int *grid_id, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_grid_id
+#else
+extern "C" void get_grid_id_
+#endif
+(int *comp_id, const char *grid_name, int *grid_id, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_GRID_ID, annotation);
 	check_API_parameter_string_length(*comp_id, API_ID_GRID_MGT_GET_GRID_ID, 80, grid_name, "grid_name", annotation);
@@ -717,14 +971,24 @@ extern "C" void get_grid_id_(int *comp_id, const char *grid_name, int *grid_id, 
 }
 
 
-extern "C" void get_h2d_grid_area_in_remapping_weights_(int *interface_id, int *field_index, void *output_area_data, int *area_array_size, const char *data_type, int *have_area, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_h2d_grid_area_in_remapping_weights
+#else
+extern "C" void get_h2d_grid_area_in_remapping_weights_
+#endif
+(int *interface_id, int *field_index, void *output_area_data, int *area_array_size, const char *data_type, int *have_area, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_H2D_GRID_AREA_FROM_WGTS, annotation);
 	*have_area = inout_interface_mgr->get_h2d_grid_area_in_remapping_weights(*interface_id, (*field_index)-1, output_area_data, *area_array_size, data_type, annotation);
 }
 
 
-extern "C" void get_h2d_grid_data_(int *grid_id, int *decomp_id, const char *label, const char *data_type, int *array_size, char *grid_data, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_h2d_grid_data
+#else
+extern "C" void get_h2d_grid_data_
+#endif
+(int *grid_id, int *decomp_id, const char *label, const char *data_type, int *array_size, char *grid_data, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 
@@ -740,7 +1004,12 @@ extern "C" void get_h2d_grid_data_(int *grid_id, int *decomp_id, const char *lab
 }
 
 
-extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_parallel_decomposition
+#else
+extern "C" void register_parallel_decomposition_
+#endif
+(int *decomp_id, int *grid_id, int *num_local_cells, int *array_size, const int *local_cells_global_indx, const char *decomp_name, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a parallel decomp %s", decomp_name);
 	
@@ -765,8 +1034,13 @@ extern "C" void register_parallel_decomposition_(int *decomp_id, int *grid_id, i
 }
 
 
-extern "C" void register_external_field_instance_(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
-	                                             int *buf_mark, const char *unit, const char *data_type, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_external_field_instance
+#else
+extern "C" void register_external_field_instance_
+#endif
+(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
+ int *buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a field instance %s", field_name);
 
@@ -777,7 +1051,12 @@ extern "C" void register_external_field_instance_(int *field_instance_id, const 
 }
 
 
-extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, const char *field_IO_name, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_an_io_field_from_field_instance
+#else
+extern "C" void register_an_io_field_from_field_instance_
+#endif
+(int *field_inst_id, const char *field_IO_name, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an I/O field %s", field_IO_name);
 
@@ -788,7 +1067,12 @@ extern "C" void register_an_io_field_from_field_instance_(int *field_inst_id, co
 }
 
 
-extern "C" void register_io_fields_from_field_instances_(int *num_field_inst, int *size_field_inst_ids, int *field_inst_ids, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_io_fields_from_field_instances
+#else
+extern "C" void register_io_fields_from_field_instances_
+#endif
+(int *num_field_inst, int *size_field_inst_ids, int *field_inst_ids, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register I/O fields");
 
@@ -801,8 +1085,13 @@ extern "C" void register_io_fields_from_field_instances_(int *num_field_inst, in
 }
 
 
-extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
-	                                    const char *long_name, const char *unit, const char *data_type, const char * annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_a_new_io_field
+#else
+extern "C" void register_a_new_io_field_
+#endif
+(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
+ const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an I/O field %s", field_IO_name);
 
@@ -813,7 +1102,12 @@ extern "C" void register_a_new_io_field_(int *comp_or_grid_id, int *decomp_id, i
 }
 
 
-extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *local_lag_count, int *remote_lag_count, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void define_single_timer
+#else
+extern "C" void define_single_timer_
+#endif
+(int *comp_id, int *timer_id, const char *freq_unit, int *freq_count, int *local_lag_count, int *remote_lag_count, const char *annotation)
 {	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to define a timer");
 	
@@ -826,7 +1120,12 @@ extern "C" void define_single_timer_(int *comp_id, int *timer_id, const char *fr
 }
 
 
-extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *array_size, int *or_or_and, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void define_complex_timer
+#else
+extern "C" void define_complex_timer_
+#endif
+(int *comp_id, int *timer_id, int *children_timers_id, int *num_children_timers, int *array_size, int *or_or_and, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to define a timer");
 
@@ -839,7 +1138,12 @@ extern "C" void define_complex_timer_(int *comp_id, int *timer_id, int *children
 }
 
 
-extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void set_component_time_step
+#else
+extern "C" void set_component_time_step_
+#endif
+(int *comp_id, int *time_step_in_second, const char *annotation)
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, true, annotation);
 
@@ -853,7 +1157,12 @@ extern "C" void set_component_time_step_(int *comp_id, int *time_step_in_second,
 }
 
 
-extern "C" void reset_component_current_time_to_start_time_(int *comp_id, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void reset_component_current_time_to_start_time
+#else
+extern "C" void reset_component_current_time_to_start_time_
+#endif
+(int *comp_id, const char *annotation)
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_RESET_TIME_TO_START, true, annotation);
 
@@ -864,7 +1173,12 @@ extern "C" void reset_component_current_time_to_start_time_(int *comp_id, const 
 }
 
 
-extern "C" void advance_component_time_(int *comp_id, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void advance_component_time
+#else
+extern "C" void advance_component_time_
+#endif
+(int *comp_id, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to advance time");
 	
@@ -876,7 +1190,12 @@ extern "C" void advance_component_time_(int *comp_id, const char *annotation)
 }
 
 
-extern "C" void ccpl_write_restart_(int *comp_id, int *bypass_timer, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_write_restart
+#else
+extern "C" void ccpl_write_restart_
+#endif
+(int *comp_id, int *bypass_timer, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart write");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE, annotation, false);
@@ -886,7 +1205,12 @@ extern "C" void ccpl_write_restart_(int *comp_id, int *bypass_timer, const char 
 }
 
 
-extern "C" void ccpl_read_restart_(int *comp_id, const char *specified_file_name, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_read_restart
+#else
+extern "C" void ccpl_read_restart_
+#endif
+(int *comp_id, const char *specified_file_name, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart read");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ, annotation, false);
@@ -896,7 +1220,12 @@ extern "C" void ccpl_read_restart_(int *comp_id, const char *specified_file_name
 }
 
 
-extern "C" void is_restart_timer_on_(int *comp_id, int *check_result, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void is_restart_timer_on
+#else
+extern "C" void is_restart_timer_on_
+#endif
+(int *comp_id, int *check_result, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_IS_TIMER_ON, annotation, false);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in is_restart_timer_on_")->is_real_component_model(), "Error happens when calling the API CCPL_is_restart_timer_on: the given component model \"%s\" is not a real model. Please verify the model code related to the annotation \"%s\"",
@@ -907,14 +1236,24 @@ extern "C" void is_restart_timer_on_(int *comp_id, int *check_result, const char
 }
 
 
-extern "C" void check_ccpl_component_current_time_(int *comp_id, int *date, int *second, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void check_ccpl_component_current_time
+#else
+extern "C" void check_ccpl_component_current_time_
+#endif
+(int *comp_id, int *date, int *second, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_CHECK_CURRENT_TIME, annotation, false);
 	components_time_mgrs->check_component_current_time(*comp_id, *date, *second, annotation);
 }
 
 
-extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void is_ccpl_timer_on
+#else
+extern "C" void is_ccpl_timer_on_
+#endif
+(int *timer_id, int *is_on, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_TIME_MGT_IS_TIMER_ON, annotation);
 	if (timer_mgr->is_timer_on(*timer_id, annotation))
@@ -923,7 +1262,12 @@ extern "C" void is_ccpl_timer_on_(int *timer_id, int *is_on, const char *annotat
 }
 
 
-extern "C" void check_is_ccpl_model_last_step_(int *comp_id, int *is_last_step, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void check_is_ccpl_model_last_step
+#else
+extern "C" void check_is_ccpl_model_last_step_
+#endif
+(int *comp_id, int *is_last_step, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_LAST_STEP, annotation, false);
 	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(*comp_id);
@@ -933,7 +1277,12 @@ extern "C" void check_is_ccpl_model_last_step_(int *comp_id, int *is_last_step, 
 }
 
 
-extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void check_is_ccpl_model_run_ended
+#else
+extern "C" void check_is_ccpl_model_run_ended_
+#endif
+(int *comp_id, int *is_ended, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_IS_MODEL_RUN_ENDED, annotation, false);
 	if (components_time_mgrs->is_model_run_ended(*comp_id, annotation))
@@ -942,7 +1291,12 @@ extern "C" void check_is_ccpl_model_run_ended_(int *comp_id, int *is_ended, cons
 }
 
 
-extern "C" void register_normal_remap_interface_(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, int *array_size1, int *array_size2, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_normal_remap_interface
+#else
+extern "C" void register_normal_remap_interface_
+#endif
+(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, int *array_size1, int *array_size2, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 
@@ -957,7 +1311,12 @@ extern "C" void register_normal_remap_interface_(const char *interface_name, int
 }
 
 
-extern "C" void register_frac_based_remap_interface_(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, int *array_size1, int *array_size2, void *frac_src, void *frac_dst, int *size_frac_src, int *size_frac_dst, const char *frac_data_type, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_frac_based_remap_interface
+#else
+extern "C" void register_frac_based_remap_interface_
+#endif
+(const char *interface_name, int *interface_id, int *num_fields, int *field_ids_src, int *field_ids_dst, int *timer_id, int *inst_or_aver, int *array_size1, int *array_size2, void *frac_src, void *frac_dst, int *size_frac_src, int *size_frac_dst, const char *frac_data_type, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 	
@@ -973,7 +1332,12 @@ extern "C" void register_frac_based_remap_interface_(const char *interface_name,
 }
 
 
-extern "C" void register_inout_interface_(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_inout_interface
+#else
+extern "C" void register_inout_interface_
+#endif
+(const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register import/export interface");
 
@@ -992,7 +1356,12 @@ extern "C" void register_inout_interface_(const char *interface_name, int *inter
 }
 
 
-extern "C" void check_is_ccpl_import_field_connected_(int *interface_id, int *field_instance_id, int *check_result, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void check_is_ccpl_import_field_connected
+#else
+extern "C" void check_is_ccpl_import_field_connected_
+#endif
+(int *interface_id, int *field_instance_id, int *check_result, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_CHECK_IMPORT_FIELD_CONNECTED, annotation);
 	Inout_interface *import_interface = inout_interface_mgr->get_interface(*interface_id);
@@ -1001,13 +1370,23 @@ extern "C" void check_is_ccpl_import_field_connected_(int *interface_id, int *fi
 }
 
 
-extern "C" void set_import_interface_fields_necessity_(int *import_interface_id, int *necessity, int *size_necessity, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void set_import_interface_fields_necessity
+#else
+extern "C" void set_import_interface_fields_necessity_
+#endif
+(int *import_interface_id, int *necessity, int *size_necessity, const char *annotation)
 {
 	inout_interface_mgr->get_interface(*import_interface_id)->set_fields_necessity(necessity, *size_necessity, annotation);
 }
 
 
-extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void execute_inout_interface_with_id
+#else
+extern "C" void execute_inout_interface_with_id_
+#endif
+(int *interface_id, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to execute an interface");
 
@@ -1018,7 +1397,12 @@ extern "C" void execute_inout_interface_with_id_(int *interface_id, int *bypass_
 }
 
 
-extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *interface_name, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void execute_inout_interface_with_name
+#else
+extern "C" void execute_inout_interface_with_name_
+#endif
+(int *comp_id, const char *interface_name, int *bypass_timer, int *field_update_status, int *size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to execute an interface");
 
@@ -1030,7 +1414,12 @@ extern "C" void execute_inout_interface_with_name_(int *comp_id, const char *int
 }
 
 
-extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, int *comp_full_name_size, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_local_comp_full_name
+#else
+extern "C" void get_local_comp_full_name_
+#endif
+(int *comp_id, char *comp_full_name, int *comp_full_name_size, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, annotation, false);
 	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_local_comp_full_name_")->get_full_name();
@@ -1041,7 +1430,12 @@ extern "C" void get_local_comp_full_name_(int *comp_id, char *comp_full_name, in
 }
 
 
-extern "C" void get_CCPL_platform_log_dir_(char *CCPL_platform_log_dir, int *CCPL_platform_log_dir_max_size, int *CCPL_platform_log_dir_size, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_CCPL_platform_log_dir
+#else
+extern "C" void get_CCPL_platform_log_dir_
+#endif
+(char *CCPL_platform_log_dir, int *CCPL_platform_log_dir_max_size, int *CCPL_platform_log_dir_size, const char *annotation)
 {
 	const char *dir = comp_comm_group_mgt_mgr->get_CCPL_platform_log_dir();
 	EXECUTION_REPORT(REPORT_ERROR, -1, *CCPL_platform_log_dir_max_size >= strlen(dir), "Software error happens when calling get_CCPL_platform_log_dir_: the string buffer size (%d) is smaller than the size of the dir (%d)", *CCPL_platform_log_dir_max_size, strlen(dir));
@@ -1052,7 +1446,12 @@ extern "C" void get_CCPL_platform_log_dir_(char *CCPL_platform_log_dir, int *CCP
 }
 
 
-extern "C" void ccpl_report_(int *report_type, int *comp_id, int *condition, const char *report_content, const char *annotation)
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_report
+#else
+extern "C" void ccpl_report_
+#endif
+(int *report_type, int *comp_id, int *condition, const char *report_content, const char *annotation)
 {
 	int API_id;
 	bool local_condition = *condition == 1? true : false;
