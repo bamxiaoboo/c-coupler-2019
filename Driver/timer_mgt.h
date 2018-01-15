@@ -68,6 +68,11 @@
 #define TIME_UNIT_STRING_MONTH          "\"month\", \"months\", \"nmonth\", \"nmonths\""
 #define TIME_UNIT_STRING_YEAR           "\"year\", \"years\", \"nyear\", \"nyears\""
 
+#define RUNTYPE_MARK_INITIAL            1
+#define RUNTYPE_MARK_CONTINUE           2
+#define RUNTYPE_MARK_BRANCH             3
+#define RUNTYPE_MARK_HYBRID             4
+
 
 #include "common_utils.h"
 #include <vector>
@@ -157,6 +162,7 @@ class Time_mgt
         int current_num_elapsed_day;
 		int start_num_elapsed_day;
 		int restart_num_elapsed_day;		
+		long restart_full_time;
 		int stop_num_elapsed_day;
         int current_step_id;
 		int restarted_step_id;
@@ -168,6 +174,7 @@ class Time_mgt
 		char exp_model_name[NAME_STR_SIZE];
 		char case_desc[NAME_STR_SIZE];
 		char run_type[NAME_STR_SIZE];
+		int runtype_mark;
 		char stop_option[NAME_STR_SIZE];
 		char rest_freq_unit[NAME_STR_SIZE];
 		int rest_freq_count;
@@ -243,6 +250,8 @@ class Time_mgt
 		void calculate_stop_time(int, int, int, int);
 		bool get_time_has_been_advanced() { return time_has_been_advanced; }
 		void reset_current_time_to_start_time(const char*);
+		long get_restart_full_time() { return restart_full_time; }
+		int get_runtype_mark() { return runtype_mark; }
 };
 
 

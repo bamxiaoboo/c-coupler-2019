@@ -416,6 +416,13 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(run_type,RUNTYPE_INITIAL) || words_are_the_same(run_type,RUNTYPE_CONTINUE) || words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID),
 			             "Run_type (%s) is wrong. It must be one of the four options: \"initial\", \"continue\", \"branch\" and \"hybrid\". Please check the XML file \"%s\" arround the line_number %d", run_type, XML_file_name, line_number);
 		strcpy(this->run_type, run_type);
+		if (words_are_the_same(run_type,RUNTYPE_INITIAL))
+			runtype_mark = RUNTYPE_MARK_INITIAL;
+		else if (words_are_the_same(run_type,RUNTYPE_CONTINUE))
+			runtype_mark = RUNTYPE_MARK_CONTINUE;
+		else if (words_are_the_same(run_type,RUNTYPE_BRANCH))
+			runtype_mark = RUNTYPE_MARK_BRANCH;
+		else runtype_mark = RUNTYPE_MARK_HYBRID;
 		if (words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID)) {
 			const char *rest_refcase = get_XML_attribute(-1, 80, XML_element, "rest_ref_case", XML_file_name, line_number, "the name of the reference case for branch run of hybrid run", "the overall parameters to run the model");
 			strcpy(this->rest_refcase, rest_refcase);
@@ -444,6 +451,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 		sscanf(start_date_string, "%d", &start_date);
 		restart_second = -1;
 		restart_num_elapsed_day = -1;
+		restart_full_time = -1;
 	    start_year = start_date / 10000;
     	start_month = (start_date%10000) / 100;
     	start_day = start_date % 100;
@@ -540,6 +548,7 @@ void Time_mgt::initialize_to_start_time()
 	restarted_step_id = -1;
 	restart_second = -1;
 	restart_num_elapsed_day = -1;
+	restart_full_time = -1;
 }
 
 
@@ -805,6 +814,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 
 	new_time_mgr->restart_second = this->restart_second;
 	new_time_mgr->restart_num_elapsed_day = this->restart_num_elapsed_day;
+	new_time_mgr->restart_full_time = this->restart_full_time;
 	new_time_mgr->restarted_step_id = this->restarted_step_id;
 	new_time_mgr->start_year = this->start_year;
 	new_time_mgr->start_month = this->start_month;
@@ -981,9 +991,12 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	}
     current_num_elapsed_day = calculate_elapsed_day(current_year,current_month,current_day);
 	current_step_id = ((current_num_elapsed_day-start_num_elapsed_day)*SECONDS_PER_DAY+current_second-start_second)/time_step_in_second;
-	restarted_step_id = current_step_id;
-	restart_second = current_second;
-	restart_num_elapsed_day = current_num_elapsed_day;
+	if (words_are_the_same(RUNTYPE_CONTINUE, run_type) || words_are_the_same(RUNTYPE_BRANCH, run_type)) {
+		restart_second = current_second;
+		restart_num_elapsed_day = current_num_elapsed_day;
+		restart_full_time = get_current_full_time(); 
+		restarted_step_id = current_step_id;
+	}
 
 	if ((words_are_the_same(RUNTYPE_CONTINUE, run_type) || words_are_the_same(RUNTYPE_BRANCH, run_type)) && !words_are_the_same(stop_option, "date")) {
 		calculate_stop_time(current_year, current_month, current_day, current_second);

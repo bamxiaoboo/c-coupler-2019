@@ -164,10 +164,10 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
              }
         }
         for (int j = 0; j < num_remote_procs; j ++)
-            send_displs_in_remote_procs[j] += sizeof(long)*2;
+            send_displs_in_remote_procs[j] += sizeof(long)*4;
     }
 
-    recv_displs_in_current_proc[0] = sizeof(long)*2;
+    recv_displs_in_current_proc[0] = sizeof(long)*4;
     for (int i = 1; i < num_remote_procs; i ++)
         recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 2*sizeof(long);
 
@@ -177,12 +177,12 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     for (int j = 0; j < num_remote_procs; j ++) 
         data_buf_size += transfer_size_with_remote_procs[j];
 
-    total_buf_size = data_buf_size + (2*num_remote_procs + 2) * sizeof(long);
+    total_buf_size = data_buf_size + (2*num_remote_procs + 4) * sizeof(long);
     total_buf = (char*) (new long[(total_buf_size+sizeof(long)-1)/sizeof(long)]);
     send_tag_buf = (long *) total_buf;
-    
-    send_tag_buf[0] = -1;
-	send_tag_buf[1] = -1;
+
+	for (int i = 0; i < 4; i ++)
+	    send_tag_buf[i] = -1;
     for (int i = 0; i < num_remote_procs; i ++) {
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[i]);
         for (int j = 0; j < 2; j ++)
@@ -250,6 +250,8 @@ bool Runtime_trans_algorithm::set_local_tags()
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
     send_tag_buf[0] = current_field_local_recv_count;
 	send_tag_buf[1] = ((long)time_mgr->get_current_num_elapsed_day())*100000 + ((long)time_mgr->get_current_second());
+	send_tag_buf[2] = (long) time_mgr->get_runtype_mark();
+	send_tag_buf[3] = time_mgr->get_restart_full_time();
     current_field_local_recv_count ++;
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
 
@@ -274,7 +276,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 			}
             int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
             MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-            MPI_Get(send_tag_buf, sizeof(long)*2, MPI_CHAR, remote_proc_id, 0, sizeof(long)*2, MPI_CHAR, data_win);
+            MPI_Get(send_tag_buf, sizeof(long)*4, MPI_CHAR, remote_proc_id, 0, sizeof(long)*4, MPI_CHAR, data_win);
             MPI_Win_unlock(remote_proc_id, data_win);
 			if (remote_comp_node_updated)
 				remote_comp_node->set_proc_latest_model_time(remote_proc_index, send_tag_buf[1]);
@@ -296,6 +298,15 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Remote buffer component \"%s\" is ready for receiving data: %ld vs %ld vs %ld : %d", remote_comp_full_name, temp_field_remote_recv_count, last_field_remote_recv_count, last_receive_sender_time, bypass_counter);	
 
 	last_field_remote_recv_count ++;
+
+	if (send_tag_buf[2] == RUNTYPE_MARK_INITIAL || send_tag_buf[2] == RUNTYPE_MARK_HYBRID) 
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", remote_comp_full_name, local_comp_node->get_comp_full_name());
+	else {		
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() != RUNTYPE_MARK_BRANCH, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name);
+		if (time_mgr->get_restart_full_time() != -1 && send_tag_buf[3] != -1)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_restart_full_time() == send_tag_buf[3], "The restart time between the two component models \"%s\" and \"%s\" are inconsistent: %ld vs %ld. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name, time_mgr->get_restart_full_time(), send_tag_buf[3]);
+	}
+	
     return true;
 }
 
