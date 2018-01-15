@@ -1163,7 +1163,7 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 		all_coupling_connections[i]->generate_a_coupling_procedure(false);
 	}
 	for (int i = 0; i < num_pushed_comp_node; i ++)
-		comp_comm_group_mgt_mgr->pop_comp_node();
+		delete comp_comm_group_mgt_mgr->pop_comp_node();
 
 	clear();
 
@@ -1195,6 +1195,7 @@ void Coupling_generator::generate_coupling_procedures_internal(int comp_id, bool
 void Coupling_generator::generate_IO_procedures()
 {
 	return;   ////// to be modified
+/*
 	const int *sorted_comp_ids = comp_comm_group_mgt_mgr->get_sorted_comp_ids();
 
 	components_IO_output_procedures_mgr->add_all_components_IO_output_procedures();
@@ -1207,6 +1208,7 @@ void Coupling_generator::generate_IO_procedures()
 	for (int i = 0; i < all_IO_connections.size(); i ++) {
 		all_IO_connections[i]->generate_a_coupling_procedure(false);
 	}
+*/
 }
 
 

@@ -38,7 +38,6 @@ class Comp_comm_group_mgt_node
 {
 	private:
 		int comp_id;
-		int unified_global_id;
 	    char comp_name[NAME_STR_SIZE];                // The name of component	
 	    char full_name[NAME_STR_SIZE];
 		char comp_type[NAME_STR_SIZE];
@@ -73,8 +72,6 @@ class Comp_comm_group_mgt_node
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }
 		int get_comp_id() const { return comp_id; }
-		int get_unified_global_id() const { return unified_global_id;}
-		void set_unified_global_id(int id) { unified_global_id = id; }
 		int get_current_proc_local_id() const { return current_proc_local_id; }
 		void transform_node_into_array();
 		int get_buffer_content_size() { return buffer_content_size; }
@@ -139,7 +136,6 @@ class Comp_comm_group_mgt_mgr
 		char root_comp_config_dir[NAME_STR_SIZE];
 		char CCPL_platform_log_dir[NAME_STR_SIZE];
 		char exe_log_file_name[NAME_STR_SIZE];
-		int *sorted_comp_ids;
 		int unique_comp_id_indx;
 		char *log_buffer;
 		int log_buffer_content_size;
@@ -176,8 +172,6 @@ class Comp_comm_group_mgt_mgr
 		const char *get_coupling_flow_config_dir() { return coupling_flow_config_dir; }
 		void confirm_coupling_configuration_active(int, int, bool, const char*);
 		const int *get_all_components_ids();
-		void generate_sorted_comp_ids();
-		const int *get_sorted_comp_ids() { return sorted_comp_ids; }
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }
 		bool has_comp_ended_configuration(const char*);
 		void push_comp_node(Comp_comm_group_mgt_node *);

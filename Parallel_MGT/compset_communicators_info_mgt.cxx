@@ -167,7 +167,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buf
 	this->parent = parent;
 	temp_array_buffer = NULL;
 	definition_finalized = true;
-	unified_global_id = 0;
 	restart_mgr = new Restart_mgt(comp_id);
 
 	read_data_from_array_buffer(&num_children, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
@@ -203,7 +202,6 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->buffer_max_size = 1024;
 	this->temp_array_buffer = new char [buffer_max_size];
 	this->definition_finalized = false;	
-	this->unified_global_id = 0;
 	this->proc_latest_model_time = NULL;
 	this->enabled_in_parent_coupling_generation = enabled_in_parent_coupling_gen;
 	this->log_buffer = NULL;
@@ -776,8 +774,6 @@ Comp_comm_group_mgt_mgr::~Comp_comm_group_mgt_mgr()
 
 	for (int i = 0; i < root_comps_full_names.size(); i ++)
 		delete root_comps_full_names[i];
-
-	delete [] sorted_comp_ids;
 }
 
 
@@ -882,30 +878,6 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
 	return new_comp->get_local_node_id();
-}
-
-
-void Comp_comm_group_mgt_mgr::generate_sorted_comp_ids()
-{
-	int i, j, k;
-	
-	sorted_comp_ids = new int [global_node_array.size()];
-	sorted_comp_ids[0] = global_node_array.size();
-	for (i = 1; i < global_node_array.size(); i ++)
-		sorted_comp_ids[i] = -1;
-	for (i = 1; i < global_node_array.size(); i ++) {
-		for (k = 0, j = 1; j < global_node_array.size(); j ++) {
-			if (i == j)
-				continue;
-			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(global_node_array[i]->get_full_name(), global_node_array[j]->get_full_name()), "in Comp_comm_group_mgt_mgr::generate_sorted_comp_ids");
-			if (strcmp(global_node_array[i]->get_full_name(), global_node_array[j]->get_full_name()) > 0)
-				k ++;
-		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, sorted_comp_ids[k+1] == -1, "in Comp_comm_group_mgt_mgr::generate_sorted_comp_ids");		
-		sorted_comp_ids[k+1] = global_node_array[i]->get_comp_id();
-	}
-	for (i = 1; i < global_node_array.size(); i ++)
-		get_global_node_of_local_comp(sorted_comp_ids[i], "")->set_unified_global_id(i);
 }
 
 
