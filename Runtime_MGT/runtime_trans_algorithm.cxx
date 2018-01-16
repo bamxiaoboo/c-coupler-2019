@@ -179,7 +179,8 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 
     total_buf_size = data_buf_size + (2*num_remote_procs + 4) * sizeof(long);
     total_buf = (char*) (new long[(total_buf_size+sizeof(long)-1)/sizeof(long)]);
-    send_tag_buf = (long *) total_buf;
+    send_tag_buf = (long *) total_buf;	
+	temp_receive_data_buffer = (char*)(new long [(data_buf_size+sizeof(long)-1)/sizeof(long)]);
 
 	for (int i = 0; i < 4; i ++)
 	    send_tag_buf[i] = -1;
@@ -231,10 +232,7 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] send_displs_in_remote_procs;
     delete [] recv_displs_in_current_proc;
     delete [] remote_proc_ranks_in_union_comm;
-
-    for (int i = 0; i < history_receive_sender_time.size(); i ++) {
-        delete [] history_receive_data_buffer[i];
-    }
+    delete [] temp_receive_data_buffer;
 }
 
 
@@ -359,26 +357,22 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         std::vector<bool> temp_history_receive_buffer_status;
         std::vector<long> temp_history_receive_sender_time;
         std::vector<long> temp_history_receive_usage_time;
-        std::vector<void*> temp_history_receive_data_buffer;
 		std::vector<std::vector<Field_mem_info *> > temp_history_receive_fields_mem;
         for (int i = 0; i < history_receive_fields_mem.size(); i ++) {
             int index_iter = (last_history_receive_buffer_index+i) % history_receive_fields_mem.size();
             temp_history_receive_buffer_status.push_back(history_receive_buffer_status[index_iter]);
             temp_history_receive_sender_time.push_back(history_receive_sender_time[index_iter]);
             temp_history_receive_usage_time.push_back(history_receive_usage_time[index_iter]);
-            temp_history_receive_data_buffer.push_back(history_receive_data_buffer[index_iter]);
 			temp_history_receive_fields_mem.push_back(history_receive_fields_mem[index_iter]);
         }
         history_receive_buffer_status.clear();
         history_receive_sender_time.clear();
         history_receive_usage_time.clear();
-        history_receive_data_buffer.clear();
 		history_receive_fields_mem.clear();
         for (int i = 0; i < temp_history_receive_fields_mem.size(); i ++) {
             history_receive_buffer_status.push_back(temp_history_receive_buffer_status[i]);
             history_receive_sender_time.push_back(temp_history_receive_sender_time[i]);
             history_receive_usage_time.push_back(temp_history_receive_usage_time[i]);
-            history_receive_data_buffer.push_back(temp_history_receive_data_buffer[i]);            
 			history_receive_fields_mem.push_back(temp_history_receive_fields_mem[i]);
         }
         last_history_receive_buffer_index = 0;
@@ -386,7 +380,6 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         history_receive_buffer_status.push_back(false);
         history_receive_sender_time.push_back(-1);
         history_receive_usage_time.push_back(-1);
-        history_receive_data_buffer.push_back(new long [(data_buf_size+sizeof(long)-1)/sizeof(long)]);
 		std::vector<Field_mem_info *> new_receive_fields_mem;
 		for (int i = 0; i < num_transfered_fields; i ++) {
 			new_receive_fields_mem.push_back(memory_manager->alloc_mem(fields_mem[i], BUF_MARK_DATA_TRANSFER, history_receive_fields_mem.size(), fields_mem[i]->get_data_type(), false));
@@ -402,14 +395,13 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
     last_receive_field_sender_time = current_receive_field_sender_time;
 
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
-    //memcpy(history_receive_data_buffer[empty_history_receive_buffer_index], data_buf, data_buf_size);
     int offset = 0;
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
 			continue;
         data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*sizeof(long));
-        memcpy((char *)history_receive_data_buffer[empty_history_receive_buffer_index]+offset, data_buf, transfer_size_with_remote_procs[remote_proc_index]);
+        memcpy(temp_receive_data_buffer+offset, data_buf, transfer_size_with_remote_procs[remote_proc_index]);
         offset += transfer_size_with_remote_procs[remote_proc_index];
     }    
     MPI_Win_unlock(current_proc_id_union_comm, data_win);    
@@ -422,10 +414,10 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 		//int offset = recv_displs_in_current_proc[i];
 		for (int j = 0; j < num_transfered_fields; j ++) {
 			if (fields_routers[j]->get_num_dimensions() == 0) {
-				memcpy(history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), (char *) history_receive_data_buffer[empty_history_receive_buffer_index] + offset, fields_data_type_sizes[j]);
+				memcpy(history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), temp_receive_data_buffer + offset, fields_data_type_sizes[j]);
 				offset += fields_data_type_sizes[j];
 			}
-			else unpack_MD_data(history_receive_data_buffer[empty_history_receive_buffer_index], i, j, history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), &offset);
+			else unpack_MD_data(temp_receive_data_buffer, i, j, history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), &offset);
 		}	
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
 	}
@@ -535,38 +527,15 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld", remote_comp_full_name, current_remote_fields_time);
 
     if (index_remote_procs_with_common_data.size() > 0) {
-
         preprocess();
-
         while (!received_data_ready) {
             receive_data_in_temp_buffer();
             received_data_ready = last_history_receive_buffer_index != -1 && history_receive_buffer_status[last_history_receive_buffer_index];
             if (!received_data_ready)
                 inout_interface_mgr->runtime_receive_algorithms_receive_data();
         }
-
-        int offset = 0;
-        for (int i = 0; i < num_remote_procs; i ++) {
-            if (transfer_size_with_remote_procs[i] == 0) 
-                continue;
-            int old_offset = offset;
-            //int offset = recv_displs_in_current_proc[i];
-            for (int j = 0; j < num_transfered_fields; j ++) {
-                if (fields_routers[j]->get_num_dimensions() == 0) {
-                    memcpy(fields_data_buffers[j], (char *) history_receive_data_buffer[last_history_receive_buffer_index] + offset, fields_data_type_sizes[j]);
-                    offset += fields_data_type_sizes[j];
-                }
-                else unpack_MD_data(history_receive_data_buffer[last_history_receive_buffer_index], i, j, fields_mem[j]->get_data_buf(), &offset);
-                fields_mem[j]->define_field_values(false);
-            }
-
-            EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
-            //EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - recv_displs_in_current_proc[i] == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
-        }
-		for (int j = 0; j < num_transfered_fields; j ++) {
-			for (int k = 0; k < fields_mem[j]->get_size_of_field()*get_data_type_size(fields_mem[j]->get_data_type()); k ++)
-				EXECUTION_REPORT(REPORT_ERROR, -1, ((char*)fields_mem[j]->get_data_buf())[k] == ((char*)history_receive_fields_mem[last_history_receive_buffer_index][j]->get_data_buf())[k], "%d %d: ", j, k);
-		}
+		for (int j = 0; j < num_transfered_fields; j ++)
+			memcpy(fields_mem[j]->get_data_buf(), history_receive_fields_mem[last_history_receive_buffer_index][j]->get_data_buf(), fields_mem[j]->get_size_of_field()*get_data_type_size(fields_mem[j]->get_data_type()));
     }
 
 	if (index_remote_procs_with_common_data.size() > 0)

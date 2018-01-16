@@ -58,7 +58,7 @@ class Runtime_trans_algorithm
         std::vector<bool> history_receive_buffer_status;
         std::vector<long> history_receive_sender_time;
         std::vector<long> history_receive_usage_time;
-        std::vector<void*> history_receive_data_buffer;
+        char *temp_receive_data_buffer;
 		std::vector<std::vector<Field_mem_info *> > history_receive_fields_mem;
         long last_receive_sender_time;
         int last_history_receive_buffer_index;
