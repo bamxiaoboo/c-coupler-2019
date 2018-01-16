@@ -59,6 +59,7 @@ class Runtime_trans_algorithm
         std::vector<long> history_receive_sender_time;
         std::vector<long> history_receive_usage_time;
         std::vector<void*> history_receive_data_buffer;
+		std::vector<std::vector<Field_mem_info *> > history_receive_fields_mem;
         long last_receive_sender_time;
         int last_history_receive_buffer_index;
         Comp_comm_group_mgt_node * local_comp_node;
@@ -85,7 +86,7 @@ class Runtime_trans_algorithm
         bool set_local_tags();
         void preprocess();
         void pack_MD_data(int, int, int *);
-        void unpack_MD_data(void *, int, int, int *);
+        void unpack_MD_data(void *, int, int, void*, int *);
         template <class T> void pack_segment_data(T *, T *, int, int, int, int, bool);
         template <class T> void unpack_segment_data(T *, T *, int, int, int, int, bool);
 
