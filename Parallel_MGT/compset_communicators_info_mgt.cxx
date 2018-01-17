@@ -346,7 +346,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 		TiXmlElement *root_element = new TiXmlElement("Component");
 		XML_file->LinkEndChild(root_element);
 		write_node_into_XML(root_element);
-		XML_file->SaveFile(XML_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file->SaveFile(XML_file_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: fail to write the XML file %s", XML_file_name);
 		delete XML_file;
 	}
 
@@ -725,6 +725,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	create_directory(components_processes_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(components_exports_dir, "%s/CCPL_dir/run/data/all/components_exports", root_working_dir);
 	create_directory(components_exports_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	sprintf(active_coupling_connections_dir, "%s/CCPL_dir/run/data/all/active_coupling_connections", root_working_dir);
+	create_directory(active_coupling_connections_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);	
 	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/data/all/comps_ending_config_status", root_working_dir);
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);

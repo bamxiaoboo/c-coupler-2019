@@ -95,6 +95,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 	
 	this->inout_interface = inout_interface;
 	this->coupling_connection = coupling_connection; 
+	coupling_connections_dumped = false;
 
 	for (int i = 0; i < coupling_connection->fields_name.size(); i ++)
 		for (int j=i+1; j < coupling_connection->fields_name.size(); j ++)
@@ -1093,6 +1094,94 @@ int Inout_interface::check_is_import_field_connected(int field_instance_id, cons
 }
 
 
+void Inout_interface::dump_active_coupling_connections_into_XML(TiXmlElement *root_element)
+{
+	TiXmlElement *parent_element = NULL;
+    TiXmlElement *interface = NULL;
+	
+    for (TiXmlNode *child = root_element->FirstChild(); child != NULL; child = child->NextSibling())
+    	if(import_or_export_or_remap == 0 && words_are_the_same(child->Value(), "import_interfaces") || import_or_export_or_remap == 1 && words_are_the_same(child->Value(), "export_interfaces")) {
+    		parent_element = child->ToElement();
+    		break;
+    	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, parent_element != NULL, "Software error Inout_interface::dump_active_coupling_connections_into_XML");
+	
+    for (TiXmlNode *child = parent_element->FirstChild(); child != NULL; child = child->NextSibling()) {
+        TiXmlElement *temp = child->ToElement();
+        if(words_are_the_same(temp->Attribute("interface_name"), interface_name)) {
+            interface = child->ToElement();
+            break;
+        }
+    }
+	
+    if (interface == NULL) {
+	    interface = new TiXmlElement("interface");
+	    parent_element->LinkEndChild(interface);
+	    interface->SetAttribute("interface_name", interface_name);
+	}
+    for (int i = 0; i < coupling_procedures.size(); i++) {
+    	if (coupling_procedures[i]->get_coupling_connections_dumped())
+    		continue;
+    	Coupling_connection *coupling_connection = coupling_procedures[i]->get_coupling_connection();
+    	TiXmlElement *fields = new TiXmlElement("fields");
+    	interface->LinkEndChild(fields);
+    	if (import_or_export_or_remap == 0){
+    		fields->SetAttribute("comp_full_name",coupling_connection->src_comp_interfaces[0].first);
+    		fields->SetAttribute("interface_name",coupling_connection->src_comp_interfaces[0].second);
+    	}
+    	if (import_or_export_or_remap == 1){
+    		fields->SetAttribute("comp_full_name",coupling_connection->dst_comp_full_name);
+    		fields->SetAttribute("interface_name",coupling_connection->dst_interface_name);
+    	}
+    	for (int j = 0; j < coupling_connection->fields_name.size(); j++) {
+    		TiXmlElement *field = new TiXmlElement("field");
+    		fields->LinkEndChild(field);
+    		field->SetAttribute("name",coupling_connection->fields_name[j]);
+    	}
+    	coupling_procedures[i]->set_coupling_connections_dumped();
+    }
+}
+
+
+void Inout_interface::dump_active_coupling_connections()
+{
+	char XML_file_name[NAME_STR_SIZE];
+    TiXmlElement *root_element;
+	TiXmlDocument *XML_file;
+	int i;
+
+
+	if (import_or_export_or_remap != 0 && import_or_export_or_remap != 1 || comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_current_proc_local_id() != 0)
+		return;
+
+	for(i = 0; i < coupling_procedures.size(); i ++)
+		if(!coupling_procedures[i]->get_coupling_connections_dumped())
+			break;
+	if (i == coupling_procedures.size())
+		return;
+
+	sprintf(XML_file_name, "%s/%s.active_coupling_connections.xml", comp_comm_group_mgt_mgr->get_active_coupling_connections_dir(), comp_full_name);
+	XML_file = new TiXmlDocument(XML_file_name);
+	if (!XML_file->LoadFile()) {
+		delete XML_file;
+	    XML_file = new TiXmlDocument;
+	    TiXmlDeclaration *XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
+	    XML_file->LinkEndChild(XML_declaration);
+	    root_element = new TiXmlElement("Component");
+	    XML_file->LinkEndChild(root_element);
+	    root_element->SetAttribute("name", comp_full_name);
+    	TiXmlElement *import_interfaces = new TiXmlElement("import_interfaces");
+    	TiXmlElement *export_interfaces = new TiXmlElement("export_interfaces");
+    	root_element->LinkEndChild(import_interfaces);
+    	root_element->LinkEndChild(export_interfaces);
+	}
+	else root_element = XML_file->RootElement();
+	dump_active_coupling_connections_into_XML(root_element);
+	EXECUTION_REPORT(REPORT_ERROR, -1, XML_file->SaveFile(XML_file_name), "software error in Inout_interface_mgt::dump_active_coupling_connections: fail to write the XML file %s", XML_file_name);
+	delete XML_file;
+}
+
+
 Inout_interface_mgt::Inout_interface_mgt(const char *temp_array_buffer, long buffer_content_iter)
 {
 	while (buffer_content_iter > 0)
@@ -1285,6 +1374,8 @@ void Inout_interface_mgt::execute_interface(int interface_id, int API_id, bool b
 	inout_interface->execute(bypass_timer, API_id, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
+
+	inout_interface->dump_active_coupling_connections();
 }
 
 
@@ -1301,6 +1392,8 @@ void Inout_interface_mgt::execute_interface(int comp_id, int API_id, const char 
 	inout_interface->execute(bypass_timer, API_id, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Finishing executing interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);
+
+	inout_interface->dump_active_coupling_connections();
 }
 
 
@@ -1377,7 +1470,7 @@ void Inout_interface_mgt::write_comp_export_info_into_XML_file(int comp_id)
 			if (interfaces[i]->get_import_or_export_or_remap() == 1 && interfaces[i]->get_comp_id() == comp_id)
 				interfaces[i]->write_export_info_into_XML_file(root_element);
 			sprintf(XML_file_name, "%s/%s.exports_info.xml", comp_comm_group_mgt_mgr->get_components_exports_dir(), comp_node->get_full_name());
-			XML_file->SaveFile(XML_file_name);
+			EXECUTION_REPORT(REPORT_ERROR, -1, XML_file->SaveFile(XML_file_name), "Software error in Inout_interface_mgt::write_comp_export_info_into_XML_file: fail to write the XML file %s", XML_file_name);
 			delete XML_file;	
 	}
 	MPI_Barrier(comp_node->get_comm_group());
@@ -1452,4 +1545,3 @@ int Inout_interface_mgt::get_h2d_grid_area_in_remapping_weights(int interface_id
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, inout_interface != NULL, "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\": the parameter of interface ID is wrong. Please verify the model code with the annotation \"%s\"", annotation);
 	return inout_interface->get_h2d_grid_area_in_remapping_weights(inout_interface->get_interface_name(), field_index, output_area_data, area_array_size, data_type, annotation);
 }
-

@@ -130,6 +130,7 @@ class Comp_comm_group_mgt_mgr
 		char internal_H2D_grids_dir[NAME_STR_SIZE];
 		char components_processes_dir[NAME_STR_SIZE];
 		char components_exports_dir[NAME_STR_SIZE];
+		char active_coupling_connections_dir[NAME_STR_SIZE];
 		char comps_ending_config_status_dir[NAME_STR_SIZE];
 		char runtime_config_root_dir[NAME_STR_SIZE];
 		char coupling_flow_config_dir[NAME_STR_SIZE];
@@ -165,6 +166,7 @@ class Comp_comm_group_mgt_mgr
 		const char *get_internal_H2D_grids_dir() { return internal_H2D_grids_dir; }
 		const char *get_components_processes_dir() { return components_processes_dir; }
 		const char *get_components_exports_dir() { return components_exports_dir; }
+		const char *get_active_coupling_connections_dir() { return active_coupling_connections_dir; }
 		const char *get_comps_ending_config_status_dir() { return comps_ending_config_status_dir; }
 		const char *get_config_root_dir() { return runtime_config_root_dir; }	
 		const char *get_root_comp_config_dir() const { return root_comp_config_dir; }

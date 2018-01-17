@@ -86,6 +86,7 @@ class Connection_coupling_procedure
 		Runtime_trans_algorithm *runtime_data_transfer_algorithm;
 		bool finish_status;
 		bool transfer_data;
+		bool coupling_connections_dumped;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
@@ -100,6 +101,9 @@ class Connection_coupling_procedure
 		bool get_finish_status() { return finish_status; }
 		void write_into_array_for_restart(char**, long&, long&);
 		void import_restart_data(const char *, long &, const char *);
+		Coupling_connection* get_coupling_connection(){return coupling_connection;}
+		bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
+		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
 };
 
 
@@ -163,6 +167,8 @@ class Inout_interface
 		int get_h2d_grid_area_in_remapping_weights(const char *, int, void *, int, const char *, const char *);
 		void set_fields_necessity(int*, int, const char *);
 		int check_is_import_field_connected(int, const char *);
+		void dump_active_coupling_connections();
+		void dump_active_coupling_connections_into_XML(TiXmlElement *);
 };
 
 
