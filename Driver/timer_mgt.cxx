@@ -845,6 +845,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->stop_num_elapsed_day = this->stop_num_elapsed_day;
 	new_time_mgr->advance_time_synchronized = false;
 	new_time_mgr->stop_n = this->stop_n;
+	new_time_mgr->runtype_mark = this->runtype_mark;
 	strcpy(new_time_mgr->case_name, this->case_name);
 	strcpy(new_time_mgr->exp_model_name, this->exp_model_name);
 	strcpy(new_time_mgr->case_desc, this->case_desc);

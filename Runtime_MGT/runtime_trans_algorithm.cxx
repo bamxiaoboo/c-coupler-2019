@@ -297,12 +297,14 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 
 	last_field_remote_recv_count ++;
 
-	if (send_tag_buf[2] == RUNTYPE_MARK_INITIAL || send_tag_buf[2] == RUNTYPE_MARK_HYBRID) 
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", remote_comp_full_name, local_comp_node->get_comp_full_name());
-	else {		
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() != RUNTYPE_MARK_BRANCH, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name);
-		if (time_mgr->get_restart_full_time() != -1 && send_tag_buf[3] != -1)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_restart_full_time() == send_tag_buf[3], "The restart time between the two component models \"%s\" and \"%s\" are inconsistent: %ld vs %ld. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name, time_mgr->get_restart_full_time(), send_tag_buf[3]);
+	if (send_tag_buf[2] != -1) {
+		if (send_tag_buf[2] == RUNTYPE_MARK_INITIAL || send_tag_buf[2] == RUNTYPE_MARK_HYBRID) 
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", remote_comp_full_name, local_comp_node->get_comp_full_name());
+		else {		
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() != RUNTYPE_MARK_BRANCH, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name);
+			if (time_mgr->get_restart_full_time() != -1 && send_tag_buf[3] != -1)
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_restart_full_time() == send_tag_buf[3], "The restart time between the two component models \"%s\" and \"%s\" are inconsistent: %ld vs %ld. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name, time_mgr->get_restart_full_time(), send_tag_buf[3]);
+		}
 	}
 	
     return true;
