@@ -67,7 +67,6 @@ class Comp_comm_group_mgt_node
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, bool, const char*);
-		Comp_comm_group_mgt_node(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node*, int &);
 		Comp_comm_group_mgt_node(TiXmlElement *, const char *, const char *);
 		~Comp_comm_group_mgt_node();
 		MPI_Comm get_comm_group() const { return comm_group; }

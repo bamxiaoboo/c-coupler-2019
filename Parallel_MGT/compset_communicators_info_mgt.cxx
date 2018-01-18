@@ -130,51 +130,6 @@ Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 }
 
 
-Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(Comp_comm_group_mgt_node *buffer_node, Comp_comm_group_mgt_node *parent, int &global_node_id)
-{	
-	int num_procs, *proc_id, num_children;
-
-
-	int old_iter = buffer_content_iter;
-	read_data_from_array_buffer(annotation_end, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(annotation_start, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(working_dir, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(comp_ccpl_log_file_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(comp_model_log_file_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(full_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(comp_name, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(comp_type, NAME_STR_SIZE, buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(&comm_group, sizeof(MPI_Comm), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(&enabled_in_parent_coupling_generation, sizeof(bool), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	read_data_from_array_buffer(&num_procs, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(MPI_COMM_WORLD, &current_proc_global_id) == MPI_SUCCESS);
-	proc_id = new int [num_procs];
-	for (int i = 0; i < num_procs; i ++)
-		read_data_from_array_buffer(&proc_id[num_procs-1-i], sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	for (int i = 0; i < num_procs; i ++)
-		local_processes_global_ids.push_back(proc_id[i]);
-	this->comp_id = -1;
-	this->comm_group = -1;
-	this->current_proc_local_id = -1;
-	this->min_remote_lag_seconds = 0;
-	this->working_dir[0] = '\0';
-	this->comp_ccpl_log_file_name[0] = '\0';
-	this->comp_model_log_file_name[0] = '\0';
-	this->comp_model_log_file_device = -1;
-	this->proc_latest_model_time = NULL;
-	this->log_buffer = NULL;
-	global_node_id ++;
-	this->parent = parent;
-	temp_array_buffer = NULL;
-	definition_finalized = true;
-	restart_mgr = new Restart_mgt(comp_id);
-
-	read_data_from_array_buffer(&num_children, sizeof(int), buffer_node->temp_array_buffer, buffer_node->buffer_content_iter, true);
-	for (int i = 0; i < num_children; i ++)
-		children.push_back(new Comp_comm_group_mgt_node(buffer_node, this, global_node_id));
-}
-
-
 Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const char *comp_type, int comp_id, Comp_comm_group_mgt_node *parent, MPI_Comm &comm, bool enabled_in_parent_coupling_gen, const char *annotation)
 {
 	std::vector<char*> unique_comp_name;
