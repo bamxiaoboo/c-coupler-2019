@@ -104,9 +104,9 @@ void Runtime_cumulate_average_algorithm::cumulate_or_average(bool do_average)
 }
 
 
-bool Runtime_cumulate_average_algorithm::run(bool is_algorithm_in_kernel_stage)
+bool Runtime_cumulate_average_algorithm::run(bool do_average)
 {
-    cumulate_or_average(is_algorithm_in_kernel_stage);
+    cumulate_or_average(do_average);
 	
 	return true;
 }

@@ -128,19 +128,22 @@ void Restart_mgt::do_restart_read(const char *specified_file_name, const char *a
 
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	
-	if (words_are_the_same(time_mgr->get_run_type(), RUNTYPE_INITIAL)) {
+	if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)) {
 		EXECUTION_REPORT(REPORT_PROGRESS, comp_id, true, "C-Coupler does not read the restart data file because it is a initial run (the run_type is initial)");
 		return;
 	}
 	
 	if (strlen(specified_file_name) == 0) {
-		if (words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE))
+		if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE))
 			get_file_name_in_rpointer_file(restart_file_short_name);
 		else sprintf(restart_file_short_name, "%s.%s.r.%08d-%05d", time_mgr->get_rest_refcase(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_comp_full_name(), time_mgr->get_rest_refdate(), time_mgr->get_rest_refsecond());
 	}
 	else strcpy(restart_file_short_name, specified_file_name);
 	sprintf(restart_file_full_name, "%s/%s", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_working_dir(), restart_file_short_name);
-	do_restart_read(words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) || words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH), restart_file_full_name, annotation);
+
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, !time_mgr->get_time_has_been_advanced(), "Error happens when reading the restart file \"%s\": cannot advance the model time before reading the restart file. Please check the model code with the annotation \"%s\"", restart_file_full_name, annotation);
+	do_restart_read((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH), restart_file_full_name, annotation);
 }
 
 
@@ -168,7 +171,7 @@ void Restart_mgt::do_restart_read(bool check_existing_data, const char *file_nam
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
 	}
 
-	if (words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) || words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) {
+	if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
 		Restart_buffer_container *time_mgr_restart_buffer = search_then_bcast_buffer_container(RESTART_BUF_TYPE_TIME, "local time manager", local_proc_id);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr_restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
 		long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();

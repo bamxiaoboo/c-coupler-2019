@@ -210,18 +210,18 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
     
     if (src_grid_changed || dst_grid_changed) {
 		if (runtime_remap_operator->get_src_grid()->get_is_sphere_grid() && H2D_remapping_wgt_file != NULL) {
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "should use remap weight file \"%s\" for operator from grid %s to grid %s\n", H2D_remapping_wgt_file, runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
 			H2D_remapping_wgt_file_info *wgt_file_info = all_H2D_remapping_wgt_files_info->search_wgt_file_info(H2D_remapping_wgt_file);
 			EXECUTION_REPORT(REPORT_ERROR, -1, wgt_file_info != NULL, "Software error in Runtime_remap_function::calculate_static_remapping_weights: empty wgt_matrix");
 	        Remap_weight_sparse_matrix *wgt_matrix = new Remap_weight_sparse_matrix(runtime_remap_operator, wgt_file_info->get_num_wgts(), wgt_file_info->get_wgts_src_indexes(), wgt_file_info->get_wgts_dst_indexes(), wgt_file_info->get_wgts_values(), 0, NULL);
 			runtime_remap_operator->update_unique_weight_sparse_matrix(wgt_matrix);
-			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "should use remap weight file \"%s\" for operator from grid %s to grid %s\n", H2D_remapping_wgt_file, runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
 		}
 		else {
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "should generate remap weight file for operator from grid \"%s\" to grid \"%s\" for interpolation from grid \"%s\" to grid \"%s\"\n", runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name(), interchanged_grid_src->get_grid_name(), interchanged_grid_dst->get_grid_name());
 			if (src_grid_changed)
 				runtime_remap_operator_grid_src->update_operator_grid_data();
 			if (dst_grid_changed)
 				runtime_remap_operator_grid_dst->update_operator_grid_data();
-			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "should generate remap weight file for operator from grid %s to grid %s\n", runtime_remap_operator->get_src_grid()->get_grid_name(), runtime_remap_operator->get_dst_grid()->get_grid_name());
 			runtime_remap_operator->calculate_remap_weights();
 		}
         last_remapping_time_iter = current_remapping_time_iter;
