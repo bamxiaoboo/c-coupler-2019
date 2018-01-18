@@ -44,24 +44,29 @@ class Restart_mgt
 {
 	private:
 		long last_timer_on_full_time;
-		std::vector<Restart_buffer_container*> restart_buffer_containers;
+		std::vector<Restart_buffer_container*> restart_write_buffer_containers;
+		std::vector<Restart_buffer_container*> restart_read_buffer_containers;
 		int comp_id;
 		Time_mgt *time_mgr;
+		char *input_restart_mgt_info_file;
+		char *restart_read_annotation;
 
 	public:
 		Restart_mgt(int);
 		~Restart_mgt();
-		void clean();
+		void clean(bool);
 		void do_restart_write(const char *, bool);
 		void write_into_file();
 		void do_restart_read(bool, const char *, const char *);
 		void do_restart_read(const char *, const char *);
 		void reset_comp_id(int comp_id) { this->comp_id = comp_id; }
 		void bcast_buffer_container(Restart_buffer_container **, int);
-		Restart_buffer_container *search_then_bcast_buffer_container(const char *, const char *, int);
+		Restart_buffer_container *search_then_bcast_buffer_container(const char *, const char *);
 		Restart_buffer_container *search_restart_buffer(const char *, const char*);
 		int get_comp_id() { return comp_id; }
 		void get_file_name_in_rpointer_file(char *);
+		const char *get_input_restart_mgt_info_file();
+		const char *get_restart_read_annotation();
 };
 
 

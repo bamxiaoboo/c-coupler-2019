@@ -488,6 +488,8 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	this->timer->reset_remote_lag_count();
 	children_interfaces[0]->timer->reset_remote_lag_count();
 	children_interfaces[1]->timer->reset_remote_lag_count();
+	children_interfaces[0]->is_child_interface = true;
+	children_interfaces[1]->is_child_interface = true;
 
 	bool same_field_name = true;
 	for (int i = 0; i < num_fields; i ++)
@@ -515,6 +517,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	this->import_or_export_or_remap = import_or_export_or_remap;
 	this->execution_checking_status = 0;
 	this->last_execution_time = -1;
+	this->is_child_interface = false;
 	Coupling_timer *existing_timer = timer_mgr->get_timer(timer_id);
 	this->timer = new Coupling_timer(existing_timer->get_comp_id(), -1, existing_timer);
 	timer_mgr->add_timer(this->timer);
@@ -527,6 +530,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	this->bypass_counter = 0;
+	this->mgt_info_has_been_restarted = false;
 }
 
 
@@ -850,6 +854,11 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size())-1; i ++)
 			field_update_status[i] = 0;
 	}
+
+	if (!is_child_interface && !bypass_timer && !mgt_info_has_been_restarted && (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
+		import_restart_data();
+		mgt_info_has_been_restarted = true;
+	}
 	
 	if (bypass_timer)
 		bypass_counter ++;
@@ -1161,9 +1170,8 @@ void Inout_interface::dump_active_coupling_connections()
 		return;
 
 	sprintf(XML_file_name, "%s/%s.active_coupling_connections.xml", comp_comm_group_mgt_mgr->get_active_coupling_connections_dir(), comp_full_name);
-	XML_file = new TiXmlDocument(XML_file_name);
-	if (!XML_file->LoadFile()) {
-		delete XML_file;
+	XML_file = open_XML_file_to_read(comp_id, XML_file_name, MPI_COMM_NULL, false);
+	if (XML_file == NULL) {
 	    XML_file = new TiXmlDocument;
 	    TiXmlDeclaration *XML_declaration = new TiXmlDeclaration(("1.0"),(""),(""));
 	    XML_file->LinkEndChild(XML_declaration);
@@ -1440,11 +1448,22 @@ void Inout_interface_mgt::write_into_restart_buffers(std::vector<Restart_buffer_
 }
 
 
+void Inout_interface::import_restart_data()
+{
+	return;
+	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
+	Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interface_name); 
+	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
+	long buffer_size = restart_buffer->get_buffer_content_iter();
+	import_restart_data(restart_buffer->get_buffer_content(), buffer_size, restart_mgr->get_input_restart_mgt_info_file());
+}
+
+
 void Inout_interface_mgt::import_restart_data(Restart_mgt *restart_mgr, const char *file_name, int local_proc_id, const char *annotation)
 {
 	for (int i = 0; i < interfaces.size(); i ++)
 		if (interfaces[i]->get_comp_id() == restart_mgr->get_comp_id()) {
-			Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name(), local_proc_id);			
+			Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name());			
 			EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", file_name, annotation, interfaces[i]->get_interface_name());			
 			long buffer_size = restart_buffer->get_buffer_content_iter();
 			interfaces[i]->import_restart_data(restart_buffer->get_buffer_content(), buffer_size, file_name);

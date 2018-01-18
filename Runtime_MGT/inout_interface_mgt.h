@@ -130,6 +130,8 @@ class Inout_interface
 		char *inversed_dst_fraction;
 		long bypass_counter;
 		int num_fields_connected;
+		bool mgt_info_has_been_restarted;
+		bool is_child_interface;
 
 	public:
 		Inout_interface(const char*, long&);
@@ -169,6 +171,7 @@ class Inout_interface
 		int check_is_import_field_connected(int, const char *);
 		void dump_active_coupling_connections();
 		void dump_active_coupling_connections_into_XML(TiXmlElement *);
+		void import_restart_data();
 };
 
 

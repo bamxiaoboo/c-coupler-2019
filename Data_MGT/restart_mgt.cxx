@@ -58,20 +58,34 @@ Restart_mgt::Restart_mgt(int comp_id)
 { 
 	this->comp_id = comp_id; 
 	last_timer_on_full_time = -1;
+	input_restart_mgt_info_file = NULL;
+	restart_read_annotation = NULL;
 }
 
 
 Restart_mgt::~Restart_mgt()
 {
-	clean();
+	clean(true);
+	clean(false);
+	if (input_restart_mgt_info_file != NULL)
+		delete [] input_restart_mgt_info_file;
+	if (restart_read_annotation != NULL)
+		delete [] restart_read_annotation;
 }
 
 
-void Restart_mgt::clean()
+void Restart_mgt::clean(bool is_write_buffers)
 {
-	for (int i = 0; i < restart_buffer_containers.size(); i ++)
-		delete restart_buffer_containers[i];
-	restart_buffer_containers.clear();
+	if (is_write_buffers) {
+		for (int i = 0; i < restart_write_buffer_containers.size(); i ++)
+			delete restart_write_buffer_containers[i];
+		restart_write_buffer_containers.clear();
+	}
+	else {
+		for (int i = 0; i < restart_read_buffer_containers.size(); i ++)
+			delete restart_read_buffer_containers[i];
+		restart_read_buffer_containers.clear();		
+	}
 }
 
 
@@ -96,17 +110,19 @@ void Restart_mgt::bcast_buffer_container(Restart_buffer_container **buffer_conta
 
 Restart_buffer_container *Restart_mgt::search_restart_buffer(const char *buf_type, const char *keyword)
 {
-	for (int i = 0; i < restart_buffer_containers.size(); i ++)
-		if (restart_buffer_containers[i]->match(buf_type, keyword))
-			return restart_buffer_containers[i];
+	for (int i = 0; i < restart_read_buffer_containers.size(); i ++)
+		if (restart_read_buffer_containers[i]->match(buf_type, keyword))
+			return restart_read_buffer_containers[i];
 
 	return NULL;
 }
 
 
-Restart_buffer_container *Restart_mgt::search_then_bcast_buffer_container(const char *buf_type, const char *keyword, int local_proc_id)
+Restart_buffer_container *Restart_mgt::search_then_bcast_buffer_container(const char *buf_type, const char *keyword)
 {
+	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in Restart_mgt::do_restart");
 	Restart_buffer_container *restart_buffer = NULL;
+	
 
 	if (local_proc_id == 0) {
 		restart_buffer = search_restart_buffer(buf_type, keyword);
@@ -115,7 +131,7 @@ Restart_buffer_container *Restart_mgt::search_then_bcast_buffer_container(const 
 	}
 	bcast_buffer_container(&restart_buffer, local_proc_id);
 	if (local_proc_id != 0)
-		restart_buffer_containers.push_back(restart_buffer);
+		restart_read_buffer_containers.push_back(restart_buffer);
 
 	return restart_buffer;
 }
@@ -124,7 +140,7 @@ Restart_buffer_container *Restart_mgt::search_then_bcast_buffer_container(const 
 void Restart_mgt::do_restart_read(const char *specified_file_name, const char *annotation)
 {
 	char restart_file_full_name[NAME_STR_SIZE], restart_file_short_name[NAME_STR_SIZE];
-	
+			
 
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	
@@ -140,6 +156,10 @@ void Restart_mgt::do_restart_read(const char *specified_file_name, const char *a
 	}
 	else strcpy(restart_file_short_name, specified_file_name);
 	sprintf(restart_file_full_name, "%s/%s", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_working_dir(), restart_file_short_name);
+	if (input_restart_mgt_info_file != NULL)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when reading the restart data file \"%s\" at the model code with the annotation \"%s\": another restart data file \"%s\" has already been read before at the model code with the annotation \"%s\". Please verify.", restart_file_full_name, annotation, input_restart_mgt_info_file, restart_read_annotation);
+	input_restart_mgt_info_file = strdup(restart_file_full_name);
+	restart_read_annotation = strdup(annotation);
 
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, !time_mgr->get_time_has_been_advanced(), "Error happens when reading the restart file \"%s\": cannot advance the model time before reading the restart file. Please check the model code with the annotation \"%s\"", restart_file_full_name, annotation);
@@ -166,20 +186,18 @@ void Restart_mgt::do_restart_read(bool check_existing_data, const char *file_nam
 		EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 		for (int i = 0; i < num_restart_buffer_containers; i ++) {
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter > 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
-			restart_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name));
+			restart_read_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name));
 		}
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
 	}
 
 	if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
-		Restart_buffer_container *time_mgr_restart_buffer = search_then_bcast_buffer_container(RESTART_BUF_TYPE_TIME, "local time manager", local_proc_id);
+		Restart_buffer_container *time_mgr_restart_buffer = search_then_bcast_buffer_container(RESTART_BUF_TYPE_TIME, "local time manager");
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr_restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
 		long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();
 		time_mgr->import_restart_data(time_mgr_restart_buffer->get_buffer_content(), buffer_size, file_name, check_existing_data);
 		inout_interface_mgr->import_restart_data(this, file_name, local_proc_id, annotation);
 	}
-
-	clean();
 }
 
 
@@ -199,12 +217,12 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 		if (local_proc_id == 0) {
 			array_buffer = NULL;
 			time_mgr->write_time_mgt_into_array(&array_buffer, buffer_max_size, buffer_content_size);
-			restart_buffer_containers.push_back(new Restart_buffer_container(comp_full_name, RESTART_BUF_TYPE_TIME, "local time manager", array_buffer, buffer_content_size));
+			restart_write_buffer_containers.push_back(new Restart_buffer_container(comp_full_name, RESTART_BUF_TYPE_TIME, "local time manager", array_buffer, buffer_content_size));
 		}
-		inout_interface_mgr->write_into_restart_buffers(&restart_buffer_containers, comp_id);
+		inout_interface_mgr->write_into_restart_buffers(&restart_write_buffer_containers, comp_id);
 		if (local_proc_id == 0)
 			write_into_file();
-		clean();
+		clean(true);
 	}
 }
 
@@ -235,9 +253,9 @@ void Restart_mgt::write_into_file()
 	FILE *restart_file, *rpointer_file;
 	
 
-	for (int i = restart_buffer_containers.size()-1; i >= 0; i --)
-		restart_buffer_containers[i]->dump(&array_buffer, buffer_max_size, buffer_content_size);
-	temp_int = restart_buffer_containers.size();
+	for (int i = restart_write_buffer_containers.size()-1; i >= 0; i --)
+		restart_write_buffer_containers[i]->dump(&array_buffer, buffer_max_size, buffer_content_size);
+	temp_int = restart_write_buffer_containers.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), &array_buffer, buffer_max_size, buffer_content_size);
 
 	int date = last_timer_on_full_time/(long)100000;
@@ -254,4 +272,17 @@ void Restart_mgt::write_into_file()
 	fclose(rpointer_file);
 }
 
+
+const char *Restart_mgt::get_input_restart_mgt_info_file()
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, input_restart_mgt_info_file != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read\" has been called");
+	return input_restart_mgt_info_file;
+}
+
+
+const char *Restart_mgt::get_restart_read_annotation()
+{
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_read_annotation != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read\" has been called");
+	return restart_read_annotation;
+}
 
