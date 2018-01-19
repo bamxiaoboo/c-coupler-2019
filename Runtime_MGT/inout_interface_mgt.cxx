@@ -22,28 +22,31 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 {
 	this->inout_interface = inout_interface;
 	this->timer = timer;
-	this->current_year = current_year;
-	this->current_month = current_month;
-	this->current_day = current_day;
-	this->current_second = current_second;
-	current_num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
-	this->time_step_in_second = time_step_in_second;
 	this->inst_or_aver = inst_or_aver;
-	if (components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->is_timer_on(timer->get_frequency_unit(), timer->get_frequency_count(), timer->get_local_lag_count())) {
-		last_timer_num_elapsed_days = current_num_elapsed_days;
-		last_timer_second = current_second;
-	}
-	else {
-		last_timer_num_elapsed_days = -1;
-		last_timer_second = -1;
-	}
-	next_timer_num_elapsed_days = -1;
-	next_timer_second = -1;
-	timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
-		                             current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
 	if (IS_TIME_UNIT_SECOND(timer->get_frequency_unit()))
 		lag_seconds = timer->get_remote_lag_count();
 	else lag_seconds = timer->get_remote_lag_count() * SECONDS_PER_DAY;
+
+	if (!(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
+		this->current_year = current_year;
+		this->current_month = current_month;
+		this->current_day = current_day;
+		this->current_second = current_second;
+		current_num_elapsed_days = components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->get_current_num_elapsed_day();
+		this->time_step_in_second = time_step_in_second;
+		if (components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->is_timer_on(timer->get_frequency_unit(), timer->get_frequency_count(), timer->get_local_lag_count())) {
+			last_timer_num_elapsed_days = current_num_elapsed_days;
+			last_timer_second = current_second;
+		}
+		else {
+			last_timer_num_elapsed_days = -1;
+			last_timer_second = -1;
+		}
+		next_timer_num_elapsed_days = -1;
+		next_timer_second = -1;
+		timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
+			                             current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
+	}
 }
 
 
@@ -703,6 +706,16 @@ void Inout_interface::write_into_array_for_restart(char **temp_array_buffer, lon
 }
 
 
+void Inout_interface::import_restart_data()
+{
+	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
+	Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interface_name); 
+	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
+	long buffer_size = restart_buffer->get_buffer_content_iter();
+	import_restart_data(restart_buffer->get_buffer_content(), buffer_size, restart_mgr->get_input_restart_mgt_info_file());
+}
+
+
 void Inout_interface::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
 {
 	int num_children, num_procedures;
@@ -856,6 +869,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	}
 
 	if (!is_child_interface && !bypass_timer && !mgt_info_has_been_restarted && (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
+		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_LOG, comp_id, true, "Import restart data for the interface \"%s\"\n", interface_name);
 		import_restart_data();
 		mgt_info_has_been_restarted = true;
 	}
@@ -1435,10 +1449,13 @@ void Inout_interface_mgt::write_into_restart_buffers(std::vector<Restart_buffer_
 {
 	char *array_buffer;
 	long buffer_max_size, buffer_content_size;
+
 	
 	for (int i = 0; i < interfaces.size(); i ++)
 		if (interfaces[i]->get_comp_id() == comp_id) {
 			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "") == 0) {
+				if (!interfaces[i]->has_been_executed_with_timer())
+					continue;
 				array_buffer = NULL;
 				interfaces[i]->write_into_array_for_restart(&array_buffer, buffer_max_size, buffer_content_size);
 				Restart_buffer_container *restart_buffer = new Restart_buffer_container(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name(), array_buffer, buffer_content_size);
@@ -1448,27 +1465,6 @@ void Inout_interface_mgt::write_into_restart_buffers(std::vector<Restart_buffer_
 }
 
 
-void Inout_interface::import_restart_data()
-{
-	return;
-	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
-	Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interface_name); 
-	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
-	long buffer_size = restart_buffer->get_buffer_content_iter();
-	import_restart_data(restart_buffer->get_buffer_content(), buffer_size, restart_mgr->get_input_restart_mgt_info_file());
-}
-
-
-void Inout_interface_mgt::import_restart_data(Restart_mgt *restart_mgr, const char *file_name, int local_proc_id, const char *annotation)
-{
-	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == restart_mgr->get_comp_id()) {
-			Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name());			
-			EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", file_name, annotation, interfaces[i]->get_interface_name());			
-			long buffer_size = restart_buffer->get_buffer_content_iter();
-			interfaces[i]->import_restart_data(restart_buffer->get_buffer_content(), buffer_size, file_name);
-		}
-}
 
 
 void Inout_interface_mgt::write_comp_export_info_into_XML_file(int comp_id)

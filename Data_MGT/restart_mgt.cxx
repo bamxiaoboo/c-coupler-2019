@@ -196,7 +196,6 @@ void Restart_mgt::do_restart_read(bool check_existing_data, const char *file_nam
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr_restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
 		long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();
 		time_mgr->import_restart_data(time_mgr_restart_buffer->get_buffer_content(), buffer_size, file_name, check_existing_data);
-		inout_interface_mgr->import_restart_data(this, file_name, local_proc_id, annotation);
 	}
 }
 

@@ -108,11 +108,11 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, Coupling_timer *existi
 Coupling_timer::Coupling_timer(const char *array_buffer, long &buffer_content_iter, int comp_id, bool report_check, bool &successful)
 {
 	int num_children;
-	successful = true;
+	long str_size;
 
-	
-	successful = successful && read_data_from_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_content_iter, report_check);
-	successful = successful && read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
+
+	load_string(frequency_unit, str_size, NAME_STR_SIZE, array_buffer, buffer_content_iter, NULL);
+	successful = read_data_from_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
 	successful = successful && read_data_from_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
 	successful = successful && read_data_from_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_content_iter, report_check);
 	successful = successful && read_data_from_array_buffer(&num_children, sizeof(int), array_buffer, buffer_content_iter, report_check);
@@ -139,7 +139,7 @@ void Coupling_timer::write_timer_into_array(char **array_buffer, long &buffer_ma
 	write_data_into_array_buffer(&remote_lag_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&local_lag_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&frequency_count, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(frequency_unit, NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
+	dump_string(frequency_unit, -1, array_buffer, buffer_max_size, buffer_content_size);
 }
 
 
@@ -549,6 +549,7 @@ void Time_mgt::initialize_to_start_time()
 	restart_second = -1;
 	restart_num_elapsed_day = -1;
 	restart_full_time = -1;
+	time_has_been_advanced = false;
 }
 
 
@@ -928,8 +929,8 @@ void Time_mgt::write_time_mgt_into_array(char **array_buffer, long &buffer_max_s
 	write_data_into_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&current_step_id, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&leap_year_on, sizeof(bool), array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(case_name, NAME_STR_SIZE, array_buffer, buffer_max_size, buffer_content_size);
+	dump_string(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), -1, array_buffer, buffer_max_size, buffer_content_size);
+	dump_string(case_name, -1, array_buffer, buffer_max_size, buffer_content_size);
 }
 
 
@@ -939,10 +940,11 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	int restart_current_year, restart_current_month, restart_current_day, restart_current_second, restart_time_step_in_second, restart_current_step_id;
 	bool restart_leap_year_on;
 	char restart_comp_full_name[NAME_STR_SIZE], restart_case_name[NAME_STR_SIZE];
+	long str_size;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(restart_case_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(restart_comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	load_string(restart_case_name, str_size, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, file_name);
+	load_string(restart_comp_full_name, str_size, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_leap_year_on, sizeof(bool), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_step_id, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
@@ -974,6 +976,7 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 				strcpy(str2, "on");
 			else strcpy(str2, "off");
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, leap_year_on == restart_leap_year_on, "Error happens when importing the restart data from the file \"%s\": the current setting of leap year (\"%s\") is different from the setting (\"%s\") imported from the restart data when it is a \"continue\" or \"branch\" run. Please verify. ", file_name, str1, str2);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second != -1, "Error happens when importing the restart data from the file \"%s\": the time step of the component model has not been set before reading the restart data file for a \"continue\" or \"branch\" run. Please verify. ", file_name, time_step_in_second, restart_time_step_in_second);
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second == restart_time_step_in_second, "Error happens when importing the restart data from the file \"%s\": the current setting of time step (%d) is different from the setting (%d) imported from the restart data when it is a \"continue\" or \"branch\" run. Please verify. ", file_name, time_step_in_second, restart_time_step_in_second);
 		}	
 	}
