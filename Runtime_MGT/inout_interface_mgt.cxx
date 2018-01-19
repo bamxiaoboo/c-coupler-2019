@@ -76,8 +76,11 @@ void Connection_field_time_info::write_into_array_for_restart(char **temp_array_
 
 void Connection_field_time_info::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
 {
+	int restart_inst_or_aver;
+
+	
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&lag_seconds, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&inst_or_aver, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_inst_or_aver, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&next_timer_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&next_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
@@ -88,6 +91,8 @@ void Connection_field_time_info::import_restart_data(const char *temp_array_buff
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_month, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_year, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+
+	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inst_or_aver == restart_inst_or_aver, "Error happens when restarting the simulation in a \"continue\" run or a \"branch\" run: the values of \"inst_or aver\" of the coupling interface \"%s\" are not consistent (the original value is %d while the new value is %d)", inout_interface->get_interface_name(), restart_inst_or_aver, inst_or_aver);
 }
 
 
