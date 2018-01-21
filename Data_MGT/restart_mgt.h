@@ -67,8 +67,6 @@ class Restart_mgt
 		void read_restart_mgt_info(bool, const char *, const char *);
 		void read_restart_mgt_info(const char *, const char *);
 		void reset_comp_id(int comp_id) { this->comp_id = comp_id; }
-		void bcast_buffer_container(Restart_buffer_container **, int);
-		Restart_buffer_container *search_then_bcast_buffer_container(const char *, const char *);
 		Restart_buffer_container *search_restart_buffer(const char *, const char*);
 		int get_comp_id() { return comp_id; }
 		void get_file_name_in_rpointer_file(char *);

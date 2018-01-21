@@ -113,25 +113,6 @@ void Restart_mgt::clean(bool is_write_buffers)
 }
 
 
-void Restart_mgt::bcast_buffer_container(Restart_buffer_container **buffer_container, int local_proc_id)
-{
-	char *temp_array_buffer = NULL;
-	long buffer_max_size, buffer_content_size;
-
-
-	if (local_proc_id == 0)
-		(*buffer_container)->dump_out(&temp_array_buffer, buffer_max_size, buffer_content_size);
-	
-	transfer_array_from_one_comp_to_another(local_proc_id, -1, local_proc_id, -1, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""), &temp_array_buffer, buffer_content_size);
-	
-	if (local_proc_id != 0)
-		*buffer_container = new Restart_buffer_container(temp_array_buffer, buffer_content_size, NULL);
-	
-	if (temp_array_buffer != NULL)
-		delete [] temp_array_buffer;
-}
-
-
 Restart_buffer_container *Restart_mgt::search_restart_buffer(const char *buf_type, const char *keyword)
 {
 	for (int i = 0; i < restart_read_buffer_containers.size(); i ++)
@@ -139,25 +120,6 @@ Restart_buffer_container *Restart_mgt::search_restart_buffer(const char *buf_typ
 			return restart_read_buffer_containers[i];
 
 	return NULL;
-}
-
-
-Restart_buffer_container *Restart_mgt::search_then_bcast_buffer_container(const char *buf_type, const char *keyword)
-{
-	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in Restart_mgt::do_restart");
-	Restart_buffer_container *restart_buffer = NULL;
-	
-
-	if (local_proc_id == 0) {
-		restart_buffer = search_restart_buffer(buf_type, keyword);
-		if (restart_buffer == NULL)
-			return NULL;
-	}
-	bcast_buffer_container(&restart_buffer, local_proc_id);
-	if (local_proc_id != 0)
-		restart_read_buffer_containers.push_back(restart_buffer);
-
-	return restart_buffer;
 }
 
 
@@ -194,6 +156,8 @@ void Restart_mgt::read_restart_mgt_info(const char *specified_file_name, const c
 void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *file_name, const char *annotation)
 {
 	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in Restart_mgt::do_restart");
+	char *array_buffer = NULL;
+	long buffer_content_iter;
 
 
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
@@ -202,21 +166,24 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 		FILE *restart_fp = fopen(file_name, "r");
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_fp != NULL, "Error happens when trying to read restart data at the model code with the annotation \"%s\": the data file \"%s\" does not exist. Please verify.", annotation, file_name);
 		fseek(restart_fp, 0, SEEK_END);
-		long buffer_content_iter = ftell(restart_fp);
-		char *array_buffer = new char [buffer_content_iter];
+		buffer_content_iter = ftell(restart_fp);
+		array_buffer = new char [buffer_content_iter];
 		fseek(restart_fp, 0, SEEK_SET);
 		fread(array_buffer, buffer_content_iter, 1, restart_fp);
-		int num_restart_buffer_containers;
-		EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-		for (int i = 0; i < num_restart_buffer_containers; i ++) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter > 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
-			restart_read_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name));
-		}
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
 	}
+	bcast_array_in_one_comp(local_proc_id, &array_buffer, buffer_content_iter, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""));
+
+	int num_restart_buffer_containers;
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	for (int i = 0; i < num_restart_buffer_containers; i ++) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter > 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
+		restart_read_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name));
+	}
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
+	delete [] array_buffer;
 
 	if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
-		Restart_buffer_container *time_mgr_restart_buffer = search_then_bcast_buffer_container(RESTART_BUF_TYPE_TIME, "local time manager");
+		Restart_buffer_container *time_mgr_restart_buffer = search_restart_buffer(RESTART_BUF_TYPE_TIME, "local time manager");
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr_restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
 		long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();
 		time_mgr->import_restart_data(time_mgr_restart_buffer->get_buffer_content(), buffer_size, file_name, check_existing_data);

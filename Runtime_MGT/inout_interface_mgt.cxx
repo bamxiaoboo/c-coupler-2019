@@ -719,7 +719,7 @@ void Inout_interface::write_restart_mgt_info(Restart_buffer_container *restart_b
 void Inout_interface::import_restart_data()
 {
 	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
-	Restart_buffer_container *restart_buffer = restart_mgr->search_then_bcast_buffer_container(RESTART_BUF_TYPE_INTERFACE, interface_name); 
+	Restart_buffer_container *restart_buffer = restart_mgr->search_restart_buffer(RESTART_BUF_TYPE_INTERFACE, interface_name); 
 	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
 	long buffer_size = restart_buffer->get_buffer_content_iter();
 	import_restart_data(restart_buffer->get_buffer_content(), buffer_size, restart_mgr->get_input_restart_mgt_info_file());
