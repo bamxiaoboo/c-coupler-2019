@@ -21,6 +21,7 @@
 #include "runtime_cumulate_average_algorithm.h"
 #include "runtime_remap_algorithm.h"
 #include "Runtime_Algorithm_Basis.h"
+#include "restart_mgt.h"
 
 
 #define INTERFACE_TYPE_REGISTER             ((int)0)
@@ -55,7 +56,7 @@ class Connection_field_time_info
 		Connection_field_time_info(Inout_interface*, Coupling_timer*, int, int, int, int, int, int);
 		void get_time_of_next_timer_on(bool);
 		void reset_last_timer_info() { last_timer_num_elapsed_days = -1; last_timer_second = -1; }
-		void write_into_array_for_restart(char**, long&, long&);		
+		void write_restart_mgt_info(Restart_buffer_container*);		
 		void import_restart_data(const char *, long &, const char *);
 };
 
@@ -99,7 +100,7 @@ class Connection_coupling_procedure
 		Runtime_remap_algorithm *get_runtime_remap_algorithm(int i) { return runtime_remap_algorithms[i]; }
 		Runtime_remapping_weights *get_runtime_remapping_weights(int i);
 		bool get_finish_status() { return finish_status; }
-		void write_into_array_for_restart(char**, long&, long&);
+		void write_restart_mgt_info(Restart_buffer_container*);
 		void import_restart_data(const char *, long &, const char *);
 		Coupling_connection* get_coupling_connection(){return coupling_connection;}
 		bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
@@ -151,7 +152,6 @@ class Inout_interface
 		const char *get_field_name(int);
 		int get_num_dst_fields();
 		void transform_interface_into_array(char**, long&, long&);
-		void write_into_array_for_restart(char**, long&, long&);
 		void import_restart_data(const char *, long &, const char *);
 		Field_mem_info *search_registered_field_instance(const char*, int &);
 		Coupling_timer *get_timer() { return timer; }
@@ -172,6 +172,7 @@ class Inout_interface
 		void dump_active_coupling_connections();
 		void dump_active_coupling_connections_into_XML(TiXmlElement *);
 		void import_restart_data();
+		void write_restart_mgt_info(Restart_buffer_container*);
 };
 
 

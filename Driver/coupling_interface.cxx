@@ -1215,7 +1215,7 @@ extern "C" void ccpl_read_restart_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart read");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ, annotation, false);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_read(specified_file_name, annotation);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->read_restart_mgt_info(specified_file_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart read");
 }
 

@@ -57,20 +57,20 @@ void Connection_field_time_info::get_time_of_next_timer_on(bool advance)
 }
 
 
-void Connection_field_time_info::write_into_array_for_restart(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+void Connection_field_time_info::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
-	write_data_into_array_buffer(&current_year, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&current_month, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&current_day, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&current_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&current_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&last_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&last_timer_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&next_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&next_timer_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&time_step_in_second, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&inst_or_aver, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&lag_seconds, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	restart_buffer->dump_in_data(&current_year, sizeof(int));
+	restart_buffer->dump_in_data(&current_month, sizeof(int));
+	restart_buffer->dump_in_data(&current_day, sizeof(int));
+	restart_buffer->dump_in_data(&current_second, sizeof(int));
+	restart_buffer->dump_in_data(&current_num_elapsed_days, sizeof(int));
+	restart_buffer->dump_in_data(&last_timer_num_elapsed_days, sizeof(int));
+	restart_buffer->dump_in_data(&last_timer_second, sizeof(int));
+	restart_buffer->dump_in_data(&next_timer_num_elapsed_days, sizeof(int));
+	restart_buffer->dump_in_data(&next_timer_second, sizeof(int));
+	restart_buffer->dump_in_data(&time_step_in_second, sizeof(int));
+	restart_buffer->dump_in_data(&inst_or_aver, sizeof(int));
+	restart_buffer->dump_in_data(&lag_seconds, sizeof(int));
 }
 
 
@@ -423,16 +423,16 @@ Runtime_remapping_weights *Connection_coupling_procedure::get_runtime_remapping_
 }
 
 
-void Connection_coupling_procedure::write_into_array_for_restart(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
-	fields_time_info_src->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
-	fields_time_info_dst->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&last_remote_fields_time, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&current_remote_fields_time, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
+	fields_time_info_src->write_restart_mgt_info(restart_buffer);
+	fields_time_info_dst->write_restart_mgt_info(restart_buffer);
+	restart_buffer->dump_in_data(&last_remote_fields_time, sizeof(long));
+	restart_buffer->dump_in_data(&current_remote_fields_time, sizeof(long));
 	for (int i = fields_mem_registered.size()-1; i >=0; i --)
-		dump_string(fields_mem_registered[i]->get_field_name(), -1, temp_array_buffer, buffer_max_size, buffer_content_size);
+		restart_buffer->dump_in_string(fields_mem_registered[i]->get_field_name(), -1);
 	int temp_int = fields_mem_registered.size();
-	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);	
+	restart_buffer->dump_in_data(&temp_int, sizeof(int));	
 }
 
 
@@ -696,18 +696,23 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 }
 
 
-void Inout_interface::write_into_array_for_restart(char **temp_array_buffer, long &buffer_max_size, long &buffer_content_size)
+void Inout_interface::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
+	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
+
+	if (restart_buffer == NULL)
+		restart_buffer = restart_mgr->apply_restart_buffer(comp_full_name, RESTART_BUF_TYPE_INTERFACE, interface_name, true);
+
 	for (int i = coupling_procedures.size() - 1; i >= 0; i --)
-		coupling_procedures[i]->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
+		coupling_procedures[i]->write_restart_mgt_info(restart_buffer);
 	int temp_int = coupling_procedures.size();
-	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	restart_buffer->dump_in_data(&temp_int, sizeof(int));
 	for (int i = children_interfaces.size()-1; i >= 0; i --)
-		children_interfaces[i]->write_into_array_for_restart(temp_array_buffer, buffer_max_size, buffer_content_size);
+		children_interfaces[i]->write_restart_mgt_info(restart_buffer);
 	temp_int = children_interfaces.size();
-	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&last_execution_time, sizeof(long), temp_array_buffer, buffer_max_size, buffer_content_size);
-	timer->write_timer_into_array(temp_array_buffer, buffer_max_size, buffer_content_size);
+	restart_buffer->dump_in_data(&temp_int, sizeof(int));
+	restart_buffer->dump_in_data(&last_execution_time, sizeof(long));
+	timer->write_timer_into_array(restart_buffer->get_buffer_content_ptr(), *(restart_buffer->get_buffer_max_size_ptr()), *(restart_buffer->get_buffer_content_iter_ptr()));
 }
 
 
@@ -765,12 +770,12 @@ void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coup
 
 void Inout_interface::preprocessing_for_frac_based_remapping()
 {
-	if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remapping_weights(0) == NULL) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Does not pre-process the fraction becase the runtime alogrithm is NULL");		
-		return;
-	}
-
 	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Pre-process the fraction");
+
+	for (int i = 0; i < fields_mem_registered.size()-1; i ++) {
+		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, fields_mem_registered[i] != children_interfaces[0]->fields_mem_registered[i], "Software error1 in Inout_interface::preprocessing_for_frac_based_remapping");		
+		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, fields_mem_registered[i] != children_interfaces[0]->fields_mem_registered[i], "Software error2 in Inout_interface::preprocessing_for_frac_based_remapping");
+	}
 	
 	for (int i = 0; i < fields_mem_registered.size()-1; i ++) {
 		if (words_are_the_same(fields_mem_registered[i]->get_data_type(), DATA_TYPE_FLOAT))
@@ -920,6 +925,8 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	last_execution_time = current_execution_time;
 
 	if (import_or_export_or_remap >= 2) {
+		for (int i = 0; i < fields_mem_registered.size(); i ++)
+			fields_mem_registered[i]->check_field_sum("before executing a remap interface");
 		if (import_or_export_or_remap == 3)
 			preprocessing_for_frac_based_remapping();
 		children_interfaces[0]->execute(bypass_timer, API_id, field_update_status, size_field_update_status+1, annotation);
@@ -995,8 +1002,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_mem_registered.size() == 0, "Software error in Inout_interface::add_remappling_fraction_processing");
 	for (int i = 0; i < children_interfaces[0]->fields_mem_registered.size(); i ++) {
 		fields_mem_registered.push_back(children_interfaces[0]->fields_mem_registered[i]);
-		if (children_interfaces[1]->coupling_procedures[0]->get_runtime_remap_algorithm(0) != NULL)
-			children_interfaces[0]->fields_mem_registered[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_REMAP_FRAC, coupling_generator->get_latest_connection_id(), fields_mem_registered[i]->get_data_type(), true);
+		children_interfaces[0]->fields_mem_registered[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_REMAP_FRAC, coupling_generator->get_latest_connection_id(), fields_mem_registered[i]->get_data_type(), true);
 	}
 	fields_mem_registered.push_back(frac_field_src);
 
@@ -1461,15 +1467,10 @@ void Inout_interface_mgt::write_into_restart_buffers(std::vector<Restart_buffer_
 			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "") == 0) {
 				if (!interfaces[i]->has_been_executed_with_timer())
 					continue;
-				array_buffer = NULL;
-				interfaces[i]->write_into_array_for_restart(&array_buffer, buffer_max_size, buffer_content_size);
-				Restart_buffer_container *restart_buffer = new Restart_buffer_container(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), RESTART_BUF_TYPE_INTERFACE, interfaces[i]->get_interface_name(), array_buffer, buffer_content_size);
-				restart_buffers->push_back(restart_buffer);
+				interfaces[i]->write_restart_mgt_info(NULL);
 			}
 		}			
 }
-
-
 
 
 void Inout_interface_mgt::write_comp_export_info_into_XML_file(int comp_id)

@@ -11,7 +11,19 @@
 #include "restart_mgt.h"
 
 
-Restart_buffer_container::Restart_buffer_container(const char *comp_full_name, const char *buf_type, const char *keyword, const char *buffer_content, long buffer_content_iter)
+
+Restart_buffer_container::Restart_buffer_container(const char *comp_full_name, const char *buf_type, const char *keyword)
+{
+	strcpy(this->comp_full_name, comp_full_name);
+	strcpy(this->buf_type, buf_type);
+	strcpy(this->keyword, keyword);
+	buffer_max_size = 1000;
+	buffer_content = new char [buffer_max_size];
+	buffer_content_iter = 0;
+}
+
+
+Restart_buffer_container::Restart_buffer_container(const char *comp_full_name, const char *buf_type, const char *keyword, char *buffer_content, long buffer_content_iter)
 {
 	strcpy(this->comp_full_name, comp_full_name);
 	strcpy(this->buf_type, buf_type);
@@ -37,7 +49,19 @@ Restart_buffer_container::Restart_buffer_container(const char *array_buffer, lon
 }
 
 
-void Restart_buffer_container::dump(char **array_buffer, long &buffer_max_size, long &buffer_content_size)
+void Restart_buffer_container::dump_in_string(const char *str, long str_size)
+{
+	dump_string(str, str_size, &buffer_content, buffer_max_size, buffer_content_iter);
+}
+
+
+void Restart_buffer_container::dump_in_data(const void *data, long size)
+{
+	write_data_into_array_buffer(data, size, &buffer_content, buffer_max_size, buffer_content_iter);
+}
+
+
+void Restart_buffer_container::dump_out(char **array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
 	dump_string(comp_full_name, -1, array_buffer, buffer_max_size, buffer_content_size);
 	dump_string(buf_type, -1, array_buffer, buffer_max_size, buffer_content_size);
@@ -96,7 +120,7 @@ void Restart_mgt::bcast_buffer_container(Restart_buffer_container **buffer_conta
 
 
 	if (local_proc_id == 0)
-		(*buffer_container)->dump(&temp_array_buffer, buffer_max_size, buffer_content_size);
+		(*buffer_container)->dump_out(&temp_array_buffer, buffer_max_size, buffer_content_size);
 	
 	transfer_array_from_one_comp_to_another(local_proc_id, -1, local_proc_id, -1, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""), &temp_array_buffer, buffer_content_size);
 	
@@ -137,7 +161,7 @@ Restart_buffer_container *Restart_mgt::search_then_bcast_buffer_container(const 
 }
 
 
-void Restart_mgt::do_restart_read(const char *specified_file_name, const char *annotation)
+void Restart_mgt::read_restart_mgt_info(const char *specified_file_name, const char *annotation)
 {
 	char restart_file_full_name[NAME_STR_SIZE], restart_file_short_name[NAME_STR_SIZE];
 			
@@ -163,11 +187,11 @@ void Restart_mgt::do_restart_read(const char *specified_file_name, const char *a
 
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, !time_mgr->get_time_has_been_advanced(), "Error happens when reading the restart file \"%s\": cannot advance the model time before reading the restart file. Please check the model code with the annotation \"%s\"", restart_file_full_name, annotation);
-	do_restart_read((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH), restart_file_full_name, annotation);
+	read_restart_mgt_info((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH), restart_file_full_name, annotation);
 }
 
 
-void Restart_mgt::do_restart_read(bool check_existing_data, const char *file_name, const char *annotation)
+void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *file_name, const char *annotation)
 {
 	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in Restart_mgt::do_restart");
 
@@ -185,10 +209,10 @@ void Restart_mgt::do_restart_read(bool check_existing_data, const char *file_nam
 		int num_restart_buffer_containers;
 		EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 		for (int i = 0; i < num_restart_buffer_containers; i ++) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter > 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter > 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
 			restart_read_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name));
 		}
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::do_restart_read: wrong organization of restart data file");
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, buffer_content_iter == 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
 	}
 
 	if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
@@ -253,7 +277,7 @@ void Restart_mgt::write_into_file()
 	
 
 	for (int i = restart_write_buffer_containers.size()-1; i >= 0; i --)
-		restart_write_buffer_containers[i]->dump(&array_buffer, buffer_max_size, buffer_content_size);
+		restart_write_buffer_containers[i]->dump_out(&array_buffer, buffer_max_size, buffer_content_size);
 	temp_int = restart_write_buffer_containers.size();
 	write_data_into_array_buffer(&temp_int, sizeof(int), &array_buffer, buffer_max_size, buffer_content_size);
 
@@ -283,5 +307,16 @@ const char *Restart_mgt::get_restart_read_annotation()
 {
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_read_annotation != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read\" has been called");
 	return restart_read_annotation;
+}
+
+
+Restart_buffer_container *Restart_mgt::apply_restart_buffer(const char *comp_full_name, const char *buf_type, const char *keyword, bool is_write)
+{
+	Restart_buffer_container *new_restart_buffer = new Restart_buffer_container(comp_full_name, buf_type, keyword);
+	if (is_write)
+		restart_write_buffer_containers.push_back(new_restart_buffer);
+	else restart_read_buffer_containers.push_back(new_restart_buffer);
+
+	return new_restart_buffer;
 }
 
