@@ -32,6 +32,7 @@ extern bool report_external_log_enabled;
 extern bool report_error_enabled;
 extern bool report_progress_enabled;
 extern bool report_internal_log_enabled;
+extern bool flush_log_file;
 
 
 extern void import_report_setting();
