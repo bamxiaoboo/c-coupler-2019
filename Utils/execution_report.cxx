@@ -189,27 +189,21 @@ void execution_report(int report_type, int comp_id, bool condition, const char *
 
 	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
-	
+
+	va_list pArgList;
+    va_start(pArgList, format);
+	vsprintf(output_string, output_format, pArgList);
+	va_end(pArgList);	
 	if (comp_comm_group_mgt_mgr == NULL) {
-		va_list pArgList;
-	    va_start(pArgList, format);
-		vfprintf(stdout, output_format, pArgList);
-		va_end(pArgList);
+		fprintf(stdout, output_string);
 		if (flush_log_file || report_type == REPORT_ERROR)
 			fflush(stdout);
 	}
 	else {
-		va_list pArgList;
-	    va_start(pArgList, format);
-		vsprintf(output_string, output_format, pArgList);
-		va_end(pArgList);
 		const char *log_file_name1 = comp_comm_group_mgt_mgr->get_exe_log_file_name();
 		const char *log_file_name2 = NULL;
 		comp_comm_group_mgt_mgr->output_log(output_string, flush_log_file || report_type == REPORT_ERROR);
 		if (comp_id != -1) {
-			va_start(pArgList, format);
-			vsprintf(output_string, output_format, pArgList);
-			va_end(pArgList);
 			log_file_name2 = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_ccpl_log_file_name();
 			comp_comm_group_mgt_mgr->search_global_node(comp_id)->output_log(output_string, flush_log_file || report_type == REPORT_ERROR);
 		}

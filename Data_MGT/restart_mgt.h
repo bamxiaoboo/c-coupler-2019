@@ -20,6 +20,10 @@
 #include <vector>
 
 
+
+class Restart_mgt;
+
+
 class Restart_buffer_container
 {
 	private:
@@ -28,22 +32,27 @@ class Restart_buffer_container
 		char keyword[NAME_STR_SIZE];
 		char *buffer_content;
 		long buffer_content_iter;
+		long buffer_content_size;
 		long buffer_max_size;
+		Restart_mgt *restart_mgr;
 
 	public:
-		Restart_buffer_container(const char *, const char *, const char *);
-		Restart_buffer_container(const char*, const char *, const char *, char *, long);
-		Restart_buffer_container(const char *, long &, const char *);
+		Restart_buffer_container(const char *, const char *, const char *, Restart_mgt *);
+		Restart_buffer_container(const char*, const char *, const char *, char *, long, Restart_mgt *);
+		Restart_buffer_container(const char *, long &, const char *, Restart_mgt *);
 		~Restart_buffer_container() { delete [] buffer_content; }		
 		const char *get_buffer_content() { return buffer_content; }
 		long get_buffer_content_iter() { return buffer_content_iter; }
 		void dump_out(char **, long &, long &);
 		bool match(const char *, const char *);
 		void dump_in_string(const char *, long);
-		void dump_in_data(const void *, long);
+		void dump_in_data(const void *, long);	
 		char **get_buffer_content_ptr() { return &buffer_content; }
 		long *get_buffer_content_iter_ptr() { return &buffer_content_iter; }
 		long *get_buffer_max_size_ptr() { return &buffer_max_size; }
+		void load_restart_data(void *, long);		
+		char *load_restart_string(char *, long &, long);
+		const char *get_input_restart_mgt_info_file();
 };
 
 

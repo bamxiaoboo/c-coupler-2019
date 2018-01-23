@@ -57,7 +57,7 @@ class Connection_field_time_info
 		void get_time_of_next_timer_on(bool);
 		void reset_last_timer_info() { last_timer_num_elapsed_days = -1; last_timer_second = -1; }
 		void write_restart_mgt_info(Restart_buffer_container*);		
-		void import_restart_data(const char *, long &, const char *);
+		void import_restart_data(Restart_buffer_container*);
 };
 
 
@@ -101,7 +101,7 @@ class Connection_coupling_procedure
 		Runtime_remapping_weights *get_runtime_remapping_weights(int i);
 		bool get_finish_status() { return finish_status; }
 		void write_restart_mgt_info(Restart_buffer_container*);
-		void import_restart_data(const char *, long &, const char *);
+		void import_restart_data(Restart_buffer_container*);
 		Coupling_connection* get_coupling_connection(){return coupling_connection;}
 		bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
 		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
@@ -152,7 +152,6 @@ class Inout_interface
 		const char *get_field_name(int);
 		int get_num_dst_fields();
 		void transform_interface_into_array(char**, long&, long&);
-		void import_restart_data(const char *, long &, const char *);
 		Field_mem_info *search_registered_field_instance(const char*, int &);
 		Coupling_timer *get_timer() { return timer; }
 		void add_coupling_procedure(Connection_coupling_procedure*);
@@ -171,7 +170,7 @@ class Inout_interface
 		int check_is_import_field_connected(int, const char *);
 		void dump_active_coupling_connections();
 		void dump_active_coupling_connections_into_XML(TiXmlElement *);
-		void import_restart_data();
+		void import_restart_data(Restart_buffer_container *);
 		void write_restart_mgt_info(Restart_buffer_container*);
 };
 

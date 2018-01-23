@@ -74,23 +74,23 @@ void Connection_field_time_info::write_restart_mgt_info(Restart_buffer_container
 }
 
 
-void Connection_field_time_info::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
+void Connection_field_time_info::import_restart_data(Restart_buffer_container *restart_buffer)
 {
 	int restart_inst_or_aver;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&lag_seconds, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_inst_or_aver, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&next_timer_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&next_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_timer_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_timer_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_num_elapsed_days, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_month, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_year, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	restart_buffer->load_restart_data(&lag_seconds, sizeof(int));
+	restart_buffer->load_restart_data(&restart_inst_or_aver, sizeof(int));
+	restart_buffer->load_restart_data(&time_step_in_second, sizeof(int));
+	restart_buffer->load_restart_data(&next_timer_second, sizeof(int));
+	restart_buffer->load_restart_data(&next_timer_num_elapsed_days, sizeof(int));
+	restart_buffer->load_restart_data(&last_timer_second, sizeof(int));
+	restart_buffer->load_restart_data(&last_timer_num_elapsed_days, sizeof(int));
+	restart_buffer->load_restart_data(&current_num_elapsed_days, sizeof(int));
+	restart_buffer->load_restart_data(&current_second, sizeof(int));
+	restart_buffer->load_restart_data(&current_day, sizeof(int));
+	restart_buffer->load_restart_data(&current_month, sizeof(int));
+	restart_buffer->load_restart_data(&current_year, sizeof(int));
 
 	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inst_or_aver == restart_inst_or_aver, "Error happens when restarting the simulation in a \"continue\" run or a \"branch\" run: the values of \"inst_or aver\" of the coupling interface \"%s\" are not consistent (the original value is %d while the new value is %d)", inout_interface->get_interface_name(), restart_inst_or_aver, inst_or_aver);
 }
@@ -437,26 +437,26 @@ void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_contai
 
 
 
-void Connection_coupling_procedure::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
+void Connection_coupling_procedure::import_restart_data(Restart_buffer_container *restart_buffer)
 {
 	int num_total_fields, i, j;
 	long str_size, temp_long;
 	char restart_field_name[NAME_STR_SIZE];
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_total_fields, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, inout_interface->get_interface_name());
+	restart_buffer->load_restart_data(&num_total_fields, sizeof(int));
+	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name());
 	for (i = 0; i < num_total_fields; i ++) {
-		load_string(restart_field_name, str_size, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, file_name);
+		restart_buffer->load_restart_string(restart_field_name, str_size, NAME_STR_SIZE);
 		for (j = 0; j < fields_mem_registered.size(); j ++)
 			if (words_are_the_same(restart_field_name, fields_mem_registered[j]->get_field_name()))
 				break;
-		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), i == j, "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, inout_interface->get_interface_name());
+		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), i == j, "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name());
 	}
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&current_remote_fields_time, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_remote_fields_time, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	fields_time_info_dst->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
-	fields_time_info_src->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
+	restart_buffer->load_restart_data(&current_remote_fields_time, sizeof(long));
+	restart_buffer->load_restart_data(&last_remote_fields_time, sizeof(long));
+	fields_time_info_dst->import_restart_data(restart_buffer);
+	fields_time_info_src->import_restart_data(restart_buffer);
 }
 
 
@@ -716,36 +716,27 @@ void Inout_interface::write_restart_mgt_info(Restart_buffer_container *restart_b
 }
 
 
-void Inout_interface::import_restart_data()
-{
-	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
-	Restart_buffer_container *restart_buffer = restart_mgr->search_restart_buffer(RESTART_BUF_TYPE_INTERFACE, interface_name); 
-	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
-	long buffer_size = restart_buffer->get_buffer_content_iter();
-	import_restart_data(restart_buffer->get_buffer_content(), buffer_size, restart_mgr->get_input_restart_mgt_info_file());
-}
-
-
-void Inout_interface::import_restart_data(const char *temp_array_buffer, long &buffer_content_iter, const char *file_name)
+void Inout_interface::import_restart_data(Restart_buffer_container *restart_buffer)
 {
 	int num_children, num_procedures;
 	bool successful;
 
-
-	Coupling_timer *restart_timer = new Coupling_timer(temp_array_buffer, buffer_content_iter, comp_id, false, successful);
-	EXECUTION_REPORT(REPORT_ERROR, -1, successful, "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_timer->is_the_same_with(timer), "Error happens when loading the restart data file \"%s\": the timer of the interface \"%s\" in the restart data file is different from the current timer speicifed by the model code. Please verify.", file_name, interface_name);
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&last_execution_time, sizeof(long), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_children, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_children == children_interfaces.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, get_interface_name());
+	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
+	if (restart_buffer == NULL)
+		restart_buffer = restart_mgr->search_restart_buffer(RESTART_BUF_TYPE_INTERFACE, interface_name); 
+	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
+	Coupling_timer *restart_timer = new Coupling_timer(restart_buffer->get_buffer_content(), *(restart_buffer->get_buffer_content_iter_ptr()), comp_id, false, successful);
+	EXECUTION_REPORT(REPORT_ERROR, -1, successful, "Fail to load the restart data file \"%s\": its format is wrong", restart_mgr->get_input_restart_mgt_info_file());
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_timer->is_the_same_with(timer), "Error happens when loading the restart data file \"%s\": the timer of the interface \"%s\" in the restart data file is different from the current timer speicifed by the model code. Please verify.", restart_mgr->get_input_restart_mgt_info_file(), interface_name);
+	restart_buffer->load_restart_data(&last_execution_time, sizeof(long));
+	restart_buffer->load_restart_data(&num_children, sizeof(int));
+	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_children == children_interfaces.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_mgr->get_input_restart_mgt_info_file(), get_interface_name());
 	for (int i = 0; i < num_children; i ++)
-		children_interfaces[i]->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
-
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_procedures, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
-	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_procedures == coupling_procedures.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", file_name, get_interface_name());
+		children_interfaces[i]->import_restart_data(restart_buffer);
+	restart_buffer->load_restart_data(&num_procedures, sizeof(int));
+	EXECUTION_REPORT(REPORT_ERROR, get_comp_id(), num_procedures == coupling_procedures.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_mgr->get_input_restart_mgt_info_file(), get_interface_name());
 	for (int i = 0; i < num_procedures; i ++)
-		coupling_procedures[i]->import_restart_data(temp_array_buffer, buffer_content_iter, file_name);
+		coupling_procedures[i]->import_restart_data(restart_buffer);
 }
 
 
@@ -880,7 +871,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 
 	if (!is_child_interface && !bypass_timer && !mgt_info_has_been_restarted && (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_LOG, comp_id, true, "Import restart data for the interface \"%s\"\n", interface_name);
-		import_restart_data();
+		import_restart_data(NULL);
 		mgt_info_has_been_restarted = true;
 	}
 	
