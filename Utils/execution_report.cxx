@@ -108,6 +108,9 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_f
 				condition = comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0 && report_progress_enabled;
 			else condition = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_current_proc_local_id() == 0 && report_progress_enabled;
 			break;
+		case REPORT_CONSTANTLY:
+			condition = true;
+			break;
 		default:
 			printf("report type %d is not support\n", report_type);
 			assert(false);
@@ -152,6 +155,13 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_f
  			else sprintf(output_format+strlen(output_format), "C-Coupler REPORT PROGRESS: ");
 #endif
 			break;
+		case REPORT_CONSTANTLY:
+			if (line_number > 0 && execution_phase_number < 2)
+				sprintf(output_format+strlen(output_format), "CoR REPORT at script line %d: ", line_number);
+#ifndef ONLY_CoR
+				else sprintf(output_format+strlen(output_format), "C-Coupler REPORT PROGRESS: ");
+#endif
+				break;
 		default:
 			printf("Software error: report type %d is not supported\n", report_type);
 			assert(false);

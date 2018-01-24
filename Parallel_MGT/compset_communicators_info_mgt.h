@@ -16,6 +16,7 @@
 #include "io_netcdf.h"
 #include "tinyxml.h"
 #include "restart_mgt.h"
+#include "performance_timing_mgt.h"
 #include <vector>
 
 
@@ -64,6 +65,7 @@ class Comp_comm_group_mgt_node
 		int min_remote_lag_seconds;
 		char *log_buffer;
 		int log_buffer_content_size;
+		Performance_timing_mgt *performance_timing_mgr;
 
 	public:
 		Comp_comm_group_mgt_node(const char*, const char*, int, Comp_comm_group_mgt_node*, MPI_Comm&, bool, const char*);
@@ -111,6 +113,7 @@ class Comp_comm_group_mgt_node
 		int get_min_remote_lag_seconds();
 		void update_min_remote_lag_seconds(int);
 		void output_log(const char *, bool);
+		Performance_timing_mgt *get_performance_timing_mgr() { return performance_timing_mgr; }		
 };
 
 
@@ -183,7 +186,8 @@ class Comp_comm_group_mgt_mgr
 		const char *get_CCPL_platform_log_dir() { return CCPL_platform_log_dir; }
 		bool is_comp_type_coupled(int, const char *, const char *);
 		void output_log(const char *, bool);
-		const char *get_exe_log_file_name() { return exe_log_file_name; }
+		const char *get_exe_log_file_name() { return exe_log_file_name; }		
+		void output_performance_timing();
 };
 
 

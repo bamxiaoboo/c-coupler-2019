@@ -312,6 +312,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					field_update_status[field_interface_local_index[i]] = transfer_data? 1 : 0;
 			runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 			runtime_data_transfer_algorithm->run(bypass_timer);
+			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 					if (runtime_remap_algorithms[i] != NULL)
 						runtime_remap_algorithms[i]->run(true);
@@ -319,7 +320,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_datatype_transform_algorithms[i]->run(true);								
 					if (runtime_inter_averaging_algorithm[i] != NULL)
 						runtime_inter_averaging_algorithm[i]->run(true);
-			}
+			}			
+			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 		}
 		finish_status = true;
 		for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
@@ -936,6 +938,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 		coupling_procedures[i]->execute(bypass_timer, field_update_status, annotation);
 
 	if (import_or_export_or_remap == 1) {
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
 		bool all_finish = false;
 		while (!all_finish) {
 			all_finish = true;
@@ -945,6 +948,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 				all_finish = all_finish && coupling_procedures[i]->get_finish_status();
 			}	
 		}
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
 	}
 
 	if (import_or_export_or_remap == 0) {

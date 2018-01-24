@@ -260,11 +260,13 @@ bool Runtime_trans_algorithm::set_local_tags()
 bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 {
     long temp_field_remote_recv_count = -100;
+	double time1, time2;
 
 
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
+	wtime(&time1);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
@@ -306,6 +308,9 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_restart_full_time() == send_tag_buf[3], "The restart time between the two component models \"%s\" and \"%s\" are inconsistent: %ld vs %ld. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name, time_mgr->get_restart_full_time(), send_tag_buf[3]);
 		}
 	}
+
+	wtime(&time2);
+	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_QUERRY, -1, remote_comp_full_name, time2-time1);
 	
     return true;
 }
@@ -314,11 +319,14 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 {
     bool is_ready = true;
+	double time1, time2, time3;
 
 
     if (index_remote_procs_with_common_data.size() == 0)
         return;
 
+
+	wtime(&time1);
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, current_proc_id_union_comm, 0, data_win);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
@@ -344,6 +352,9 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 		if (current_sender_full_seconds + 2*comp_min_remote_lag_seconds > current_receiver_full_seconds) 
 			return;
 	}
+
+	wtime(&time2);	
+	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_QUERRY, -1, remote_comp_full_name, time2-time1);
 
     int empty_history_receive_buffer_index = -1;
     if (last_history_receive_buffer_index != -1) {
@@ -427,6 +438,8 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time);
 
     set_local_tags();
+	wtime(&time3);
+	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name, time3-time2);
 }
 
 
@@ -469,6 +482,8 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
+	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, -1, remote_comp_full_name);
+
     long current_full_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second();
     int offset = 0;
     //for (int i = 0; i < num_remote_procs; i ++) {
@@ -489,14 +504,14 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
             }
 
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
-                if (bypass_timer) {
-                    tag_buf[0] = current_full_time + bypass_counter*((long)100000000000000);
-                    tag_buf[1] = -999;
-                }
-                else {
-                    tag_buf[0] = current_full_time;
-                    tag_buf[1] = current_remote_fields_time;
-                }
+        if (bypass_timer) {
+            tag_buf[0] = current_full_time + bypass_counter*((long)100000000000000);
+            tag_buf[1] = -999;
+        }
+        else {
+            tag_buf[0] = current_full_time;
+            tag_buf[1] = current_remote_fields_time;
+        }
 
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
 
@@ -514,6 +529,8 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\"", remote_comp_full_name);
 
+	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, -1, remote_comp_full_name);
+
     return true;
 }
 
@@ -523,6 +540,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     bool received_data_ready = false;
 	
 
+	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
     if (bypass_timer) {
         EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time, bypass_counter);
     }	
@@ -557,7 +575,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     }
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
-
+	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
     return true;
 }
 

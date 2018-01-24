@@ -114,6 +114,9 @@ void create_directory(const char *path, MPI_Comm comm, bool is_root_proc, bool n
 
 Comp_comm_group_mgt_node::~Comp_comm_group_mgt_node()
 {
+	if (performance_timing_mgr != NULL)
+		delete performance_timing_mgr;
+	
 	if (log_buffer != NULL) {
 		output_log("", true);
 		delete [] log_buffer;
@@ -160,6 +163,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->proc_latest_model_time = NULL;
 	this->enabled_in_parent_coupling_generation = enabled_in_parent_coupling_gen;
 	this->log_buffer = NULL;
+	this->performance_timing_mgr = new Performance_timing_mgt(comp_id);
 	restart_mgr = new Restart_mgt(comp_id);
 	comp_ccpl_log_file_name[0] = '\0';
 	comp_model_log_file_name[0] = '\0';
@@ -318,6 +322,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	temp_array_buffer = NULL;
 	proc_latest_model_time = NULL;
 	comp_model_log_file_device = -1;
+	performance_timing_mgr = NULL;
 	log_buffer = NULL;
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
 	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "comp_name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
@@ -1059,5 +1064,13 @@ bool Comp_comm_group_mgt_mgr::is_comp_type_coupled(int host_comp_id, const char 
 void Comp_comm_group_mgt_mgr::output_log(const char *log_string, bool flush_log_file)
 {
 	output_CCPL_log(log_string, exe_log_file_name, &log_buffer, log_buffer_content_size, flush_log_file);
+}
+
+
+void Comp_comm_group_mgt_mgr::output_performance_timing()
+{
+	for (int i = 0; i < global_node_array.size(); i ++)
+		if (global_node_array[i]->is_real_component_model() && global_node_array[i]->get_performance_timing_mgr() != NULL)
+			global_node_array[i]->get_performance_timing_mgr()->performance_timing_output();
 }
 

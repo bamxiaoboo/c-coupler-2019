@@ -23,7 +23,8 @@
 #define REPORT_LOG                 ((int)2)
 #define REPORT_WARNING             ((int)3)
 #define REPORT_PROGRESS            ((int)4)
-#define REPORT_EXTERNAL_LOG        ((int)5)
+#define REPORT_CONSTANTLY          ((int)5)
+#define REPORT_EXTERNAL_LOG        ((int)6)
 
 
 #define CCPL_NULL_INT                                   ((int)(0x7FFFFFFF))

@@ -46,7 +46,8 @@ extern "C" void finalize_ccpl_
 {
 	if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 		EXECUTION_REPORT(REPORT_PROGRESS, -1, true, "Start to finalize C-Coupler at the model code with the annotation \"%s\"", annotation);
-	
+
+	comp_comm_group_mgt_mgr->output_performance_timing();
 	inout_interface_mgr->free_all_MPI_wins();
 
 	delete annotation_mgr;
