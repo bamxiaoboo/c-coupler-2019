@@ -332,6 +332,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         return;
 
 #ifdef USE_DOUBLE_MPI
+	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
@@ -340,6 +341,8 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
         MPI_Irecv((char *)data_buf, 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, 0, union_comm, &request[i]);
     }    
+	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
+	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
@@ -347,6 +350,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         MPI_Status state;
         MPI_Wait(&request[i], &state);
     }
+	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
 #endif
 
 	wtime(&time1);
@@ -381,8 +385,10 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 			return;
 	}
 
+#ifndef USE_DOUBLE_MPI
 	wtime(&time2);	
 	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_QUERRY, -1, remote_comp_full_name, time2-time1);
+#endif	
 
     int empty_history_receive_buffer_index = -1;
     if (last_history_receive_buffer_index != -1) {
@@ -471,9 +477,9 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 
 #ifndef USE_DOUBLE_MPI
     set_local_tags();
-#endif
 	wtime(&time3);
 	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name, time3-time2);
+#endif	
 }
 
 
@@ -500,6 +506,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 		remote_comp_node->allocate_proc_latest_model_time();
 	}
 #ifdef USE_DOUBLE_MPI
+	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     if (!is_first_run) {
         for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
             int remote_proc_index = index_remote_procs_with_common_data[i];
@@ -507,6 +514,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
             MPI_Wait(&request[i], &state);
         }
     }
+	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     is_first_run = false;
 #endif
 
@@ -591,7 +599,9 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     bool received_data_ready = false;
 	
 
+#ifndef USE_DOUBLE_MPI
 	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
+#endif
     if (bypass_timer) {
         EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d", remote_comp_full_name, current_remote_fields_time, bypass_counter);
     }	
@@ -630,7 +640,11 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     }
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
+
+#ifndef USE_DOUBLE_MPI
 	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
+#endif
+
     return true;
 }
 

@@ -940,7 +940,10 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 		coupling_procedures[i]->execute(bypass_timer, field_update_status, annotation);
 
 	if (import_or_export_or_remap == 1) {
+
+#ifndef USE_DOUBLE_MPI
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
+#endif
 		bool all_finish = false;
 		while (!all_finish) {
 			all_finish = true;
@@ -950,7 +953,9 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 				all_finish = all_finish && coupling_procedures[i]->get_finish_status();
 			}	
 		}
+#ifndef USE_DOUBLE_MPI
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
+#endif
 	}
 
 	if (import_or_export_or_remap == 0) {
