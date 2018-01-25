@@ -287,7 +287,9 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 	}
 	
 	if (inout_interface->get_import_or_export_or_remap() == 0) { 
+#ifndef USE_DOUBLE_MPI
 		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->receive_data_in_temp_buffer();
+#endif
 		if (bypass_timer) {
 			current_remote_fields_time = -1;
 			if (inout_interface->get_bypass_counter() == 1) {
@@ -1427,8 +1429,10 @@ void Inout_interface_mgt::execute_interface(int comp_id, int API_id, const char 
 
 void Inout_interface_mgt::runtime_receive_algorithms_receive_data()
 {
+#ifndef USE_DOUBLE_MPI
 	for (int i = 0; i < all_runtime_receive_algorithms.size(); i ++)
 		all_runtime_receive_algorithms[i]->receive_data_in_temp_buffer();
+#endif
 }
 
 

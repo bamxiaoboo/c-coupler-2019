@@ -10,6 +10,7 @@
 #ifndef GLOBAL_DATA
 #define GLOBAL_DATA
 
+#define USE_DOUBLE_MPI
 
 #include "compset_communicators_info_mgt.h"
 #include "decomp_info_mgt.h"

@@ -1893,15 +1893,16 @@ void Remap_grid_class::set_grid_boundary(double min_lon, double max_lon, double 
 {
     int num_leaf_grids;
     Remap_grid_class *leaf_grids[256], *lon_sub_grid;
+	double eps = 1.0000001;
 
 
     EXECUTION_REPORT(REPORT_ERROR, -1, this->get_is_sphere_grid(), "%s is not a sphere grid, while only sphere grid can be set boundary", grid_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, boundary_min_lon == NULL_COORD_VALUE, "the boundary of grid %s has been set before", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, min_lon >= -360 && min_lon <= 360, "the minimum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, max_lon >= -360 && max_lon <= 360, "the maximum longitude of the boundary of grid %s must be between 0 and 360 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, min_lat >= -90 && min_lat <= 90, "the minimum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, max_lat >= -90 && max_lat <= 90, "the maximum latitude of the boundary of grid %s must be between -90 and +90 degrees", grid_name);
-    EXECUTION_REPORT(REPORT_ERROR, -1, min_lat < max_lat, "the minimum latitude of the boundary must be smaller than the maximum latitude of the boundary", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, min_lon >= -360*eps && min_lon <= 360*eps, "the minimum longitude (%lf) of the boundary of grid %s must be between 0 and 360 degrees", min_lon, grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, max_lon >= -360*eps && max_lon <= 360*eps, "the maximum longitude (%lf) of the boundary of grid %s must be between 0 and 360 degrees", max_lon, grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, min_lat >= -90*eps && min_lat <= 90*eps, "the minimum latitude (%lf) of the boundary of grid %s must be between -90 and +90 degrees", min_lat, grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, max_lat >= -90*eps && max_lat <= 90*eps, "the maximum latitude (%lf) of the boundary of grid %s must be between -90 and +90 degrees", max_lat, grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, min_lat < max_lat, "the minimum latitude (%lf) of the boundary must be smaller than the maximum latitude (%lf) of the boundary", min_lat, max_lat, grid_name);
 
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     if (words_are_the_same(leaf_grids[0]->get_coord_label(), COORD_LABEL_LON))
@@ -2814,7 +2815,8 @@ void Remap_grid_class::transform_coord_values_from_radian_to_degrees(Remap_grid_
             break;
     if (!words_are_the_same(leaf_grids[i]->coord_unit, COORD_UNIT_RADIANS))
         return;
-    
+
+	strcpy(leaf_grids[i]->coord_unit, COORD_UNIT_DEGREES);
     coord_value_array = (double*) remap_grid_data->grid_data_field->data_buf;
     array_size = remap_grid_data->grid_data_field->required_data_size;    
     for (i = 0; i < array_size; i ++)

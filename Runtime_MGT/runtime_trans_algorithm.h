@@ -17,7 +17,6 @@
 #include "memory_mgt.h"
 #include "timer_mgt.h"
 
-
 class Runtime_trans_algorithm
 {
     private:
@@ -89,6 +88,8 @@ class Runtime_trans_algorithm
         void unpack_MD_data(void *, int, int, void*, int *);
         template <class T> void pack_segment_data(T *, T *, int, int, int, int, bool);
         template <class T> void unpack_segment_data(T *, T *, int, int, int, int, bool);
+        MPI_Request * request;
+        bool is_first_run;
 
     public:
         Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *);
