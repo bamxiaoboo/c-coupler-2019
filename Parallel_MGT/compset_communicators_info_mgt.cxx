@@ -845,9 +845,7 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp(int local_comp_id, const char *annotation)
 {	
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(local_comp_id), 
-		             "The id of component is wrong when getting the management node of a component. Please check the model code with the annotation \"%s\"", 
-		             annotation); 
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, is_legal_local_comp_id(local_comp_id), "The id of component is wrong when getting the management node of a component. Please check the model code with the annotation \"%s\"", annotation); 
 
 	return search_global_node(local_comp_id);
 }

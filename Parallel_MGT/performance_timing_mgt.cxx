@@ -82,8 +82,6 @@ void Performance_timing_unit::timing_stop()
 
 void Performance_timing_unit::timing_output()
 {
-	double all_process_sum_time;
-	
 	if (unit_type == TIMING_TYPE_IO) {
 		if (unit_behavior == TIMING_IO_INPUT) 
 			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for reading input data file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time);
@@ -148,6 +146,13 @@ void Performance_timing_mgt::performance_timing_output()
 {
 	for (int i = 0; i < performance_timing_units.size(); i ++)
 		performance_timing_units[i]->timing_output();
+}
+
+
+void Performance_timing_mgt::performance_timing_reset()
+{
+	for (int i = 0; i < performance_timing_units.size(); i ++)
+		performance_timing_units[i]->timing_reset();
 }
 
 

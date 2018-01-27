@@ -631,7 +631,9 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);
 	if (from_external_model && !advance_time_synchronized) {		
 		synchronize_comp_processes_for_API(comp_id, API_ID_TIME_MGT_ADVANCE_TIME, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "C-Coupler code in Time_mgt::advance_model_time"), "advance the time of a component", annotation);
-		advance_time_synchronized = true;
+		advance_time_synchronized = true;		
+		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_performance_timing_mgr()->performance_timing_output();
+		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_performance_timing_mgr()->performance_timing_reset();
 	}
 
 	previous_year = current_year;
@@ -639,7 +641,6 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
 	previous_day = current_day;
 	previous_second = current_second;
     current_step_id ++;
-
 	advance_time(current_year, current_month, current_day, current_second, current_num_elapsed_day, time_step_in_second);
 }
 
