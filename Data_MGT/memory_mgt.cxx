@@ -101,11 +101,14 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 	strcpy(remap_data_field->data_type_in_IO_file, data_type);
     remap_data_field->required_data_size = mem_size / get_data_type_size(data_type);
     remap_data_field->read_data_size = remap_data_field->required_data_size;
-    remap_data_field->data_buf = (char*) (new long [(mem_size+sizeof(long)-1)/sizeof(long)]);
+	if (remap_data_field->required_data_size > 0) {
+	    remap_data_field->data_buf = (char*) (new long [(mem_size+sizeof(long)-1)/sizeof(long)]);
+	    memset(remap_data_field->data_buf, 0, mem_size);
+	}
+	else remap_data_field->data_buf = NULL;
 	if (check_field_name)
 	    remap_data_field->set_field_long_name(fields_info->get_field_long_name(field_name));
     remap_data_field->set_field_unit(unit);   // to complete: when strlen(unit) is 0, use default unit of the field
-    memset(remap_data_field->data_buf, 0, mem_size);
 
     if (decomp_id == -1)
 		grided_field_data = new Remap_grid_data_class(NULL, remap_data_field);
@@ -480,8 +483,8 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance_instance->get_field_instance_id(), "allocate field instance"));
 
 	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, buf_mark!=BUF_MARK_IO_FIELD_REG);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register an instance of coupling field of \"%s\" because the size of the model data buffer is different from the size determined by the parallel decomposition and grid. Please check the model code with the annotation \"%s\"",
-					 field_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register an instance of coupling field of \"%s\" because the size of the model data buffer (%d) is different from the size determined by the parallel decomposition and grid (%ld). Please check the model code with the annotation \"%s\"",
+					 field_name, field_size, new_field_instance->get_size_of_field(), annotation);
 	new_field_instance->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), annotation);
 	new_field_instance->reset_mem_buf(data_buffer, true);
 	fields_mem.push_back(new_field_instance);
