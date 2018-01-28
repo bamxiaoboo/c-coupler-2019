@@ -1234,7 +1234,8 @@ Inout_interface_mgt::~Inout_interface_mgt()
 void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interface *new_interface, int num_fields, int *field_ids_src, bool has_frac_remapping) 
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, new_interface->get_comp_id(), true, "start to generate the coupling connection of the remapping interface \"%s\"", new_interface->get_interface_name());
-	
+
+	coupling_generator->synchronize_latest_connection_id(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(new_interface->get_comp_id(), ""));
 	Coupling_connection *coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 	Inout_interface *child_interface_export = new_interface->get_child_interface(0);
 	Inout_interface *child_interface_import = new_interface->get_child_interface(1);

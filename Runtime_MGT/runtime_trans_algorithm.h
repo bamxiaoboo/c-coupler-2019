@@ -77,6 +77,7 @@ class Runtime_trans_algorithm
         int recv_proc_start;
 		int bypass_counter;
 		bool timer_not_bypassed;
+		int comm_tag;
 
         bool send(bool);
         bool recv(bool);
@@ -92,7 +93,7 @@ class Runtime_trans_algorithm
         bool is_first_run;
 
     public:
-        Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *);
+        Runtime_trans_algorithm(bool, int, Field_mem_info **, Routing_info **, MPI_Comm, int *, int);
         ~Runtime_trans_algorithm();
         bool run(bool);
         char * get_total_buf() {return total_buf;}

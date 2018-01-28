@@ -249,12 +249,12 @@ void Coupling_connection::generate_data_transfer()
 	}
 
     if (current_proc_id_dst_comp != -1) {
-        recv_algorithm_object = new Runtime_trans_algorithm(false, src_fields_info.size(), dst_fields_mem, fields_router, union_comm, src_proc_ranks_in_union_comm);
+        recv_algorithm_object = new Runtime_trans_algorithm(false, src_fields_info.size(), dst_fields_mem, fields_router, union_comm, src_proc_ranks_in_union_comm, connection_id);
 		import_procedure->add_data_transfer_algorithm(recv_algorithm_object);
 		inout_interface_mgr->add_runtime_receive_algorithm(recv_algorithm_object);
     }
     if (current_proc_id_src_comp != -1) {
-        send_algorithm_object = new Runtime_trans_algorithm(true, src_fields_info.size(), src_fields_mem, fields_router, union_comm, dst_proc_ranks_in_union_comm);
+        send_algorithm_object = new Runtime_trans_algorithm(true, src_fields_info.size(), src_fields_mem, fields_router, union_comm, dst_proc_ranks_in_union_comm, connection_id);
         export_procedure->add_data_transfer_algorithm(send_algorithm_object);
     }
     if (current_proc_id_dst_comp != -1) {
