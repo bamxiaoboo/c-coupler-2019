@@ -1040,13 +1040,13 @@ extern "C" void register_external_field_instance
 #else
 extern "C" void register_external_field_instance_
 #endif
-(int *field_instance_id, const char *field_name, void *data_buffer, int *field_size, int *decomp_id, int *comp_or_grid_id, 
+(int *field_instance_id, const char *field_name, long *data_buffer_ptr, int *field_size, int *decomp_id, int *comp_or_grid_id, 
  int *buf_mark, const char *unit, const char *data_type, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a field instance %s", field_name);
 
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_FIELD_INST, annotation);
-	*field_instance_id = memory_manager->register_external_field_instance(field_name, data_buffer, *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
+	*field_instance_id = memory_manager->register_external_field_instance(field_name, (void*)(*data_buffer_ptr), *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a field instance %s", field_name);
 }
@@ -1091,13 +1091,13 @@ extern "C" void register_a_new_io_field
 #else
 extern "C" void register_a_new_io_field_
 #endif
-(int *comp_or_grid_id, int *decomp_id, int *field_size, void *data_buffer, const char *field_IO_name, 
+(int *comp_or_grid_id, int *decomp_id, int *field_size, long *data_buffer_ptr, const char *field_IO_name, 
  const char *long_name, const char *unit, const char *data_type, const char * annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an I/O field %s", field_IO_name);
 
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER, annotation);
-	IO_fields_mgr->register_IO_field(*comp_or_grid_id, *decomp_id, *field_size, data_buffer, field_IO_name, long_name, unit, data_type, annotation);
+	IO_fields_mgr->register_IO_field(*comp_or_grid_id, *decomp_id, *field_size, (void*)(*data_buffer_ptr), field_IO_name, long_name, unit, data_type, annotation);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering an I/O field %s", field_IO_name);
 }

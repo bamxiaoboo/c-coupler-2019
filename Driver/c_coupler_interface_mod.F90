@@ -281,7 +281,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_0D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_0D_data
@@ -307,7 +307,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_1D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_1D_data
@@ -333,7 +333,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_2D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_2D_data
@@ -359,7 +359,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_3D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_3D_data
@@ -385,7 +385,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_4D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_4D_data
@@ -411,7 +411,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_0D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_0D_data
@@ -437,7 +437,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_1D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_1D_data
@@ -463,7 +463,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_2D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_2D_data
@@ -489,7 +489,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_3D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_3D_data
@@ -515,7 +515,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_4D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_4D_data
@@ -541,7 +541,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_0D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_0D_data
@@ -567,7 +567,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_1D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_1D_data
@@ -593,7 +593,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_2D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_2D_data
@@ -619,7 +619,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_3D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_3D_data
@@ -645,7 +645,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), data_buf, size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_4D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_4D_data
@@ -696,10 +696,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
@@ -719,10 +719,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
@@ -742,10 +742,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
@@ -765,10 +765,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
@@ -788,10 +788,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real8")//char(0), trim("")//char(0))
    endif
 
@@ -811,10 +811,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, loc(data_buf), trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, loc(data_buf), trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
@@ -834,10 +834,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
@@ -857,10 +857,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
@@ -880,10 +880,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
@@ -903,10 +903,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("real4")//char(0), trim("")//char(0))
    endif
 
@@ -926,10 +926,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, loc(data_buf), trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, data_buf, trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, 1, loc(data_buf), trim(field_io_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
@@ -949,10 +949,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
@@ -972,10 +972,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
@@ -995,10 +995,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
@@ -1018,10 +1018,10 @@
    character(len=*), intent(in), optional  :: annotation
 
    if (present(annotation)) then
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim(annotation)//char(0))
    else
-       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), data_buf, trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
+       call register_a_new_io_field(comp_or_grid_id, decomp_id, size(data_buf), loc(data_buf), trim(field_IO_name)//char(0), trim(field_long_name)//char(0), &
                                      trim(field_unit)//char(0), trim("integer")//char(0), trim("")//char(0))
    endif
 
