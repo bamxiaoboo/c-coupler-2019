@@ -371,10 +371,10 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 			if (grid_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 				continue;
 			TiXmlElement *grid_XML_element = grid_XML_element_node->ToElement();
-			const char *xml_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "local_grid_name", XML_file_name, line_number, "grid name of the current component", "the coupling connection configuration file");
+			const char *xml_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "local_grid_name", XML_file_name, line_number, "grid name of the current component", "the coupling connection configuration file", true);
 			if (words_are_the_same(xml_grid_name, grid_name)) {
-				another_comp_full_name = get_XML_attribute(comp_id, 512, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the coupling connection configuration file");
-				another_comp_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the coupling connection configuration file");
+				another_comp_full_name = get_XML_attribute(comp_id, 512, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the coupling connection configuration file", true);
+				another_comp_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the coupling connection configuration file", true);
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(another_comp_grid_name) > 0, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") specifies an empty name of the remote grid. Please check the XML file around line number %d", grid_name, XML_file_name, line_number);
 				break;
 			}

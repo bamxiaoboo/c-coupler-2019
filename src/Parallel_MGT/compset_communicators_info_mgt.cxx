@@ -325,15 +325,15 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(TiXmlElement *XML_element, co
 	performance_timing_mgr = NULL;
 	log_buffer = NULL;
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_element->Value(), "Online_Model"), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: wrong element name");
-	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "comp_name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information");
-	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full name of the component model", "internal configuration file of component information");
-	const char *XML_comp_type = get_XML_attribute(comp_id, 512, XML_element, "comp_type", XML_file_name, line_number, "the type of the component model", "internal configuration file of component information");
-	const char *XML_enabled_in_parent_coupling_generation = get_XML_attribute(comp_id, 80, XML_element, "enabled_in_parent_coupling_generation", XML_file_name, line_number, "enabled_in_parent_coupling_generation", "internal configuration file of component information");
+	const char *XML_comp_name = get_XML_attribute(comp_id, 80, XML_element, "comp_name", XML_file_name, line_number, "the name of the component model", "internal configuration file of component information", true);
+	const char *XML_full_name = get_XML_attribute(comp_id, 512, XML_element, "full_name", XML_file_name, line_number, "the full name of the component model", "internal configuration file of component information", true);
+	const char *XML_comp_type = get_XML_attribute(comp_id, 512, XML_element, "comp_type", XML_file_name, line_number, "the type of the component model", "internal configuration file of component information", true);
+	const char *XML_enabled_in_parent_coupling_generation = get_XML_attribute(comp_id, 80, XML_element, "enabled_in_parent_coupling_generation", XML_file_name, line_number, "enabled_in_parent_coupling_generation", "internal configuration file of component information", true);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(XML_enabled_in_parent_coupling_generation,"true") || words_are_the_same(XML_enabled_in_parent_coupling_generation,"false"), "software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: XML");
 	if (words_are_the_same(XML_enabled_in_parent_coupling_generation,"true"))
 		enabled_in_parent_coupling_generation = true;
 	else enabled_in_parent_coupling_generation = false;
-	const char *XML_processes = get_XML_attribute(comp_id, -1, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information");
+	const char *XML_processes = get_XML_attribute(comp_id, -1, XML_element, "processes", XML_file_name, line_number, "global IDs of the processes of the component model", "internal configuration file of component information", true);
 	strcpy(this->comp_name, XML_comp_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(specified_full_name, XML_full_name), "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node: the full name specified is different from the full name in XML file %s: %s vs %s", XML_file_name, specified_full_name, XML_full_name);
 	strcpy(this->full_name, XML_full_name);

@@ -714,7 +714,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			fields_element = detailed_element;
-			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file");
+			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file", true);
 			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all") || words_are_the_same(default_str, "remain"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"fields\" is wrong (legal values are \"off\", \"all\" and \"remain\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				fields_default_setting = 0;
@@ -723,7 +723,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 						continue;					
 					TiXmlElement *field_element = field_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field (arround line %d of the XML file)", interface_name, XML_file_name, field_element->Row());
-					const char *field_name = get_XML_attribute(host_comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file");	
+					const char *field_name = get_XML_attribute(host_comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file", true);	
 					check_and_verify_name_format_of_string_for_XML(host_comp_id, field_name, "the field", XML_file_name, line_number);
 					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", an illegal field name (\"%s\") is detected. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_name, field_element->Row());
 					for (i = 0; i < interface_fields_name.size(); i ++)
@@ -758,7 +758,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 			components_element = detailed_element;
-			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file");
+			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file", true);
 			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"componets\" is wrong (legal values are \"off\" and \"all\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				components_default_setting = 0;
@@ -767,11 +767,15 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 						continue;
 					TiXmlElement *component_element = component_element_node->ToElement();
 					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
-					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file");
+					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file", false);
 //					if (check_comp_existence)
 //						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
-					producer_info.first = strdup(full_name);
 					const char *interface_name = component_element->Attribute("interface_name", &line_number);
+					if (full_name == NULL && interface_name == NULL)
+						continue;
+					if (full_name == NULL)
+						producer_info.first = strdup("\0");
+					else producer_info.first = strdup(full_name);
 					if (interface_name == NULL)
 						producer_info.second = strdup("\0");
 					else producer_info.second = strdup(interface_name);
@@ -909,7 +913,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 			continue;
 		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
-		const char *interface_name = get_XML_attribute(host_comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file");
+		const char *interface_name = get_XML_attribute(host_comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file", true);
 		if (!is_XML_setting_on(host_comp_id, interface_XML_element, XML_file_name, "the \"status\" of the redirection configurations for an import interface", "import interface configuration file"))
 			continue;
 		check_and_verify_name_format_of_string_for_XML(-1, interface_name, "the import interface", XML_file_name, line_number);
@@ -1054,14 +1058,18 @@ void Coupling_generator::generate_coupling_procedures_common(int API_id, MPI_Com
 						}
 						else {
 							for (int l = 0; l < configuration_export_producer_info.size(); l ++) {
-								for (int m = 0; m < export_fields_dst_components[field_index].size(); m ++)
-									if (words_are_the_same(configuration_export_producer_info[l].first, export_fields_dst_components[field_index][m].first)) {
-										if (strlen(configuration_export_producer_info[l].second) == 0 || words_are_the_same(configuration_export_producer_info[l].second, export_fields_dst_components[field_index][m].second)) {
-											src_comp_interface.first = strdup(export_fields_dst_components[field_index][m].first);
-											src_comp_interface.second = strdup(export_fields_dst_components[field_index][m].second);
-											coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
-										}
+								for (int m = 0; m < export_fields_dst_components[field_index].size(); m ++) {
+									bool matching = false;
+									if (strlen(configuration_export_producer_info[l].first) == 0)
+										matching = words_are_the_same(configuration_export_producer_info[l].second, export_fields_dst_components[field_index][m].second);
+									else if (words_are_the_same(configuration_export_producer_info[l].first, export_fields_dst_components[field_index][m].first))
+										matching = strlen(configuration_export_producer_info[l].second) == 0 || words_are_the_same(configuration_export_producer_info[l].second, export_fields_dst_components[field_index][m].second);
+									if (matching) {
+										src_comp_interface.first = strdup(export_fields_dst_components[field_index][m].first);
+										src_comp_interface.second = strdup(export_fields_dst_components[field_index][m].second);
+										coupling_connection->src_comp_interfaces.push_back(src_comp_interface);
 									}
+								}
 							}
 						}
 					}
@@ -1598,7 +1606,7 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 		XML_element = XML_element_node->ToElement();
 		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status for the full names of a set of component models", "the redirection configuration file"))
 			continue;
-		XML_keyword = get_XML_attribute(comp_id, -1, XML_element, "keyword", XML_file_name, line_number, "the keyword of the set of component models' full names", "the redirection configuration file");
+		XML_keyword = get_XML_attribute(comp_id, -1, XML_element, "keyword", XML_file_name, line_number, "the keyword of the set of component models' full names", "the redirection configuration file", true);
 		if (words_are_the_same(keyword, XML_keyword))
 			break;
 	}	
@@ -1607,7 +1615,7 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 
 	for (detailed_XML_element_node = XML_element->FirstChild(); detailed_XML_element_node != NULL; detailed_XML_element_node = detailed_XML_element_node->NextSibling()) {
 		detailed_XML_element = detailed_XML_element_node->ToElement();
-		temp_full_name = get_XML_attribute(comp_id, -1, detailed_XML_element, "comp_full_name", XML_file_name, line_number, "the full name of a component model", "the redirection configuration file");
+		temp_full_name = get_XML_attribute(comp_id, -1, detailed_XML_element, "comp_full_name", XML_file_name, line_number, "the full name of a component model", "the redirection configuration file", true);
 		if (temp_full_name != NULL) {
 			for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 				if (words_are_the_same(temp_full_name, all_comp_fullnames_for_coupling_generation[i]))

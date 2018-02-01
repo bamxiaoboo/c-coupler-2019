@@ -323,7 +323,7 @@ H2D_remapping_wgt_file_mgt::H2D_remapping_wgt_file_mgt(TiXmlElement *XML_element
 			continue;
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), words_are_the_same(detailed_element->Value(), "file"), "When setting a remapping weights file in the remapping configuration in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", XML_file_name, detailed_element->Value(), detailed_element->Row());
-		const char *short_file_name = get_XML_attribute(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), 1000, detailed_element, "name", XML_file_name, line_number, "the name of a remapping weights file",  "remapping configuration");
+		const char *short_file_name = get_XML_attribute(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id(), 1000, detailed_element, "name", XML_file_name, line_number, "the name of a remapping weights file",  "remapping configuration", true);
 		char full_file_name[NAME_STR_SIZE];
 		if (words_are_the_same(overall_XML_file_name, XML_file_name))
 			sprintf(full_file_name, "%s/all/grids_weights/%s", comp_comm_group_mgt_mgr->get_config_root_dir(), short_file_name);
@@ -478,7 +478,7 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 	
 	this->type_id = algorithm_type;
 	this->comp_id = comp_id;
-	const char *algorithm_name = get_XML_attribute(comp_id, -1, XML_element, "name", XML_file_name, line_number, "the name of a remapping algorithm", "remapping configuration");
+	const char *algorithm_name = get_XML_attribute(comp_id, -1, XML_element, "name", XML_file_name, line_number, "the name of a remapping algorithm", "remapping configuration", true);
 	if (algorithm_type == REMAP_ALGORITHM_TYPE_H2D)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, remap_operator_manager->get_remap_operator_num_dim(algorithm_name) == 2, "\"%s\" is not a legal remapping operator or not a 2D remapping operator. Please verify the XML file \"%s\" around the line number %d", algorithm_name, XML_file_name, line_number);
 	else if (algorithm_type == REMAP_ALGORITHM_TYPE_V1D || algorithm_type == REMAP_ALGORITHM_TYPE_T1D)
@@ -491,8 +491,8 @@ Remapping_algorithm_specification::Remapping_algorithm_specification(int comp_id
 			continue;
 		TiXmlElement *detailed_element = detailed_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(detailed_element->Value(), "parameter"), "When setting the remapping configuration in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", XML_file_name, detailed_element->Value(), detailed_element->Row());
-		const char *parameter_name = get_XML_attribute(comp_id, -1, detailed_element, "name", XML_file_name, line_number, "the name of a parameter of the corresponding remapping algorithm",  "remapping configuration");
-		const char *parameter_value = get_XML_attribute(comp_id, 1000, detailed_element, "value", XML_file_name, line_number, "the value of a parameter of the corresponding remapping algorithm",  "remapping configuration");
+		const char *parameter_name = get_XML_attribute(comp_id, -1, detailed_element, "name", XML_file_name, line_number, "the name of a parameter of the corresponding remapping algorithm",  "remapping configuration", true);
+		const char *parameter_value = get_XML_attribute(comp_id, 1000, detailed_element, "value", XML_file_name, line_number, "the value of a parameter of the corresponding remapping algorithm",  "remapping configuration", true);
 		char error_string[NAME_STR_SIZE];
 		int parameter_check_result = remap_operator_manager->check_operator_parameter(algorithm_name, parameter_name, parameter_value, error_string);
 		if (parameter_check_result == 0)
@@ -688,7 +688,7 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 			if (!is_XML_setting_on(comp_id, detailed_element, XML_file_name, "the status of the configuration of a section about fields", "remapping configuration"))
 				continue;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, num_fields_section == 0, "When setting the remapping configuration in the XML file \"%s\", there are more than one section for specifying fields. That is not allowed. Please verify the XML file arround the line number %d", XML_file_name, detailed_element->Row());		
-			const char *specification_type = get_XML_attribute(comp_id, -1, detailed_element, "specification", XML_file_name, line_number, "how to specify the fields corresponding to a remapping setting", "remapping configuration");
+			const char *specification_type = get_XML_attribute(comp_id, -1, detailed_element, "specification", XML_file_name, line_number, "how to specify the fields corresponding to a remapping setting", "remapping configuration", true);
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(specification_type, "type") || words_are_the_same(specification_type, "default") || words_are_the_same(specification_type, "name"), "In the XML file \"%s\", the manner for how to specify fields must be \"type\", \"default\" or \"name\". Please verify the XML file arround the line number %d.", XML_file_name, line_number);
 			if (words_are_the_same(specification_type, "type")) {
 				field_specification_manner = 1;
@@ -696,7 +696,7 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 					if (type_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 						continue;
 					TiXmlElement *type_element = type_element_node->ToElement();
-					const char *field_type = get_XML_attribute(comp_id, -1, type_element, "value", XML_file_name, line_number, "the field type corresponding to a remapping setting", "remapping configuration");
+					const char *field_type = get_XML_attribute(comp_id, -1, type_element, "value", XML_file_name, line_number, "the field type corresponding to a remapping setting", "remapping configuration", true);
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(field_type, "state") || words_are_the_same(field_type, "flux"), "In the XML file \"%s\" for remapping configuration, the field type \"%s\" is wrong. C-Coupler only supports field types \"state\" and \"flux\" at this time. Please verify the XML file arround the line number %d.", XML_file_name, field_type, line_number);
 					EXECUTION_REPORT(REPORT_ERROR, comp_id, fields_specification.size() == 0, "In the XML file \"%s\" for remapping configuration, there are more than one field type specified while only one field type can be set for a remapping setting. Please verify the XML file arround the line number %d.", XML_file_name, type_element->Row());
 					fields_specification.push_back(strdup(field_type));
@@ -711,7 +711,7 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 					if (field_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 						continue;
 					TiXmlElement *field_element = field_element_node->ToElement();
-					const char *field_name = get_XML_attribute(comp_id, 80, field_element, "value", XML_file_name, line_number, "the field name corresponding to a remapping setting", "remapping configuration");
+					const char *field_name = get_XML_attribute(comp_id, 80, field_element, "value", XML_file_name, line_number, "the field name corresponding to a remapping setting", "remapping configuration", true);
 					for (i = 0; i < fields_specification.size(); i ++)
 						if (words_are_the_same(fields_specification[i], field_name))
 							break;
