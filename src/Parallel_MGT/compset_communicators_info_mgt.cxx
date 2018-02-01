@@ -691,8 +691,6 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);
 	root_comp_config_dir[0] = '\0';
-	sprintf(coupling_flow_config_dir, "%s/CCPL_dir/run/data/all/coupling_flow_config", root_working_dir);
-	create_directory(coupling_flow_config_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(temp_string, "%s/CCPL_dir/run/CCPL_logs/by_executables", root_working_dir);
 	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);	
 	sprintf(exe_log_file_name, "%s/CCPL_dir/run/CCPL_logs/by_executables/%s/%s.CCPL.log.%d", root_working_dir, this->executable_name, this->executable_name, current_proc_global_id);

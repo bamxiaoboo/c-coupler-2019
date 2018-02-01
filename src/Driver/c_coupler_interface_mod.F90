@@ -1416,7 +1416,6 @@
    integer                                 :: local_considered_in_parent_coupling_gen
    character *1024                         :: local_annotation
    character *1024                         :: exe_name
-   character *1024                         :: root_working_dir
 
 
    local_considered_in_parent_coupling_gen = 1
@@ -1431,7 +1430,6 @@
    endif
 
    if (parent_id .eq. -1) then
-      ierr = getcwd(root_working_dir)
       call getarg(0, exe_name)
       call initialize_CCPL_mgrs
       call check_CCPL_Fortran_API_int_type(parent_id)

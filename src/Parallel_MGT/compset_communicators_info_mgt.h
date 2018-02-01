@@ -135,7 +135,6 @@ class Comp_comm_group_mgt_mgr
 		char active_coupling_connections_dir[NAME_STR_SIZE];
 		char comps_ending_config_status_dir[NAME_STR_SIZE];
 		char runtime_config_root_dir[NAME_STR_SIZE];
-		char coupling_flow_config_dir[NAME_STR_SIZE];
 		char root_comp_config_dir[NAME_STR_SIZE];
 		char CCPL_platform_log_dir[NAME_STR_SIZE];
 		char exe_log_file_name[NAME_STR_SIZE];
@@ -173,7 +172,6 @@ class Comp_comm_group_mgt_mgr
 		const char *get_config_root_dir() { return runtime_config_root_dir; }	
 		const char *get_root_comp_config_dir() const { return root_comp_config_dir; }
 		void get_root_comps_for_overall_coupling_generation(std::vector<const char *> &);
-		const char *get_coupling_flow_config_dir() { return coupling_flow_config_dir; }
 		void confirm_coupling_configuration_active(int, int, bool, const char*);
 		const int *get_all_components_ids();
 		Comp_comm_group_mgt_node *get_global_node_root() { return global_node_root; }

@@ -53,7 +53,7 @@ class Performance_timing_unit
 		void timing_output();
 		bool match_timing_unit(int, int, int, const char*);
 		void timing_add(double time_inc) { total_time += time_inc; }
-		void timing_reset() { total_time = 0; }
+		void timing_reset() { total_time = 0.0; }
 };
 
 

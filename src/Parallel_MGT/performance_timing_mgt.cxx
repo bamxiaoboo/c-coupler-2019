@@ -17,7 +17,7 @@ Performance_timing_unit::Performance_timing_unit(int comp_id, int unit_type, int
 {
 	check_timing_unit(unit_type, unit_behavior, unit_int_keyword, unit_char_keyword);
 	this->previous_time = -1.0;
-	this->total_time = 0,0;
+	this->total_time = 0.0;
 	this->unit_type = unit_type;
 	this->unit_behavior = unit_behavior;
 	this->unit_int_keyword = unit_int_keyword;

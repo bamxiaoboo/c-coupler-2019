@@ -242,7 +242,8 @@ Coupling_connection *IO_output_procedure::generate_coupling_connection(int conne
 {
 	Coupling_connection *coupling_connection = NULL;
 	
-	if (import_interface != NULL && export_interface != NULL) {
+	if (import_interface != NULL && export_interface != NULL) {		
+		coupling_generator->synchronize_latest_connection_id(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""));
 		coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
 		strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in IO_output_procedure::generate_coupling_connection")->get_full_name());
 		strcpy(coupling_connection->dst_interface_name, import_interface->get_interface_name());
