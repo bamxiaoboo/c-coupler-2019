@@ -10,8 +10,6 @@
 #ifndef GLOBAL_DATA
 #define GLOBAL_DATA
 
-#define USE_DOUBLE_MPI
-
 #include "compset_communicators_info_mgt.h"
 #include "decomp_info_mgt.h"
 #include "field_info_mgt.h"
@@ -36,7 +34,6 @@
 #include "IO_field_mgt.h"
 #include "remapping_configuration_mgt.h"
 #include "runtime_remapping_weights_mgt.h"
-
 
 
 extern char software_name[];

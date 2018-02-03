@@ -123,6 +123,8 @@ Coupling_connection::Coupling_connection(int id)
     union_comm = -1;
     src_proc_ranks_in_union_comm = NULL;
     dst_proc_ranks_in_union_comm = NULL;
+	if (connection_id > coupling_generator->get_latest_connection_id())
+		coupling_generator->set_latest_connection_id(connection_id);
 }
 
 
