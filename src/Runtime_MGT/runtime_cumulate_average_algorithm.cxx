@@ -45,9 +45,10 @@ template<typename T> void template_cumulate_or_average(T* dst, const T* src, con
 }
 
 
-Runtime_cumulate_average_algorithm::Runtime_cumulate_average_algorithm(Field_mem_info *field_src, Field_mem_info *field_dst)
+Runtime_cumulate_average_algorithm::Runtime_cumulate_average_algorithm(Connection_coupling_procedure *coupling_procedure, Field_mem_info *field_src, Field_mem_info *field_dst)
 {
 	cumulate_average_field_info *cumulate_average_field  = new cumulate_average_field_info;
+	this->coupling_procedure = coupling_procedure;
 	cumulate_average_field->mem_info_src = field_src;
 	cumulate_average_field->mem_info_dst = field_dst;
 	cumulate_average_field->timer = NULL;
@@ -118,5 +119,43 @@ Runtime_cumulate_average_algorithm::~Runtime_cumulate_average_algorithm()
         delete cumulate_average_fields[i]->timer;
         delete cumulate_average_fields[i];
     }
+}
+
+
+void Runtime_cumulate_average_algorithm::restart_write(Restart_buffer_container *restart_buffer, const char *label)
+{
+	for (int i = cumulate_average_fields.size()-1; i >= 0; i --) {
+		restart_buffer->dump_in_data(&(cumulate_average_fields[i]->current_computing_count), sizeof(int));
+		restart_buffer->dump_in_data(&(cumulate_average_fields[i]->num_elements_in_field), sizeof(int));
+		if (cumulate_average_fields[i]->current_computing_count != 0) {
+			EXECUTION_REPORT_LOG(REPORT_LOG, coupling_procedure->get_inout_interface()->get_comp_id(), true, "Detect the requirements for writing intermediate field data (%s) into restart data file for a Runtime_cumulate_average_algorithm of the export interface \"%s\" to the component model \"%s\" (%d)", label, coupling_procedure->get_inout_interface()->get_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_comp_full_name(), cumulate_average_fields[i]->current_computing_count);
+			// write field data into restart data file
+		}
+	}
+	int temp_int = cumulate_average_fields.size();
+	restart_buffer->dump_in_data(&temp_int, sizeof(int));
+}
+
+
+void Runtime_cumulate_average_algorithm::restart_read(Restart_buffer_container *restart_buffer, const char *label)
+{
+	int num_fields, temp_current_computing_count, temp_num_elements_in_field;
+	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(comp_id);
+
+
+	restart_buffer->load_restart_data(&num_fields, sizeof(int));
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH || time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE)
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, num_fields == cumulate_average_fields.size(), "Fail to restart the simulation in a branch run or continue run: the coupling configuration has been changed from the original simulation run. Please verify.");
+	for (int i = 0; i < num_fields; i ++) {
+		restart_buffer->load_restart_data(&temp_num_elements_in_field, sizeof(int));
+		restart_buffer->load_restart_data(&temp_current_computing_count, sizeof(int));
+		if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH || time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, temp_num_elements_in_field == cumulate_average_fields[i]->num_elements_in_field, "Fail to restart the simulation in a branch run or continue run: the coupling configuration has been changed from the original simulation run. Please verify.");
+			cumulate_average_fields[i]->current_computing_count = temp_current_computing_count;
+			if (temp_current_computing_count != 0) {
+				// load restart data
+			}
+		}
+	}
 }
 

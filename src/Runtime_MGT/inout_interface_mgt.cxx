@@ -152,9 +152,9 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 
 		if (inout_interface->get_import_or_export_or_remap() == 1) {
 			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE)
-				runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
+				runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(this, fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
 			if (fields_mem_inter_step_averaged[i] != fields_mem_inner_step_averaged[i])
-				runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
+				runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(this, fields_mem_inner_step_averaged[i], fields_mem_inter_step_averaged[i]);
 		}
 		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? 
 			                             coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
@@ -208,7 +208,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			else if (fields_mem_remapped[i] != NULL)
 				last_field_instance = fields_mem_remapped[i];
 			else last_field_instance = fields_mem_transfer[i];
-			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(last_field_instance, fields_mem_registered[i]);
+			runtime_inter_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(this, last_field_instance, fields_mem_registered[i]);
 		}
 	}
 	
@@ -429,13 +429,34 @@ Runtime_remapping_weights *Connection_coupling_procedure::get_runtime_remapping_
 
 void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
+	int temp_int;
+
+	
 	fields_time_info_src->write_restart_mgt_info(restart_buffer);
 	fields_time_info_dst->write_restart_mgt_info(restart_buffer);
 	restart_buffer->dump_in_data(&last_remote_fields_time, sizeof(long));
 	restart_buffer->dump_in_data(&current_remote_fields_time, sizeof(long));
 	for (int i = fields_mem_registered.size()-1; i >=0; i --)
 		restart_buffer->dump_in_string(fields_mem_registered[i]->get_field_name(), -1);
-	int temp_int = fields_mem_registered.size();
+	if (inout_interface->get_import_or_export_or_remap() == 1) {
+		for (int i = runtime_inner_averaging_algorithm.size()-1; i >= 0; i --) {
+			if (runtime_inner_averaging_algorithm[i] != NULL) {
+				runtime_inner_averaging_algorithm[i]->restart_write(restart_buffer, "inner");
+				temp_int = 1;
+			}
+			else  temp_int = 0;
+			restart_buffer->dump_in_data(&temp_int, sizeof(int));
+		}
+		for (int i = runtime_inter_averaging_algorithm.size()-1; i >= 0; i --) {
+			if (runtime_inter_averaging_algorithm[i] != NULL) {
+				runtime_inter_averaging_algorithm[i]->restart_write(restart_buffer, "inter");
+				temp_int = 1;
+			}
+			else  temp_int = 0;
+			restart_buffer->dump_in_data(&temp_int, sizeof(int));
+		}
+	}
+	temp_int = fields_mem_registered.size();
 	restart_buffer->dump_in_data(&temp_int, sizeof(int));	
 }
 
@@ -443,13 +464,35 @@ void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_contai
 
 void Connection_coupling_procedure::import_restart_data(Restart_buffer_container *restart_buffer)
 {
-	int num_total_fields, i, j;
+	int num_total_fields, temp_int, i, j;
 	long str_size, temp_long;
 	char restart_field_name[NAME_STR_SIZE];
 
 
 	restart_buffer->load_restart_data(&num_total_fields, sizeof(int));
 	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name());
+
+	if (inout_interface->get_import_or_export_or_remap() == 1) {
+		for (int i = 0; i < runtime_inter_averaging_algorithm.size(); i ++) {
+			restart_buffer->load_restart_data(&temp_int, sizeof(int));
+			if (temp_int == 0) {
+				EXECUTION_REPORT(REPORT_ERROR, -1, runtime_inter_averaging_algorithm[i] == NULL, "Software error1 in Connection_coupling_procedure::import_restart_data");
+				continue;
+			}			
+			EXECUTION_REPORT(REPORT_ERROR, -1, runtime_inter_averaging_algorithm[i] != NULL, "Software error2 in Connection_coupling_procedure::import_restart_data");
+			runtime_inter_averaging_algorithm[i]->restart_read(restart_buffer, "inter");
+		}
+		for (int i = 0; i < runtime_inner_averaging_algorithm.size(); i ++) {
+			restart_buffer->load_restart_data(&temp_int, sizeof(int));
+			if (temp_int == 0) {				
+				EXECUTION_REPORT(REPORT_ERROR, -1, runtime_inner_averaging_algorithm[i] == NULL, "Software error3 in Connection_coupling_procedure::import_restart_data");
+				continue;		
+			}
+			EXECUTION_REPORT(REPORT_ERROR, -1, runtime_inner_averaging_algorithm[i] != NULL, "Software error4 in Connection_coupling_procedure::import_restart_data");
+			runtime_inner_averaging_algorithm[i]->restart_read(restart_buffer, "inner");
+		}
+	}
+
 	for (i = 0; i < num_total_fields; i ++) {
 		restart_buffer->load_restart_string(restart_field_name, str_size, NAME_STR_SIZE);
 		for (j = 0; j < fields_mem_registered.size(); j ++)

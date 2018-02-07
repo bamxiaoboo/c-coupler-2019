@@ -105,6 +105,7 @@ class Connection_coupling_procedure
 		Coupling_connection* get_coupling_connection(){return coupling_connection;}
 		bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
 		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
+		Inout_interface *get_inout_interface() { return inout_interface; }
 };
 
 

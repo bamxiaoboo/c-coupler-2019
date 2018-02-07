@@ -17,6 +17,9 @@
 #include <vector>
 
 
+class Connection_coupling_procedure;
+
+
 struct cumulate_average_field_info
 {
     int num_elements_in_field;
@@ -33,12 +36,14 @@ class Runtime_cumulate_average_algorithm
     private:
 		int comp_id;
         std::vector<cumulate_average_field_info*> cumulate_average_fields;
+		Connection_coupling_procedure *coupling_procedure;
         void cumulate_or_average(bool);
         
     public:
-		Runtime_cumulate_average_algorithm(Field_mem_info*, Field_mem_info*);
-		
+		Runtime_cumulate_average_algorithm(Connection_coupling_procedure *, Field_mem_info*, Field_mem_info*);
         ~Runtime_cumulate_average_algorithm();
+		void restart_write(Restart_buffer_container*, const char *);
+		void restart_read(Restart_buffer_container*, const char *);
         bool run(bool);
 };
 

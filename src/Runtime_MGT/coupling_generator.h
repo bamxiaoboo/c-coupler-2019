@@ -111,6 +111,7 @@ class Coupling_connection
 		void generate_data_transfer();
 		Field_mem_info *get_bottom_field(bool, int);
 		bool get_is_bottom_field_dynamic(int);
+		const char *get_dst_comp_full_name() { return dst_comp_full_name; }
 };
 
 
