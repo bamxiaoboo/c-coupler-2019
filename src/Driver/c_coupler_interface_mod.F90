@@ -85,8 +85,8 @@
    public :: CCPL_report_log 
    public :: CCPL_report_progress 
    public :: CCPL_report_error 
-   public :: CCPL_do_restart_write
-   public :: CCPL_do_restart_read
+   public :: CCPL_do_restart_write_IO
+   public :: CCPL_do_restart_read_IO
    public :: CCPL_get_configurable_comps_full_names
    public :: CCPL_do_external_coupling_generation
    public :: CCPL_do_individual_coupling_generation
@@ -2981,7 +2981,7 @@
 
 
 
-   SUBROUTINE CCPL_do_restart_write(comp_id, bypass_timer, annotation)
+   SUBROUTINE CCPL_do_restart_write_IO(comp_id, bypass_timer, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    logical,          intent(in)                :: bypass_timer
@@ -2997,7 +2997,7 @@
        call CCPL_write_restart(comp_id, local_bypass_timer, trim("")//char(0))
    endif
    
-   END SUBROUTINE CCPL_do_restart_write
+   END SUBROUTINE CCPL_do_restart_write_IO
  
 
 
@@ -3102,7 +3102,7 @@
 
 
 
-   SUBROUTINE CCPL_do_restart_read(comp_id, specified_restart_file, annotation)
+   SUBROUTINE CCPL_do_restart_read_IO(comp_id, specified_restart_file, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    character(len=*), intent(in), optional      :: specified_restart_file
@@ -3119,7 +3119,7 @@
        call CCPL_read_restart(comp_id, trim(local_specified_restart_file)//char(0), trim("")//char(0))
    endif
    
-   END SUBROUTINE CCPL_do_restart_read
+   END SUBROUTINE CCPL_do_restart_read_IO
  
 
 
