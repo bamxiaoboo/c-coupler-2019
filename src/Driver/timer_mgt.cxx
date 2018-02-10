@@ -1080,6 +1080,7 @@ void Components_time_mgt::clone_parent_comp_time_mgr(int comp_id, int parent_com
 
 void Components_time_mgt::advance_component_time(int comp_id, const char *annotation)
 {
+	comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->write_restart_mgt_into_file();
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
 	time_mgr->advance_model_time(annotation, true);
 	comp_comm_group_mgt_mgr->set_current_proc_current_time(comp_id, time_mgr->get_current_num_elapsed_day(), time_mgr->get_current_second());

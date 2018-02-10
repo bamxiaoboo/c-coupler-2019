@@ -31,6 +31,11 @@
 #define FIELD_NECESSITY_NECESSARY           ((int)1)
 #define FIELD_NECESSITY_OPTIONAL            ((int)0)
 
+#define COUPLING_INTERFACE_MARK_IMPORT      ((int)0)
+#define COUPLING_INTERFACE_MARK_EXPORT      ((int)1)
+#define COUPLING_INTERFACE_MARK_REMAP       ((int)2)
+
+
 class Inout_interface;
 class Coupling_connection;
 
@@ -107,6 +112,7 @@ class Connection_coupling_procedure
 		bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
 		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
 		Inout_interface *get_inout_interface() { return inout_interface; }
+		bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time); }
 };
 
 
@@ -176,6 +182,7 @@ class Inout_interface
 		void import_restart_data(Restart_buffer_container *);
 		void write_restart_mgt_info(Restart_buffer_container*);
 		bool get_is_child_interface() { return is_child_interface; }
+		bool is_in_restart_write_window();
 };
 
 
@@ -216,6 +223,7 @@ class Inout_interface_mgt
 		void get_all_export_interfaces_of_a_field(int, const char *, std::vector<const char*> &, std::vector<const char*> &);
 		Inout_interface *search_an_inout_interface_executed_with_timer(int);		
 		int get_h2d_grid_area_in_remapping_weights(int, int, void *, int, const char *, const char *);
+		bool is_comp_in_restart_write_window(int);
 };
 
 #endif

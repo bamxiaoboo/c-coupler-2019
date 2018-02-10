@@ -323,7 +323,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 				runtime_data_transfer_algorithm->run(bypass_timer);
 			}
-			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time) || restart_mgr->is_in_restart_write_window(time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second()))) {
+			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time))) {
 				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
 				// write restart data
 			}
@@ -1236,6 +1236,18 @@ void Inout_interface::dump_active_coupling_connections_into_XML(TiXmlElement *ro
 }
 
 
+bool Inout_interface::is_in_restart_write_window()
+{
+	if (import_or_export_or_remap != COUPLING_INTERFACE_MARK_IMPORT || is_child_interface)
+		return false;
+		
+	for (int i = 0; i < coupling_procedures.size(); i ++)
+		if (coupling_procedures[i]->is_in_restart_write_window())
+			return true;
+	return false;
+}
+
+
 void Inout_interface::dump_active_coupling_connections()
 {
 	char XML_file_name[NAME_STR_SIZE];
@@ -1628,3 +1640,14 @@ int Inout_interface_mgt::get_h2d_grid_area_in_remapping_weights(int interface_id
 	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, inout_interface != NULL, "ERROR happens when calling the API \"CCPL_get_H2D_grid_area_in_remapping_wgts\": the parameter of interface ID is wrong. Please verify the model code with the annotation \"%s\"", annotation);
 	return inout_interface->get_h2d_grid_area_in_remapping_weights(inout_interface->get_interface_name(), field_index, output_area_data, area_array_size, data_type, annotation);
 }
+
+
+bool Inout_interface_mgt::is_comp_in_restart_write_window(int comp_id)
+{
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->is_in_restart_write_window())
+			return true;
+		
+	return false;	
+}
+

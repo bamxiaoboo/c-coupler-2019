@@ -99,6 +99,7 @@ Restart_mgt::Restart_mgt(Comp_comm_group_mgt_node *comp_node)
 	last_restart_write_elapsed_time = -1;
 	input_restart_mgt_info_file = NULL;
 	restart_read_annotation = NULL;
+	restart_mgt_info_written = true;
 	time_mgr = NULL;
 }
 
@@ -237,9 +238,7 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 			time_mgr->write_time_mgt_into_array(time_mgr_restart_buffer->get_buffer_content_ptr(), *(time_mgr_restart_buffer->get_buffer_max_size_ptr()), *(time_mgr_restart_buffer->get_buffer_content_iter_ptr()));
 		}
 		inout_interface_mgr->write_into_restart_buffers(comp_node->get_comp_id());
-		if (local_proc_id == 0)
-			write_into_file();
-		clean(true);
+		restart_mgt_info_written = false;
 	}
 }
 
@@ -260,7 +259,7 @@ void Restart_mgt::get_file_name_in_rpointer_file(char *restart_file_name)
 }
 
 
-void Restart_mgt::write_into_file()
+void Restart_mgt::write_restart_mgt_into_file()
 {
 	char *array_buffer = NULL;
 	long buffer_max_size, buffer_content_size;
@@ -269,6 +268,19 @@ void Restart_mgt::write_into_file()
 	FILE *restart_file, *rpointer_file;
 	
 
+	if (comp_node->get_current_proc_local_id() != 0) {
+		clean(true);
+		return;
+	}
+
+	if (restart_mgt_info_written)
+		return;
+
+	if (inout_interface_mgr->is_comp_in_restart_write_window(comp_node->get_comp_id()))
+		return;
+
+	restart_mgt_info_written = true;
+	
 	for (int i = restart_write_buffer_containers.size()-1; i >= 0; i --)
 		restart_write_buffer_containers[i]->dump_out(&array_buffer, buffer_max_size, buffer_content_size);
 	temp_int = restart_write_buffer_containers.size();
@@ -286,6 +298,9 @@ void Restart_mgt::write_into_file()
 	rpointer_file = fopen(rpointer_file_name, "w+");	
 	fprintf(rpointer_file, "%s.%s.r.%08d-%05d\n", time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
 	fclose(rpointer_file);
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write restart mgt information into the file \"%s\"", restart_file_name);
+
+	clean(true);
 }
 
 
@@ -317,14 +332,19 @@ bool Restart_mgt::is_in_restart_write_window(long full_time)
 	if (last_restart_write_elapsed_time == -1)
 		return false;
 
-	EXECUTION_REPORT(REPORT_LOG, comp_node->get_comp_id(), true, "feichang qiguai %ld vs %ld", full_time, last_restart_write_elapsed_time);
-	return full_time <= last_restart_write_elapsed_time;
+	if (full_time == -1)
+		return false;
+
+	return full_time <= last_restart_write_elapsed_time || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
 }
 
 
 bool Restart_mgt::is_in_restart_read_window(long full_time)
 {
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID)
+		return false;
+
+	if (full_time == -1)
 		return false;
 
 	return full_time <= time_mgr->get_restart_full_time() || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= time_mgr->get_restart_full_time();

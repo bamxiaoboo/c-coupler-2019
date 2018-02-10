@@ -66,13 +66,14 @@ class Restart_mgt
 		Time_mgt *time_mgr;
 		char *input_restart_mgt_info_file;
 		char *restart_read_annotation;
+		bool restart_mgt_info_written;
 
 	public:
 		Restart_mgt(Comp_comm_group_mgt_node*);
 		~Restart_mgt();
 		void clean(bool);
 		void do_restart_write(const char *, bool);
-		void write_into_file();
+		void write_restart_mgt_into_file();
 		void read_restart_mgt_info(bool, const char *, const char *);
 		void read_restart_mgt_info(const char *, const char *);
 		Restart_buffer_container *search_restart_buffer(const char *, const char*);
