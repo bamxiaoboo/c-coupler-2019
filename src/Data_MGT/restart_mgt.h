@@ -20,8 +20,8 @@
 #include <vector>
 
 
-
 class Restart_mgt;
+class Comp_comm_group_mgt_node;
 
 
 class Restart_buffer_container
@@ -38,7 +38,6 @@ class Restart_buffer_container
 
 	public:
 		Restart_buffer_container(const char *, const char *, const char *, Restart_mgt *);
-		Restart_buffer_container(const char*, const char *, const char *, char *, long, Restart_mgt *);
 		Restart_buffer_container(const char *, long &, const char *, Restart_mgt *);
 		~Restart_buffer_container() { delete [] buffer_content; }		
 		const char *get_buffer_content() { return buffer_content; }
@@ -59,29 +58,31 @@ class Restart_buffer_container
 class Restart_mgt
 {
 	private:
-		long last_timer_on_full_time;
+		long last_restart_write_full_time;
+		long last_restart_write_elapsed_time;
 		std::vector<Restart_buffer_container*> restart_write_buffer_containers;
 		std::vector<Restart_buffer_container*> restart_read_buffer_containers;
-		int comp_id;
+		Comp_comm_group_mgt_node *comp_node;
 		Time_mgt *time_mgr;
 		char *input_restart_mgt_info_file;
 		char *restart_read_annotation;
 
 	public:
-		Restart_mgt(int);
+		Restart_mgt(Comp_comm_group_mgt_node*);
 		~Restart_mgt();
 		void clean(bool);
 		void do_restart_write(const char *, bool);
 		void write_into_file();
 		void read_restart_mgt_info(bool, const char *, const char *);
 		void read_restart_mgt_info(const char *, const char *);
-		void reset_comp_id(int comp_id) { this->comp_id = comp_id; }
 		Restart_buffer_container *search_restart_buffer(const char *, const char*);
-		int get_comp_id() { return comp_id; }
+		int get_comp_id();
 		void get_file_name_in_rpointer_file(char *);
 		const char *get_input_restart_mgt_info_file();
 		const char *get_restart_read_annotation();
-		Restart_buffer_container *apply_restart_buffer(const char *, const char *, const char *, bool);
+		Restart_buffer_container *apply_restart_buffer(const char *, const char *, const char *);
+		bool is_in_restart_write_window(long);
+		bool is_in_restart_read_window(long);
 };
 
 

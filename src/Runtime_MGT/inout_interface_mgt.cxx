@@ -104,6 +104,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 	this->inout_interface = inout_interface;
 	this->coupling_connection = coupling_connection; 
 	coupling_connections_dumped = false;
+	restart_mgr = comp_comm_group_mgt_mgr->search_global_node(inout_interface->get_comp_id())->get_restart_mgr();
 
 	for (int i = 0; i < coupling_connection->fields_name.size(); i ++)
 		for (int j=i+1; j < coupling_connection->fields_name.size(); j ++)
@@ -213,7 +214,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 	}
 	
 	if (inout_interface->get_import_or_export_or_remap() == 0)
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"Connection_coupling_procedure::Connection_coupling_procedure")->update_min_remote_lag_seconds(fields_time_info_dst->lag_seconds);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"Connection_coupling_procedure::Connection_coupling_procedure")->update_min_max_remote_lag_seconds(fields_time_info_dst->lag_seconds);
 }
 
 
@@ -301,8 +302,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		}
 		else if (!(fields_time_info_dst->current_num_elapsed_days != fields_time_info_dst->last_timer_num_elapsed_days || fields_time_info_dst->current_second != fields_time_info_dst->last_timer_second)) {
 			current_remote_fields_time = ((long)fields_time_info_src->last_timer_num_elapsed_days) * 100000 + fields_time_info_src->last_timer_second; 
-			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time) && current_remote_fields_time != last_remote_fields_time) {  // restart related
-				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Will receive remote data at %ld", current_remote_fields_time);
+			if (!time_mgr->is_time_out_of_execution(current_remote_fields_time) && current_remote_fields_time != last_remote_fields_time) {
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will receive remote data at %ld vs %ld", inout_interface->get_interface_name(), current_remote_fields_time, last_remote_fields_time);
 				last_remote_fields_time = current_remote_fields_time;
 				transfer_data = true;
 			}
@@ -312,8 +313,20 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --)
 				if (field_interface_local_index[i] != -1)
 					field_update_status[field_interface_local_index[i]] = transfer_data? 1 : 0;
-			runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
-			runtime_data_transfer_algorithm->run(bypass_timer);
+			if (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_time)) {
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will not receive data from the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_src_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
+				for (int i = fields_mem_registered.size() - 1; i >= 0; i --)  // temp code
+					fields_mem_transfer[i]->define_field_values(false);       // temp code
+				// read restart data
+			}
+			else {
+				runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
+				runtime_data_transfer_algorithm->run(bypass_timer);
+			}
+			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time) || restart_mgr->is_in_restart_write_window(time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second()))) {
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
+				// write restart data
+			}
 			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 					if (runtime_remap_algorithms[i] != NULL)
@@ -329,8 +342,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 			if (!transfer_data)
 				continue;
-			last_remote_fields_time = runtime_data_transfer_algorithm->get_history_receive_sender_time(i);
-			long remote_bypass_counter = last_remote_fields_time / ((long)100000000000000);
+			long remote_bypass_counter = runtime_data_transfer_algorithm->get_history_receive_sender_time(i) / ((long)100000000000000);
 			EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
 			if (bypass_timer) {
 				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. %d %d", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, remote_bypass_counter, inout_interface->get_bypass_counter());
@@ -376,9 +388,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_inter_averaging_algorithm[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
-					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time)) {  // restart related
+					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time))
 						transfer_data = true;
-					}
 					continue;
 				}
 				if ((((long)fields_time_info_dst->next_timer_num_elapsed_days)*((long)SECONDS_PER_DAY))+fields_time_info_dst->next_timer_second+lag_seconds < (((long)fields_time_info_src->next_timer_num_elapsed_days)*((long)SECONDS_PER_DAY)) + fields_time_info_src->next_timer_second) {
@@ -389,7 +400,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_inter_averaging_algorithm[i]->run(true);
 					if (runtime_datatype_transform_algorithms[i] != NULL) 
 						runtime_datatype_transform_algorithms[i]->run(false);
-					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time)) {  // restart related
+					if (!time_mgr->is_time_out_of_execution(current_remote_fields_time)) {
 						transfer_data = true;
 					}
 				}
@@ -398,6 +409,10 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_inter_averaging_algorithm[i]->run(false);
 				}	
 			}
+		}
+		if (!bypass_timer && !inout_interface->get_is_child_interface() && transfer_data && restart_mgr->is_in_restart_read_window(current_remote_fields_time)) {
+			EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The export interface \"%s\" will not send data to the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_dst_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
+			transfer_data = false;
 		}
 		if (!transfer_data)
 			finish_status = true;
@@ -525,7 +540,8 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_con
 	if (comp_node != NULL)
 		comp_id = comp_node->get_local_node_id();
 	else comp_id = -1;
-	
+
+	restart_mgr = NULL;
 	inversed_dst_fraction = NULL;
 }
 
@@ -586,6 +602,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	this->bypass_counter = 0;
 	this->mgt_info_has_been_restarted = false;
+	restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
 }
 
 
@@ -745,10 +762,8 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 
 void Inout_interface::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
-	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
-
 	if (restart_buffer == NULL)
-		restart_buffer = restart_mgr->apply_restart_buffer(comp_full_name, RESTART_BUF_TYPE_INTERFACE, interface_name, true);
+		restart_buffer = restart_mgr->apply_restart_buffer(comp_full_name, RESTART_BUF_TYPE_INTERFACE, interface_name);
 
 	for (int i = coupling_procedures.size() - 1; i >= 0; i --)
 		coupling_procedures[i]->write_restart_mgt_info(restart_buffer);
@@ -768,7 +783,6 @@ void Inout_interface::import_restart_data(Restart_buffer_container *restart_buff
 	int num_children, num_procedures;
 	bool successful;
 
-	Restart_mgt *restart_mgr = comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr();
 	if (restart_buffer == NULL)
 		restart_buffer = restart_mgr->search_restart_buffer(RESTART_BUF_TYPE_INTERFACE, interface_name); 
 	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
@@ -917,7 +931,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	}
 
 	if (!is_child_interface && !bypass_timer && !mgt_info_has_been_restarted && (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
-		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_LOG, comp_id, true, "Import restart data for the interface \"%s\"\n", interface_name);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Import restart data for the interface \"%s\"\n", interface_name);
 		import_restart_data(NULL);
 		mgt_info_has_been_restarted = true;
 	}
@@ -1504,7 +1518,7 @@ void Inout_interface_mgt::free_all_MPI_wins()
 }
 
 
-void Inout_interface_mgt::write_into_restart_buffers(std::vector<Restart_buffer_container*> *restart_buffers, int comp_id)
+void Inout_interface_mgt::write_into_restart_buffers(int comp_id)
 {
 	char *array_buffer;
 	long buffer_max_size, buffer_content_size;

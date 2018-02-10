@@ -63,6 +63,7 @@ class Comp_comm_group_mgt_node
 		bool enabled_in_parent_coupling_generation;
 		Restart_mgt *restart_mgr;
 		int min_remote_lag_seconds;
+		int max_remote_lag_seconds;
 		char *log_buffer;
 		int log_buffer_content_size;
 		Performance_timing_mgt *performance_timing_mgr;
@@ -83,7 +84,7 @@ class Comp_comm_group_mgt_node
 		int get_num_children() { return children.size(); }
 		int get_local_node_id() { return comp_id; }
 		Comp_comm_group_mgt_node *get_child(int indx) { return children[indx]; }
-		void reset_local_node_id(int new_id) { comp_id = new_id; if (restart_mgr != NULL) restart_mgr->reset_comp_id(comp_id); }
+		void reset_local_node_id(int);
 		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
 		bool is_definition_finalized() { return definition_finalized; }
@@ -111,7 +112,8 @@ class Comp_comm_group_mgt_node
 		long get_proc_latest_model_time(int);
 		void get_all_descendant_real_comp_fullnames(int, std::vector<const char*>&, char **, long &, long &);
 		int get_min_remote_lag_seconds();
-		void update_min_remote_lag_seconds(int);
+		int get_max_remote_lag_seconds();
+		void update_min_max_remote_lag_seconds(int);
 		void output_log(const char *, bool);
 		Performance_timing_mgt *get_performance_timing_mgr() { return performance_timing_mgr; }		
 };

@@ -907,9 +907,7 @@ void Time_mgt::check_consistency_of_current_time(int date, int second, const cha
 
 bool Time_mgt::is_time_out_of_execution(long another_time)
 {
-	if (restart_second == -1)
-		return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time >= ((long)stop_num_elapsed_day)*100000+stop_second;
-	else return another_time < ((long)restart_num_elapsed_day)*100000+restart_second || another_time >= ((long)stop_num_elapsed_day)*100000+stop_second;
+	return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time >= ((long)stop_num_elapsed_day)*100000+stop_second;
 }
 
 
@@ -999,7 +997,7 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	if (words_are_the_same(RUNTYPE_CONTINUE, run_type) || words_are_the_same(RUNTYPE_BRANCH, run_type)) {
 		restart_second = current_second;
 		restart_num_elapsed_day = current_num_elapsed_day;
-		restart_full_time = get_current_full_time(); 
+		restart_full_time = restart_num_elapsed_day*((long)100000)+restart_second; 
 		restarted_step_id = current_step_id;
 	}
 

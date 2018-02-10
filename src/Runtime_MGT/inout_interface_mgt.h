@@ -88,6 +88,7 @@ class Connection_coupling_procedure
 		bool finish_status;
 		bool transfer_data;
 		bool coupling_connections_dumped;
+		Restart_mgt *restart_mgr;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
@@ -134,6 +135,7 @@ class Inout_interface
 		int num_fields_connected;
 		bool mgt_info_has_been_restarted;
 		bool is_child_interface;
+		Restart_mgt *restart_mgr;
 
 	public:
 		Inout_interface(const char*, long&);
@@ -173,6 +175,7 @@ class Inout_interface
 		void dump_active_coupling_connections_into_XML(TiXmlElement *);
 		void import_restart_data(Restart_buffer_container *);
 		void write_restart_mgt_info(Restart_buffer_container*);
+		bool get_is_child_interface() { return is_child_interface; }
 };
 
 
@@ -208,7 +211,7 @@ class Inout_interface_mgt
 		void runtime_receive_algorithms_receive_data();
 		void add_MPI_win(MPI_Win mpi_win) { all_MPI_wins.push_back(mpi_win); }
 		void free_all_MPI_wins(); 
-		void write_into_restart_buffers(std::vector<Restart_buffer_container*> *, int);
+		void write_into_restart_buffers(int);
 		void write_comp_export_info_into_XML_file(int);
 		void get_all_export_interfaces_of_a_field(int, const char *, std::vector<const char*> &, std::vector<const char*> &);
 		Inout_interface *search_an_inout_interface_executed_with_timer(int);		

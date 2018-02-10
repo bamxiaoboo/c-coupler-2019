@@ -164,11 +164,12 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	this->enabled_in_parent_coupling_generation = enabled_in_parent_coupling_gen;
 	this->log_buffer = NULL;
 	this->performance_timing_mgr = new Performance_timing_mgt(comp_id);
-	restart_mgr = new Restart_mgt(comp_id);
+	restart_mgr = new Restart_mgt(this);
 	comp_ccpl_log_file_name[0] = '\0';
 	comp_model_log_file_name[0] = '\0';
 	comp_model_log_file_device = -1;
 	min_remote_lag_seconds = 0;
+	max_remote_lag_seconds = 0;
 
 	if (comm != -1) {
 		comm_group = comm;
@@ -626,11 +627,20 @@ int Comp_comm_group_mgt_node::get_min_remote_lag_seconds()
 }
 
 
-void Comp_comm_group_mgt_node::update_min_remote_lag_seconds(int new_min_remote_lag_seconds)
+int Comp_comm_group_mgt_node::get_max_remote_lag_seconds()
 {
-	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, current_proc_local_id != -1, "Software error in Comp_comm_group_mgt_node::update_min_remote_lag_seconds");
-	if (new_min_remote_lag_seconds < this->min_remote_lag_seconds)
-		this->min_remote_lag_seconds = new_min_remote_lag_seconds;
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, current_proc_local_id != -1, "Software error in Comp_comm_group_mgt_node::get_max_remote_lag_seconds");	
+	return max_remote_lag_seconds;
+}
+
+
+void Comp_comm_group_mgt_node::update_min_max_remote_lag_seconds(int remote_lag_seconds)
+{
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, current_proc_local_id != -1, "Software error in Comp_comm_group_mgt_node::update_min_max_remote_lag_seconds");
+	if (remote_lag_seconds < this->min_remote_lag_seconds)
+		this->min_remote_lag_seconds = remote_lag_seconds;
+	if (remote_lag_seconds < this->max_remote_lag_seconds)
+		this->max_remote_lag_seconds = remote_lag_seconds;
 }
 
 
@@ -638,6 +648,14 @@ void Comp_comm_group_mgt_node::output_log(const char *log_string, bool flush_log
 {
 	output_CCPL_log(log_string, comp_ccpl_log_file_name, &log_buffer, log_buffer_content_size, flush_log_file);
 }
+
+
+void Comp_comm_group_mgt_node::reset_local_node_id(int new_id) 
+{ 
+	comp_id = new_id; 
+	EXECUTION_REPORT(REPORT_ERROR, -1, restart_mgr == NULL, "Software error in Comp_comm_group_mgt_node::reset_local_node_id");
+}
+
 
 
 Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
