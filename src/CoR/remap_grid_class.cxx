@@ -3005,6 +3005,7 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
     Remap_grid_class *decomp_leaf_grids[256];
     Remap_grid_class *decomp_grid;
     Remap_grid_data_class *original_center_field_lon, *original_center_field_lat;
+	char decomp_grid_name[NAME_STR_SIZE*2];
     int num_leaf_grids;
     double *decomp_lon_center_values, *decomp_lat_center_values;
     double *this_lon_center_values, *this_lat_center_values;
@@ -3021,7 +3022,8 @@ Remap_grid_class *Remap_grid_class::generate_decomp_grid(const int *local_cell_i
         decomp_leaf_grids[0] = new Remap_grid_class(leaf_grids[0]->grid_name, leaf_grids[0]->coord_label, leaf_grids[0]->coord_unit, COORD_BOUND_CYCLIC, 0);
     else decomp_leaf_grids[0] = new Remap_grid_class(leaf_grids[0]->grid_name, leaf_grids[0]->coord_label, leaf_grids[0]->coord_unit, COORD_BOUND_ACYCLIC, 0);
     decomp_leaf_grids[1] = new Remap_grid_class(leaf_grids[1]->grid_name, leaf_grids[1]->coord_label, leaf_grids[1]->coord_unit, COORD_BOUND_ACYCLIC, 0);
-    decomp_grid = new Remap_grid_class(this->grid_name, 2, decomp_leaf_grids, num_local_cells);
+	sprintf(decomp_grid_name, "DECOMP_GRID_%s_at_%s", grid_name, decomp_name);
+    decomp_grid = new Remap_grid_class(decomp_grid_name, 2, decomp_leaf_grids, num_local_cells);
     decomp_leaf_grids[0]->super_grid_of_setting_coord_values = decomp_grid;
     decomp_leaf_grids[1]->super_grid_of_setting_coord_values = decomp_grid;
     decomp_leaf_grids[0]->super_grids_of_setting_mask_value.push_back(decomp_grid);

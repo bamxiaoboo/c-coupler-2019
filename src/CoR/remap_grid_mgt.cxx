@@ -257,6 +257,7 @@ void Remap_grid_mgt::get_all_leaf_remap_grids(int *num_leaf_grids, Remap_grid_cl
 void Remap_grid_mgt::add_remap_grid(Remap_grid_class *remap_grid)
 {
 	EXECUTION_REPORT(REPORT_ERROR, -1, search_remap_grid_with_grid_name(remap_grid->get_grid_name()) == NULL, "Software error in Remap_grid_mgt::add_remap_grid: grid \"%s\" has already been added into the grid manager", remap_grid->get_grid_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "add remap grid \"%s\" at %lx", remap_grid->get_grid_name(), remap_grid);
 	remap_grids.push_back(remap_grid);
 }
 
@@ -264,6 +265,7 @@ void Remap_grid_mgt::add_remap_grid(Remap_grid_class *remap_grid)
 void Remap_grid_mgt::add_temp_grid(Remap_grid_class *temp_grid)
 {
 	temp_grids.push_back(temp_grid);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "add temp grid \"%s\" at %lx", temp_grid->get_grid_name(), temp_grid);
 }
 
 

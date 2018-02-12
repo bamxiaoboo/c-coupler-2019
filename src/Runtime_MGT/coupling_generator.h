@@ -112,6 +112,7 @@ class Coupling_connection
 		Field_mem_info *get_bottom_field(bool, int);
 		bool get_is_bottom_field_dynamic(int);
 		const char *get_dst_comp_full_name() { return dst_comp_full_name; }
+		const char *get_dst_interface_name() { return dst_interface_name; }
 		const char *get_src_comp_full_name() { return src_comp_interfaces[0].first; }
 };
 

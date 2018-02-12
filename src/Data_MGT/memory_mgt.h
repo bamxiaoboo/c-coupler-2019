@@ -76,6 +76,7 @@ class Field_mem_info
 		long get_define_order_count() const { return define_order_count; }
 		int get_field_instance_id() const { return field_instance_id; }
 		int get_comp_id() { return comp_id; }
+		int get_host_comp_id() { return host_comp_id; }
 		int get_grid_id() { return grid_id; }
         const char *get_grid_name();
 		const char *get_unit() const { return field_unit; }

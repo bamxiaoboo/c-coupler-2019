@@ -19,6 +19,7 @@
 #include "remap_statement_operand.h"
 #include "remap_grid_class.h"
 #include "remap_grid_data_class.h"
+#include <vector>
 #include <map>
 
 
@@ -30,6 +31,7 @@ class IO_basis
         char file_type[256];
         char open_format[256];
         std::map<const Remap_grid_class*, int> sized_grids_map;
+		std::vector<const Remap_grid_class*> recorded_grids;
 
         virtual void write_grid(Remap_grid_class*, bool) = 0;
         virtual void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool) = 0;

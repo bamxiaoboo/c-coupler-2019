@@ -20,9 +20,7 @@
 class Gather_scatter_rearrange_info
 {
     private: 
-        char original_decomp_name[NAME_STR_SIZE];
         char fully_decomp_name[NAME_STR_SIZE];
-        char grid_name[NAME_STR_SIZE];
         char data_type[NAME_STR_SIZE];
         bool has_global_field;
         int num_local_procs;
@@ -34,7 +32,7 @@ class Gather_scatter_rearrange_info
         void *mpibuf;
         int *rearrange_indexes;
 
-		int comp_id;
+		int host_comp_id;
 		int original_decomp_id;
 		int new_decomp_id;
 		int grid_id;

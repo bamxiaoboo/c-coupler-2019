@@ -17,6 +17,8 @@
 
 #include "common_utils.h"
 #include "timer_mgt.h"
+#include "io_netcdf.h"
+#include "memory_mgt.h"
 #include <vector>
 
 
@@ -52,6 +54,7 @@ class Restart_buffer_container
 		void load_restart_data(void *, long);		
 		char *load_restart_string(char *, long &, long);
 		const char *get_input_restart_mgt_info_file();
+		Restart_mgt *get_restart_mgr() { return restart_mgr; }
 };
 
 
@@ -67,6 +70,7 @@ class Restart_mgt
 		char *input_restart_mgt_info_file;
 		char *restart_read_annotation;
 		bool restart_mgt_info_written;
+		IO_netcdf *restart_write_data_file;
 
 	public:
 		Restart_mgt(Comp_comm_group_mgt_node*);
@@ -84,6 +88,7 @@ class Restart_mgt
 		Restart_buffer_container *apply_restart_buffer(const char *, const char *, const char *);
 		bool is_in_restart_write_window(long);
 		bool is_in_restart_read_window(long);
+		void write_restart_field_data(Field_mem_info *, const char*, const char*);
 };
 
 

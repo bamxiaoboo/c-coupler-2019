@@ -325,6 +325,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			}
 			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time))) {
 				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
+				for (int i = 0; i < fields_mem_registered.size(); i ++)
+					restart_mgr->write_restart_field_data(fields_mem_transfer[i], inout_interface->get_interface_name(), "imported");
 				// write restart data
 			}
 			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
@@ -456,7 +458,7 @@ void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_contai
 	if (inout_interface->get_import_or_export_or_remap() == 1) {
 		for (int i = runtime_inner_averaging_algorithm.size()-1; i >= 0; i --) {
 			if (runtime_inner_averaging_algorithm[i] != NULL) {
-				runtime_inner_averaging_algorithm[i]->restart_write(restart_buffer, "inner");
+				runtime_inner_averaging_algorithm[i]->restart_write(restart_buffer, "aver_inner");
 				temp_int = 1;
 			}
 			else  temp_int = 0;
@@ -464,7 +466,7 @@ void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_contai
 		}
 		for (int i = runtime_inter_averaging_algorithm.size()-1; i >= 0; i --) {
 			if (runtime_inter_averaging_algorithm[i] != NULL) {
-				runtime_inter_averaging_algorithm[i]->restart_write(restart_buffer, "inter");
+				runtime_inter_averaging_algorithm[i]->restart_write(restart_buffer, "aver_inter");
 				temp_int = 1;
 			}
 			else  temp_int = 0;
@@ -495,7 +497,7 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 				continue;
 			}			
 			EXECUTION_REPORT(REPORT_ERROR, -1, runtime_inter_averaging_algorithm[i] != NULL, "Software error2 in Connection_coupling_procedure::import_restart_data");
-			runtime_inter_averaging_algorithm[i]->restart_read(restart_buffer, "inter");
+			runtime_inter_averaging_algorithm[i]->restart_read(restart_buffer, "aver_inter");
 		}
 		for (int i = 0; i < runtime_inner_averaging_algorithm.size(); i ++) {
 			restart_buffer->load_restart_data(&temp_int, sizeof(int));
@@ -504,7 +506,7 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 				continue;		
 			}
 			EXECUTION_REPORT(REPORT_ERROR, -1, runtime_inner_averaging_algorithm[i] != NULL, "Software error4 in Connection_coupling_procedure::import_restart_data");
-			runtime_inner_averaging_algorithm[i]->restart_read(restart_buffer, "inner");
+			runtime_inner_averaging_algorithm[i]->restart_read(restart_buffer, "aver_inner");
 		}
 	}
 
@@ -1538,11 +1540,9 @@ void Inout_interface_mgt::write_into_restart_buffers(int comp_id)
 	
 	for (int i = 0; i < interfaces.size(); i ++)
 		if (interfaces[i]->get_comp_id() == comp_id) {
-			if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "") == 0) {
-				if (!interfaces[i]->has_been_executed_with_timer())
-					continue;
-				interfaces[i]->write_restart_mgt_info(NULL);
-			}
+			if (!interfaces[i]->has_been_executed_with_timer())
+				continue;
+			interfaces[i]->write_restart_mgt_info(NULL);
 		}			
 }
 

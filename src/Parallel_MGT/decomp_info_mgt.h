@@ -15,6 +15,7 @@
 #include "remap_weight_of_strategy_class.h"
 #include "original_grid_mgt.h"
 #include <vector>
+#include <map>
 
 
 class Decomp_info
@@ -53,6 +54,7 @@ class Decomp_info_mgt
 {
     private:
         std::vector<Decomp_info *> decomps_info;
+		std::map<int, int> fully_decomps_map;
         
     public:
         Decomp_info_mgt() {}

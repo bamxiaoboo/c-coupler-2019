@@ -71,13 +71,13 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
     mpibuf = NULL;
     rearrange_indexes = NULL;
     global_field_mem = NULL;
-	comp_id = local_field->get_comp_id();
+	host_comp_id = local_field->get_host_comp_id();
 	original_decomp_id = local_field->get_decomp_id();
 	grid_id = local_field->get_grid_id();
     sprintf(data_type, local_field->get_field_data()->get_grid_data_field()->data_type_in_application);
-    num_local_procs = comp_comm_group_mgt_mgr->get_num_proc_in_comp(comp_id, "in Gather_scatter_rearrange_info");
-	current_proc_local_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in Gather_scatter_rearrange_info");
-	local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Gather_scatter_rearrange_info");
+    num_local_procs = comp_comm_group_mgt_mgr->get_num_proc_in_comp(host_comp_id, "in Gather_scatter_rearrange_info");
+	current_proc_local_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(host_comp_id, "in Gather_scatter_rearrange_info");
+	local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "in Gather_scatter_rearrange_info");
 
     if (original_decomp_id == -1) {
         has_global_field = false;
@@ -130,7 +130,7 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
         rearrange_indexes = new int [num_total_cells];
     }
     MPI_Gatherv((int*)decomps_info_mgr->get_decomp_info(original_decomp_id)->get_local_cell_global_indx(), num_local_cells, MPI_INT, rearrange_indexes, counts, displs, MPI_INT, 0, local_comm);
-    EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "generate gather scatter info for (%s %s %s)", original_decomp_name, grid_name, data_type);
+    EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "generate gather scatter info for (%s %s %s)", decomps_info_mgr->get_decomp_info(original_decomp_id)->get_decomp_name(), decomps_info_mgr->get_decomp_info(original_decomp_id)->get_grid_name(), data_type);
     if (current_proc_local_id == 0) {
         for (i = 0; i < num_local_procs; i ++) {
             displs[i] *= num_points_in_each_cell*num_levels;
@@ -143,9 +143,9 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
 }
 
 
-bool Gather_scatter_rearrange_info::match(int comp_id, int decomp_id, int grid_id, const char *data_type)
+bool Gather_scatter_rearrange_info::match(int host_comp_id, int decomp_id, int grid_id, const char *data_type)
 {
-    return this->comp_id == comp_id && this->original_decomp_id == decomp_id && this->grid_id == grid_id && words_are_the_same(this->data_type, data_type);
+    return this->host_comp_id == host_comp_id && this->original_decomp_id == decomp_id && this->grid_id == grid_id && words_are_the_same(this->data_type, data_type);
 }
 
 
@@ -242,7 +242,7 @@ Gather_scatter_rearrange_info *Fields_gather_scatter_mgt::apply_gather_scatter_r
 
 
     for (i = 0; i < gather_scatter_rearrange_infos.size(); i ++)
-        if (gather_scatter_rearrange_infos[i]->match(local_field->get_comp_id(), local_field->get_decomp_id(), local_field->get_grid_id(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application))
+        if (gather_scatter_rearrange_infos[i]->match(local_field->get_host_comp_id(), local_field->get_decomp_id(), local_field->get_grid_id(), local_field->get_field_data()->get_grid_data_field()->data_type_in_application))
             break;
 
     if (i == gather_scatter_rearrange_infos.size()) {
@@ -265,7 +265,7 @@ Field_mem_info *Fields_gather_scatter_mgt::gather_field(Field_mem_info *local_fi
 void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem_info *local_field, bool write_grid_name, int date, int datesec, bool is_restart_field)
 {
     Field_mem_info *global_field = gather_field(local_field);
-    if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in gather_write_field") == 0)
+    if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_host_comp_id(), "in gather_write_field") == 0)
         nc_file->write_grided_data(global_field->get_field_data(), write_grid_name, date, datesec, is_restart_field);
 }
 
@@ -273,7 +273,7 @@ void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem
 void Fields_gather_scatter_mgt::read_scatter_field(IO_netcdf *nc_file, Field_mem_info *local_field, int time_pos)
 {
     Gather_scatter_rearrange_info *rearrage_info = apply_gather_scatter_rearrange_info(local_field);
-    if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_comp_id(), "in Fields_gather_scatter_mgt::read_scatter_field"))
+    if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_host_comp_id(), "in Fields_gather_scatter_mgt::read_scatter_field"))
         nc_file->read_data(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field(), time_pos);
     rearrage_info->scatter_field(local_field);
 }

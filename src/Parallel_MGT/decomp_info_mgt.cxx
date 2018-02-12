@@ -93,21 +93,26 @@ int Decomp_info_mgt::generate_fully_decomp(int original_decomp_id)
 	int *local_cells_global_indexes, num_global_cells;
 
 
+	if (fully_decomps_map.find(original_decomp_id) != fully_decomps_map.end())
+		return fully_decomps_map[original_decomp_id];
+
 	sprintf(fully_decomp_name, "fully_decomp_for_%s", get_decomp_info(original_decomp_id)->get_decomp_name());
 	fully_decomp = search_decomp_info(fully_decomp_name, get_decomp_info(original_decomp_id)->get_comp_id());
 	if (fully_decomp != NULL)
 		return fully_decomp->get_decomp_id();
 
-	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(get_decomp_info(original_decomp_id)->get_comp_id(), "in Decomp_info_mgt::generate_fully_decomp") == 0) {
+	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(get_decomp_info(original_decomp_id)->get_host_comp_id(), "in Decomp_info_mgt::generate_fully_decomp") == 0) {
 		num_global_cells = get_decomp_info(original_decomp_id)->get_num_global_cells();
 		local_cells_global_indexes = new int [num_global_cells];
 		for (int i = 0; i < num_global_cells; i ++)
 			local_cells_global_indexes[i] = i + 1;
-		fully_decomp = new Decomp_info(fully_decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), -1, get_decomp_info(original_decomp_id)->get_grid_id(), num_global_cells, local_cells_global_indexes, "fully decomp", false);
+		fully_decomp = new Decomp_info(fully_decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), get_decomp_info(original_decomp_id)->get_host_comp_id(), get_decomp_info(original_decomp_id)->get_grid_id(), num_global_cells, local_cells_global_indexes, "fully decomp", false);
 		delete [] local_cells_global_indexes;	
 	}
-	else fully_decomp = new Decomp_info(fully_decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), -1, get_decomp_info(original_decomp_id)->get_grid_id(), 0, NULL, "fully decomp", false);
+	else fully_decomp = new Decomp_info(fully_decomp_name, (TYPE_DECOMP_ID_PREFIX|decomps_info.size()), get_decomp_info(original_decomp_id)->get_host_comp_id(), get_decomp_info(original_decomp_id)->get_grid_id(), 0, NULL, "fully decomp", false);
     decomps_info.push_back(fully_decomp);
+
+	fully_decomps_map[original_decomp_id] = fully_decomp->get_decomp_id();
 
     return fully_decomp->get_decomp_id();
 }

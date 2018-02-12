@@ -280,15 +280,21 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
     associated_grid->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
     for (i = 0; i < num_sized_sub_grids; i ++)
         if (sized_grids_map.find(sized_sub_grids[i]) == sized_grids_map.end()) {
-            if (write_grid_name)
-                sprintf(tmp_string, "size_%s", sized_sub_grids[i]->get_grid_name());
+            if (write_grid_name) {
+				if (sized_sub_grids[i]->get_num_dimensions() == 1)
+					sprintf(tmp_string, "dim_%s_%d", sized_sub_grids[i]->get_coord_label(), recorded_grids.size());
+				else if (sized_sub_grids[i]->get_is_sphere_grid())
+					sprintf(tmp_string, "dim_H2D_%d", recorded_grids.size());
+				else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in IO_netcdf::write_grid");
+            }
             else if (sized_sub_grids[i]->get_num_dimensions() == 1)
                 sprintf(tmp_string, "%s", sized_sub_grids[i]->get_coord_label()); 
             else sprintf(tmp_string, "grid_size", sized_sub_grids[i]->get_grid_name()); 
             rcode = nc_def_dim(ncfile_id, tmp_string, sized_sub_grids[i]->get_grid_size(), &dim_ncid);
-			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "define dim %s in ncfile %s", tmp_string, file_name);
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "define dim %s for grid \"%s\" (%lx) in ncfile %s", tmp_string, sized_sub_grids[i]->get_grid_name(), sized_sub_grids[i], file_name);
             report_nc_error();
             sized_grids_map[sized_sub_grids[i]] = dim_ncid;
+			recorded_grids.push_back(sized_sub_grids[i]);
         }
     nc_enddef(ncfile_id);
     report_nc_error();
@@ -344,14 +350,12 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
 
     tmp_string[0] = '\0';
     if (is_grid_data && write_grid_name) {
-		if (field_data->get_coord_value_grid() != NULL) 
-			sprintf(tmp_string, "%s_", field_data->get_coord_value_grid()->get_grid_name());
         if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, "mask"))
-            sprintf(tmp_string+strlen(tmp_string), "%s", field_data->get_grid_data_field()->field_name_in_application);
+            sprintf(tmp_string, "grid_%d_%s", recorded_grids.size(), field_data->get_grid_data_field()->field_name_in_application);
         else {
             if (words_are_the_same(grid_field_type, GRID_VERTEX_LABEL))
-                sprintf(tmp_string+strlen(tmp_string), "%s_%s", grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
-            else sprintf(tmp_string+strlen(tmp_string), "%s", field_data->get_grid_data_field()->field_name_in_application);
+                sprintf(tmp_string, "grid_%d_%s_%s", recorded_grids.size(), grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
+            else sprintf(tmp_string, "grid_%d_%s", recorded_grids.size(), field_data->get_grid_data_field()->field_name_in_application);
         }
     }
     else {

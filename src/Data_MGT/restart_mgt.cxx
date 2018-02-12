@@ -101,6 +101,7 @@ Restart_mgt::Restart_mgt(Comp_comm_group_mgt_node *comp_node)
 	restart_read_annotation = NULL;
 	restart_mgt_info_written = true;
 	time_mgr = NULL;
+	restart_write_data_file = NULL;
 }
 
 
@@ -233,12 +234,30 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write\" has been called more than once in the same time step. Please verify the model code with the annotation \"%s\"");
 		last_restart_write_full_time = current_full_time;
 		last_restart_write_elapsed_time = time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second();
+		int date = last_restart_write_full_time/(long)100000;
+		int second = last_restart_write_full_time%(long)100000;
 		if (local_proc_id == 0) {
 			time_mgr_restart_buffer = apply_restart_buffer(comp_full_name, RESTART_BUF_TYPE_TIME, "local time manager");
 			time_mgr->write_time_mgt_into_array(time_mgr_restart_buffer->get_buffer_content_ptr(), *(time_mgr_restart_buffer->get_buffer_max_size_ptr()), *(time_mgr_restart_buffer->get_buffer_content_iter_ptr()));
+			char restart_data_file_name[NAME_STR_SIZE];
+			sprintf(restart_data_file_name, "%s/%s.%s.r.%08d-%05d.nc", comp_node->get_working_dir(), time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
+			restart_write_data_file = new IO_netcdf(restart_data_file_name, restart_data_file_name, "w", false);
 		}
 		inout_interface_mgr->write_into_restart_buffers(comp_node->get_comp_id());
 		restart_mgt_info_written = false;
+	}
+}
+
+
+void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char*label)
+{
+	Field_mem_info *global_field = fields_gather_scatter_mgr->gather_field(field_instance);
+
+	if (comp_node->get_current_proc_local_id() == 0) {
+		sprintf(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
+		EXECUTION_REPORT(REPORT_ERROR, -1, restart_write_data_file != NULL, "Software error in Restart_mgt::write_restart_field_data");
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write variable \"%s\" into restart data file \"%s\"", global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, restart_write_data_file->get_file_name());
+		restart_write_data_file->write_grided_data(global_field->get_field_data(), true, -1, -1, true);
 	}
 }
 
@@ -299,6 +318,10 @@ void Restart_mgt::write_restart_mgt_into_file()
 	fprintf(rpointer_file, "%s.%s.r.%08d-%05d\n", time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
 	fclose(rpointer_file);
 	EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write restart mgt information into the file \"%s\"", restart_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, restart_write_data_file != NULL, "Software error in Restart_mgt::write_restart_mgt_into_file");
+
+	delete restart_write_data_file;
+	restart_write_data_file = NULL;
 
 	clean(true);
 }
