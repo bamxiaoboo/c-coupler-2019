@@ -94,6 +94,7 @@ class Connection_coupling_procedure
 		bool transfer_data;
 		bool coupling_connections_dumped;
 		Restart_mgt *restart_mgr;
+		int remote_bypass_counter;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);

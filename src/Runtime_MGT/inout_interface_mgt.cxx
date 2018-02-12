@@ -104,6 +104,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 	this->inout_interface = inout_interface;
 	this->coupling_connection = coupling_connection; 
 	coupling_connections_dumped = false;
+	remote_bypass_counter = -1;
 	restart_mgr = comp_comm_group_mgt_mgr->search_global_node(inout_interface->get_comp_id())->get_restart_mgr();
 
 	for (int i = 0; i < coupling_connection->fields_name.size(); i ++)
@@ -297,7 +298,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), !(!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) || last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
 			}
 			else if (!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
-				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == last_remote_fields_time / ((long)100000000000000), "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
+				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == remote_bypass_counter, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
 			transfer_data = true;
 		}
 		else if (!(fields_time_info_dst->current_num_elapsed_days != fields_time_info_dst->last_timer_num_elapsed_days || fields_time_info_dst->current_second != fields_time_info_dst->last_timer_second)) {
@@ -344,7 +345,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 			if (!transfer_data)
 				continue;
-			long remote_bypass_counter = runtime_data_transfer_algorithm->get_history_receive_sender_time(i) / ((long)100000000000000);
+			remote_bypass_counter = runtime_data_transfer_algorithm->get_history_receive_sender_time(i) / ((long)100000000000000);
 			EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
 			if (bypass_timer) {
 				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. %d %d", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, remote_bypass_counter, inout_interface->get_bypass_counter());
