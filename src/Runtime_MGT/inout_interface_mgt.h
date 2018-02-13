@@ -114,6 +114,7 @@ class Connection_coupling_procedure
 		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
 		Inout_interface *get_inout_interface() { return inout_interface; }
 		bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time); }
+		void restart_write_all_imported_fields();
 };
 
 
@@ -184,6 +185,7 @@ class Inout_interface
 		void write_restart_mgt_info(Restart_buffer_container*);
 		bool get_is_child_interface() { return is_child_interface; }
 		bool is_in_restart_write_window();
+		void restart_write_all_imported_fields();
 };
 
 
@@ -211,7 +213,6 @@ class Inout_interface_mgt
 		void get_all_import_interfaces_of_a_component(std::vector<Inout_interface*>&, const char*);		
 		void get_all_unconnected_inout_interface_fields_info(std::vector<const char*> & , char **, long &, MPI_Comm);
 		void merge_unconnected_inout_interface_fields_info(int);
-		void write_all_interfaces_fields_info();
 		void execute_interface(int, int, bool, int*, int, int*, const char*);
 		void execute_interface(int, int, const char*, bool, int *, int, int*, const char*);
 		void add_runtime_receive_algorithm(Runtime_trans_algorithm *new_algorithm) { all_runtime_receive_algorithms.push_back(new_algorithm); }
@@ -225,6 +226,7 @@ class Inout_interface_mgt
 		Inout_interface *search_an_inout_interface_executed_with_timer(int);		
 		int get_h2d_grid_area_in_remapping_weights(int, int, void *, int, const char *, const char *);
 		bool is_comp_in_restart_write_window(int);
+		void restart_write_all_imported_fields(int);
 };
 
 #endif

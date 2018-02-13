@@ -324,12 +324,6 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 				runtime_data_transfer_algorithm->run(bypass_timer);
 			}
-			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time))) {
-				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
-				for (int i = 0; i < fields_mem_registered.size(); i ++)
-					restart_mgr->write_restart_field_data(fields_mem_transfer[i], inout_interface->get_interface_name(), "imported");
-				// write restart data
-			}
 			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 					if (runtime_remap_algorithms[i] != NULL)
@@ -338,7 +332,12 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 						runtime_datatype_transform_algorithms[i]->run(true);								
 					if (runtime_inter_averaging_algorithm[i] != NULL)
 						runtime_inter_averaging_algorithm[i]->run(true);
-			}			
+			}
+			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time))) {
+				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
+				for (int i = 0; i < fields_mem_registered.size(); i ++)
+					restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true);
+			}
 			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 		}
 		finish_status = true;
@@ -522,6 +521,13 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 	restart_buffer->load_restart_data(&last_remote_fields_time, sizeof(long));
 	fields_time_info_dst->import_restart_data(restart_buffer);
 	fields_time_info_src->import_restart_data(restart_buffer);
+}
+
+
+void Connection_coupling_procedure::restart_write_all_imported_fields()
+{
+	for (int i = 0; i < fields_mem_registered.size(); i ++)
+		restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", false);
 }
 
 
@@ -763,6 +769,19 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 }
 
 
+void Inout_interface::restart_write_all_imported_fields()
+{
+	if (import_or_export_or_remap != COUPLING_INTERFACE_MARK_IMPORT)
+		return;
+
+	if (is_child_interface)
+		return;
+
+	for (int i = 0; i < coupling_procedures.size(); i ++)
+		coupling_procedures[i]->restart_write_all_imported_fields();
+}
+
+
 void Inout_interface::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
 	if (restart_buffer == NULL)
@@ -994,6 +1013,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	if (import_or_export_or_remap == 1) {
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			fields_mem_registered[i]->check_field_sum("before executing an export interface");
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "after checking all source fields");
 	}
 	
 	for (int i = 0; i < coupling_procedures.size(); i ++)
@@ -1650,5 +1670,13 @@ bool Inout_interface_mgt::is_comp_in_restart_write_window(int comp_id)
 			return true;
 		
 	return false;	
+}
+
+
+void Inout_interface_mgt::restart_write_all_imported_fields(int comp_id)
+{
+	for (int i = 0; i < interfaces.size(); i ++)
+		if (interfaces[i]->get_comp_id() == comp_id)
+			interfaces[i]->restart_write_all_imported_fields();
 }
 

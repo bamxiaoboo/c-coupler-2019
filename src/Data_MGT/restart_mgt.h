@@ -88,7 +88,7 @@ class Restart_mgt
 		Restart_buffer_container *apply_restart_buffer(const char *, const char *, const char *);
 		bool is_in_restart_write_window(long);
 		bool is_in_restart_read_window(long);
-		void write_restart_field_data(Field_mem_info *, const char*, const char*);
+		void write_restart_field_data(Field_mem_info *, const char*, const char*, bool);
 };
 
 

@@ -131,7 +131,7 @@ void Runtime_cumulate_average_algorithm::restart_write(Restart_buffer_container 
 			EXECUTION_REPORT_LOG(REPORT_LOG, coupling_procedure->get_inout_interface()->get_comp_id(), true, "Detect the requirements for writing intermediate field data (%s) into restart data file for a Runtime_cumulate_average_algorithm of the export interface \"%s\" to the component model \"%s\" (%d)", label, coupling_procedure->get_inout_interface()->get_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_comp_full_name(), cumulate_average_fields[i]->current_computing_count);
 			char temp_label[NAME_STR_SIZE*2];
 			sprintf(temp_label, "%s_%s_%s", label, coupling_procedure->get_coupling_connection()->get_dst_comp_full_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name());
-			restart_buffer->get_restart_mgr()->write_restart_field_data(cumulate_average_fields[i]->mem_info_dst, coupling_procedure->get_inout_interface()->get_interface_name(), temp_label);
+			restart_buffer->get_restart_mgr()->write_restart_field_data(cumulate_average_fields[i]->mem_info_dst, coupling_procedure->get_inout_interface()->get_interface_name(), temp_label, false);
 		}
 	}
 	int temp_int = cumulate_average_fields.size();

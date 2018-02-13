@@ -244,17 +244,20 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 			restart_write_data_file = new IO_netcdf(restart_data_file_name, restart_data_file_name, "w", false);
 		}
 		inout_interface_mgr->write_into_restart_buffers(comp_node->get_comp_id());
+		inout_interface_mgr->restart_write_all_imported_fields(comp_node->get_comp_id());
 		restart_mgt_info_written = false;
 	}
 }
 
 
-void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char*label)
+void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char*label, bool write_time_info)
 {
 	Field_mem_info *global_field = fields_gather_scatter_mgr->gather_field(field_instance);
 
 	if (comp_node->get_current_proc_local_id() == 0) {
-		sprintf(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
+		if (write_time_info)
+			sprintf(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
+		else sprintf(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);
 		EXECUTION_REPORT(REPORT_ERROR, -1, restart_write_data_file != NULL, "Software error in Restart_mgt::write_restart_field_data");
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write variable \"%s\" into restart data file \"%s\"", global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, restart_write_data_file->get_file_name());
 		restart_write_data_file->write_grided_data(global_field->get_field_data(), true, -1, -1, true);
@@ -364,6 +367,9 @@ bool Restart_mgt::is_in_restart_write_window(long full_time)
 
 bool Restart_mgt::is_in_restart_read_window(long full_time)
 {
+	if (time_mgr == NULL)
+		time_mgr = components_time_mgrs->get_time_mgr(comp_node->get_comp_id());
+
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID)
 		return false;
 
