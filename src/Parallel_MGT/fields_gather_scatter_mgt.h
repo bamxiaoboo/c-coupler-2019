@@ -46,7 +46,7 @@ class Gather_scatter_rearrange_info
         bool match(int, int, int, const char*);
         void copy_in_local_field_info(Field_mem_info*);
         Field_mem_info *gather_field(Field_mem_info*);
-        void scatter_field(Field_mem_info*);
+        void scatter_field(Field_mem_info*, bool &);
         Field_mem_info *get_global_field(Field_mem_info*);
         template <class T> void rearrange_gather_data(T*, T*, int);
 		template <class T> void rearrange_scatter_data(T*, T*, int);
@@ -64,7 +64,7 @@ class Fields_gather_scatter_mgt
 		Fields_gather_scatter_mgt() {}
         ~Fields_gather_scatter_mgt();
         void gather_write_field(IO_netcdf*, Field_mem_info*, bool, int, int, bool);
-        void read_scatter_field(IO_netcdf*, Field_mem_info*, int);
+        bool read_scatter_field(IO_netcdf*, Field_mem_info*, const char *, int, bool);
 };
 
 

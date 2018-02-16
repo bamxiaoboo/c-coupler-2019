@@ -108,7 +108,7 @@ void IO_netcdf::datatype_from_application_to_netcdf(const char *application_data
 }
 
 
-void IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos)
+bool IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos, bool check_existence)
 {
     int i, num_attributes, num_dimensions, variable_id, dimension_ids[256];
     char variable_name[256];
@@ -122,6 +122,12 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos)
     report_nc_error();
 
     rcode = nc_inq_varid(ncfile_id, read_data_field->field_name_in_IO_file, &variable_id);
+	if (!check_existence && rcode == NC_ENOTVAR) {
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Does not find the field \"%s\" in the data file \"%s\"", read_data_field->field_name_in_IO_file, file_name);
+		rcode = nc_close(ncfile_id);
+		report_nc_error();
+		return false;
+	}
     report_nc_error();
     rcode = nc_inq_var(ncfile_id, variable_id, variable_name, &nc_data_type, &num_dimensions, dimension_ids, &num_attributes);
     report_nc_error();
@@ -258,6 +264,8 @@ void IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos)
     report_nc_error();
     rcode = nc_close(ncfile_id);
     report_nc_error();
+
+	return true;
 }
 
 

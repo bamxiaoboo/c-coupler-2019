@@ -102,6 +102,7 @@ Restart_mgt::Restart_mgt(Comp_comm_group_mgt_node *comp_node)
 	restart_mgt_info_written = true;
 	time_mgr = NULL;
 	restart_write_data_file = NULL;
+	restart_read_data_file_name = NULL;
 }
 
 
@@ -113,6 +114,10 @@ Restart_mgt::~Restart_mgt()
 		delete [] input_restart_mgt_info_file;
 	if (restart_read_annotation != NULL)
 		delete [] restart_read_annotation;
+	if (restart_read_data_file_name != NULL)
+		delete restart_read_data_file_name;
+	if (restart_write_data_file != NULL)
+		delete restart_write_data_file;
 }
 
 
@@ -183,6 +188,7 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 {
 	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_node->get_comp_id(), "in Restart_mgt::do_restart");
 	char *array_buffer = NULL;
+	char temp_restart_read_data_file_name[NAME_STR_SIZE*2];
 	long buffer_content_iter;
 
 
@@ -215,6 +221,10 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 		long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();
 		time_mgr->import_restart_data(time_mgr_restart_buffer->get_buffer_content(), buffer_size, file_name, check_existing_data);
 	}
+
+	sprintf(temp_restart_read_data_file_name, "%s.nc", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), does_file_exist(temp_restart_read_data_file_name), "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the file does not exist", temp_restart_read_data_file_name);
+	restart_read_data_file_name = strdup(temp_restart_read_data_file_name);
 }
 
 
@@ -231,7 +241,7 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 	current_full_time = time_mgr->get_current_full_time();
 
 	if (bypass_timer || time_mgr->is_restart_timer_on()) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write\" has been called more than once in the same time step. Please verify the model code with the annotation \"%s\"");
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write_IO\" has been called more than once in the same time step. Please verify the model code with the annotation \"%s\"");
 		last_restart_write_full_time = current_full_time;
 		last_restart_write_elapsed_time = time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second();
 		int date = last_restart_write_full_time/(long)100000;
@@ -250,18 +260,44 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 }
 
 
-void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char*label, bool write_time_info)
+void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char*label, bool use_time_info)
 {
 	Field_mem_info *global_field = fields_gather_scatter_mgr->gather_field(field_instance);
+	char field_IO_name[NAME_STR_SIZE*2], hint[NAME_STR_SIZE*2];
+
+
+	if (use_time_info)
+		sprintf(field_IO_name, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
+	else sprintf(field_IO_name, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);	
 
 	if (comp_node->get_current_proc_local_id() == 0) {
-		if (write_time_info)
-			sprintf(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
-		else sprintf(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);
+		strcpy(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, field_IO_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, restart_write_data_file != NULL, "Software error in Restart_mgt::write_restart_field_data");
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write variable \"%s\" into restart data file \"%s\"", global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, restart_write_data_file->get_file_name());
 		restart_write_data_file->write_grided_data(global_field->get_field_data(), true, -1, -1, true);
+		sprintf(hint, "restart writing field \"%s\" to the file \"%s\"", field_IO_name, restart_write_data_file->get_file_name());
 	}
+	else sprintf(hint, "restart writing field \"%s\" to the file", field_IO_name);
+	field_instance->check_field_sum(hint);
+}
+
+
+void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char *label, bool use_time_info, const char *API_label, const char *annotation)
+{
+	char field_IO_name[NAME_STR_SIZE*2], hint[NAME_STR_SIZE*2];
+
+
+	if (use_time_info)
+		sprintf(field_IO_name, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
+	else sprintf(field_IO_name, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);	
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), does_file_exist(restart_read_data_file_name), "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the file does not exist", restart_read_data_file_name, annotation);
+	IO_netcdf *restart_read_data_file = new IO_netcdf(restart_read_data_file_name, restart_read_data_file_name, "r", false);
+	bool has_data_in_file = fields_gather_scatter_mgr->read_scatter_field(restart_read_data_file, field_instance, field_IO_name, -1, false);
+	delete restart_read_data_file;
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), has_data_in_file, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the data file does not contain the %s field \"%s\" of the coupling interface %s", restart_read_data_file_name, annotation, label, field_instance->get_field_name(), interface_name);
+	sprintf(hint, "restart reading field \"%s\" from the file \"%s\"", field_IO_name, restart_read_data_file_name);
+	field_instance->check_field_sum(hint);
 }
 
 
@@ -332,14 +368,14 @@ void Restart_mgt::write_restart_mgt_into_file()
 
 const char *Restart_mgt::get_input_restart_mgt_info_file()
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read\" has been called");
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read_IO\" has been called");
 	return input_restart_mgt_info_file;
 }
 
 
 const char *Restart_mgt::get_restart_read_annotation()
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_read_annotation != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read\" has been called");
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_read_annotation != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read_IO\" has been called");
 	return restart_read_annotation;
 }
 
@@ -359,9 +395,8 @@ bool Restart_mgt::is_in_restart_write_window(long full_time)
 		return false;
 
 	if (full_time == -1)
-		return false;
-
-	return full_time <= last_restart_write_elapsed_time || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
+		return time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
+	else return full_time <= last_restart_write_elapsed_time || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
 }
 
 

@@ -71,6 +71,7 @@ class Restart_mgt
 		char *restart_read_annotation;
 		bool restart_mgt_info_written;
 		IO_netcdf *restart_write_data_file;
+		char *restart_read_data_file_name;
 
 	public:
 		Restart_mgt(Comp_comm_group_mgt_node*);
@@ -89,6 +90,8 @@ class Restart_mgt
 		bool is_in_restart_write_window(long);
 		bool is_in_restart_read_window(long);
 		void write_restart_field_data(Field_mem_info *, const char*, const char*, bool);
+		void read_restart_field_data(Field_mem_info *, const char *, const char *, bool, const char *, const char*);
+		const char *get_restart_read_data_file_name() { return restart_read_data_file_name; }
 };
 
 

@@ -260,14 +260,20 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_REPORT_ERROR:
 			sprintf(API_label, "CCPL_report_error");
 			break;	
-		case API_ID_RESTART_MGT_READ:
-			sprintf(API_label, "CCPL_do_restart_read");
+		case API_ID_RESTART_MGT_START_READ_IO:
+			sprintf(API_label, "CCPL_do_restart_read_IO");
 			break;
+		case API_ID_RESTART_MGT_READ_ALL:
+			sprintf(API_label, "CCPL_restart_read_fields_all");
+			break;			
+		case API_ID_RESTART_MGT_READ_INTERFACE:
+			sprintf(API_label, "CCPL_restart_read_fields_interface");
+			break;	
 		case API_ID_RESTART_MGT_IS_TIMER_ON:
 			sprintf(API_label, "CCPL_is_restart_timer_on");
 			break;
-		case API_ID_RESTART_MGT_WRITE:
-			sprintf(API_label, "CCPL_do_restart_write");
+		case API_ID_RESTART_MGT_WRITE_IO:
+			sprintf(API_label, "CCPL_do_restart_write_IO");
 			break;
 		case API_ID_COUPLING_GEN_FAMILY:
 			sprintf(API_label, "CCPL_do_family_coupling_generation");

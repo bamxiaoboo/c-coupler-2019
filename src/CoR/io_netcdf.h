@@ -37,7 +37,7 @@ class IO_netcdf: public IO_basis
 		IO_netcdf(int);
         IO_netcdf(const char*, const char*, const char*, bool);
         ~IO_netcdf();
-        void read_data(Remap_data_field*, int);
+        bool read_data(Remap_data_field*, int, bool);
         void write_grided_data(Remap_grid_data_class*, bool, int, int, bool);
         void write_remap_weights(Remap_weight_of_strategy_class*);
         long get_dimension_size(const char*, MPI_Comm, bool);

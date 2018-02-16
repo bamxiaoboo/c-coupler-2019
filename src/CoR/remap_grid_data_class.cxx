@@ -44,7 +44,7 @@ Remap_grid_data_class::Remap_grid_data_class(const char *field_data_name,
     generate_grid_info(associative_grid);
     strcpy(grid_data_field->field_name_in_IO_file, field_name_in_IO);
     if (IO_object != NULL)
-        IO_object->read_data(grid_data_field, -1);
+        IO_object->read_data(grid_data_field, -1, true);
     else {
         memset(grid_data_field->data_buf, 0, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application));
         strcpy(this->grid_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE);

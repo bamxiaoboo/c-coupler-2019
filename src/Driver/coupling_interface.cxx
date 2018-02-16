@@ -1199,7 +1199,7 @@ extern "C" void ccpl_write_restart_
 (int *comp_id, int *bypass_timer, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart write");
-	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE, annotation, false);
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE_IO, annotation, false);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart write");
@@ -1214,10 +1214,39 @@ extern "C" void ccpl_read_restart_
 (int *comp_id, const char *specified_file_name, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart read");
-	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ, annotation, false);
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_START_READ_IO, annotation, false);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->read_restart_mgt_info(specified_file_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart read");
+}
+
+
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_read_all_restart_fields
+#else
+extern "C" void ccpl_read_all_restart_fields_
+#endif
+(int *comp_id, const char *annotation)
+{
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to read all restart fields from restart data file");
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ_ALL, annotation, false);
+	inout_interface_mgr->restart_read_all_imported_fields(*comp_id, annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish reading all restart fields from restart data file");
+}
+
+
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void ccpl_read_import_interface_restart_fields
+#else
+extern "C" void ccpl_read_import_interface_restart_fields_
+#endif
+(int *interface_id, const char *annotation)
+{
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to all fields of an import interface from restart data file");
+	Inout_interface *inout_interface = inout_interface_mgr->get_interface(*interface_id);
+	EXECUTION_REPORT(REPORT_ERROR, -1, inout_interface != NULL, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the parameter of \"interface_id\" is wrong");
+	inout_interface->read_restart_fields(API_ID_RESTART_MGT_READ_INTERFACE, annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish reading all fields of an import interface from restart data file");
 }
 
 

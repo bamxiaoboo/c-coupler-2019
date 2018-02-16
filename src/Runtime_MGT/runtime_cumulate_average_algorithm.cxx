@@ -9,7 +9,6 @@
 
 #include "global_data.h"
 #include "runtime_cumulate_average_algorithm.h"
-#include "runtime_config_dir.h"
 #include "cor_global_data.h"
 #include <stdio.h>
 #include <stdlib.h>

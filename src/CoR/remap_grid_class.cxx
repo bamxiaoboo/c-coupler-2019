@@ -1269,7 +1269,7 @@ void Remap_grid_class::read_grid_data_from_IO(char extension_names[16][256],
         remap_data_field->required_data_size *= num_vertexes;
     remap_data_field->data_buf = new char [remap_data_field->required_data_size*get_data_type_size(remap_data_field->data_type_in_application)];
     strcpy(remap_data_field->field_name_in_IO_file, variable_name_in_IO_file);
-    io_manager->read_data(IO_object_name, remap_data_field);
+    io_manager->read_data(IO_object_name, remap_data_field, true);
     remap_grid_data_field = new Remap_grid_data_class(this, remap_data_field);
     if (words_are_the_same(extension_names[0], GRID_MASK_LABEL))
         grid_mask_field = remap_grid_data_field;

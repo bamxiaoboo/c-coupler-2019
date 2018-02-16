@@ -87,11 +87,13 @@
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write_IO
    public :: CCPL_do_restart_read_IO
+   public :: CCPL_is_restart_timer_on
+   public :: CCPL_restart_read_fields_all
+   public :: CCPL_restart_read_fields_interface
    public :: CCPL_get_configurable_comps_full_names
    public :: CCPL_do_external_coupling_generation
    public :: CCPL_do_individual_coupling_generation
    public :: CCPL_do_family_coupling_generation
-   public :: CCPL_is_restart_timer_on
    public :: CCPL_abort
 
 
@@ -3121,6 +3123,38 @@
    
    END SUBROUTINE CCPL_do_restart_read_IO
  
+
+
+   SUBROUTINE CCPL_restart_read_fields_all(comp_id, annotation)
+   implicit none
+   integer,          intent(in)                :: comp_id
+   character(len=*), intent(in), optional      :: annotation
+
+
+   if (present(annotation)) then
+       call CCPL_read_all_restart_fields(comp_id, trim(annotation)//char(0))
+   else
+       call CCPL_read_all_restart_fields(comp_id, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_restart_read_fields_all
+
+
+
+   SUBROUTINE CCPL_restart_read_fields_interface(interface_id, annotation)
+   implicit none
+   integer,          intent(in)                :: interface_id
+   character(len=*), intent(in), optional      :: annotation
+
+
+   if (present(annotation)) then
+       call CCPL_read_import_interface_restart_fields(interface_id, trim(annotation)//char(0))
+   else
+       call CCPL_read_import_interface_restart_fields(interface_id, trim("")//char(0))
+   endif
+
+   END SUBROUTINE CCPL_restart_read_fields_interface
+
 
 
    logical FUNCTION CCPL_is_restart_timer_on(comp_id, annotation)

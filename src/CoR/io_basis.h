@@ -42,7 +42,7 @@ class IO_basis
         bool match_IO_object(const char*);
         const char* get_file_name() { return file_name; }
         char *get_file_type() { return file_type; }
-        virtual void read_data(Remap_data_field*, int) = 0;
+        virtual bool read_data(Remap_data_field*, int, bool) = 0;
         virtual void write_grided_data(Remap_grid_data_class*, bool, int, int, bool) = 0;
         virtual long get_dimension_size(const char*, MPI_Comm, bool) = 0;
         Remap_grid_data_class *generate_field_data_for_IO(Remap_grid_data_class*, bool);

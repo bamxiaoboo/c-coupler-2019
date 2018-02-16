@@ -10,7 +10,6 @@
 #include <mpi.h>
 #include "global_data.h"
 #include "runtime_remap_algorithm.h"
-#include "runtime_config_dir.h"
 #include "cor_cpl_interface.h"
 #include "cor_global_data.h"
 #include <stdio.h>

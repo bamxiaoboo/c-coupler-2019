@@ -105,7 +105,7 @@ long IO_mgt::get_dimension_size(const char *object_name, const char *dim_name, M
 
 /* Function read_data reads a number of data from IO file. It checks the size of data 
     and transforms the data type at the same time */
-void IO_mgt::read_data(const char *IO_object_name, Remap_data_field *read_data_field)
+bool IO_mgt::read_data(const char *IO_object_name, Remap_data_field *read_data_field, bool check_existence)
 {
     IO_basis *IO_object;
 
@@ -115,7 +115,7 @@ void IO_mgt::read_data(const char *IO_object_name, Remap_data_field *read_data_f
     EXECUTION_REPORT(REPORT_ERROR, -1, IO_object != NULL,
                  "\"%s\" must be a defined IO object when reading data\n",
                  IO_object_name);    
-    IO_object->read_data(read_data_field, -1);
+    return IO_object->read_data(read_data_field, -1, check_existence);
 }
 
 
