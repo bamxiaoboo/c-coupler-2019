@@ -131,6 +131,8 @@ void Runtime_cumulate_average_algorithm::restart_write(Restart_buffer_container 
 			char temp_label[NAME_STR_SIZE*2];
 			sprintf(temp_label, "%s_%s_%s", label, coupling_procedure->get_coupling_connection()->get_dst_comp_full_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name());
 			restart_buffer->get_restart_mgr()->write_restart_field_data(cumulate_average_fields[i]->mem_info_dst, coupling_procedure->get_inout_interface()->get_interface_name(), temp_label, false);
+			sprintf(temp_label, "restart write of field \"%s\" average algorithm of export interface \"%s\" to the import interface \"%s\" of the component model \"%s\"", cumulate_average_fields[i]->mem_info_dst->get_field_name(), coupling_procedure->get_inout_interface()->get_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_comp_full_name());
+			cumulate_average_fields[i]->mem_info_dst->check_field_sum(temp_label);
 		}
 	}
 	int temp_int = cumulate_average_fields.size();
@@ -154,7 +156,11 @@ void Runtime_cumulate_average_algorithm::restart_read(Restart_buffer_container *
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, temp_num_elements_in_field == cumulate_average_fields[i]->num_elements_in_field, "Fail to restart the simulation in a branch run or continue run: the coupling configuration has been changed from the original simulation run. Please verify.");
 			cumulate_average_fields[i]->current_computing_count = temp_current_computing_count;
 			if (temp_current_computing_count != 0) {
-				// load restart data
+				char temp_label[NAME_STR_SIZE*2];
+				sprintf(temp_label, "%s_%s_%s", label, coupling_procedure->get_coupling_connection()->get_dst_comp_full_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name());
+				restart_buffer->get_restart_mgr()->read_restart_field_data(cumulate_average_fields[i]->mem_info_dst, coupling_procedure->get_inout_interface()->get_interface_name(), temp_label, false, NULL, "");
+				sprintf(temp_label, "restart read of field \"%s\" average algorithm of export interface \"%s\" to the import interface \"%s\" of the component model \"%s\"", cumulate_average_fields[i]->mem_info_dst->get_field_name(), coupling_procedure->get_inout_interface()->get_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_comp_full_name());
+				cumulate_average_fields[i]->mem_info_dst->check_field_sum(temp_label);
 			}
 		}
 	}

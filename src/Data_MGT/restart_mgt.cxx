@@ -295,9 +295,10 @@ void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const 
 	bool has_data_in_file = fields_gather_scatter_mgr->read_scatter_field(restart_read_data_file, field_instance, field_IO_name, -1, false);
 	delete restart_read_data_file;
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), has_data_in_file, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the data file does not contain the %s field \"%s\" of the coupling interface %s", restart_read_data_file_name, annotation, label, field_instance->get_field_name(), interface_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), has_data_in_file, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the data file does not contain the variable \"%s\" for the field \"%s\" of the coupling interface %s", restart_read_data_file_name, annotation, field_IO_name, field_instance->get_field_name(), interface_name);
 	sprintf(hint, "restart reading field \"%s\" from the file \"%s\"", field_IO_name, restart_read_data_file_name);
 	field_instance->check_field_sum(hint);
+	field_instance->define_field_values(false);
 }
 
 

@@ -314,31 +314,31 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			for (int i = fields_mem_registered.size() - 1; i >= 0; i --)
 				if (field_interface_local_index[i] != -1)
 					field_update_status[field_interface_local_index[i]] = transfer_data? 1 : 0;
+			bool read_restart_data = (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_time));
 			if (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_time)) {
 				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will not receive data from the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_src_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
-				for (int i = fields_mem_registered.size() - 1; i >= 0; i --)  // temp code
-					fields_mem_transfer[i]->define_field_values(false);       // temp code
-				// read restart data
+				for (int i = 0; i < fields_mem_registered.size(); i ++)
+					restart_mgr->read_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true, NULL, annotation);
 			}
 			else {
 				runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 				runtime_data_transfer_algorithm->run(bypass_timer);
+				comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
+				for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
+						if (runtime_remap_algorithms[i] != NULL)
+							runtime_remap_algorithms[i]->run(true);
+						if (runtime_datatype_transform_algorithms[i] != NULL)
+							runtime_datatype_transform_algorithms[i]->run(true);								
+						if (runtime_inter_averaging_algorithm[i] != NULL)
+							runtime_inter_averaging_algorithm[i]->run(true);
+				}
+				if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time))) {
+					EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
+					for (int i = 0; i < fields_mem_registered.size(); i ++)
+						restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true);
+				}
+				comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 			}
-			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
-			for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
-					if (runtime_remap_algorithms[i] != NULL)
-						runtime_remap_algorithms[i]->run(true);
-					if (runtime_datatype_transform_algorithms[i] != NULL)
-						runtime_datatype_transform_algorithms[i]->run(true);								
-					if (runtime_inter_averaging_algorithm[i] != NULL)
-						runtime_inter_averaging_algorithm[i]->run(true);
-			}
-			if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time))) {
-				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
-				for (int i = 0; i < fields_mem_registered.size(); i ++)
-					restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true);
-			}
-			comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 		}
 		finish_status = true;
 		for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
