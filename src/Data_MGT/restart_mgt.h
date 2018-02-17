@@ -65,6 +65,7 @@ class Restart_mgt
 		long last_restart_write_elapsed_time;
 		std::vector<Restart_buffer_container*> restart_write_buffer_containers;
 		std::vector<Restart_buffer_container*> restart_read_buffer_containers;
+		std::vector<Field_mem_info*> restarted_field_instances;
 		Comp_comm_group_mgt_node *comp_node;
 		Time_mgt *time_mgr;
 		char *input_restart_mgt_info_file;
@@ -92,6 +93,9 @@ class Restart_mgt
 		void write_restart_field_data(Field_mem_info *, const char*, const char*, bool);
 		void read_restart_field_data(Field_mem_info *, const char *, const char *, bool, const char *, const char*);
 		const char *get_restart_read_data_file_name() { return restart_read_data_file_name; }
+		void add_restarted_field_instances(Field_mem_info*);
+		void get_field_IO_name(char *, Field_mem_info*, const char *, const char*, bool);
+		void read_all_restarted_fields();
 };
 
 

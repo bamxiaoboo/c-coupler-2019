@@ -114,8 +114,6 @@ class Connection_coupling_procedure
 		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
 		Inout_interface *get_inout_interface() { return inout_interface; }
 		bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time); }
-		void restart_write_all_imported_fields();
-		void read_restart_fields(const char*, const char*);
 };
 
 
@@ -186,7 +184,6 @@ class Inout_interface
 		void write_restart_mgt_info(Restart_buffer_container*);
 		bool get_is_child_interface() { return is_child_interface; }
 		bool is_in_restart_write_window();
-		void restart_write_all_imported_fields();
 		void read_restart_fields(int, const char*);
 };
 
@@ -228,8 +225,6 @@ class Inout_interface_mgt
 		Inout_interface *search_an_inout_interface_executed_with_timer(int);		
 		int get_h2d_grid_area_in_remapping_weights(int, int, void *, int, const char *, const char *);
 		bool is_comp_in_restart_write_window(int);
-		void restart_write_all_imported_fields(int);
-		void restart_read_all_imported_fields(int, const char*);
 };
 
 #endif

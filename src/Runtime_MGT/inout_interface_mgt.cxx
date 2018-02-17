@@ -524,20 +524,6 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 }
 
 
-void Connection_coupling_procedure::restart_write_all_imported_fields()
-{
-	for (int i = 0; i < fields_mem_registered.size(); i ++)
-		restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", false);
-}
-
-
-void Connection_coupling_procedure::read_restart_fields(const char *annotation, const char *API_label)
-{
-	for (int i = 0; i < fields_mem_registered.size(); i ++)
-		restart_mgr->read_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", false, API_label, annotation);
-}
-
-
 Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_content_iter)
 {
 	int num_interfaces;
@@ -592,6 +578,8 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	for (int i = 0; i < num_fields; i ++) {
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
 		fields_connected_status.push_back(false);
+		if (import_or_export_or_remap == COUPLING_INTERFACE_MARK_IMPORT)
+			restart_mgr->add_restarted_field_instances(fields_mem_registered[fields_mem_registered.size()-1]);
 	}
 	fields_connected_status.push_back(false);
 	num_fields_connected = 0;
@@ -776,19 +764,6 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 }
 
 
-void Inout_interface::restart_write_all_imported_fields()
-{
-	if (import_or_export_or_remap != COUPLING_INTERFACE_MARK_IMPORT)
-		return;
-
-	if (is_child_interface)
-		return;
-
-	for (int i = 0; i < coupling_procedures.size(); i ++)
-		coupling_procedures[i]->restart_write_all_imported_fields();
-}
-
-
 void Inout_interface::write_restart_mgt_info(Restart_buffer_container *restart_buffer)
 {
 	if (restart_buffer == NULL)
@@ -835,16 +810,17 @@ void Inout_interface::read_restart_fields(int API_id, const char *annotation)
 	char API_label[NAME_STR_SIZE];
 
 
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
+		return;
+
 	get_API_hint(comp_id, API_id, API_label);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_mgr->get_restart_read_data_file_name() != NULL, "Error happens when calling the API \"%s\" to read restart fields: the API \"CCPL_do_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"%s\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, import_or_export_or_remap == COUPLING_INTERFACE_MARK_IMPORT, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding coupling interface \"%s\" is not an import interface (this API only reads restart fields for import interfaces). Please verify the model code with the annotation \"%s\"", interface_name, annotation);
-	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
-		return;
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""), "read restart fields for the given coupling interface", annotation);
-	for (int i = 0; i < coupling_procedures.size(); i ++)
-		coupling_procedures[i]->read_restart_fields(annotation, API_label);
+	for (int i = 0; i < fields_mem_registered.size(); i ++)
+		restart_mgr->read_restart_field_data(fields_mem_registered[i], NULL, NULL, NULL, NULL, annotation);
 }
 
 
@@ -1695,28 +1671,6 @@ bool Inout_interface_mgt::is_comp_in_restart_write_window(int comp_id)
 			return true;
 		
 	return false;	
-}
-
-
-void Inout_interface_mgt::restart_write_all_imported_fields(int comp_id)
-{
-	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id)
-			interfaces[i]->restart_write_all_imported_fields();
-}
-
-
-void Inout_interface_mgt::restart_read_all_imported_fields(int comp_id, const char *annotation)
-{
-	if (components_time_mgrs->get_time_mgr(comp_id)->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
-		return;
-
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->get_restart_read_data_file_name() != NULL, "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the API \"CCPL_do_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, !components_time_mgrs->get_time_mgr(comp_id)->get_time_has_been_advanced(), "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the model time has already been advanced before while this API can be called only before advancing the model time. Please verify the model code corresponding to the annotation %s", annotation);
-
-	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() == COUPLING_INTERFACE_MARK_IMPORT)
-			interfaces[i]->read_restart_fields(API_ID_RESTART_MGT_READ_ALL, annotation);
 }
 
 

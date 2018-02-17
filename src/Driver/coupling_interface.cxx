@@ -1047,6 +1047,8 @@ extern "C" void register_external_field_instance_
 
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_FIELD_INST, annotation);
 	*field_instance_id = memory_manager->register_external_field_instance(field_name, (void*)(*data_buffer_ptr), *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
+	Field_mem_info *field_instance = memory_manager->get_field_instance(*field_instance_id);
+	comp_comm_group_mgt_mgr->search_global_node(field_instance->get_host_comp_id())->get_restart_mgr()->add_restarted_field_instances(field_instance);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a field instance %s", field_name);
 }
@@ -1230,7 +1232,7 @@ extern "C" void ccpl_read_all_restart_fields_
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to read all restart fields from restart data file");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ_ALL, annotation, false);
-	inout_interface_mgr->restart_read_all_imported_fields(*comp_id, annotation);
+	comp_comm_group_mgt_mgr->search_global_node(*comp_id)->get_restart_mgr()->read_all_restarted_fields();
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish reading all restart fields from restart data file");
 }
 

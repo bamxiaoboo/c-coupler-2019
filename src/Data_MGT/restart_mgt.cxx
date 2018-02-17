@@ -254,8 +254,32 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 			restart_write_data_file = new IO_netcdf(restart_data_file_name, restart_data_file_name, "w", false);
 		}
 		inout_interface_mgr->write_into_restart_buffers(comp_node->get_comp_id());
-		inout_interface_mgr->restart_write_all_imported_fields(comp_node->get_comp_id());
 		restart_mgt_info_written = false;
+		for (int i = 0; i < restarted_field_instances.size(); i ++)
+			write_restart_field_data(restarted_field_instances[i], NULL, NULL, false);
+	}
+}
+
+
+void Restart_mgt::get_field_IO_name(char *field_IO_name, Field_mem_info *field_instance, const char *interface_name, const char*label, bool use_time_info)
+{
+	Field_mem_info *global_field = fields_gather_scatter_mgr->gather_field(field_instance);
+
+
+	if (interface_name != NULL) {
+		if (use_time_info)
+			sprintf(field_IO_name, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
+		else sprintf(field_IO_name, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);	
+	}
+	else {
+		char grid_name[NAME_STR_SIZE], decomp_name[NAME_STR_SIZE];
+		sprintf(grid_name, "NULL");
+		sprintf(decomp_name, "NULL");
+		if (field_instance->get_grid_name() != NULL)
+			strcpy(grid_name, field_instance->get_grid_name());
+		if (field_instance->get_decomp_name() != NULL)
+			strcpy(grid_name, field_instance->get_decomp_name());
+		sprintf(field_IO_name, "%s.%s.%s.%d", field_instance->get_field_name(), grid_name, decomp_name, field_instance->get_buf_mark());
 	}
 }
 
@@ -266,10 +290,7 @@ void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const
 	char field_IO_name[NAME_STR_SIZE*2], hint[NAME_STR_SIZE*2];
 
 
-	if (use_time_info)
-		sprintf(field_IO_name, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
-	else sprintf(field_IO_name, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);	
-
+	get_field_IO_name(field_IO_name, field_instance, interface_name, label, use_time_info);
 	if (comp_node->get_current_proc_local_id() == 0) {
 		strcpy(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, field_IO_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, restart_write_data_file != NULL, "Software error in Restart_mgt::write_restart_field_data");
@@ -282,14 +303,22 @@ void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const
 }
 
 
+void Restart_mgt::read_all_restarted_fields()
+{
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
+		return;
+
+	for (int i = 0; i < restarted_field_instances.size(); i ++)
+		read_restart_field_data(restarted_field_instances[i], NULL, NULL, false, NULL, "");
+}
+
+
 void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char *label, bool use_time_info, const char *API_label, const char *annotation)
 {
 	char field_IO_name[NAME_STR_SIZE*2], hint[NAME_STR_SIZE*2];
 
 
-	if (use_time_info)
-		sprintf(field_IO_name, "%s.%s.%s.%13ld", field_instance->get_field_name(), interface_name, label, time_mgr->get_current_full_time());
-	else sprintf(field_IO_name, "%s.%s.%s", field_instance->get_field_name(), interface_name, label);	
+	get_field_IO_name(field_IO_name, field_instance, interface_name, label, use_time_info);
 	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), does_file_exist(restart_read_data_file_name), "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the file does not exist", restart_read_data_file_name, annotation);
 	IO_netcdf *restart_read_data_file = new IO_netcdf(restart_read_data_file_name, restart_read_data_file_name, "r", false);
 	bool has_data_in_file = fields_gather_scatter_mgr->read_scatter_field(restart_read_data_file, field_instance, field_IO_name, -1, false);
@@ -413,5 +442,15 @@ bool Restart_mgt::is_in_restart_read_window(long full_time)
 		return false;
 
 	return full_time <= time_mgr->get_restart_full_time() || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= time_mgr->get_restart_full_time();
+}
+
+
+void Restart_mgt::add_restarted_field_instances(Field_mem_info *field_instance)
+{
+	for (int i = 0; i < restarted_field_instances.size(); i ++)
+		if (restarted_field_instances[i] == field_instance)
+			return;
+
+	restarted_field_instances.push_back(field_instance);
 }
 
