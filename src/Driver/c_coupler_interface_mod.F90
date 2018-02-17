@@ -264,7 +264,7 @@
 
 
 
-   integer FUNCTION CCPL_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN)                    :: data_buf
    character(len=*), intent(in)            :: field_name
@@ -273,6 +273,11 @@
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
    character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -283,22 +288,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_0D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_0D_data
 
 
 
-   integer FUNCTION CCPL_register_model_double_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:)      :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -309,22 +319,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_1D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_1D_data
 
 
 
-   integer FUNCTION CCPL_register_model_double_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:)    :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -335,22 +350,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_2D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_2D_data
 
 
 
-   integer FUNCTION CCPL_register_model_double_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -361,22 +381,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_3D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_3D_data
 
 
 
-   integer FUNCTION CCPL_register_model_double_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_double_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R8), INTENT(IN), DIMENSION(:,:,:,:)  :: data_buf
    character(len=*), intent(in)              :: field_name
    character(len=*), intent(in), optional    :: field_unit
    character(len=*), intent(in), optional    :: annotation
    integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                            :: local_field_unit, local_annotation
+   character *2048                           :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
+   logical,          intent(in), optional    :: restart_related
+   integer                                   :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -387,22 +412,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real8")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_double_4D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_double_4D_data
 
 
 
-   integer FUNCTION CCPL_register_model_float_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN)                    :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -413,22 +443,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_0D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_0D_data
 
 
 
-   integer FUNCTION CCPL_register_model_float_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:)      :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -439,22 +474,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_1D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_1D_data
 
 
 
-   integer FUNCTION CCPL_register_model_float_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:)    :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -465,22 +505,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_2D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_2D_data
 
 
 
-   integer FUNCTION CCPL_register_model_float_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:)  :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -491,22 +536,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_3D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_3D_data
 
 
 
-   integer FUNCTION CCPL_register_model_float_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_float_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    real(R4), INTENT(IN), DIMENSION(:,:,:,:)  :: data_buf
    character(len=*), intent(in)              :: field_name
    character(len=*), intent(in), optional    :: field_unit
    character(len=*), intent(in), optional    :: annotation
    integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                            :: local_field_unit, local_annotation
+   character *2048                           :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
+   logical,          intent(in), optional    :: restart_related
+   integer                                   :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -517,22 +567,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("real4")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_float_4D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_float_4D_data
 
 
 
-   integer FUNCTION CCPL_register_model_integer_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_0D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    integer, INTENT(IN)                     :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -543,22 +598,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), 1, decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_0D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_0D_data
 
 
 
-   integer FUNCTION CCPL_register_model_integer_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_1D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:)       :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -569,22 +629,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_1D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_1D_data
 
 
 
-   integer FUNCTION CCPL_register_model_integer_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_2D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:)     :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -595,22 +660,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_2D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_2D_data
 
 
 
-   integer FUNCTION CCPL_register_model_integer_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_3D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:)   :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -621,22 +691,27 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_3D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_3D_data
 
 
 
-   integer FUNCTION CCPL_register_model_integer_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, field_unit, annotation)
+   integer FUNCTION CCPL_register_model_integer_4D_data(data_buf, field_name, decomp_id, comp_or_grid_id, buf_mark, restart_related, field_unit, annotation)
    implicit none
    integer, INTENT(IN), DIMENSION(:,:,:,:) :: data_buf
    character(len=*), intent(in)            :: field_name
    character(len=*), intent(in), optional  :: field_unit
    character(len=*), intent(in), optional  :: annotation
    integer,          intent(in)            :: decomp_id, comp_or_grid_id, buf_mark
-   character *2048                          :: local_field_unit, local_annotation
+   character *2048                         :: local_field_unit, local_annotation
    integer                                 :: field_instance_id
+   logical,          intent(in), optional  :: restart_related
+   integer                                 :: local_restart_related
+
+   local_restart_related = 0
+   if (present(restart_related) .and. restart_related) local_restart_related = 1
 
    local_field_unit = "default_unit"
    if (present(field_unit)) then
@@ -647,7 +722,7 @@
        local_annotation = annotation
    endif
 
-   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
+   call register_external_field_instance(field_instance_id, trim(field_name)//char(0), loc(data_buf), size(data_buf), decomp_id, comp_or_grid_id, buf_mark, local_restart_related, trim(local_field_unit)//char(0), trim("integer")//char(0), trim(local_annotation)//char(0))
    CCPL_register_model_integer_4D_data = field_instance_id
 
    END FUNCTION CCPL_register_model_integer_4D_data

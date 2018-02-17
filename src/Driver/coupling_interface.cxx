@@ -1041,7 +1041,7 @@ extern "C" void register_external_field_instance
 extern "C" void register_external_field_instance_
 #endif
 (int *field_instance_id, const char *field_name, long *data_buffer_ptr, int *field_size, int *decomp_id, int *comp_or_grid_id, 
- int *buf_mark, const char *unit, const char *data_type, const char *annotation)
+ int *buf_mark, int *restart_related, const char *unit, const char *data_type, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a field instance %s", field_name);
 
