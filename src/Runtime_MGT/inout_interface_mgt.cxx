@@ -820,7 +820,7 @@ void Inout_interface::read_restart_fields(int API_id, const char *annotation)
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, import_or_export_or_remap == COUPLING_INTERFACE_MARK_IMPORT, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding coupling interface \"%s\" is not an import interface (this API only reads restart fields for import interfaces). Please verify the model code with the annotation \"%s\"", interface_name, annotation);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""), "read restart fields for the given coupling interface", annotation);
 	for (int i = 0; i < fields_mem_registered.size(); i ++)
-		restart_mgr->read_restart_field_data(fields_mem_registered[i], NULL, NULL, NULL, NULL, annotation);
+		restart_mgr->read_restart_field_data(fields_mem_registered[i], NULL, NULL, false, NULL, annotation);
 }
 
 

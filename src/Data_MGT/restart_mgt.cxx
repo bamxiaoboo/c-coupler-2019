@@ -278,7 +278,7 @@ void Restart_mgt::get_field_IO_name(char *field_IO_name, Field_mem_info *field_i
 		if (field_instance->get_grid_name() != NULL)
 			strcpy(grid_name, field_instance->get_grid_name());
 		if (field_instance->get_decomp_name() != NULL)
-			strcpy(grid_name, field_instance->get_decomp_name());
+			strcpy(decomp_name, field_instance->get_decomp_name());
 		sprintf(field_IO_name, "%s.%s.%s.%d", field_instance->get_field_name(), grid_name, decomp_name, field_instance->get_buf_mark());
 	}
 }
