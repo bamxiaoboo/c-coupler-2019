@@ -261,7 +261,7 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			sprintf(API_label, "CCPL_report_error");
 			break;	
 		case API_ID_RESTART_MGT_START_READ_IO:
-			sprintf(API_label, "CCPL_do_restart_read_IO");
+			sprintf(API_label, "CCPL_start_restart_read_IO");
 			break;
 		case API_ID_RESTART_MGT_READ_ALL:
 			sprintf(API_label, "CCPL_restart_read_fields_all");

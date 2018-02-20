@@ -86,7 +86,7 @@
    public :: CCPL_report_progress 
    public :: CCPL_report_error 
    public :: CCPL_do_restart_write_IO
-   public :: CCPL_do_restart_read_IO
+   public :: CCPL_start_restart_read_IO
    public :: CCPL_is_restart_timer_on
    public :: CCPL_restart_read_fields_all
    public :: CCPL_restart_read_fields_interface
@@ -3179,7 +3179,7 @@
 
 
 
-   SUBROUTINE CCPL_do_restart_read_IO(comp_id, specified_restart_file, annotation)
+   SUBROUTINE CCPL_start_restart_read_IO(comp_id, specified_restart_file, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    character(len=*), intent(in), optional      :: specified_restart_file
@@ -3196,7 +3196,7 @@
        call CCPL_read_restart(comp_id, trim(local_specified_restart_file)//char(0), trim("")//char(0))
    endif
    
-   END SUBROUTINE CCPL_do_restart_read_IO
+   END SUBROUTINE CCPL_start_restart_read_IO
  
 
 

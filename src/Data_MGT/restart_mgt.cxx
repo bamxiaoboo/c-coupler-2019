@@ -401,17 +401,16 @@ void Restart_mgt::write_restart_mgt_into_file()
 	clean(true);
 }
 
-
 const char *Restart_mgt::get_input_restart_mgt_info_file()
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read_IO\" has been called");
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_start_restart_read_IO\" has been called");
 	return input_restart_mgt_info_file;
 }
 
 
 const char *Restart_mgt::get_restart_read_annotation()
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_read_annotation != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_do_restart_read_IO\" has been called");
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_read_annotation != NULL, "Failed to run the model in a continue or branch run: the restart file has not been read in. Please make sure that the API \"CCPL_start_restart_read_IO\" has been called");
 	return restart_read_annotation;
 }
 

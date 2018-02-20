@@ -815,7 +815,7 @@ void Inout_interface::read_restart_fields(int API_id, const char *annotation)
 
 	get_API_hint(comp_id, API_id, API_label);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_mgr->get_restart_read_data_file_name() != NULL, "Error happens when calling the API \"%s\" to read restart fields: the API \"CCPL_do_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_mgr->get_restart_read_data_file_name() != NULL, "Error happens when calling the API \"%s\" to read restart fields: the API \"CCPL_start_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"%s\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, import_or_export_or_remap == COUPLING_INTERFACE_MARK_IMPORT, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding coupling interface \"%s\" is not an import interface (this API only reads restart fields for import interfaces). Please verify the model code with the annotation \"%s\"", interface_name, annotation);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""), "read restart fields for the given coupling interface", annotation);
