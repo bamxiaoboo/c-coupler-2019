@@ -50,6 +50,7 @@ class Field_mem_info
 		bool is_field_active;
         Remap_grid_data_class *grided_field_data;
 		Time_mgt *host_comp_time_mgr;
+		long last_checksum;
 
     public:
 		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *, bool);
@@ -85,6 +86,8 @@ class Field_mem_info
 		int get_decomp_id() const { return decomp_id; }
 		void set_field_instance_id(int, const char*);
 		const char *get_data_type();
+		bool is_checksum_changed();
+		void reset_checksum();
         ~Field_mem_info();
 };
 

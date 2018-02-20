@@ -116,7 +116,9 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
         Remap_grid_class *decomp_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_id, remap_grid_grid, false)->get_decomp_grid();
         grided_field_data = new Remap_grid_data_class(decomp_grid, remap_data_field);
         remap_data_field->set_fill_value(NULL);
-    }	
+    }
+	
+	last_checksum = -1;
 }
 
 
@@ -274,6 +276,23 @@ void Field_mem_info::set_field_instance_id(int field_instance_id, const char *an
 {
 	this->field_instance_id = field_instance_id;
 	annotation_mgr->add_annotation(field_instance_id, "allocate field instance", annotation);
+}
+
+
+bool Field_mem_info::is_checksum_changed()
+{
+	if (last_checksum == -1)
+		return true;
+
+	long current_checksum = calculate_checksum_of_array((const char*)get_data_buf(), get_size_of_field(), get_data_type_size(get_data_type()), NULL, NULL);
+	
+	return current_checksum != last_checksum;
+}
+
+
+void Field_mem_info::reset_checksum()
+{
+	last_checksum = calculate_checksum_of_array((const char*)get_data_buf(), get_size_of_field(), get_data_type_size(get_data_type()), NULL, NULL);
 }
 
 

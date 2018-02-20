@@ -73,6 +73,7 @@ class Restart_mgt
 		bool restart_mgt_info_written;
 		IO_netcdf *restart_write_data_file;
 		char *restart_read_data_file_name;
+		bool restart_normal_fields_enabled;
 
 	public:
 		Restart_mgt(Comp_comm_group_mgt_node*);

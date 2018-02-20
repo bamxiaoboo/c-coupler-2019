@@ -103,6 +103,7 @@ Restart_mgt::Restart_mgt(Comp_comm_group_mgt_node *comp_node)
 	time_mgr = NULL;
 	restart_write_data_file = NULL;
 	restart_read_data_file_name = NULL;
+	restart_normal_fields_enabled = false;
 }
 
 
@@ -191,6 +192,8 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 	char temp_restart_read_data_file_name[NAME_STR_SIZE*2];
 	long buffer_content_iter;
 
+
+	restart_normal_fields_enabled = true;
 
 	if (time_mgr == NULL)
 		time_mgr = components_time_mgrs->get_time_mgr(comp_node->get_comp_id());
@@ -309,10 +312,14 @@ void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const
 
 void Restart_mgt::read_all_restarted_fields(const char *annotation)
 {
+	if (time_mgr == NULL)
+		time_mgr = components_time_mgrs->get_time_mgr(comp_node->get_comp_id());		
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
 		return;
 
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL,  "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the API \"CCPL_start_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation %s", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_normal_fields_enabled, "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: some import interfaces have been executed without bypassing the timer. Please verify the model code corresponding to the annotation %s", annotation);
 
 	for (int i = 0; i < restarted_field_instances.size(); i ++)
 		read_restart_field_data(restarted_field_instances[i], NULL, NULL, false, NULL, annotation);
@@ -323,8 +330,17 @@ void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const 
 {
 	char field_IO_name[NAME_STR_SIZE*2], hint[NAME_STR_SIZE*2];
 
-
+		
 	get_field_IO_name(field_IO_name, field_instance, interface_name, label, use_time_info);
+
+	if (interface_name == NULL && !field_instance->is_checksum_changed()) {
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Does not read restart field \"%s\" from the file \"%s\" again.", field_IO_name, restart_read_data_file_name);
+		return;
+	}
+
+	if (interface_name != NULL)
+		restart_normal_fields_enabled = false;
+
 	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), does_file_exist(restart_read_data_file_name), "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the file does not exist", restart_read_data_file_name, annotation);
 	IO_netcdf *restart_read_data_file = new IO_netcdf(restart_read_data_file_name, restart_read_data_file_name, "r", false);
 	bool has_data_in_file = fields_gather_scatter_mgr->read_scatter_field(restart_read_data_file, field_instance, field_IO_name, -1, false);
@@ -334,6 +350,7 @@ void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const 
 	sprintf(hint, "restart reading field \"%s\" from the file \"%s\"", field_IO_name, restart_read_data_file_name);
 	field_instance->check_field_sum(hint);
 	field_instance->define_field_values(false);
+	field_instance->reset_checksum();
 }
 
 
