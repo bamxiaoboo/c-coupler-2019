@@ -802,6 +802,8 @@ extern "C" void set_3d_grid_surface_field_
 	}	
 	check_for_coupling_registration_stage(comp_id, API_id, true, annotation);
 	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
+	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL)
+		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->add_restarted_field_instances(memory_manager->get_field_instance(*field_id));
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish to setting surface field for the 3D grid %s", original_grid_mgr->get_name_of_grid(*grid_id));
 }
@@ -1232,7 +1234,7 @@ extern "C" void ccpl_read_all_restart_fields_
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to read all restart fields from restart data file");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_READ_ALL, annotation, false);
-	comp_comm_group_mgt_mgr->search_global_node(*comp_id)->get_restart_mgr()->read_all_restarted_fields();
+	comp_comm_group_mgt_mgr->search_global_node(*comp_id)->get_restart_mgr()->read_all_restarted_fields(annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish reading all restart fields from restart data file");
 }
 

@@ -241,12 +241,16 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 	current_full_time = time_mgr->get_current_full_time();
 
 	if (bypass_timer || time_mgr->is_restart_timer_on()) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write_IO\" has been called more than once in the same time step. Please verify the model code with the annotation \"%s\"");
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write_IO\" has been called more than once in the same time step. Please verify the model code with the annotation \"%s\"", annotation);
+		if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), time_mgr->get_restart_full_time() != ((long)time_mgr->get_current_num_elapsed_day()*((long)100000))+time_mgr->get_current_second(), "Error happens when the component model calls the API \"CCPL_do_restart_write_IO\" to write restart data at the model time %ld: the current model run is a %s run restarted at the same model time, while the model time to write restart data cannot be the same as the restarted model time. Please verify the model code with the annotation \"%s\".", current_full_time, time_mgr->get_run_type(), annotation);
+		}	
 		last_restart_write_full_time = current_full_time;
 		last_restart_write_elapsed_time = time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second();
 		int date = last_restart_write_full_time/(long)100000;
 		int second = last_restart_write_full_time%(long)100000;
 		if (local_proc_id == 0) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_write_data_file == NULL, "Error happens when the component model tries to write restart data files: restart writing is too frequent so that a new restart writing starts before the previous restart writing does not finish. Please verify the model code with the annotation \"%s\"", annotation);
 			time_mgr_restart_buffer = apply_restart_buffer(comp_full_name, RESTART_BUF_TYPE_TIME, "local time manager");
 			time_mgr->write_time_mgt_into_array(time_mgr_restart_buffer->get_buffer_content_ptr(), *(time_mgr_restart_buffer->get_buffer_max_size_ptr()), *(time_mgr_restart_buffer->get_buffer_content_iter_ptr()));
 			char restart_data_file_name[NAME_STR_SIZE];
@@ -303,13 +307,15 @@ void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const
 }
 
 
-void Restart_mgt::read_all_restarted_fields()
+void Restart_mgt::read_all_restarted_fields(const char *annotation)
 {
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
 		return;
 
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation %s", annotation);
+
 	for (int i = 0; i < restarted_field_instances.size(); i ++)
-		read_restart_field_data(restarted_field_instances[i], NULL, NULL, false, NULL, "");
+		read_restart_field_data(restarted_field_instances[i], NULL, NULL, false, NULL, annotation);
 }
 
 

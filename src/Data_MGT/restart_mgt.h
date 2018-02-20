@@ -95,7 +95,7 @@ class Restart_mgt
 		const char *get_restart_read_data_file_name() { return restart_read_data_file_name; }
 		void add_restarted_field_instances(Field_mem_info*);
 		void get_field_IO_name(char *, Field_mem_info*, const char *, const char*, bool);
-		void read_all_restarted_fields();
+		void read_all_restarted_fields(const char*);
 };
 
 
