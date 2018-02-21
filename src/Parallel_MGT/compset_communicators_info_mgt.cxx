@@ -696,7 +696,7 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	sprintf(temp_string, "%s/CCPL_dir/run/data", root_working_dir);
 	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
 	sprintf(temp_string, "%s/CCPL_dir/run/data/all", root_working_dir);
-	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	create_directory(temp_string, MPI_COMM_WORLD, current_proc_global_id == 0, false);
 	sprintf(internal_H2D_grids_dir, "%s/CCPL_dir/run/data/all/internal_H2D_grids", root_working_dir);
 	create_directory(internal_H2D_grids_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
 	sprintf(components_processes_dir, "%s/CCPL_dir/run/data/all/components_processes", root_working_dir);
@@ -707,6 +707,8 @@ Comp_comm_group_mgt_mgr::Comp_comm_group_mgt_mgr(const char *executable_name)
 	create_directory(active_coupling_connections_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);	
 	sprintf(comps_ending_config_status_dir, "%s/CCPL_dir/run/data/all/comps_ending_config_status", root_working_dir);
 	create_directory(comps_ending_config_status_dir, MPI_COMM_WORLD, current_proc_global_id == 0, true);
+	sprintf(restart_common_dir, "%s/CCPL_dir/run/data/all/restart", root_working_dir);
+	create_directory(restart_common_dir, MPI_COMM_WORLD, current_proc_global_id == 0, false);
 	sprintf(runtime_config_root_dir, "%s/CCPL_dir/config", root_working_dir);
 	root_comp_config_dir[0] = '\0';
 	sprintf(temp_string, "%s/CCPL_dir/run/CCPL_logs/by_executables", root_working_dir);
@@ -1034,6 +1036,20 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::load_comp_info_from_XML(int h
 	delete XML_file;
 		
 	return pesudo_comp_node;
+}
+
+
+int Comp_comm_group_mgt_mgr::get_comp_root_proc_global_id(int host_comp_id, const char *comp_full_name)
+{
+	Comp_comm_group_mgt_node *temp_comp_node = load_comp_info_from_XML(host_comp_id, comp_full_name, MPI_COMM_NULL);
+	int comp_root_proc_global_id;
+
+	if (temp_comp_node == NULL)
+		return -1;
+
+	comp_root_proc_global_id = temp_comp_node->get_root_proc_global_id();
+	delete temp_comp_node;
+	return comp_root_proc_global_id;
 }
 
 

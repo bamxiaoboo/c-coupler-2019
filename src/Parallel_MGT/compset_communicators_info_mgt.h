@@ -136,6 +136,7 @@ class Comp_comm_group_mgt_mgr
 		char components_exports_dir[NAME_STR_SIZE];
 		char active_coupling_connections_dir[NAME_STR_SIZE];
 		char comps_ending_config_status_dir[NAME_STR_SIZE];
+		char restart_common_dir[NAME_STR_SIZE];
 		char runtime_config_root_dir[NAME_STR_SIZE];
 		char root_comp_config_dir[NAME_STR_SIZE];
 		char CCPL_platform_log_dir[NAME_STR_SIZE];
@@ -171,6 +172,7 @@ class Comp_comm_group_mgt_mgr
 		const char *get_components_exports_dir() { return components_exports_dir; }
 		const char *get_active_coupling_connections_dir() { return active_coupling_connections_dir; }
 		const char *get_comps_ending_config_status_dir() { return comps_ending_config_status_dir; }
+		const char *get_restart_common_dir() { return restart_common_dir; }
 		const char *get_config_root_dir() { return runtime_config_root_dir; }	
 		const char *get_root_comp_config_dir() const { return root_comp_config_dir; }
 		void get_root_comps_for_overall_coupling_generation(std::vector<const char *> &);
@@ -188,6 +190,7 @@ class Comp_comm_group_mgt_mgr
 		void output_log(const char *, bool);
 		const char *get_exe_log_file_name() { return exe_log_file_name; }		
 		void output_performance_timing();
+		int get_comp_root_proc_global_id(int, const char *);
 };
 
 

@@ -66,6 +66,7 @@ class Restart_mgt
 		std::vector<Restart_buffer_container*> restart_write_buffer_containers;
 		std::vector<Restart_buffer_container*> restart_read_buffer_containers;
 		std::vector<Field_mem_info*> restarted_field_instances;
+		std::vector<std::pair<const char*, int> > comps_root_proc_global_id;
 		Comp_comm_group_mgt_node *comp_node;
 		Time_mgt *time_mgr;
 		char *input_restart_mgt_info_file;
@@ -97,8 +98,8 @@ class Restart_mgt
 		void add_restarted_field_instances(Field_mem_info*);
 		void get_field_IO_name(char *, Field_mem_info*, const char *, const char*, bool);
 		void read_all_restarted_fields(const char*);
+		int get_comp_root_proc_global_id(const char*);
 };
-
 
 
 #endif
