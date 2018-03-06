@@ -165,7 +165,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         MPI_Allgather(transfer_size_with_remote_procs, num_remote_procs, MPI_INT, total_transfer_size_with_remote_procs, num_remote_procs, MPI_INT, local_comp_node->get_comm_group());
         for (int i = 0; i < current_proc_local_id; i ++) {
             for (int j = 0; j < num_remote_procs; j ++) {
-                send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j] + 2*sizeof(long);
+                send_displs_in_remote_procs[j] += total_transfer_size_with_remote_procs[i*num_remote_procs+j] + 4*sizeof(long);
              }
         }
         for (int j = 0; j < num_remote_procs; j ++)
@@ -174,7 +174,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 
     recv_displs_in_current_proc[0] = sizeof(long)*4;
     for (int i = 1; i < num_remote_procs; i ++)
-        recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 2*sizeof(long);
+        recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 4*sizeof(long);
 
 	current_receive_field_sender_time = -1;
 	last_receive_field_sender_time = -1;
@@ -182,7 +182,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     for (int j = 0; j < num_remote_procs; j ++) 
         data_buf_size += transfer_size_with_remote_procs[j];
 
-    total_buf_size = data_buf_size + (2*num_remote_procs + 4) * sizeof(long);
+    total_buf_size = data_buf_size + (4*num_remote_procs + 4) * sizeof(long);
     total_buf = (char*) (new long[(total_buf_size+sizeof(long)-1)/sizeof(long)]);
     send_tag_buf = (long *) total_buf;	
 	temp_receive_data_buffer = (char*)(new long [(data_buf_size+sizeof(long)-1)/sizeof(long)]);
@@ -302,7 +302,7 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 	        return false;
     }
 
-    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Remote buffer component \"%s\" is ready for receiving data: %ld vs %ld vs %ld : %d", remote_comp_full_name, temp_field_remote_recv_count, last_field_remote_recv_count, last_receive_sender_time, bypass_counter);	
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Remote buffer component \"%s\" is ready for receiving data: %ld vs %ld vs %ld : %d: %d  %ld", remote_comp_full_name, temp_field_remote_recv_count, last_field_remote_recv_count, last_receive_sender_time, bypass_counter, send_tag_buf[2], send_tag_buf[3]);	
 
 	last_field_remote_recv_count ++;
 
@@ -348,7 +348,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 			continue;
         data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
-        MPI_Irecv((char *)data_buf, 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, comm_tag, union_comm, &request[i]);
+        MPI_Irecv((char *)data_buf, 4*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, comm_tag, union_comm, &request[i]);
     }    
 	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
 	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
@@ -458,7 +458,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
 			continue;
-        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*sizeof(long));
+        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 4*sizeof(long));
         memcpy(temp_receive_data_buffer+offset, data_buf, transfer_size_with_remote_procs[remote_proc_index]);
         offset += transfer_size_with_remote_procs[remote_proc_index];
     }    
@@ -556,7 +556,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
         offset = 0;
         int old_offset = offset;
-        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 2*sizeof(long));
+        data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 4*sizeof(long));
         if (transfer_size_with_remote_procs[remote_proc_index] > 0)
             for (int j = 0; j < num_transfered_fields; j ++) {
                 if (fields_routers[j]->get_num_dimensions() == 0) {
@@ -579,10 +579,10 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
 
 #ifdef USE_DOUBLE_MPI
-        MPI_Isend(tag_buf, 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, comm_tag, union_comm, &request[i]);
+        MPI_Isend(tag_buf, 4*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, comm_tag, union_comm, &request[i]);
 #else
         MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
-        MPI_Put(tag_buf, 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], 2*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
+        MPI_Put(tag_buf, 4*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, send_displs_in_remote_procs[remote_proc_index], 4*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, data_win);
         MPI_Win_unlock(remote_proc_id, data_win);
 #endif
 
@@ -649,7 +649,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
         last_history_receive_buffer_index = (last_history_receive_buffer_index+1) % history_receive_buffer_status.size();
     }
 
-    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\"", remote_comp_full_name);
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\" at the remote model time %ld vs %ld", remote_comp_full_name, last_receive_sender_time, current_remote_fields_time);
 
 #ifndef USE_DOUBLE_MPI
 	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);

@@ -187,7 +187,7 @@ class Time_mgt
 
     public:
 		Time_mgt() {}
-		Time_mgt(int, const char *);
+		Time_mgt(int, const char *, bool);
         ~Time_mgt();
 		void initialize_to_start_time();
         void advance_model_time(const char*, bool);
@@ -252,6 +252,7 @@ class Time_mgt
 		void reset_current_time_to_start_time(const char*);
 		long get_restart_full_time() { return restart_full_time; }
 		int get_runtype_mark() { return runtype_mark; }
+		long determine_continue_run_restart_time();
 };
 
 

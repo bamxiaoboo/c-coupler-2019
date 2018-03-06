@@ -34,7 +34,7 @@ extern void check_XML_attribute_value_string_length(int, int, const char *, cons
 extern bool is_string_decimal_number(const char *);
 extern void dump_string(const char*, long, char **, long &, long &);
 extern char *load_string(char *, long &, long, const char *, long &, const char *);
-
+extern long get_restart_time_in_rpointer_file(const char *);
 
 
 template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)

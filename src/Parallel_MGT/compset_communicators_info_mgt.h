@@ -190,7 +190,6 @@ class Comp_comm_group_mgt_mgr
 		void output_log(const char *, bool);
 		const char *get_exe_log_file_name() { return exe_log_file_name; }		
 		void output_performance_timing();
-		int get_comp_root_proc_global_id(int, const char *);
 };
 
 

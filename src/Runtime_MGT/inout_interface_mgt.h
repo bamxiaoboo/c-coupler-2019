@@ -95,6 +95,7 @@ class Connection_coupling_procedure
 		bool coupling_connections_dumped;
 		Restart_mgt *restart_mgr;
 		int remote_bypass_counter;
+		bool is_coupling_time_out_of_execution;
 		
 	public:
 		Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
@@ -113,7 +114,8 @@ class Connection_coupling_procedure
 		bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
 		void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
 		Inout_interface *get_inout_interface() { return inout_interface; }
-		bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time); }
+		bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time, false); }
+		bool get_is_coupling_time_out_of_execution() { return is_coupling_time_out_of_execution; }
 };
 
 

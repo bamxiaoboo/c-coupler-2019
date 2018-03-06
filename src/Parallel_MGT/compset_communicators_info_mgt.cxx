@@ -1039,20 +1039,6 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::load_comp_info_from_XML(int h
 }
 
 
-int Comp_comm_group_mgt_mgr::get_comp_root_proc_global_id(int host_comp_id, const char *comp_full_name)
-{
-	Comp_comm_group_mgt_node *temp_comp_node = load_comp_info_from_XML(host_comp_id, comp_full_name, MPI_COMM_NULL);
-	int comp_root_proc_global_id;
-
-	if (temp_comp_node == NULL)
-		return -1;
-
-	comp_root_proc_global_id = temp_comp_node->get_root_proc_global_id();
-	delete temp_comp_node;
-	return comp_root_proc_global_id;
-}
-
-
 void Comp_comm_group_mgt_mgr::get_root_comps_for_overall_coupling_generation(std::vector<const char *> &all_comp_fullnames_for_coupling_generation)
 {
 	for (int i = 0; i < root_comps_full_names.size(); i ++) 

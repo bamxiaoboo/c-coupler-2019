@@ -119,8 +119,6 @@ Restart_mgt::~Restart_mgt()
 		delete restart_read_data_file_name;
 	if (restart_write_data_file != NULL)
 		delete restart_write_data_file;
-	for (int i = 0; i < comps_root_proc_global_id.size(); i ++)
-		delete [] comps_root_proc_global_id[i].first;
 }
 
 
@@ -261,6 +259,9 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 			char restart_data_file_name[NAME_STR_SIZE];
 			sprintf(restart_data_file_name, "%s/%s.%s.r.%08d-%05d.nc", comp_node->get_working_dir(), time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
 			restart_write_data_file = new IO_netcdf(restart_data_file_name, restart_data_file_name, "w", false);
+			sprintf(restart_data_file_name, "%s/%s.%s.r.%08d-%05d", comp_node->get_working_dir(), time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
+			FILE *restart_mgt_info_file = fopen(restart_data_file_name, "w+");
+			fclose(restart_mgt_info_file);
 		}
 		inout_interface_mgr->write_into_restart_buffers(comp_node->get_comp_id());
 		restart_mgt_info_written = false;
@@ -358,7 +359,7 @@ void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const 
 
 void Restart_mgt::get_file_name_in_rpointer_file(char *restart_file_name)
 {
-	char rpointer_file_name[NAME_STR_SIZE], line[NAME_STR_SIZE], *line_p;
+	char rpointer_file_name[NAME_STR_SIZE], line[NAME_STR_SIZE*16], *line_p;
 	FILE *rpointer_file;
 
 
@@ -377,7 +378,7 @@ void Restart_mgt::write_restart_mgt_into_file()
 	char *array_buffer = NULL;
 	long buffer_max_size, buffer_content_size;
 	int temp_int;
-	char restart_file_name[NAME_STR_SIZE], rpointer_file_name[NAME_STR_SIZE];
+	char restart_file_name[NAME_STR_SIZE], prev_rpointer_file_name[NAME_STR_SIZE], rpointer_file_name[NAME_STR_SIZE], line[NAME_STR_SIZE*16];
 	FILE *restart_file, *rpointer_file;
 	
 
@@ -408,6 +409,15 @@ void Restart_mgt::write_restart_mgt_into_file()
 	fclose(restart_file);
 	delete [] array_buffer;	
 	sprintf(rpointer_file_name, "%s/rpointer.%s", comp_comm_group_mgt_mgr->get_restart_common_dir(), comp_node->get_full_name());
+	if (does_file_exist(rpointer_file_name)) {
+		rpointer_file = fopen(rpointer_file_name, "r");
+		get_next_line(line, rpointer_file);
+		fclose(rpointer_file);		
+		sprintf(prev_rpointer_file_name, "%s/prev.rpointer.%s", comp_comm_group_mgt_mgr->get_restart_common_dir(), comp_node->get_full_name());
+		FILE *prev_rpointer_file = fopen(prev_rpointer_file_name, "w+");
+		fprintf(prev_rpointer_file, "%s\n", line);
+		fclose(prev_rpointer_file);
+	}
 	rpointer_file = fopen(rpointer_file_name, "w+");	
 	fprintf(rpointer_file, "%s.%s.r.%08d-%05d\n", time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
 	fclose(rpointer_file);
@@ -419,6 +429,7 @@ void Restart_mgt::write_restart_mgt_into_file()
 
 	clean(true);
 }
+
 
 const char *Restart_mgt::get_input_restart_mgt_info_file()
 {
@@ -443,14 +454,16 @@ Restart_buffer_container *Restart_mgt::apply_restart_buffer(const char *comp_ful
 }
 
 
-bool Restart_mgt::is_in_restart_write_window(long full_time)
+bool Restart_mgt::is_in_restart_write_window(long full_time, bool is_in_interface_execution)
 {
 	if (last_restart_write_elapsed_time == -1)
 		return false;
 
 	if (full_time == -1)
 		return time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
-	else return full_time <= last_restart_write_elapsed_time || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
+	else if (is_in_interface_execution) 
+		return full_time <= last_restart_write_elapsed_time || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
+	else return full_time < last_restart_write_elapsed_time || time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second() <= last_restart_write_elapsed_time;
 }
 
 
@@ -476,17 +489,5 @@ void Restart_mgt::add_restarted_field_instances(Field_mem_info *field_instance)
 			return;
 
 	restarted_field_instances.push_back(field_instance);
-}
-
-
-int Restart_mgt::get_comp_root_proc_global_id(const char *comp_full_name)
-{
-	for (int i = 0; i < comps_root_proc_global_id.size(); i ++) 
-		if (words_are_the_same(comps_root_proc_global_id[i].first, comp_full_name))
-			return comps_root_proc_global_id[i].second;
-
-	int comp_root_proc_global_id = comp_comm_group_mgt_mgr->get_comp_root_proc_global_id(comp_node->get_comp_id(), comp_full_name);
-	comps_root_proc_global_id.push_back(std::make_pair(strdup(comp_full_name), comp_root_proc_global_id));
-	return comp_root_proc_global_id;
 }
 

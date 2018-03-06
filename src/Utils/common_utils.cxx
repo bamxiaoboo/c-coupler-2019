@@ -259,6 +259,7 @@ void check_API_parameter_string_length(int comp_id, int API_ID, int str_max_size
 	get_API_hint(-1, API_ID, API_label);
 	
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(str) <= str_max_size, "Error happens when calling the API \"%s\": the string size (current is %d) of the parameter \"%s\" (the string is \"%s\") is larger than the limit (%d). Please verify the model code with the annotation \"%s\".", API_label, strlen(str), parameter_name, str, str_max_size, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(str, "NULL"), "Error happens when calling the API \"%s\": the parameter \"%s\" cannot be \"NULL\". Please verify the model code with the annotation \"%s\".", API_label, parameter_name, str, annotation);
 }
 
 
@@ -318,4 +319,22 @@ void dump_string(const char *str, long str_size, char **array_buffer, long &buff
 	write_data_into_array_buffer(&str_size, sizeof(long), array_buffer, buffer_max_size, buffer_content_size);
 }
 
+
+long get_restart_time_in_rpointer_file(const char *file_name)
+{
+	char line[NAME_STR_SIZE*16], date_str[NAME_STR_SIZE], second_str[NAME_STR_SIZE];
+	int date, second;
+	FILE *rpointer_file;
+
+
+	rpointer_file = fopen(file_name, "r");
+	get_next_line(line, rpointer_file);
+	fclose(rpointer_file);
+	strncpy(date_str, line+strlen(line)-14, 8);
+	strncpy(second_str, line+strlen(line)-5, 5);
+	sscanf(date_str, "%d", &date);
+	sscanf(second_str, "%d", &second);
+
+	return ((long)date)*((long)100000) + second;
+}
 

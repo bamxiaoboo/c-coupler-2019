@@ -10,7 +10,10 @@
 #include <mpi.h>
 #include "timer_mgt.h"
 #include "global_data.h"
-
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 
 int elapsed_days_on_start_of_month_of_nonleap_year[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
@@ -382,7 +385,7 @@ void Time_mgt::calculate_stop_time(int start_year, int start_month, int start_da
 }
 
 
-Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
+Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp)
 {
 	int line_number;
 
@@ -395,7 +398,6 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 	this->restart_timer = NULL;
 	this->advance_time_synchronized = false;
 	this->time_has_been_advanced = false;
-
 	{
 		int start_date, stop_date, reference_date, rest_freq_count, time_step;
 		long num_total_seconds;
@@ -526,6 +528,14 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name)
 
 	num_total_steps = -1;
 	initialize_to_start_time();
+
+	if (is_for_root_comp && runtype_mark == RUNTYPE_MARK_CONTINUE) {
+		long common_restart_full_time;
+		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
+			common_restart_full_time = determine_continue_run_restart_time();
+		MPI_Bcast(&common_restart_full_time, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The restart time determined by the rpointer files is %ld", common_restart_full_time);
+	}
 }
 
 
@@ -1020,6 +1030,50 @@ void Time_mgt::reset_current_time_to_start_time(const char *annotation)
 }
 
 
+long Time_mgt::determine_continue_run_restart_time()
+{
+	DIR *cur_dir = opendir(comp_comm_group_mgt_mgr->get_restart_common_dir());
+	std::vector<std::pair<long, long> > comps_continue_run_candidate_restart_time;
+	struct dirent *ent = NULL;
+	struct stat st;
+	long restart_time_in_rpointer, restart_time_in_prev_rpointer;
+	char rpointer_file_name[NAME_STR_SIZE*2], prev_rpointer_file_name[NAME_STR_SIZE*2];
+	int i;
+
+	
+	EXECUTION_REPORT(REPORT_ERROR, -1, cur_dir != NULL, "Comp_comm_group_mgt_mgr::is_comp_type_coupled");
+	while ((ent = readdir(cur_dir)) != NULL) {
+		stat(ent->d_name, &st);
+		if (strlen(ent->d_name) > strlen("rpointer.") && strncmp(ent->d_name, "rpointer.", strlen("rpointer.")) == 0) {
+			sprintf(rpointer_file_name, "%s/%s", comp_comm_group_mgt_mgr->get_restart_common_dir(), ent->d_name);
+			restart_time_in_rpointer = get_restart_time_in_rpointer_file(rpointer_file_name);
+			restart_time_in_prev_rpointer = -1;
+			sprintf(prev_rpointer_file_name, "%s/prev.%s", comp_comm_group_mgt_mgr->get_restart_common_dir(), ent->d_name);
+			if (does_file_exist(prev_rpointer_file_name))
+				restart_time_in_prev_rpointer = get_restart_time_in_rpointer_file(prev_rpointer_file_name);
+			comps_continue_run_candidate_restart_time.push_back(std::make_pair(restart_time_in_rpointer, restart_time_in_prev_rpointer));
+		}
+	}
+
+	if (comps_continue_run_candidate_restart_time.size() == 0)
+		return -1;
+
+	for (i = 1; i < comps_continue_run_candidate_restart_time.size(); i ++)
+		if (comps_continue_run_candidate_restart_time[i].first != comps_continue_run_candidate_restart_time[0].first && comps_continue_run_candidate_restart_time[i].second != comps_continue_run_candidate_restart_time[0].first)
+			break;
+	if (i == comps_continue_run_candidate_restart_time.size())
+		return comps_continue_run_candidate_restart_time[0].first;
+
+	for (i = 1; i < comps_continue_run_candidate_restart_time.size(); i ++)
+		if (comps_continue_run_candidate_restart_time[i].first != comps_continue_run_candidate_restart_time[0].second && comps_continue_run_candidate_restart_time[i].second != comps_continue_run_candidate_restart_time[0].second)
+			break;
+	if (i == comps_continue_run_candidate_restart_time.size())
+		return comps_continue_run_candidate_restart_time[0].second;
+
+	return -1;
+}
+
+
 Components_time_mgt::~Components_time_mgt()
 {
 	for (int i = 0; i < components_time_mgrs.size(); i ++)
@@ -1045,7 +1099,7 @@ Time_mgt *Components_time_mgt::get_time_mgr(int comp_id)
 
 void Components_time_mgt::define_root_comp_time_mgr(int comp_id, const char *xml_file_name)
 {
-	components_time_mgrs.push_back(new Time_mgt(comp_id, xml_file_name));
+	components_time_mgrs.push_back(new Time_mgt(comp_id, xml_file_name, true));
 	components_time_mgrs[components_time_mgrs.size()-1]->build_restart_timer();
 }
 
@@ -1080,11 +1134,11 @@ void Components_time_mgt::clone_parent_comp_time_mgr(int comp_id, int parent_com
 
 void Components_time_mgt::advance_component_time(int comp_id, const char *annotation)
 {
-	comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->write_restart_mgt_into_file();
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
 	time_mgr->advance_model_time(annotation, true);
 	comp_comm_group_mgt_mgr->set_current_proc_current_time(comp_id, time_mgr->get_current_num_elapsed_day(), time_mgr->get_current_second());
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The current time is %08d-%05d, and the current number of the time step is %d", time_mgr->get_current_date(), time_mgr->get_current_second(), time_mgr->get_current_step_id());
+	comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->write_restart_mgt_into_file();
 }
 
 
