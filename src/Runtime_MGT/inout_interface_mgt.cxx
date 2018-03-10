@@ -325,6 +325,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will not receive data from the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_src_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
 				for (int i = 0; i < fields_mem_registered.size(); i ++)
 					restart_mgr->read_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true, NULL, annotation);
+				transfer_data = false;
 			}
 			else {
 				runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());

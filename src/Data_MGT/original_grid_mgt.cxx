@@ -563,6 +563,13 @@ int Original_grid_mgt::create_H2D_grid_from_global_data(int comp_id, const char 
 	CoR_H2D_grid = new Remap_grid_class(true_H2D_grid_name, 2, sub_grids, grid_size);
 	if (size_mask > 0)
 		CoR_H2D_grid->read_grid_data_from_array("mask", "mask", DATA_TYPE_INT, (const char*)mask, 0);
+	else {
+		int *tmp_mask = new int [CoR_H2D_grid->get_grid_size()];
+		for (int i = 0; i < CoR_H2D_grid->get_grid_size(); i ++)
+			tmp_mask[i] = 1;
+		CoR_H2D_grid->read_grid_data_from_array("mask", "mask", DATA_TYPE_INT, (const char*)tmp_mask, 0);
+		delete [] tmp_mask;
+	}
 	if (size_area > 0)
 		CoR_H2D_grid->read_grid_data_from_array("area", "area", data_type, (const char*)area, 0);	
 	if (size_center_lon == grid_size) {
