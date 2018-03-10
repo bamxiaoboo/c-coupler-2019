@@ -454,6 +454,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
 		restart_second = -1;
 		restart_num_elapsed_day = -1;
 		restart_full_time = -1;
+		common_restart_full_time = -1;
 	    start_year = start_date / 10000;
     	start_month = (start_date%10000) / 100;
     	start_day = start_date % 100;
@@ -530,11 +531,11 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
 	initialize_to_start_time();
 
 	if (is_for_root_comp && runtype_mark == RUNTYPE_MARK_CONTINUE) {
-		long common_restart_full_time;
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 			common_restart_full_time = determine_continue_run_restart_time();
 		MPI_Bcast(&common_restart_full_time, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The restart time determined by the rpointer files is %ld", common_restart_full_time);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, common_restart_full_time != -1, "Error happens when starting the continue run: fail to find a common restart time according to the rpointer files among a component models");
 	}
 }
 
@@ -559,6 +560,7 @@ void Time_mgt::initialize_to_start_time()
 	restart_second = -1;
 	restart_num_elapsed_day = -1;
 	restart_full_time = -1;
+	common_restart_full_time = -1;
 	time_has_been_advanced = false;
 }
 
@@ -827,6 +829,7 @@ Time_mgt *Time_mgt::clone_time_mgr(int comp_id)
 	new_time_mgr->restart_second = this->restart_second;
 	new_time_mgr->restart_num_elapsed_day = this->restart_num_elapsed_day;
 	new_time_mgr->restart_full_time = this->restart_full_time;
+	new_time_mgr->common_restart_full_time = this->common_restart_full_time;
 	new_time_mgr->restarted_step_id = this->restarted_step_id;
 	new_time_mgr->start_year = this->start_year;
 	new_time_mgr->start_month = this->start_month;
@@ -1008,6 +1011,7 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 		restart_second = current_second;
 		restart_num_elapsed_day = current_num_elapsed_day;
 		restart_full_time = restart_num_elapsed_day*((long)100000)+restart_second; 
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Set the restart time to %ld", restart_full_time);
 		restarted_step_id = current_step_id;
 	}
 

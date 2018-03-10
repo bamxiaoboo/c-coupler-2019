@@ -162,6 +162,7 @@ class Time_mgt
         int current_num_elapsed_day;
 		int start_num_elapsed_day;
 		int restart_num_elapsed_day;		
+		long common_restart_full_time;
 		long restart_full_time;
 		int stop_num_elapsed_day;
         int current_step_id;
@@ -251,6 +252,7 @@ class Time_mgt
 		bool get_time_has_been_advanced() { return time_has_been_advanced; }
 		void reset_current_time_to_start_time(const char*);
 		long get_restart_full_time() { return restart_full_time; }
+		long get_common_restart_full_time() { return common_restart_full_time; }
 		int get_runtype_mark() { return runtype_mark; }
 		long determine_continue_run_restart_time();
 };
