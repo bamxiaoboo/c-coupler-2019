@@ -269,6 +269,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_RESTART_MGT_READ_INTERFACE:
 			sprintf(API_label, "CCPL_restart_read_fields_interface");
 			break;	
+		case API_ID_RESTART_MGT_GET_SETTING:
+			sprintf(API_label, "CCPL_get_restart_setting");
+			break;				
 		case API_ID_RESTART_MGT_IS_TIMER_ON:
 			sprintf(API_label, "CCPL_is_restart_timer_on");
 			break;

@@ -90,6 +90,7 @@
    public :: CCPL_is_restart_timer_on
    public :: CCPL_restart_read_fields_all
    public :: CCPL_restart_read_fields_interface
+   public :: CCPL_get_restart_setting
    public :: CCPL_get_configurable_comps_full_names
    public :: CCPL_do_external_coupling_generation
    public :: CCPL_do_individual_coupling_generation
@@ -3229,6 +3230,27 @@
    endif
 
    END SUBROUTINE CCPL_restart_read_fields_interface
+
+
+
+   SUBROUTINE CCPL_get_restart_setting(comp_id, restart_date, restart_second, original_case_name, run_type, annotation)
+   implicit none
+   integer,          intent(in)                 :: comp_id
+   integer,          intent(out)                :: restart_date
+   integer,          intent(out)                :: restart_second
+   character(len=*), intent(out), optional      :: original_case_name
+   character(len=*), intent(out), optional      :: run_type
+   character(len=*), intent(in),  optional      :: annotation
+   character *1024                              :: local_annotation
+
+
+   local_annotation = ""
+   if (present(annotation)) local_annotation = annotation
+   call get_ccpl_restart_time(comp_id, restart_date, restart_second, trim(local_annotation)//char(0))
+   if (present(original_case_name)) call get_ccpl_original_case_name(comp_id, len(original_case_name), original_case_name, trim(local_annotation)//char(0))
+   if (present(run_type)) call get_ccpl_run_type(comp_id, len(run_type), run_type, trim(local_annotation)//char(0))
+
+   END SUBROUTINE CCPL_get_restart_setting
 
 
 

@@ -37,6 +37,20 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 }
 
 
+void copy_out_string_to_Fortran_API(int comp_id, int size_API_string, char *API_string, const char *CCPL_string, int API_id, const char *parameter_name, const char *annotation)
+{
+	char API_label[NAME_STR_SIZE];
+
+
+	get_API_hint(comp_id, API_id,API_label);
+	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_API_string >= strlen(CCPL_string), "Error happens when calling the API \"%s\": the parameter string \"%s\" is too short: only %d while the size of the log file name is %d. Please verify the model code with the annotation \"%s\"", API_label, parameter_name, size_API_string, strlen(CCPL_string));
+	strncpy(API_string, CCPL_string, strlen(CCPL_string));
+	for (int i = strlen(CCPL_string); i < size_API_string; i ++)
+		API_string[i] = ' ';	
+}
+
+
 #ifdef LINK_WITHOUT_UNDERLINE
 extern "C" void finalize_ccpl
 #else
@@ -469,10 +483,7 @@ extern "C" void get_ccpl_comp_log_file_name_
 	if (log_file_device_id == -1)
 		*log_file_opened = 0;
 	else *log_file_opened = 1;
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *size_file_name >= strlen(log_file_name), "Error happens when calling the API \"CCPL_get_comp_log_file_name\": the parameter string \"file_name\" is too short: only %d while the size of the log file name is %d", *size_file_name, strlen(log_file_name));
-	strncpy(file_name, log_file_name, strlen(log_file_name));
-	for (int i = strlen(log_file_name); i < *size_file_name; i ++)
-		file_name[i] = ' ';	
+	copy_out_string_to_Fortran_API(*comp_id, *size_file_name, file_name, log_file_name, API_ID_COMP_MGT_GET_COMP_LOG_FILE_NAME, "file_name", annotation);
 }
 
 
@@ -1255,6 +1266,58 @@ extern "C" void ccpl_read_import_interface_restart_fields_
 
 
 #ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void get_ccpl_restart_time
+#else
+extern "C" void get_ccpl_restart_time_
+#endif
+(int *comp_id, int *restart_date, int *restart_second, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_GET_SETTING, annotation, false);
+	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(*comp_id);
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) {
+		*restart_date = time_mgr->get_common_restart_full_time()/100000;
+		*restart_second = time_mgr->get_common_restart_full_time()%100000;
+	}
+	else if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL) {
+		*restart_date = -1;
+		*restart_second = -1;
+	}
+	else {
+		*restart_date = time_mgr->get_rest_refdate();
+		*restart_second = time_mgr->get_rest_refsecond();
+	}
+}
+
+
+#ifdef LINK_WITHOUT_UNDERLINE
+	extern "C" void get_ccpl_original_case_name
+#else
+	extern "C" void get_ccpl_original_case_name_
+#endif
+(int *comp_id, int *size_original_case_name, char *original_case_name, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_GET_SETTING, annotation, false);
+	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(*comp_id);
+	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
+		copy_out_string_to_Fortran_API(*comp_id, *size_original_case_name, original_case_name, time_mgr->get_case_name(), API_ID_RESTART_MGT_GET_SETTING, "original_case_name", annotation);
+	else copy_out_string_to_Fortran_API(*comp_id, *size_original_case_name, original_case_name, time_mgr->get_rest_refcase(), API_ID_RESTART_MGT_GET_SETTING, "original_case_name", annotation);
+}
+
+
+#ifdef LINK_WITHOUT_UNDERLINE
+	extern "C" void get_ccpl_run_type
+#else
+	extern "C" void get_ccpl_run_type_
+#endif
+(int *comp_id, int *size_run_type, char *run_type, const char *annotation)
+{
+	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_GET_SETTING, annotation, false);
+	Time_mgt *time_mgr = components_time_mgrs->get_time_mgr(*comp_id);
+	copy_out_string_to_Fortran_API(*comp_id, *size_run_type, run_type, time_mgr->get_run_type(), API_ID_RESTART_MGT_GET_SETTING, "run_type", annotation);
+}
+
+
+#ifdef LINK_WITHOUT_UNDERLINE
 extern "C" void is_restart_timer_on
 #else
 extern "C" void is_restart_timer_on_
@@ -1457,26 +1520,7 @@ extern "C" void get_local_comp_full_name_
 {
 	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, annotation, false);
 	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_local_comp_full_name_")->get_full_name();
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *comp_full_name_size >= strlen(full_name), "Error happens when calling the API \"CCPL_get_local_comp_full_name\": the parameter string \"comp_full_name\" is too short: only %d while the size of the component model full name is %d", *comp_full_name_size, strlen(full_name));
-	strncpy(comp_full_name, full_name, strlen(full_name));
-	for (int i = strlen(full_name); i < *comp_full_name_size; i ++)
-		comp_full_name[i] = ' ';
-}
-
-
-#ifdef LINK_WITHOUT_UNDERLINE
-extern "C" void get_CCPL_platform_log_dir
-#else
-extern "C" void get_CCPL_platform_log_dir_
-#endif
-(char *CCPL_platform_log_dir, int *CCPL_platform_log_dir_max_size, int *CCPL_platform_log_dir_size, const char *annotation)
-{
-	const char *dir = comp_comm_group_mgt_mgr->get_CCPL_platform_log_dir();
-	EXECUTION_REPORT(REPORT_ERROR, -1, *CCPL_platform_log_dir_max_size >= strlen(dir), "Software error happens when calling get_CCPL_platform_log_dir_: the string buffer size (%d) is smaller than the size of the dir (%d)", *CCPL_platform_log_dir_max_size, strlen(dir));
-	*CCPL_platform_log_dir_size = strlen(dir);
-	strncpy(CCPL_platform_log_dir, dir, strlen(dir));
-	for (int i = strlen(dir); i < *CCPL_platform_log_dir_max_size; i ++)
-		CCPL_platform_log_dir[i] = ' ';	
+	copy_out_string_to_Fortran_API(*comp_id, *comp_full_name_size, comp_full_name, full_name, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, "comp_full_name", annotation);
 }
 
 
