@@ -303,6 +303,18 @@ void rotate_sphere_coordinate(double lon_original, double lat_original, double &
     double lon_rotated_radian, lat_rotated_radian, temp1_value, temp2_value;
 
 
+	if (lon_original == 0.0 && lat_original == 0.0) {
+		lat_rotated = -90.0;
+		lon_rotated = 0.0;
+		return;
+	}
+
+	if (lon_original == 180 && lat_original == 0.0) {
+		lat_rotated = 90.0;
+		lon_rotated = 0.0;
+		return;
+	}
+
     temp1_value = cos(DEGREE_TO_RADIAN(lon_original))*cos(DEGREE_TO_RADIAN(lat_original));
     temp2_value = sin(DEGREE_TO_RADIAN(lon_original))*cos(DEGREE_TO_RADIAN(lat_original))/sqrt(1-temp1_value*temp1_value);
     if (temp1_value < -1.0)
