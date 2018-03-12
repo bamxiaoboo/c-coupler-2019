@@ -116,7 +116,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 
 	fields_time_info_src = new Connection_field_time_info(inout_interface, coupling_connection->src_timer, coupling_connection->src_time_step_in_second, coupling_connection->src_current_year, coupling_connection->src_current_month, coupling_connection->src_current_day, coupling_connection->src_current_second, -1);
 	fields_time_info_dst = new Connection_field_time_info(inout_interface, coupling_connection->dst_timer, coupling_connection->dst_time_step_in_second, coupling_connection->dst_current_year, coupling_connection->dst_current_month, coupling_connection->dst_current_day, coupling_connection->dst_current_second, coupling_connection->dst_inst_or_aver);
-	if (inout_interface->get_import_or_export_or_remap() == 0)
+	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT)
 		fields_time_info_src->reset_last_timer_info();
 	else fields_time_info_dst->reset_last_timer_info();
 
@@ -131,21 +131,21 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 			field_interface_local_index.push_back(field_local_index);
 		}
 		else {
-			fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_import_or_export_or_remap() == 1, i-coupling_connection->fields_name.size()));
+			fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT, i-coupling_connection->fields_name.size()));
 			field_interface_local_index.push_back(-1);
 		}
 		current_remote_fields_time = -1;
 		last_remote_fields_time = -1;
 		fields_mem_inner_step_averaged.push_back(NULL);
 		fields_mem_inter_step_averaged.push_back(NULL);
-		if (inout_interface->get_import_or_export_or_remap() == 1) {
+		if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE)
 				fields_mem_inner_step_averaged[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INNER, coupling_connection->connection_id, NULL, 
-		                                                                      inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+		                                                                      inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 			else fields_mem_inner_step_averaged[i] = fields_mem_registered[i];
 			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE && !(fields_time_info_dst->lag_seconds == 0 && fields_time_info_dst->timer->is_the_same_with(fields_time_info_src->timer)))
 				fields_mem_inter_step_averaged[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_AVERAGED_INTER, coupling_connection->connection_id, NULL, 
-				                                                              inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				                                                              inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 			else fields_mem_inter_step_averaged[i] = fields_mem_inner_step_averaged[i];
 		}
 		fields_mem_remapped.push_back(NULL);
@@ -153,7 +153,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		fields_mem_unit_transformed.push_back(NULL);
 		fields_mem_transfer.push_back(NULL);
 
-		if (inout_interface->get_import_or_export_or_remap() == 1) {
+		if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 			if (fields_time_info_dst->inst_or_aver == USING_AVERAGE_VALUE)
 				runtime_inner_averaging_algorithm[i] = new Runtime_cumulate_average_algorithm(this, fields_mem_registered[i], fields_mem_inner_step_averaged[i]);
 			if (fields_mem_inter_step_averaged[i] != fields_mem_inner_step_averaged[i])
@@ -161,27 +161,27 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		}
 		const char *transfer_data_type = get_data_type_size(coupling_connection->src_fields_info[i]->data_type) <= get_data_type_size(coupling_connection->dst_fields_info[i]->data_type)? 
 			                             coupling_connection->src_fields_info[i]->data_type : coupling_connection->dst_fields_info[i]->data_type;
-		if (inout_interface->get_import_or_export_or_remap() == 1) {
+		if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 			if (!words_are_the_same(transfer_data_type, coupling_connection->src_fields_info[i]->data_type)) {
 				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, 
 					             "For field %s, add data type transformation at src from %s to %s\n", 
 					             fields_mem_registered[i]->get_field_name(), coupling_connection->src_fields_info[i]->data_type, transfer_data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, transfer_data_type, 
-					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+					                                                           inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 				runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_inter_step_averaged[i], fields_mem_datatype_transformed[i]);
 			}	
 		}	
-		if (inout_interface->get_import_or_export_or_remap() == 0) {
+		if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT) {
 			if (coupling_connection->dst_fields_info[i]->runtime_remapping_weights == NULL || coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_parallel_remapping_weights() == NULL)
 				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATA_TRANSFER, coupling_connection->connection_id, transfer_data_type, 
-				                                                   inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+				                                                   inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 			else {
 				fields_mem_transfer[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_decomp_info()->get_decomp_id(), 
 					                                               coupling_connection->dst_fields_info[i]->runtime_remapping_weights->get_src_original_grid()->get_grid_id(), BUF_MARK_DATA_TRANSFER^coupling_connection->connection_id, 
-					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+					                                               transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), 
 					                                               BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", 
-					                                               inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+					                                               inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
 			}
 			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {
@@ -189,13 +189,13 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 					             "for field %s, add data type transformation at dst from %s to %s\n", 
 					             fields_mem_registered[i]->get_field_name(), transfer_data_type, coupling_connection->dst_fields_info[i]->data_type);
 				fields_mem_datatype_transformed[i] = memory_manager->alloc_mem(fields_mem_registered[i], BUF_MARK_DATATYPE_TRANS, coupling_connection->connection_id, coupling_connection->dst_fields_info[i]->data_type, 
-					                                                           inout_interface->get_interface_type() == INTERFACE_TYPE_REGISTER && i < coupling_connection->fields_name.size());
+					                                                           inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
 				if (fields_mem_remapped[i] == NULL)
 					runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_transfer[i], fields_mem_datatype_transformed[i]);
 				else runtime_datatype_transform_algorithms[i] = new Runtime_datatype_transformer(fields_mem_remapped[i], fields_mem_datatype_transformed[i]);
 			}
 		}
-		if (inout_interface->get_import_or_export_or_remap() == 1) {
+		if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 			if (fields_mem_remapped[i] != NULL)
 				fields_mem_transfer[i] = fields_mem_remapped[i];
 			else if (fields_mem_unit_transformed[i] != NULL)
@@ -215,7 +215,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 		}
 	}
 	
-	if (inout_interface->get_import_or_export_or_remap() == 0)
+	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT)
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"Connection_coupling_procedure::Connection_coupling_procedure")->update_min_max_remote_lag_seconds(fields_time_info_dst->lag_seconds);
 }
 
@@ -254,7 +254,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 
 	if (!bypass_timer) {	
 		Connection_field_time_info *local_fields_time_info, *remote_fields_time_info;		
-		if (inout_interface->get_import_or_export_or_remap() == 0) {
+		if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT) {
 			local_fields_time_info = fields_time_info_dst;
 			remote_fields_time_info = fields_time_info_src;
 			lag_seconds = local_fields_time_info->lag_seconds;
@@ -289,7 +289,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		}
 	}
 	
-	if (inout_interface->get_import_or_export_or_remap() == 0) { 
+	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT) { 
 #ifndef USE_DOUBLE_MPI
 		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->receive_data_in_temp_buffer();
 #endif
@@ -433,7 +433,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 
 void Connection_coupling_procedure::send_fields(bool bypass_timer)
 {
-	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, inout_interface->get_import_or_export_or_remap() == 1 && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT && !finish_status && transfer_data, "Software error in Connection_coupling_procedure::send_fields");
 	finish_status = runtime_data_transfer_algorithm->run(bypass_timer);
 }
 
@@ -462,7 +462,7 @@ void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_contai
 	restart_buffer->dump_in_data(&current_remote_fields_time, sizeof(long));
 	for (int i = fields_mem_registered.size()-1; i >=0; i --)
 		restart_buffer->dump_in_string(fields_mem_registered[i]->get_field_name(), -1);
-	if (inout_interface->get_import_or_export_or_remap() == 1) {
+	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 		for (int i = runtime_inner_averaging_algorithm.size()-1; i >= 0; i --) {
 			if (runtime_inner_averaging_algorithm[i] != NULL) {
 				runtime_inner_averaging_algorithm[i]->restart_write(restart_buffer, "aver_inner");
@@ -496,7 +496,7 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 	restart_buffer->load_restart_data(&num_total_fields, sizeof(int));
 	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name());
 
-	if (inout_interface->get_import_or_export_or_remap() == 1) {
+	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 		for (int i = 0; i < runtime_inter_averaging_algorithm.size(); i ++) {
 			restart_buffer->load_restart_data(&temp_int, sizeof(int));
 			if (temp_int == 0) {
@@ -539,7 +539,7 @@ Inout_interface::Inout_interface(const char *temp_array_buffer, long &buffer_con
 	interface_id = 0;
 	read_data_from_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, true);
-	read_data_from_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_content_iter, true);
+	read_data_from_array_buffer(&interface_type, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 	read_data_from_array_buffer(&num_interfaces, sizeof(int), temp_array_buffer, buffer_content_iter, true);
 	for (int i = 0; i < num_interfaces; i ++) {
 		fields_name.push_back(strdup(temp_array_buffer+buffer_content_iter-NAME_STR_SIZE));
@@ -561,10 +561,10 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 
 
 	sprintf(child_interface_name, "%s_child_export", interface_name);
-	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_SOURCE_REGISTER));
 	sprintf(child_interface_name, "%s_child_import", interface_name);
-	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_TYPE_REGISTER));
-	initialize_data(interface_name, interface_id, 2, timer_id, inst_or_aver, field_ids_src, INTERFACE_TYPE_REGISTER, annotation);
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_SOURCE_REGISTER));
+	initialize_data(interface_name, interface_id, 2, timer_id, inst_or_aver, field_ids_src, INTERFACE_SOURCE_REGISTER, annotation);
 	this->timer->reset_remote_lag_count();
 	children_interfaces[0]->timer->reset_remote_lag_count();
 	children_interfaces[1]->timer->reset_remote_lag_count();
@@ -578,14 +578,14 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 }
 
 
-Inout_interface::Inout_interface(const char *interface_name, int interface_id, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *annotation, int API_id, int interface_type)
+Inout_interface::Inout_interface(const char *interface_name, int interface_id, int interface_type, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *annotation, int API_id, int interface_source)
 {	
-	common_checking_for_interface_registration(num_fields, field_ids, array_size, timer_id, inst_or_aver, import_or_export_or_remap, interface_name, API_id, interface_type, field_ids_parameter_name, annotation);
-	initialize_data(interface_name, interface_id, import_or_export_or_remap, timer_id, inst_or_aver, field_ids, interface_type, annotation);
+	common_checking_for_interface_registration(num_fields, field_ids, array_size, timer_id, inst_or_aver, interface_type, interface_name, API_id, interface_source, field_ids_parameter_name, annotation);
+	initialize_data(interface_name, interface_id, interface_type, timer_id, inst_or_aver, field_ids, interface_source, annotation);
 	for (int i = 0; i < num_fields; i ++) {
 		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
 		fields_connected_status.push_back(false);
-		if (import_or_export_or_remap == COUPLING_INTERFACE_MARK_IMPORT)
+		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
 			restart_mgr->add_restarted_field_instances(fields_mem_registered[fields_mem_registered.size()-1]);
 	}
 	fields_connected_status.push_back(false);
@@ -593,10 +593,10 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 }
 
 
-void Inout_interface::initialize_data(const char *interface_name, int interface_id, int import_or_export_or_remap, int timer_id, int inst_or_aver, int *field_ids, int interface_type, const char *annotation)
+void Inout_interface::initialize_data(const char *interface_name, int interface_id, int interface_type, int timer_id, int inst_or_aver, int *field_ids, int interface_source, const char *annotation)
 {
 	this->interface_id = interface_id;
-	this->import_or_export_or_remap = import_or_export_or_remap;
+	this->interface_type = interface_type;
 	this->execution_checking_status = 0;
 	this->last_execution_time = -1;
 	this->is_child_interface = false;
@@ -604,7 +604,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	this->timer = new Coupling_timer(existing_timer->get_comp_id(), -1, existing_timer);
 	timer_mgr->add_timer(this->timer);
 	this->comp_id = this->timer->get_comp_id();
-	this->interface_type = interface_type;
+	this->interface_source = interface_source;
 	this->inversed_dst_fraction = NULL;
 	strcpy(this->interface_name, interface_name);
 	strcpy(this->comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::initialize_data")->get_full_name());
@@ -635,7 +635,7 @@ Inout_interface::~Inout_interface()
 }
 
 
-void Inout_interface::common_checking_for_interface_registration(int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, int import_or_export_or_remap, const char *interface_name, int API_id, int interface_type, const char *field_ids_parameter_name, const char *annotation)
+void Inout_interface::common_checking_for_interface_registration(int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, int interface_type, const char *interface_name, int API_id, int interface_source, const char *field_ids_parameter_name, const char *annotation)
 {
 	int comp_id = -1;
 	char str[NAME_STR_SIZE], API_label[NAME_STR_SIZE];
@@ -646,7 +646,7 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0 && num_fields <= 1000, "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1 or larger than 1000. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling API \"%s\" to register an interface named \"%s\": the array size of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
 	for (int i = 0; i < num_fields; i ++) {
-		if (interface_type != INTERFACE_TYPE_IO_WRITE)
+		if (interface_source != INTERFACE_SOURCE_IO_WRITE)
 			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"%s\" contains wrong field instance ID. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
 		if (i == 0)
 			comp_id = memory_manager->get_field_instance(field_ids[i])->get_comp_id();
@@ -654,7 +654,7 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 	}
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
-	if (interface_type != INTERFACE_TYPE_IO_WRITE && import_or_export_or_remap == 1)
+	if (interface_source != INTERFACE_SOURCE_IO_WRITE && interface_type == COUPLING_INTERFACE_MARK_EXPORT)
 		for (int i = 0; i < num_fields; i ++) 
 			for (int j = i+1; j < num_fields; j ++)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(memory_manager->get_field_instance(field_ids[i])->get_field_name(),memory_manager->get_field_instance(field_ids[j])->get_field_name()), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"%s\" is not allowed to include more than one instance of the field \"%s\". Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, memory_manager->get_field_instance(field_ids[i])->get_field_name(), annotation);			
@@ -662,7 +662,7 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 	sprintf(str, "registerring an interface named \"%s\"", interface_name);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), str, annotation);
 	
-	if (interface_type == INTERFACE_TYPE_REGISTER)
+	if (interface_source == INTERFACE_SOURCE_REGISTER)
 		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, true, annotation);	
 	check_and_verify_name_format_of_string_for_API(comp_id, interface_name, API_id, "the interface", annotation);
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), NULL, num_fields, "num_field_instances", annotation);
@@ -676,10 +676,10 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 
 void Inout_interface::report_common_field_instances(const Inout_interface *another_interface)
 {
-	if (this->interface_type != INTERFACE_TYPE_REGISTER || another_interface->interface_type != INTERFACE_TYPE_REGISTER)
+	if (this->interface_source != INTERFACE_SOURCE_REGISTER || another_interface->interface_source != INTERFACE_SOURCE_REGISTER)
 		return;
 
-	if (this->import_or_export_or_remap == 0 && another_interface->import_or_export_or_remap == 0) {
+	if (this->interface_type == COUPLING_INTERFACE_MARK_IMPORT && another_interface->interface_type == COUPLING_INTERFACE_MARK_IMPORT) {
 		for (int i = 0; i < this->fields_mem_registered.size(); i ++)
 			for (int j = 0; j < another_interface->fields_mem_registered.size(); j ++)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, this->fields_mem_registered[i]->get_data_buf() != another_interface->fields_mem_registered[j]->get_data_buf(), "Two import interfaces (\"%s\" and \"%s\") share the same data buffer of the field (field name is \"%s\") which is not allowed. Please check the model code with the annotation \"%s\" and \"%s\".",
@@ -687,7 +687,7 @@ void Inout_interface::report_common_field_instances(const Inout_interface *anoth
 		return;
 	}
 
-	if (this->import_or_export_or_remap != 1 || another_interface->import_or_export_or_remap != 1)
+	if (this->interface_type != COUPLING_INTERFACE_MARK_EXPORT || another_interface->interface_type != COUPLING_INTERFACE_MARK_EXPORT)
 		return;
 
 	for (int i = 0; i < this->fields_mem_registered.size(); i ++)
@@ -724,13 +724,13 @@ const char *Inout_interface::get_field_name(int number)
 
 int Inout_interface::get_num_dst_fields()
 {
-	if (import_or_export_or_remap == 0)
+	if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
 		return fields_mem_registered.size();
-	if (import_or_export_or_remap == 1)
+	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT)
 		return 0;
-	if (import_or_export_or_remap == 2)
+	if (interface_type == COUPLING_INTERFACE_MARK_NORMAL_REMAP)
 		return children_interfaces[1]->fields_mem_registered.size();
-	if (import_or_export_or_remap == 3)
+	if (interface_type == COUPLING_INTERFACE_MARK_FRAC_REMAP)
 		return children_interfaces[1]->fields_mem_registered.size() - 1;
 	
 	return -1;
@@ -755,17 +755,17 @@ void Inout_interface::transform_interface_into_array(char **temp_array_buffer, l
 	int temp_int = 0;
 
 
-	if (import_or_export_or_remap == 0 && num_fields_connected == fields_mem_registered.size())
+	if (interface_type == COUPLING_INTERFACE_MARK_IMPORT && num_fields_connected == fields_mem_registered.size())
 		return;
 	
 	for (int i = fields_mem_registered.size()-1; i >= 0 ; i --) {
-		if (import_or_export_or_remap == 0 && fields_connected_status[i])
+		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT && fields_connected_status[i])
 			continue;
 		write_data_into_array_buffer(fields_mem_registered[i]->get_field_name(), NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 		temp_int ++;
 	}
 	write_data_into_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&import_or_export_or_remap, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&interface_type, sizeof(int), temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(comp_full_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(interface_name, NAME_STR_SIZE, temp_array_buffer, buffer_max_size, buffer_content_size);
 }
@@ -824,7 +824,7 @@ void Inout_interface::read_restart_fields(int API_id, const char *annotation)
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_mgr->get_restart_read_data_file_name() != NULL, "Error happens when calling the API \"%s\" to read restart fields: the API \"CCPL_start_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"%s\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation %s", API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, import_or_export_or_remap == COUPLING_INTERFACE_MARK_IMPORT, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding coupling interface \"%s\" is not an import interface (this API only reads restart fields for import interfaces). Please verify the model code with the annotation \"%s\"", interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, interface_type == COUPLING_INTERFACE_MARK_IMPORT, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding coupling interface \"%s\" is not an import interface (this API only reads restart fields for import interfaces). Please verify the model code with the annotation \"%s\"", interface_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x2) == 0, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding import interface \"%s\" has been executed without bypassing the timer. Please verify the model code with the annotation \"%s\"", interface_name, annotation);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""), "read restart fields for the given coupling interface", annotation);
 	for (int i = 0; i < fields_mem_registered.size(); i ++)
@@ -835,13 +835,13 @@ void Inout_interface::read_restart_fields(int API_id, const char *annotation)
 void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coupling_procedure)
 {
 	coupling_procedures.push_back(coupling_procedure);
-	if (import_or_export_or_remap == 0 || import_or_export_or_remap == 1) {
+	if (interface_type == COUPLING_INTERFACE_MARK_IMPORT || interface_type == COUPLING_INTERFACE_MARK_EXPORT) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, fields_connected_status.size() > 0, "Software error in Inout_interface::add_coupling_procedure: %s", interface_name);
 		for (int i = 0; i < coupling_procedure->fields_mem_registered.size(); i ++)
 			for (int j = 0; j < fields_mem_registered.size(); j ++)
 				if (coupling_procedure->fields_mem_registered[i] == fields_mem_registered[j]) {
 					EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Add coupling procedures to the field \"%s\" of import/export interface \"%s", fields_mem_registered[j]->get_field_name(), interface_name);
-					if (import_or_export_or_remap == 0)
+					if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
 						EXECUTION_REPORT(REPORT_ERROR, -1, !fields_connected_status[j], "Software error in Inout_interface::add_coupling_procedure: %s %s %d", interface_name, fields_mem_registered[j]->get_field_name(), j);
 					if (!fields_connected_status[i])
 						num_fields_connected ++;
@@ -923,7 +923,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	bool at_first_normal_step = false;
 
 
-	if (import_or_export_or_remap == 0) {
+	if (interface_type == COUPLING_INTERFACE_MARK_IMPORT) {
 		if (fields_mem_registered.size() != num_fields_connected)
 			for (int i = 0; i < fields_mem_registered.size(); i ++)
 				if (!fields_connected_status[i] && (imported_fields_necessity.size() == 0 || imported_fields_necessity[i] == FIELD_NECESSITY_NECESSARY)) {
@@ -948,13 +948,13 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			field_update_status[i] = 0;
 	}	
-	else if (import_or_export_or_remap == 2) {
+	else if (interface_type == COUPLING_INTERFACE_MARK_NORMAL_REMAP) {
 		if (((int)children_interfaces[0]->fields_mem_registered.size()) > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
 		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size()); i ++)
 			field_update_status[i] = 0;
 	}	
-	else if (import_or_export_or_remap == 3) {
+	else if (interface_type == COUPLING_INTERFACE_MARK_FRAC_REMAP) {
 		if (((int)children_interfaces[0]->fields_mem_registered.size())-1 > size_field_update_status)
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
 		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size())-1; i ++)
@@ -1007,19 +1007,19 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 
 	last_execution_time = current_execution_time;
 
-	if (import_or_export_or_remap >= 2) {
+	if (interface_type == COUPLING_INTERFACE_MARK_NORMAL_REMAP || interface_type == COUPLING_INTERFACE_MARK_FRAC_REMAP) {
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			fields_mem_registered[i]->check_field_sum("before executing a remap interface");
-		if (import_or_export_or_remap == 3)
+		if (interface_type == COUPLING_INTERFACE_MARK_FRAC_REMAP)
 			preprocessing_for_frac_based_remapping();
 		children_interfaces[0]->execute(bypass_timer, API_id, field_update_status, size_field_update_status+1, annotation);
 		children_interfaces[1]->execute(bypass_timer, API_id, field_update_status, size_field_update_status+1, annotation);
-		if (import_or_export_or_remap == 3)
+		if (interface_type == COUPLING_INTERFACE_MARK_FRAC_REMAP)
 			postprocessing_for_frac_based_remapping(bypass_timer);
 		return;
 	}
 
-	if (import_or_export_or_remap == 1) {
+	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT) {
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			fields_mem_registered[i]->check_field_sum("before executing an export interface");
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "after checking all source fields");
@@ -1028,7 +1028,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	for (int i = 0; i < coupling_procedures.size(); i ++)
 		coupling_procedures[i]->execute(bypass_timer, field_update_status, annotation);
 
-	if (import_or_export_or_remap == 1) {
+	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT) {
 
 #ifndef USE_DOUBLE_MPI
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
@@ -1047,7 +1047,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 #endif
 	}
 
-	if (import_or_export_or_remap == 0) {
+	if (interface_type == COUPLING_INTERFACE_MARK_IMPORT) {
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			fields_mem_registered[i]->check_field_sum("after executing an export interface");
 	}
@@ -1089,7 +1089,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	if (size_frac_dst != -1) 
 		frac_field_dst->reset_mem_buf(frac_dst, true);
 	memset(frac_field_dst->get_data_buf(), 0, frac_field_dst->get_size_of_field()*get_data_type_size(frac_field_dst->get_data_type()));
-	import_or_export_or_remap = 3;
+	interface_type = COUPLING_INTERFACE_MARK_FRAC_REMAP;
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_mem_registered.size() == 0, "Software error in Inout_interface::add_remappling_fraction_processing");
 	for (int i = 0; i < children_interfaces[0]->fields_mem_registered.size(); i ++) {
 		fields_mem_registered.push_back(children_interfaces[0]->fields_mem_registered[i]);
@@ -1138,13 +1138,13 @@ int Inout_interface::get_h2d_grid_area_in_remapping_weights(const char *interfac
 	for (i = 0; i < coupling_procedures.size(); i ++) {
 		for (j = 0; j < coupling_procedures[i]->coupling_connection->fields_name.size(); j ++)
 			if (words_are_the_same(fields_mem_registered[field_index]->get_field_name(),coupling_procedures[i]->coupling_connection->fields_name[j])) {
-				if (import_or_export_or_remap == 0) {
+				if (interface_type == COUPLING_INTERFACE_MARK_IMPORT) {
 					if (coupling_procedures[i]->coupling_connection->dst_fields_info[j]->runtime_remapping_weights != NULL && coupling_procedures[i]->coupling_connection->dst_fields_info[j]->runtime_remapping_weights->get_src_H2D_grid_area() != NULL) {
 						selected_area_array_in_wgts = coupling_procedures[i]->coupling_connection->dst_fields_info[j]->runtime_remapping_weights->get_dst_H2D_grid_area();
 						break;
 					}
 				}
-				else if (import_or_export_or_remap == 1) {
+				else if (interface_type == COUPLING_INTERFACE_MARK_EXPORT) {
 					if (coupling_procedures[i]->coupling_connection->src_fields_info[j]->runtime_remapping_weights != NULL && coupling_procedures[i]->coupling_connection->src_fields_info[j]->runtime_remapping_weights->get_src_H2D_grid_area() != NULL) {
 						selected_area_array_in_wgts = coupling_procedures[i]->coupling_connection->src_fields_info[j]->runtime_remapping_weights->get_src_H2D_grid_area();
 						break;
@@ -1208,7 +1208,7 @@ void Inout_interface::set_fields_necessity(int *necessity, int size_necessity, c
 
 int Inout_interface::check_is_import_field_connected(int field_instance_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, import_or_export_or_remap == 0, "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the corresponding coupling interface \"%s\" is not an import interface. Please verify the model code with the annotation \"%s\".", interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, interface_type == COUPLING_INTERFACE_MARK_IMPORT, "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the corresponding coupling interface \"%s\" is not an import interface. Please verify the model code with the annotation \"%s\".", interface_name, annotation);
 	int i;
 	for (i = 0; i < fields_mem_registered.size(); i ++)
 		if (fields_mem_registered[i]->get_field_instance_id() == field_instance_id)
@@ -1225,7 +1225,7 @@ void Inout_interface::dump_active_coupling_connections_into_XML(TiXmlElement *ro
     TiXmlElement *interface = NULL;
 	
     for (TiXmlNode *child = root_element->FirstChild(); child != NULL; child = child->NextSibling())
-    	if(import_or_export_or_remap == 0 && words_are_the_same(child->Value(), "import_interfaces") || import_or_export_or_remap == 1 && words_are_the_same(child->Value(), "export_interfaces")) {
+    	if(interface_type == COUPLING_INTERFACE_MARK_IMPORT && words_are_the_same(child->Value(), "import_interfaces") || interface_type == COUPLING_INTERFACE_MARK_EXPORT && words_are_the_same(child->Value(), "export_interfaces")) {
     		parent_element = child->ToElement();
     		break;
     	}
@@ -1250,11 +1250,11 @@ void Inout_interface::dump_active_coupling_connections_into_XML(TiXmlElement *ro
     	Coupling_connection *coupling_connection = coupling_procedures[i]->get_coupling_connection();
     	TiXmlElement *fields = new TiXmlElement("fields");
     	interface->LinkEndChild(fields);
-    	if (import_or_export_or_remap == 0){
+    	if (interface_type == COUPLING_INTERFACE_MARK_IMPORT){
     		fields->SetAttribute("comp_full_name",coupling_connection->src_comp_interfaces[0].first);
     		fields->SetAttribute("interface_name",coupling_connection->src_comp_interfaces[0].second);
     	}
-    	if (import_or_export_or_remap == 1){
+    	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT){
     		fields->SetAttribute("comp_full_name",coupling_connection->dst_comp_full_name);
     		fields->SetAttribute("interface_name",coupling_connection->dst_interface_name);
     	}
@@ -1270,7 +1270,7 @@ void Inout_interface::dump_active_coupling_connections_into_XML(TiXmlElement *ro
 
 bool Inout_interface::is_in_restart_write_window()
 {
-	if (import_or_export_or_remap != COUPLING_INTERFACE_MARK_IMPORT || is_child_interface)
+	if (interface_type != COUPLING_INTERFACE_MARK_IMPORT || is_child_interface)
 		return false;
 		
 	for (int i = 0; i < coupling_procedures.size(); i ++)
@@ -1288,7 +1288,7 @@ void Inout_interface::dump_active_coupling_connections()
 	int i;
 
 
-	if (import_or_export_or_remap != 0 && import_or_export_or_remap != 1 || comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_current_proc_local_id() != 0)
+	if (interface_type != COUPLING_INTERFACE_MARK_IMPORT && interface_type != COUPLING_INTERFACE_MARK_EXPORT || comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_current_proc_local_id() != 0)
 		return;
 
 	for(i = 0; i < coupling_procedures.size(); i ++)
@@ -1390,10 +1390,10 @@ int Inout_interface_mgt::register_frac_based_remap_interface(const char *interfa
 }
 
 
-int Inout_interface_mgt::register_inout_interface(const char *interface_name, int import_or_export_or_remap, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *annotation, int interface_type)
+int Inout_interface_mgt::register_inout_interface(const char *interface_name, int interface_type, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *annotation, int interface_source)
 {
-	int API_id = import_or_export_or_remap == 0? API_ID_INTERFACE_REG_IMPORT : API_ID_INTERFACE_REG_EXPORT;
-	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), import_or_export_or_remap, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", annotation, API_id, interface_type);
+	int API_id = interface_type == COUPLING_INTERFACE_MARK_IMPORT? API_ID_INTERFACE_REG_IMPORT : API_ID_INTERFACE_REG_EXPORT;
+	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), interface_type, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", annotation, API_id, interface_source);
 	for (int i = 0; i < interfaces.size(); i ++) {
 		if (new_interface->get_comp_id() != interfaces[i]->get_comp_id())
 			continue;
@@ -1405,7 +1405,7 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 	}
 	interfaces.push_back(new_interface);
 
-	if (import_or_export_or_remap == 1)
+	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT)
 		write_comp_export_info_into_XML_file(new_interface->get_comp_id());
 	
 	return new_interface->get_interface_id();
@@ -1485,7 +1485,7 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 	import_interfaces.clear();
 
 	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() == 0)
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT)
 			import_interfaces.push_back(interfaces[i]);
 }
 
@@ -1495,7 +1495,7 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 	import_interfaces.clear();
 
 	for (int i = 0; i < interfaces.size(); i ++)
-		if (words_are_the_same(interfaces[i]->get_comp_full_name(), comp_full_name) && interfaces[i]->get_import_or_export_or_remap() == 0)
+		if (words_are_the_same(interfaces[i]->get_comp_full_name(), comp_full_name) && interfaces[i]->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT)
 			import_interfaces.push_back(interfaces[i]);
 }
 
@@ -1592,7 +1592,7 @@ void Inout_interface_mgt::write_comp_export_info_into_XML_file(int comp_id)
 		root_element->SetAttribute("comp_full_name", comp_node->get_comp_full_name());
 		XML_file->LinkEndChild(root_element);
 		for (int i = 0; i < interfaces.size(); i ++)
-			if (interfaces[i]->get_import_or_export_or_remap() == 1 && interfaces[i]->get_comp_id() == comp_id)
+			if (interfaces[i]->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT && interfaces[i]->get_comp_id() == comp_id)
 				interfaces[i]->write_export_info_into_XML_file(root_element);
 			sprintf(XML_file_name, "%s/%s.exports_info.xml", comp_comm_group_mgt_mgr->get_components_exports_dir(), comp_node->get_full_name());
 			EXECUTION_REPORT(REPORT_ERROR, -1, XML_file->SaveFile(XML_file_name), "Software error in Inout_interface_mgt::write_comp_export_info_into_XML_file: fail to write the XML file %s", XML_file_name);
@@ -1657,7 +1657,7 @@ void Inout_interface_mgt::get_all_export_interfaces_of_a_field(int comp_id, cons
 Inout_interface *Inout_interface_mgt::search_an_inout_interface_executed_with_timer(int comp_id)
 {
 	for (int i = 0; i < interfaces.size(); i ++)
-		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_import_or_export_or_remap() < 2 && interfaces[i]->has_been_executed_with_timer())
+		if (interfaces[i]->get_comp_id() == comp_id && interfaces[i]->get_interface_type() < 2 && interfaces[i]->has_been_executed_with_timer())
 			return interfaces[i];
 
 	return NULL;

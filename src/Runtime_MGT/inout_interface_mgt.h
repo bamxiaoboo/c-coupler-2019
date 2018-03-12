@@ -24,16 +24,21 @@
 #include "restart_mgt.h"
 
 
-#define INTERFACE_TYPE_REGISTER             ((int)0)
-#define INTERFACE_TYPE_IO_OUTPUT            ((int)1)
-#define INTERFACE_TYPE_IO_WRITE             ((int)2)
+#define INTERFACE_SOURCE_REGISTER             ((int)0)
+#define INTERFACE_SOURCE_IO_OUTPUT            ((int)1)
+#define INTERFACE_SOURCE_IO_WRITE             ((int)2)
 
 #define FIELD_NECESSITY_NECESSARY           ((int)1)
 #define FIELD_NECESSITY_OPTIONAL            ((int)0)
 
-#define COUPLING_INTERFACE_MARK_IMPORT      ((int)0)
-#define COUPLING_INTERFACE_MARK_EXPORT      ((int)1)
-#define COUPLING_INTERFACE_MARK_REMAP       ((int)2)
+
+enum
+{
+	COUPLING_INTERFACE_MARK_IMPORT = 0,
+	COUPLING_INTERFACE_MARK_EXPORT,
+	COUPLING_INTERFACE_MARK_NORMAL_REMAP,
+	COUPLING_INTERFACE_MARK_FRAC_REMAP
+};
 
 
 class Inout_interface;
@@ -125,9 +130,9 @@ class Inout_interface
 		char interface_name[NAME_STR_SIZE];
 		char comp_full_name[NAME_STR_SIZE];
 		int interface_id;
-		int interface_type;
+		int interface_source;
 		int comp_id;
-		int import_or_export_or_remap;     // 0: import; 1: export; 2: remap
+		int interface_type;
 		Time_mgt *time_mgr;
 		Coupling_timer *timer;
 		int inst_or_aver;
@@ -157,8 +162,8 @@ class Inout_interface
 		const char *get_comp_full_name() { return comp_full_name; }
 		int get_comp_id() { return comp_id; }
 		int get_interface_id() { return interface_id; }
+		int get_interface_source() { return interface_source; }
 		int get_interface_type() { return interface_type; }
-		int get_import_or_export_or_remap() { return import_or_export_or_remap; }
 		void report_common_field_instances(const Inout_interface*);
 		void get_fields_name(std::vector<const char*>*);
 		const char *get_field_name(int);

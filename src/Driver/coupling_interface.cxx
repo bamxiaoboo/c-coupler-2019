@@ -1441,12 +1441,12 @@ extern "C" void register_inout_interface_
 	if (*import_or_export == 0) {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
 		check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_IMPORT, 80, interface_name, "interface_name", annotation);
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, annotation, INTERFACE_TYPE_REGISTER);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, annotation, INTERFACE_SOURCE_REGISTER);
 	}
 	else {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_EXPORT, annotation);
 		check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_EXPORT, 80, interface_name, "interface_name", annotation);
-		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, annotation, INTERFACE_TYPE_REGISTER);
+		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, annotation, INTERFACE_SOURCE_REGISTER);
 	}	
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish register import/export interface");

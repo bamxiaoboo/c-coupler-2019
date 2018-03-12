@@ -925,7 +925,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 				             interface_name, XML_file_name, comp_full_name);
 			continue;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_import_or_export_or_remap() == 0, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
+		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
 			             interface_name, XML_file_name, comp_full_name, interface_name);
 		for (int i = 0; i < import_interfaces_configuration.size(); i ++)
 			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The redirection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
