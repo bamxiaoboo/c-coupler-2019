@@ -216,6 +216,17 @@ void Field_mem_info::check_field_sum(const char *hint)
     long size;
 
 
+	if (report_error_enabled && is_registered_model_buf) {
+		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
+		EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "Try to check the model data buffer of the field \"%s\" registered corresponding to the code annotation \"%s\". If it fails to pass the check (the model run is stopped), please make sure corresponding model data buffer is a global variable and has not been released", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+		char *temp_array = new char [get_size_of_field()*get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)];
+		memcpy(temp_array, get_data_buf(), get_size_of_field()*get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application));
+		memcpy(get_data_buf(), temp_array, get_size_of_field()*get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application));
+		MPI_Barrier(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));		
+		EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "Pass the check of the model data buffer of the field \"%s\" registered corresponding to the code annotation \"%s\". If it fails to pass the check (the model run is stopped), please make sure corresponding model data buffer is a global variable and has not been released", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+		delete [] temp_array;
+	}
+
 	if (report_internal_log_enabled) {
 		size = get_data_type_size(get_field_data()->get_grid_data_field()->data_type_in_application)*get_field_data()->get_grid_data_field()->required_data_size/4;
 		partial_sum = 0;
