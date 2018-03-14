@@ -132,7 +132,7 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 			sprintf(API_label, "CCPL_register_MD_grid_via_multi_grids");
 			break;			
 		case API_ID_DECOMP_MGT_REG_DECOMP:
-			sprintf(API_label, "CCPL_register_parallel_decomp");
+			sprintf(API_label, "CCPL_register_normal_parallel_decomp");
 			break;
 		case API_ID_FIELD_MGT_REG_FIELD_INST:
 			sprintf(API_label, "CCPL_register_field_instance");

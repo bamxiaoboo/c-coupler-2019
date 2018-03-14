@@ -1028,19 +1028,19 @@ extern "C" void register_parallel_decomposition_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a parallel decomp %s", decomp_name);
 	
 	check_for_ccpl_managers_allocated(API_ID_DECOMP_MGT_REG_DECOMP, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	int comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	check_API_parameter_string_length(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, 80, decomp_name, "decomp_name", annotation);
 	check_for_coupling_registration_stage(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, true, annotation);
 	check_and_verify_name_format_of_string_for_API(comp_id, decomp_name, API_ID_DECOMP_MGT_REG_DECOMP, "the parallel decomposition", annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the grid \"%s\" corresponding to the parameter \"grid_id\" is not a horizontal grid. Please check the model code with the annotation \"%s\"", decomp_name, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": the array size of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\". Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the grid \"%s\" corresponding to the parameter \"grid_id\" is not a horizontal grid. Please check the model code with the annotation \"%s\"", decomp_name, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the array size of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\". Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	int grid_size = original_grid_mgr->get_original_grid(*grid_id)->get_original_CoR_grid()->get_grid_size();
 	for (int i = 0; i < *num_local_cells; i ++)
 		if (local_cells_global_indx[i] != CCPL_NULL_INT)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": some values in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 		
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 

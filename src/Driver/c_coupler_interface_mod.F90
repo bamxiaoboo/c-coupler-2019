@@ -64,7 +64,7 @@
    public :: CCPL_register_mid_point_grid
    public :: CCPL_get_grid_size
    public :: CCPL_get_grid_id
-   public :: CCPL_register_parallel_decomp 
+   public :: CCPL_register_normal_parallel_decomp 
    public :: CCPL_define_single_timer
    public :: CCPL_define_complex_timer 
    public :: CCPL_set_time_step
@@ -2534,7 +2534,7 @@
 
 
 
-   integer FUNCTION CCPL_register_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_index, annotation) 
+   integer FUNCTION CCPL_register_normal_parallel_decomp(decomp_name, grid_id, num_local_cells, local_cells_global_index, annotation) 
    implicit none
    character(len=*), intent(in)                :: decomp_name
    character(len=*), intent(in), optional      :: annotation
@@ -2550,9 +2550,9 @@
        call register_parallel_decomposition(decomp_id, grid_id, num_local_cells, size(local_cells_global_index), local_cells_global_index, trim(decomp_name)//char(0), trim("")//char(0))
    endif
 
-   CCPL_register_parallel_decomp = decomp_id
+   CCPL_register_normal_parallel_decomp = decomp_id
 
-   end FUNCTION CCPL_register_parallel_decomp
+   end FUNCTION CCPL_register_normal_parallel_decomp
 
 
 
