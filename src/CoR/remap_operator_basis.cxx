@@ -13,6 +13,9 @@
 #include <string.h>
 
 
+bool *H2D_grid_decomp_mask = NULL;
+
+
 Remap_operator_basis::Remap_operator_basis()
 {
     this->displ_src_cells_overlap_with_dst_cells = NULL;

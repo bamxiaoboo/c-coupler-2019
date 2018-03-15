@@ -119,8 +119,11 @@ void Remap_operator_distwgt::calculate_remap_weights()
     threshold_distance = 1.0/6000.0;
     clear_remap_weight_info_in_sparse_matrix();
     
-    for (long dst_cell_index = 0; dst_cell_index < dst_grid->get_grid_size(); dst_cell_index ++)
+    for (long dst_cell_index = 0; dst_cell_index < dst_grid->get_grid_size(); dst_cell_index ++) {
+		if (H2D_grid_decomp_mask != NULL && !H2D_grid_decomp_mask[dst_cell_index])
+			continue;
         compute_remap_weights_of_one_dst_cell(dst_cell_index);
+    }
 }
 
 

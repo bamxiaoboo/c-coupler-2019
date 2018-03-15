@@ -28,6 +28,7 @@ Remap_strategy_class::Remap_strategy_class(const char *strategy_name, int num_re
 
     strcpy(this->strategy_name, strategy_name);
 
+/*
     remap_grid_manager->get_all_leaf_remap_grids(&num_all_leaf_grids, all_leaf_grids);
     for (i = 0; i < num_all_leaf_grids; i ++) {
         src_leaf_grids_mask[i] = true;
@@ -61,6 +62,7 @@ Remap_strategy_class::Remap_strategy_class(const char *strategy_name, int num_re
             dst_leaf_grids_mask[k] = false;
         }
     }
+*/
 
     for (i = 0; i < num_remap_operators; i ++) {
         this->remap_operators.push_back(remap_operators[i]);
@@ -151,7 +153,8 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
     
     current_remap_src_data_grid = remap_src_data_grid;
     for (i = 0; i < remap_operators.size(); i ++) {
-        EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "execute remap operator %s  %s", remap_operators[i]->get_object_name(), remap_operators[i]->get_operator_name());
+        EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "execute remap operator %s  %s %s %lx %s", remap_operators[i]->get_object_name(), remap_operators[i]->get_operator_name(), remap_operators[i]->get_dst_grid()->get_grid_name(), remap_operators[i]->get_dst_grid(), remap_dst_data_grid->get_grid_name());
+		EXECUTION_REPORT(REPORT_ERROR, -1, remap_operators[i]->get_dst_grid()->is_sub_grid_of_grid(remap_dst_data_grid), "Software error: the dst grid \"%s\" of an remapping operator is not a sub grid of \"%s\"", remap_operators[i]->get_dst_grid()->get_grid_name(), remap_dst_data_grid->get_grid_name());
 		current_remap_src_data_grid_interchanged = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
 		runtime_mask_src = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
 		current_remap_dst_data_grid = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);

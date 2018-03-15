@@ -86,4 +86,7 @@ class Remap_operator_basis
 };
 
 
+extern bool *H2D_grid_decomp_mask;
+
+
 #endif

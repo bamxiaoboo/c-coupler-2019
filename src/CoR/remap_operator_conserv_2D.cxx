@@ -94,6 +94,8 @@ void Remap_operator_conserv_2D::calculate_remap_weights()
     clear_remap_weight_info_in_sparse_matrix();
 
     for (cell_index_dst = 0; cell_index_dst < dst_grid->get_grid_size(); cell_index_dst ++) {
+		if (H2D_grid_decomp_mask != NULL && !H2D_grid_decomp_mask[cell_index_dst])
+			continue;
         get_cell_mask_of_dst_grid(cell_index_dst, &dst_cell_mask);
         if (!dst_cell_mask)
             continue;

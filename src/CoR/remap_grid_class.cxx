@@ -1356,6 +1356,9 @@ bool Remap_grid_class::is_subset_of_grid(Remap_grid_class *another_grid)
             return false;
     }
 
+	if (this->get_num_dimensions() == another_grid->get_num_dimensions())
+		return this->grid_size == another_grid->grid_size;
+
     return true;
 }
 
@@ -3372,8 +3375,12 @@ void Remap_grid_class::link_grids(Remap_grid_class *top_grid, const char *grid_n
 
 bool Remap_grid_class::is_sub_grid_of_grid(Remap_grid_class *another_grid)
 {
-	if (this == another_grid)
+	if (this == another_grid) {
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "qiguai %s %lx", this->get_grid_name(), this);
 		return true;
+	}
+
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "compare %s vs %s %d %d", this->get_grid_name(), another_grid->get_grid_name(), another_grid->sub_grids.size(), another_grid->get_num_dimensions());
 
 	for (int i = 0; i < another_grid->sub_grids.size(); i ++)
 		if (is_subset_of_grid(another_grid->sub_grids[i]))
