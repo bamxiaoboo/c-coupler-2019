@@ -361,6 +361,7 @@ void Time_mgt::calculate_stop_time(int start_year, int start_month, int start_da
 		this->stop_month = -1;
 		this->stop_day = -1;
 		this->stop_second = -1;
+		this->stop_num_elapsed_day = -1;
 		Time_mgt *cloned_time_mgr = clone_time_mgr(comp_id);
 		cloned_time_mgr->set_time_step_in_second(SECONDS_PER_DAY, "C-Coupler creates the time manager of a component", true);
 		for (int i = 0; i < num_days; i ++)
@@ -468,6 +469,8 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
 		current_month = start_month;
 		current_day = start_day;
 		current_second = start_second;
+		current_num_elapsed_day = calculate_elapsed_day(start_year,start_month,start_day);
+		start_num_elapsed_day = current_num_elapsed_day;
 		const char *reference_date_string = XML_element->Attribute("reference_date", &line_number);
 		if (reference_date_string != NULL) {			
 			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(reference_date_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, reference_date_string, "reference_date", line_number);
@@ -638,6 +641,8 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
 {
     int i, num_days_in_current_month;
  
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, !is_time_out_of_execution(((long)current_num_elapsed_day)*100000+current_second), "Error happens when advancing the model time at the model code with the annotation \"%s\": the current model time is out of the bounds of the integration period. Please make sure that the component model and C-Coupler are consistent in time step, time advancing and integration period (e.g., start time and stop time).", annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second != -1, "Cannot advance the time of the component \"\%s\" at the model code with the annotation \"%s\", because the time step has not been specified.", 
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);
@@ -920,6 +925,9 @@ void Time_mgt::check_consistency_of_current_time(int date, int second, const cha
 
 bool Time_mgt::is_time_out_of_execution(long another_time)
 {
+	if (stop_num_elapsed_day == -1)
+		return another_time < ((long)start_num_elapsed_day)*100000+start_second;
+	
 	return another_time < ((long)start_num_elapsed_day)*100000+start_second || another_time >= ((long)stop_num_elapsed_day)*100000+stop_second;
 }
 
