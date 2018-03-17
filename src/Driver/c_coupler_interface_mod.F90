@@ -28,7 +28,7 @@
    public :: CCPL_register_IO_fields_from_field_instances 
    public :: CCPL_get_number_of_current_step 
    public :: CCPL_get_number_of_total_steps 
-   public :: CCPL_get_time_step
+   public :: CCPL_normal_time_step
    public :: CCPL_is_first_step
    public :: CCPL_is_first_restart_step
    public :: CCPL_get_current_num_days_in_year
@@ -67,7 +67,7 @@
    public :: CCPL_register_normal_parallel_decomp 
    public :: CCPL_define_single_timer
    public :: CCPL_define_complex_timer 
-   public :: CCPL_set_time_step
+   public :: CCPL_set_normal_time_step
    public :: CCPL_reset_current_time_to_start_time
    public :: CCPL_advance_time
    public :: CCPL_is_timer_on
@@ -1141,7 +1141,7 @@
 
 
 
- integer FUNCTION CCPL_get_time_step(comp_id, annotation)
+ integer FUNCTION CCPL_normal_time_step(comp_id, annotation)
    implicit none  
    integer, intent(in) :: comp_id
    character(len=*), intent(in), optional :: annotation
@@ -1152,9 +1152,9 @@
    else 
       call get_ccpl_time_step(comp_id, step_size, trim("")//char(0))
    endif
-   CCPL_get_time_step = step_size
+   CCPL_normal_time_step = step_size
 
- END FUNCTION CCPL_get_time_step
+ END FUNCTION CCPL_normal_time_step
 
 
 
@@ -2602,7 +2602,7 @@
 
 
 
-   SUBROUTINE CCPL_set_time_step(comp_id, time_step_in_second, annotation)
+   SUBROUTINE CCPL_set_normal_time_step(comp_id, time_step_in_second, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    character(len=*), intent(in), optional      :: annotation
@@ -2614,7 +2614,7 @@
        call set_component_time_step(comp_id, time_step_in_second, trim("")//char(0))
    endif
 
-   end SUBROUTINE CCPL_set_time_step
+   end SUBROUTINE CCPL_set_normal_time_step
 
 
 

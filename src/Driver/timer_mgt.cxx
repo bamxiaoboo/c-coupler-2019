@@ -934,6 +934,9 @@ bool Time_mgt::is_time_out_of_execution(long another_time)
 
 void Time_mgt::write_time_mgt_into_array(char **array_buffer, long &buffer_max_size, long &buffer_content_size)
 {
+	int temp_int;
+
+	
 	write_data_into_array_buffer(&start_year, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&start_month, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&start_day, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
@@ -947,6 +950,8 @@ void Time_mgt::write_time_mgt_into_array(char **array_buffer, long &buffer_max_s
 	write_data_into_array_buffer(&current_day, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&current_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&time_step_in_second, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
+	temp_int = 1;
+	write_data_into_array_buffer(&temp_int, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&current_step_id, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&leap_year_on, sizeof(bool), array_buffer, buffer_max_size, buffer_content_size);
 	dump_string(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), -1, array_buffer, buffer_max_size, buffer_content_size);
@@ -958,6 +963,7 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 {
 	int restart_start_year, restart_start_month, restart_start_day, restart_start_second, restart_previous_year, restart_previous_month, restart_previous_day, restart_previous_second;
 	int restart_current_year, restart_current_month, restart_current_day, restart_current_second, restart_time_step_in_second, restart_current_step_id;
+	int temp_int;
 	bool restart_leap_year_on;
 	char restart_comp_full_name[NAME_STR_SIZE], restart_case_name[NAME_STR_SIZE];
 	long str_size;
@@ -967,6 +973,7 @@ void Time_mgt::import_restart_data(const char *temp_array_buffer, long &buffer_c
 	load_string(restart_comp_full_name, str_size, NAME_STR_SIZE, temp_array_buffer, buffer_content_iter, file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_leap_year_on, sizeof(bool), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_step_id, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&temp_int, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_time_step_in_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_second, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
 	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&restart_current_day, sizeof(int), temp_array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
@@ -1121,7 +1128,7 @@ void Components_time_mgt::set_component_time_step(int comp_id, int time_step, co
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
 	if (time_mgr->get_time_step_in_second() != -1 && time_mgr->get_time_step_in_second() != time_step)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_time_step\": the time step of the component \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_normal_time_step\": the time step of the component \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
 						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "get the local id of the current component in Components_time_mgt::set_component_time_step") == 0)

@@ -137,8 +137,8 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_FIELD_MGT_REG_FIELD_INST:
 			sprintf(API_label, "CCPL_register_field_instance");
 			break;
-		case API_ID_TIME_MGT_SET_TIME_STEP:
-			sprintf(API_label, "CCPL_set_time_step");
+		case API_ID_TIME_MGT_SET_NORMAL_TIME_STEP:
+			sprintf(API_label, "CCPL_set_normal_time_step");
 			break;
 		case API_ID_TIME_MGT_RESET_TIME_TO_START:
 			sprintf(API_label, "CCPL_reset_current_time_to_start_time");
@@ -197,8 +197,8 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
 		case API_ID_TIME_MGT_GET_NUM_TOTAL_STEPS:
 			sprintf(API_label, "CCPL_get_number_of_total_steps");
 			break;
-		case API_ID_TIME_MGT_GET_TIME_STEP:
-			sprintf(API_label, "CCPL_get_time_step");
+		case API_ID_TIME_MGT_GET_NORMAL_TIME_STEP:
+			sprintf(API_label, "CCPL_get_normal_time_step");
 			break;
 		case API_ID_TIME_MGT_CHECK_CURRENT_TIME:
 			sprintf(API_label, "CCPL_check_current_time");

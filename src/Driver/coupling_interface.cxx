@@ -195,7 +195,7 @@ extern "C" void get_ccpl_time_step_
 #endif
 (int *comp_id, int *time_step, const char *annotation)
 {
-	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_TIME_STEP, annotation, false);
+	check_for_component_registered(*comp_id, API_ID_TIME_MGT_GET_NORMAL_TIME_STEP, annotation, false);
     *time_step = components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second();
 }
 
@@ -1161,12 +1161,12 @@ extern "C" void set_component_time_step_
 #endif
 (int *comp_id, int *time_step_in_second, const char *annotation)
 {
-	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, true, annotation);
+	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, true, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to set the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 		
-	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component model", annotation);
-	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), NULL, *time_step_in_second, "time step (the unit is seconds)", annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component model", annotation);
+	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), NULL, *time_step_in_second, "time step (the unit is seconds)", annotation);
 	components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finsh setting the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
@@ -1183,7 +1183,7 @@ extern "C" void reset_component_current_time_to_start_time_
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_RESET_TIME_TO_START, true, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to reset the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
-	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in CCPL_reset_current_time_to_start_time_"), "resetting the current time of a component model to the initial time", annotation);
+	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in CCPL_reset_current_time_to_start_time_"), "resetting the current time of a component model to the initial time", annotation);
 	components_time_mgrs->get_time_mgr(*comp_id)->reset_current_time_to_start_time(annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finishing resetting the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());	
 }
