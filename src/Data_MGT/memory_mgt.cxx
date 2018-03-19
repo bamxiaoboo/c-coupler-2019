@@ -88,8 +88,8 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 	this->decomp_id = decomp_id;
 	this->comp_or_grid_id = comp_or_grid_id;
 	this->buf_mark = buf_mark;
+	this->usage_tag = -1;
     is_registered_model_buf = false;
-    is_restart_field = false;
 	is_field_active = false;
 	define_order_count = -1;
     last_define_time = 0x7fffffffffffffff;
@@ -130,7 +130,7 @@ Field_mem_info::~Field_mem_info()
 }
 
 
-void Field_mem_info::reset_mem_buf(void * buf, bool is_restart_field)
+void Field_mem_info::reset_mem_buf(void * buf, bool is_external_field, int usage_tag)
 {
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, buf != NULL, "The data buffer corresponding to the field instance of \"%s\" is not allocated. Please verify the model code corresponding to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
 	EXECUTION_REPORT(REPORT_ERROR, -1, !is_registered_model_buf, "Software error to release a registered buffer");
@@ -140,7 +140,9 @@ void Field_mem_info::reset_mem_buf(void * buf, bool is_restart_field)
 
     grided_field_data->get_grid_data_field()->data_buf = buf;
     is_registered_model_buf = true;
-    this->is_restart_field = is_restart_field;
+
+	if (is_external_field)
+		this->usage_tag = usage_tag;
 }
 
 
@@ -172,7 +174,6 @@ void Field_mem_info::use_field_values(const char *annotation)
 		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Field_mem_info::use_field_values: field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\", bufmark=%x) is used before defining it. Please modify the model code with the annotation \"%s\"", field_name, get_decomp_name(), get_grid_name(), buf_mark, annotation);		
 	}
     EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, host_comp_id, last_define_time <= host_comp_time_mgr->get_current_full_time(), "C-Coupler error in Field_mem_info::use_field_values: wrong time order");
-    is_restart_field = true;
 }
 
 
@@ -415,18 +416,6 @@ Field_mem_info *Memory_mgt::search_field_via_data_buf(const void *data_buf, bool
 }
 
 
-void Memory_mgt::check_all_restart_fields_have_been_read()
-{
-//    if (words_are_the_same(compset_communicators_info_mgr->get_running_case_mode(), "initial"))
-//        return;
-    
-    for (int i = 0; i < fields_mem.size(); i ++)
-        if (fields_mem[i]->get_is_restart_field())
-            EXECUTION_REPORT(REPORT_ERROR,-1, fields_mem[i]->field_has_been_defined(), "restart field instance (field_name=\"%s\", decomp_name=\"%s\", grid_name=\"%s\") has not been read from restart data file. Please check the corresponding restart data file",
-                             fields_mem[i]->get_field_name(), fields_mem[i]->get_decomp_name(), fields_mem[i]->get_grid_name());
-}
-
-
 void Memory_mgt::check_sum_of_all_fields()
 {
 	for (int i = 0; i < fields_mem.size(); i ++)
@@ -455,7 +444,7 @@ Field_mem_info *Memory_mgt::search_field_instance(const char *field_name, int de
 
 
 int Memory_mgt::register_external_field_instance(const char *field_name, void *data_buffer, int field_size, int decomp_id, int comp_or_grid_id, 
-	                                             int buf_mark, const char *unit, const char *data_type, const char *annotation)
+	                                             int buf_mark, int usage_tag, const char *unit, const char *data_type, const char *annotation)
 {
 	int comp_id, API_id;
 	Field_mem_info *existing_field_instance_instance, *new_field_instance;
@@ -512,11 +501,12 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Cannot register an instance of coupling field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
 						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance_instance->get_field_instance_id(), "allocate field instance"));
 
-	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, buf_mark!=BUF_MARK_IO_FIELD_REG);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register an instance of coupling field of \"%s\" because the size of the model data buffer (%d) is different from the size determined by the parallel decomposition and grid (%ld). Please check the model code with the annotation \"%s\"",
+	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, (buf_mark!=BUF_MARK_IO_FIELD_REG) && (usage_tag&REG_FIELD_TAG_CPL) == REG_FIELD_TAG_CPL);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register a field instance of \"%s\" because the size of the model data buffer (%d) is different from the size determined by the parallel decomposition and grid (%ld). Please check the model code with the annotation \"%s\"",
 					 field_name, field_size, new_field_instance->get_size_of_field(), annotation);
 	new_field_instance->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), annotation);
-	new_field_instance->reset_mem_buf(data_buffer, true);
+	new_field_instance->reset_mem_buf(data_buffer, true, usage_tag);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, usage_tag >= 0 && usage_tag <= 3, "Fail to register a field instance of \"%s\": the value of the parameter \"usage_tag\" (%d) is wrong. The right value should be between 1 and 3. Please check the model code with the annotation \"%s\"", field_name, usage_tag, annotation);
 	fields_mem.push_back(new_field_instance);
 
 	return new_field_instance->get_field_instance_id();

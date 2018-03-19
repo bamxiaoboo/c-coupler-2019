@@ -561,29 +561,36 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 
 
 	sprintf(child_interface_name, "%s_child_export", interface_name);
-	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_SOURCE_REGISTER));
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 1, num_fields, field_ids_src, array_size_src, timer_id, inst_or_aver, "field_instance_IDs_source", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_SOURCE_REGISTER, true));
 	sprintf(child_interface_name, "%s_child_import", interface_name);
-	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_SOURCE_REGISTER));
+	children_interfaces.push_back(new Inout_interface(child_interface_name, -1, 0, num_fields, field_ids_dst, array_size_dst, timer_id, inst_or_aver, "field_instance_IDs_target", annotation, API_ID_INTERFACE_REG_NORMAL_REMAP, INTERFACE_SOURCE_REGISTER, true));
 	initialize_data(interface_name, interface_id, 2, timer_id, inst_or_aver, field_ids_src, INTERFACE_SOURCE_REGISTER, annotation);
 	this->timer->reset_remote_lag_count();
 	children_interfaces[0]->timer->reset_remote_lag_count();
 	children_interfaces[1]->timer->reset_remote_lag_count();
-	children_interfaces[0]->is_child_interface = true;
-	children_interfaces[1]->is_child_interface = true;
 
 	bool same_field_name = true;
 	for (int i = 0; i < num_fields; i ++)
 		same_field_name = same_field_name && words_are_the_same(memory_manager->get_field_instance(field_ids_src[i])->get_field_name(),memory_manager->get_field_instance(field_ids_dst[i])->get_field_name());	
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, same_field_name, "Error happens when calling API \"%s\" to register an interface named \"%s\": the field instances specified by the parameter \"field_instance_IDs_source\" are not consistent with the field instances specified by the parameter \"field_instance_IDs_target\" (the ith source field instance must have the same field name with the ith target field instance). Please check the model code with the annotation \"%s\".", API_label, interface_name, annotation);	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, same_field_name, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the field instances specified by the parameter \"field_instance_IDs_source\" are not consistent with the field instances specified by the parameter \"field_instance_IDs_target\" (the ith source field instance must have the same field name with the ith target field instance). Please check the model code with the annotation \"%s\".", API_label, interface_name, annotation);	
 }
 
 
-Inout_interface::Inout_interface(const char *interface_name, int interface_id, int interface_type, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *annotation, int API_id, int interface_source)
-{	
+Inout_interface::Inout_interface(const char *interface_name, int interface_id, int interface_type, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *field_ids_parameter_name, const char *annotation, int API_id, int interface_source, bool is_child_interface)
+{
+	char API_label[NAME_STR_SIZE];
+
+
+	get_API_hint(-1, API_id, API_label);
+	
 	common_checking_for_interface_registration(num_fields, field_ids, array_size, timer_id, inst_or_aver, interface_type, interface_name, API_id, interface_source, field_ids_parameter_name, annotation);
 	initialize_data(interface_name, interface_id, interface_type, timer_id, inst_or_aver, field_ids, interface_source, annotation);
+	this->is_child_interface = is_child_interface;	
 	for (int i = 0; i < num_fields; i ++) {
-		fields_mem_registered.push_back(memory_manager->get_field_instance(field_ids[i]));
+		Field_mem_info *field_instance = memory_manager->get_field_instance(field_ids[i]);
+		if (!is_child_interface)
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_instance->is_CPL_field_inst(), "Error happens when calling the API \"%s\" to register an interface named \"%s\" at the model code with the annotation \"%s\": the field instance \"%s\" cannot not be referred by an import/export interface because it has not been declared as a coupling interface. Please check the parameter \"usage_tag\" when registerring this field instance (at the model code with the annotation \"%s\")", API_label, interface_name, annotation, field_instance->get_field_name(), annotation_mgr->get_annotation(field_instance->get_field_instance_id(), "allocate field instance"));
+		fields_mem_registered.push_back(field_instance);
 		fields_connected_status.push_back(false);
 		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
 			restart_mgr->add_restarted_field_instances(fields_mem_registered[fields_mem_registered.size()-1]);
@@ -643,21 +650,21 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 
 	get_API_hint(-1, API_id, API_label);
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0 && num_fields <= 1000, "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1 or larger than 1000. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling API \"%s\" to register an interface named \"%s\": the array size of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0 && num_fields <= 1000, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1 or larger than 1000. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
 	for (int i = 0; i < num_fields; i ++) {
 		if (interface_source != INTERFACE_SOURCE_IO_WRITE)
-			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"%s\" contains wrong field instance ID. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"%s\" contains wrong field instance ID. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
 		if (i == 0)
 			comp_id = memory_manager->get_field_instance(field_ids[i])->get_comp_id();
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the field instances specified via the parameter \"%s\" cannot correspond to different component models. Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the field instances specified via the parameter \"%s\" cannot correspond to different component models. Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
 	}
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
 	if (interface_source != INTERFACE_SOURCE_IO_WRITE && interface_type == COUPLING_INTERFACE_MARK_EXPORT)
 		for (int i = 0; i < num_fields; i ++) 
 			for (int j = i+1; j < num_fields; j ++)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(memory_manager->get_field_instance(field_ids[i])->get_field_name(),memory_manager->get_field_instance(field_ids[j])->get_field_name()), "Error happens when calling API \"%s\" to register an interface named \"%s\": the parameter \"%s\" is not allowed to include more than one instance of the field \"%s\". Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, memory_manager->get_field_instance(field_ids[i])->get_field_name(), annotation);			
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(memory_manager->get_field_instance(field_ids[i])->get_field_name(),memory_manager->get_field_instance(field_ids[j])->get_field_name()), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"%s\" is not allowed to include more than one instance of the field \"%s\". Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, memory_manager->get_field_instance(field_ids[i])->get_field_name(), annotation);			
 
 	sprintf(str, "registerring an interface named \"%s\"", interface_name);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), str, annotation);
@@ -1084,10 +1091,10 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish checking for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
 
 	Field_mem_info *frac_field_src = memory_manager->alloc_mem("remap_frac", template_field_src->get_decomp_id(), template_field_src->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "source fraction for remapping", false);
-	frac_field_src->reset_mem_buf(frac_src, true);
+	frac_field_src->reset_mem_buf(frac_src, false, -1);
 	Field_mem_info *frac_field_dst = memory_manager->alloc_mem("remap_frac", template_field_dst->get_decomp_id(), template_field_dst->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "target fraction for remapping", false);
 	if (size_frac_dst != -1) 
-		frac_field_dst->reset_mem_buf(frac_dst, true);
+		frac_field_dst->reset_mem_buf(frac_dst, false, -1);
 	memset(frac_field_dst->get_data_buf(), 0, frac_field_dst->get_size_of_field()*get_data_type_size(frac_field_dst->get_data_type()));
 	interface_type = COUPLING_INTERFACE_MARK_FRAC_REMAP;
 	EXECUTION_REPORT(REPORT_ERROR, -1, fields_mem_registered.size() == 0, "Software error in Inout_interface::add_remappling_fraction_processing");
@@ -1370,7 +1377,7 @@ int Inout_interface_mgt::register_normal_remap_interface(const char *interface_n
 	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), num_fields, field_ids_src, field_ids_dst, timer_id, inst_or_aver, array_size_src, array_size_dst, API_label, annotation);
 	Inout_interface *existing_interface = get_interface(new_interface->get_comp_id(), interface_name);
 	if (existing_interface != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), existing_interface == NULL, "Error happens when calling API \"%s\" to register an interface named \"%s\" at the model code model with the annotation \"%s\": an interface with the same name has already been registered at the model code with the annotation \"%s\". Please verify.", API_label, interface_name, annotation, annotation_mgr->get_annotation(existing_interface->get_interface_id(), "registering interface"));
+		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), existing_interface == NULL, "Error happens when calling the API \"%s\" to register an interface named \"%s\" at the model code model with the annotation \"%s\": an interface with the same name has already been registered at the model code with the annotation \"%s\". Please verify.", API_label, interface_name, annotation, annotation_mgr->get_annotation(existing_interface->get_interface_id(), "registering interface"));
 	generate_remapping_interface_connection(new_interface, num_fields, field_ids_src, false);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, new_interface->get_comp_id(), true, "Finish generating a normal remapping interface \"%s\"", new_interface->get_interface_name());
@@ -1393,7 +1400,7 @@ int Inout_interface_mgt::register_frac_based_remap_interface(const char *interfa
 int Inout_interface_mgt::register_inout_interface(const char *interface_name, int interface_type, int num_fields, int *field_ids, int array_size, int timer_id, int inst_or_aver, const char *annotation, int interface_source)
 {
 	int API_id = interface_type == COUPLING_INTERFACE_MARK_IMPORT? API_ID_INTERFACE_REG_IMPORT : API_ID_INTERFACE_REG_EXPORT;
-	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), interface_type, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", annotation, API_id, interface_source);
+	Inout_interface *new_interface = new Inout_interface(interface_name, get_next_interface_id(), interface_type, num_fields, field_ids, array_size, timer_id, inst_or_aver, "field_instance_IDs", annotation, API_id, interface_source, false);
 	for (int i = 0; i < interfaces.size(); i ++) {
 		if (new_interface->get_comp_id() != interfaces[i]->get_comp_id())
 			continue;

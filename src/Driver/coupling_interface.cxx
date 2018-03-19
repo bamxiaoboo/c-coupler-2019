@@ -1054,14 +1054,15 @@ extern "C" void register_external_field_instance
 extern "C" void register_external_field_instance_
 #endif
 (int *field_instance_id, const char *field_name, long *data_buffer_ptr, int *field_size, int *decomp_id, int *comp_or_grid_id, 
- int *buf_mark, int *restart_related, const char *unit, const char *data_type, const char *annotation)
+ int *buf_mark, int *usage_tag, const char *unit, const char *data_type, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a field instance %s", field_name);
 
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_FIELD_INST, annotation);
-	*field_instance_id = memory_manager->register_external_field_instance(field_name, (void*)(*data_buffer_ptr), *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, unit, data_type, annotation);
+	*field_instance_id = memory_manager->register_external_field_instance(field_name, (void*)(*data_buffer_ptr), *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, *usage_tag, unit, data_type, annotation);
 	Field_mem_info *field_instance = memory_manager->get_field_instance(*field_instance_id);
-	comp_comm_group_mgt_mgr->search_global_node(field_instance->get_host_comp_id())->get_restart_mgr()->add_restarted_field_instances(field_instance);
+	if (field_instance->is_REST_field_inst())
+		comp_comm_group_mgt_mgr->search_global_node(field_instance->get_host_comp_id())->get_restart_mgr()->add_restarted_field_instances(field_instance);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a field instance %s", field_name);
 }

@@ -154,7 +154,7 @@ class Inout_interface
 	public:
 		Inout_interface(const char*, long&);
 		Inout_interface(const char *, int, int, int *, int *, int, int, int, int, const char*, const char *);
-		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, int, int);
+		Inout_interface(const char*, int, int, int, int*, int, int, int, const char *, const char*, int, int, bool);
 		~Inout_interface();
 		void initialize_data(const char *, int, int, int, int, int *, int, const char *);	
 		void common_checking_for_interface_registration(int, int *, int, int, int, int, const char *, int, int, const char *, const char *);

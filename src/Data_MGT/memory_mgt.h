@@ -31,6 +31,12 @@
 #define BUF_MARK_REMAP_DATATYPE_TRANS_DST        ((int)(0xF0750000))
 
 
+#define REG_FIELD_TAG_NONE                       ((int)0)
+#define REG_FIELD_TAG_CPL                        ((int)1)
+#define REG_FIELD_TAG_REST                       ((int)2)
+#define REG_FIELD_TAG_IO                         ((int)4)
+
+
 class Field_mem_info
 {
     private:
@@ -43,8 +49,8 @@ class Field_mem_info
 		int comp_id;
 		int host_comp_id;
 		int buf_mark;
+		int usage_tag;
         bool is_registered_model_buf;
-		bool is_restart_field;
 		long last_define_time;
 		long define_order_count;
 		bool is_field_active;
@@ -56,12 +62,11 @@ class Field_mem_info
 		Field_mem_info(const char *, int, int, int, const char *, const char *, const char *, bool);
 		bool match_field_instance(const char *, int, int, int);
 		bool match_field_mem(void*);
-        bool get_is_restart_field() { return is_restart_field; }
 		bool get_is_registered_model_buf() { return is_registered_model_buf; }
 		bool check_is_field_active() { return is_field_active; }
         void *get_data_buf() { return grided_field_data->get_grid_data_field()->data_buf; }
         Remap_grid_data_class *get_field_data() { return grided_field_data; }
-        void reset_mem_buf(void *buf, bool);
+        void reset_mem_buf(void *buf, bool, int);
         const char *get_decomp_name();
         const char *get_field_name() const { return field_name; }
 		long get_size_of_field();
@@ -88,6 +93,9 @@ class Field_mem_info
 		const char *get_data_type();
 		bool is_checksum_changed();
 		void reset_checksum();
+		bool is_CPL_field_inst() { return (usage_tag & REG_FIELD_TAG_CPL) == REG_FIELD_TAG_CPL; }
+		bool is_REST_field_inst() { return (usage_tag & REG_FIELD_TAG_REST) == REG_FIELD_TAG_REST; }
+		bool is_IO_field_inst() { return (usage_tag & REG_FIELD_TAG_IO) == REG_FIELD_TAG_IO; }
         ~Field_mem_info();
 };
 
@@ -101,9 +109,8 @@ class Memory_mgt
         Memory_mgt() {}
 		Field_mem_info *alloc_mem(Field_mem_info*, int, int, const char*, bool);
 		Field_mem_info *alloc_mem(const char*, int, int, int, const char*, const char*, const char*, bool);
- 		int register_external_field_instance(const char *, void *, int, int, int, int, const char *, const char *, const char *);
+ 		int register_external_field_instance(const char *, void *, int, int, int, int, int, const char *, const char *, const char *);
         Field_mem_info *search_field_via_data_buf(const void*, bool);
-		void check_all_restart_fields_have_been_read();
 		void check_sum_of_all_fields();
 		int get_num_fields() { return fields_mem.size(); }
         ~Memory_mgt();

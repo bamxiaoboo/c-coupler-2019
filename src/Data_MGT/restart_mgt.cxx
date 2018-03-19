@@ -170,8 +170,12 @@ void Restart_mgt::read_restart_mgt_info(const char *specified_file_name, const c
 	if (strlen(specified_file_name) == 0) {
 		if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE)) {
 			get_file_name_in_rpointer_file(restart_file_short_name);
-			sprintf(restart_file_short_name+strlen(restart_file_short_name)-14, "%08d-%05d", time_mgr->get_common_restart_full_time()/100000, time_mgr->get_common_restart_full_time()%100000);
-			EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "The active restart data file is %s", restart_file_short_name);
+			int special_pos;
+			for (special_pos = strlen(restart_file_short_name)-1; special_pos >= 0; special_pos --)
+				if (restart_file_short_name[special_pos] == '-')
+					break;
+			sprintf(restart_file_short_name+special_pos-8, "%08d-%05d", time_mgr->get_common_restart_full_time()/100000, time_mgr->get_common_restart_full_time()%100000);
+			EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "The active restart data file is %s corresponding to the restart full time %ld", restart_file_short_name, time_mgr->get_common_restart_full_time());
 		}
 		else sprintf(restart_file_short_name, "%s.%s.r.%08d-%05d", time_mgr->get_rest_refcase(), comp_node->get_comp_full_name(), time_mgr->get_rest_refdate(), time_mgr->get_rest_refsecond());
 	}

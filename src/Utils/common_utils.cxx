@@ -323,16 +323,23 @@ void dump_string(const char *str, long str_size, char **array_buffer, long &buff
 long get_restart_time_in_rpointer_file(const char *file_name)
 {
 	char line[NAME_STR_SIZE*16], date_str[NAME_STR_SIZE], second_str[NAME_STR_SIZE];
-	int date, second;
+	int date, second, special_pos;
 	FILE *rpointer_file;
 
 
 	rpointer_file = fopen(file_name, "r");
 	get_next_line(line, rpointer_file);
 	fclose(rpointer_file);
-	strncpy(date_str, line+strlen(line)-14, 8);
-	strncpy(second_str, line+strlen(line)-5, 5);
+	for (special_pos = strlen(line)-1; special_pos >= 0; special_pos --)
+		if (line[special_pos] == '-')
+			break;
+	EXECUTION_REPORT(REPORT_ERROR, -1, special_pos > 10, "Error happens in a continue run: the restart file name \"%s\" in the rpointer file \"%s\" is not in a right format", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, line[special_pos-9] == '.' && line[special_pos-10] == 'r', "Error happens in a continue run: the restart file name \"%s\" in the rpointer file \"%s\" is not in a right format", file_name);
+	strncpy(date_str, line+special_pos-8, 8);
+	strncpy(second_str, line+special_pos+1, 5);
 	sscanf(date_str, "%d", &date);
+
+	EXECUTION_REPORT(REPORT_LOG, -1, true, "okooko %d  %d", sscanf("2", "%d", &special_pos), sscanf("x", "%d", &special_pos));
 	sscanf(second_str, "%d", &second);
 
 	return ((long)date)*((long)100000) + second;

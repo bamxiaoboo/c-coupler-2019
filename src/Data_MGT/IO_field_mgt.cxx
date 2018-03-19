@@ -52,7 +52,7 @@ IO_field::IO_field(int IO_field_id, int comp_or_grid_id, int decomp_id, int fiel
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(field_IO_name) > 0, "The parameter of field I/O name when calling the CCPL interface \"CCPL_register_IO_field\" is empty. Please verify the model code with the annotation \"%s\"", annotation);
 
-	field_instance_id = memory_manager->register_external_field_instance(field_IO_name, data_buffer, field_size, decomp_id, comp_or_grid_id, BUF_MARK_IO_FIELD_REG, unit, data_type, annotation);
+	field_instance_id = memory_manager->register_external_field_instance(field_IO_name, data_buffer, field_size, decomp_id, comp_or_grid_id, BUF_MARK_IO_FIELD_REG, REG_FIELD_TAG_REST, unit, data_type, annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(field_IO_name) > 0, "The parameter of field I/O name when calling the CCPL interface \"CCPL_register_IO_field\" cannot be an empty string. Please verify the model code with the annotation \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(long_name) > 0, "The parameter of long name of the I/O field \"%s\" when calling the CCPL interface \"CCPL_register_IO_field\" cannot be an empty string. Please verify the model code with the annotation \"%s\"", field_IO_name, annotation);
