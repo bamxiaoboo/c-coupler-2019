@@ -642,7 +642,7 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
     int i, num_days_in_current_month;
  
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, !is_time_out_of_execution(((long)current_num_elapsed_day)*100000+current_second), "Error happens when advancing the model time at the model code with the annotation \"%s\": the current model time is out of the bounds of the integration period. Please make sure that the component model and C-Coupler are consistent in time step, time advancing and integration period (e.g., start time and stop time).", annotation);
+	EXECUTION_REPORT(REPORT_WARNING, comp_id, !is_time_out_of_execution(((long)current_num_elapsed_day)*100000+current_second), "Warning happens when advancing the model time at the model code with the annotation \"%s\": the current model time is out of the bounds of the integration period and the model coupling will not executed again. Please make sure that the component model and C-Coupler are consistent in time step, time advancing and integration period (e.g., start time and stop time).", annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second != -1, "Cannot advance the time of the component \"\%s\" at the model code with the annotation \"%s\", because the time step has not been specified.", 
 					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);

@@ -302,7 +302,7 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	char API_label_local[NAME_STR_SIZE], API_label_another[NAME_STR_SIZE];
 	int local_process_id, num_processes;
 	int *API_ids, *comp_ids;
-	char *annotations, *comp_names;
+	char *annotations, *comp_names, local_annotation[NAME_STR_SIZE];
 
 
 	if (!report_error_enabled)
@@ -331,7 +331,9 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	annotations = new char [num_processes*NAME_STR_SIZE];
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&API_id, 1, MPI_INT, API_ids, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
 	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "annotation is \"%s\"", annotation);
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((void*)annotation, NAME_STR_SIZE, MPI_CHAR, annotations, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+	EXECUTION_REPORT(REPORT_ERROR, -1, strlen(annotation) < NAME_STR_SIZE, "Error happens when calling the API \"%s\": the annotation is too long (%d characters, larger than %d). Please verify", annotation, strlen(annotation), NAME_STR_SIZE);
+	strcpy(local_annotation, annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather((void*)local_annotation, NAME_STR_SIZE, MPI_CHAR, annotations, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
 	if (local_process_id == 0) {
 		for (int i = 1; i < num_processes; i ++) {
 			get_API_hint(comp_id, API_ids[i], API_label_another);
