@@ -47,6 +47,7 @@ class IO_basis
         virtual long get_dimension_size(const char*, MPI_Comm, bool) = 0;
         Remap_grid_data_class *generate_field_data_for_IO(Remap_grid_data_class*, bool);
         void copy_field_data_for_IO(Remap_grid_data_class*, Remap_grid_data_class*, bool);
+		int get_recorded_grid_num(Remap_grid_class*);
 };
 
 #endif

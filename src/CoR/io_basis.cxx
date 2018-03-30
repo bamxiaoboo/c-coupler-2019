@@ -155,3 +155,14 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
         delete runtime_mask_field;
 }
 
+
+int IO_basis::get_recorded_grid_num(Remap_grid_class *grid)
+{
+	for (int i = 0; i < recorded_grids.size(); i ++)
+		if (recorded_grids[i] == grid || words_are_the_same(recorded_grids[i]->get_grid_name(), grid->get_grid_name()))
+			return i;
+
+	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in IO_basis::get_recorded_grid_num %s %lx", grid->get_grid_name(), grid);
+	return -1;
+}
+

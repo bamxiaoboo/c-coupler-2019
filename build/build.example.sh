@@ -9,13 +9,11 @@ export CC=mpiicc
 export CXX=mpiicpc
 export FC=mpiifort
 #export CPP=/usr/bin/cpp
-export CPP=NONE
 export CFLAGS="-O2 -DFORTRANUNDERSCORE -g"
 export CXXFLAGS="-O2 -c -DFORTRANUNDERSCORE -g"
 export FFLAGS="-g -free -O2 -c -i4  -r8 -convert big_endian -assume byterecl -fp-model precise"
 export INCLDIR=" ${NETCDFINC} ${MPIINC} "
 export SLIBS=" ${NETCDFLIB} ${MPILIB} "
 export CPPFLAGS="${CPPFLAGS} ${INCLDIR} "
-
 
 make -j 8

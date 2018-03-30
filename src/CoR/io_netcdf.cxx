@@ -312,6 +312,12 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
         grid_data_field = leaf_grids[i]->get_grid_center_field();
         if (grid_data_field != NULL) 
             write_field_data(grid_data_field, associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
+		if (leaf_grids[i]->get_sigma_grid_sigma_value_field() != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, grid_data_field == NULL, "Software error in IO_netcdf::write_grid");
+			write_field_data(leaf_grids[i]->get_sigma_grid_sigma_value_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
+			if (leaf_grids[i]->get_hybrid_grid_coefficient_field() != NULL)
+				write_field_data(leaf_grids[i]->get_hybrid_grid_coefficient_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
+		}
         grid_data_field = leaf_grids[i]->get_grid_vertex_field();
         if (grid_data_field != NULL && !grid_data_field->get_coord_value_grid()->get_are_vertex_values_set_in_default()) {
 			if (grid_data_field->get_coord_value_grid()->get_num_dimensions() == 1)			
@@ -359,11 +365,11 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
     tmp_string[0] = '\0';
     if (is_grid_data && write_grid_name) {
         if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, "mask"))
-            sprintf(tmp_string, "grid_%d_%s", recorded_grids.size(), field_data->get_grid_data_field()->field_name_in_application);
+            sprintf(tmp_string, "grid_%d_%s", get_recorded_grid_num(field_data->get_coord_value_grid()), field_data->get_grid_data_field()->field_name_in_application);
         else {
             if (words_are_the_same(grid_field_type, GRID_VERTEX_LABEL))
-                sprintf(tmp_string, "grid_%d_%s_%s", recorded_grids.size(), grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
-            else sprintf(tmp_string, "grid_%d_%s", recorded_grids.size(), field_data->get_grid_data_field()->field_name_in_application);
+                sprintf(tmp_string, "grid_%d_%s_%s", get_recorded_grid_num(field_data->get_coord_value_grid()), grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
+            else sprintf(tmp_string, "grid_%d_%s", get_recorded_grid_num(field_data->get_coord_value_grid()), field_data->get_grid_data_field()->field_name_in_application);
         }
     }
     else {

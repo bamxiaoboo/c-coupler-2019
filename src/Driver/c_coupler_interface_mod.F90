@@ -401,7 +401,7 @@
    integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
    character *2048                           :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
-   logical,          intent(in), optional    :: usage_tag
+   integer,          intent(in), optional    :: usage_tag
    integer                                   :: local_usage_tag
 
    local_usage_tag = CCPL_TAG_CPL
@@ -556,7 +556,7 @@
    integer,          intent(in)              :: decomp_id, comp_or_grid_id, buf_mark
    character *2048                           :: local_field_unit, local_annotation
    integer                                   :: field_instance_id
-   logical,          intent(in), optional    :: usage_tag
+   integer,          intent(in), optional    :: usage_tag
    integer                                   :: local_usage_tag
 
    local_usage_tag = CCPL_TAG_CPL

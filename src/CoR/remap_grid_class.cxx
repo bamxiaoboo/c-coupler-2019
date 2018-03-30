@@ -815,7 +815,7 @@ void Remap_grid_class::set_lev_grid_sigma_info(double top_value, const double *s
 	
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_dimensions == 1 && words_are_the_same(coord_label, COORD_LABEL_LEV), "Software error in Remap_grid_class::set_lev_grid_sigma_info: only lev grid can be set sigma information", grid_name);
 	remap_data_field = new Remap_data_field;    
-	strcpy(remap_data_field->field_name_in_application, "sigma");
+	strcpy(remap_data_field->field_name_in_application, "lev_sigma");
 	strcpy(remap_data_field->data_type_in_application, DATA_TYPE_DOUBLE);
 	strcpy(remap_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE);
 	remap_data_field->required_data_size = remap_data_field->read_data_size = grid_size;
@@ -823,8 +823,9 @@ void Remap_grid_class::set_lev_grid_sigma_info(double top_value, const double *s
 	memcpy(remap_data_field->data_buf, sigma_values, grid_size*sizeof(double));
 	sigma_value_field = new Remap_grid_data_class(this, remap_data_field);
 	if (hybrid_grid_coefficients != NULL) {
+		strcpy(remap_data_field->field_name_in_application, "lev_hybrid_coefB");
 		remap_data_field = new Remap_data_field;	
-		strcpy(remap_data_field->field_name_in_application, "hybrid_coefficent_a");
+		strcpy(remap_data_field->field_name_in_application, "lev_hybrid_coefA");
 		strcpy(remap_data_field->data_type_in_application, DATA_TYPE_DOUBLE);
 		strcpy(remap_data_field->data_type_in_IO_file, DATA_TYPE_DOUBLE);
 		remap_data_field->required_data_size = remap_data_field->read_data_size = grid_size;
