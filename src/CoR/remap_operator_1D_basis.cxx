@@ -203,7 +203,7 @@ void Remap_operator_1D_basis::initialize_1D_remap_operator()
 	set_periodic = false;
 	set_period = false;
     periodic = false;
-	enable_extrapolate = true;
+	enable_extrapolate = false;
 	set_enable_extrapolation = false;
 	use_logarithmic_field_value = false;
 	set_use_logarithmic_field_value = false;
@@ -221,18 +221,33 @@ void Remap_operator_1D_basis::search_src_cells_around_dst_cell(double coord_valu
 	int src_index_mid;
 
 
-	if (coord_values_src[src_index_start] > coord_value_dst) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error1: can not find the location of dst cell in original grid");
-		src_cell_index_left = -1;
-		src_cell_index_right = src_index_start;
-		return;
+	if (coord_values_src[src_index_start] <= coord_values_src[src_index_end]) {
+		if (coord_values_src[src_index_start] > coord_value_dst) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error1: can not find the location of dst cell in original grid");
+			src_cell_index_left = -1;
+			src_cell_index_right = src_index_start;
+			return;
+		}
+		if (coord_values_src[src_index_end] < coord_value_dst) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error2: can not find the location of dst cell in original grid");
+			src_cell_index_left = src_index_end;
+			src_cell_index_right = -1;
+			return;
+		}
 	}
-
-	if (coord_values_src[src_index_end] < coord_value_dst) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error2: can not find the location of dst cell in original grid");
-		src_cell_index_left = src_index_end;
-		src_cell_index_right = -1;
-		return;
+	else {
+		if (coord_values_src[src_index_start] < coord_value_dst) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error1: can not find the location of dst cell in original grid");
+			src_cell_index_left = -1;
+			src_cell_index_right = src_index_start;
+			return;
+		}
+		if (coord_values_src[src_index_end] > coord_value_dst) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, !periodic, "software error2: can not find the location of dst cell in original grid");
+			src_cell_index_left = src_index_end;
+			src_cell_index_right = -1;
+			return;
+		}
 	}
 
 	if (coord_values_src[src_index_start] == coord_value_dst) {
@@ -265,9 +280,16 @@ void Remap_operator_1D_basis::search_src_cells_around_dst_cell_recursively(doubl
 	}
 	
 	src_index_mid = (src_index_start+src_index_end) / 2;
-	if (coord_values_src[src_index_mid] > coord_value_dst)
-		search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_start, src_index_mid, src_cell_index_left, src_cell_index_right);
-	else search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_mid, src_index_end, src_cell_index_left, src_cell_index_right);
+	if (coord_values_src[src_index_start] <= coord_values_src[src_index_end]) {
+		if (coord_values_src[src_index_mid] > coord_value_dst)
+			search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_start, src_index_mid, src_cell_index_left, src_cell_index_right);
+		else search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_mid, src_index_end, src_cell_index_left, src_cell_index_right);
+	}
+	else {
+		if (coord_values_src[src_index_mid] <= coord_value_dst)
+			search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_start, src_index_mid, src_cell_index_left, src_cell_index_right);
+		else search_src_cells_around_dst_cell_recursively(coord_value_dst, src_index_mid, src_index_end, src_cell_index_left, src_cell_index_right);		
+	}
 }
 
 
@@ -368,7 +390,7 @@ void Remap_operator_1D_basis::calculate_dst_src_mapping_info()
 			else if (extrapolation_approach == 1)
 				src_cell_index_left[i] = src_cell_index_left[i];
 		}
-		if (src_cell_index_left[i] == -1) {
+		else if (src_cell_index_left[i] == -1) {
 			src_cell_index_left[i] = src_cell_index_right[i];
 			if (extrapolation_approach == 0)
 				src_cell_index_right[i] ++;

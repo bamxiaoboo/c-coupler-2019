@@ -985,7 +985,7 @@ bool TiXmlDocument::LoadFile( const char* _filename, MPI_Comm comm, TiXmlEncodin
 	FILE* file = NULL;
 	int local_process_id = 0;
 	
-	if (comm != -1)
+	if (comm != MPI_COMM_NULL)
 		MPI_Comm_rank(comm, &local_process_id);
 
 	if (local_process_id == 0) {
@@ -1084,7 +1084,7 @@ bool TiXmlDocument::LoadFile( FILE* file, MPI_Comm comm, TiXmlEncoding encoding 
 		*q = 0;
 	}
 	
-	if (comm != -1) {
+	if (comm != MPI_COMM_NULL) {
 		MPI_Bcast(&length, 1, MPI_LONG, 0, comm);
 		if (buf == NULL)
 			buf = new char[ length+1 ];
