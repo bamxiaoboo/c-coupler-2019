@@ -322,8 +322,10 @@ Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, i
 		else EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(existing_field_instance->get_data_type(), original_field_instance->get_data_type()), "Software error in Field_mem_info *alloc_mem: special field instance exists %lx with wrong data type", new_buf_mark);
 		return existing_field_instance;
 	}
-	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)
+	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER) {
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", check_field_name));
+		copy_field_data_values(fields_mem[fields_mem.size()-1], original_field_instance);		
+	}	
 	else if (special_buf_mark == BUF_MARK_REMAP_FRAC)
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for the remapping with fraction", check_field_name));
 	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST) {
@@ -528,5 +530,13 @@ Field_mem_info *Memory_mgt::get_field_instance(int field_instance_id)
 		return NULL;
 
 	return fields_mem[field_instance_id&TYPE_ID_SUFFIX_MASK];
+}
+
+
+void Memory_mgt::copy_field_data_values(Field_mem_info *dst_field_inst, Field_mem_info *src_field_inst)
+{
+	EXECUTION_REPORT(REPORT_ERROR, -1, dst_field_inst->get_decomp_id() == src_field_inst->get_decomp_id() && dst_field_inst->get_comp_id() == src_field_inst->get_comp_id() && dst_field_inst->get_grid_id() == src_field_inst->get_grid_id() && words_are_the_same(src_field_inst->get_data_type(), dst_field_inst->get_data_type()),
+		             "Software erorr in Memory_mgt::copy_field_data_values");
+	memcpy(dst_field_inst->get_data_buf(), src_field_inst->get_data_buf(), dst_field_inst->get_size_of_field()*get_data_type_size(dst_field_inst->get_data_type()));
 }
 

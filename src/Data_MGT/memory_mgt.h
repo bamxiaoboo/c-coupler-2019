@@ -118,6 +118,7 @@ class Memory_mgt
 		Field_mem_info *search_field_instance(const char *, int, int, int);
 		bool check_is_legal_field_instance_id(int);
 		Field_mem_info *get_field_instance(int);
+		void copy_field_data_values(Field_mem_info *, Field_mem_info*);
 };
 
 #endif
