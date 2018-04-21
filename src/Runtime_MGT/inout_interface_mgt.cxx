@@ -182,6 +182,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 				fields_mem_remapped[i] = memory_manager->alloc_mem(fields_mem_registered[i]->get_field_name(), fields_mem_registered[i]->get_decomp_id(), fields_mem_registered[i]->get_grid_id(), 
 					                                               BUF_MARK_REMAP_NORMAL^coupling_connection->connection_id, transfer_data_type, fields_mem_registered[i]->get_unit(), "internal", 
 					                                               inout_interface->get_interface_source() == INTERFACE_SOURCE_REGISTER && i < coupling_connection->fields_name.size());
+				memory_manager->copy_field_data_values(fields_mem_remapped[i], fields_mem_registered[i]);		
 				runtime_remap_algorithms[i] = new Runtime_remap_algorithm(coupling_connection->dst_fields_info[i]->runtime_remapping_weights, fields_mem_transfer[i], fields_mem_remapped[i], coupling_connection->connection_id);
 			}
 			if (!words_are_the_same(transfer_data_type, coupling_connection->dst_fields_info[i]->data_type)) {

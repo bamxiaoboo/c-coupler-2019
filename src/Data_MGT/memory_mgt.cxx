@@ -322,10 +322,8 @@ Field_mem_info *Memory_mgt::alloc_mem(Field_mem_info *original_field_instance, i
 		else EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(existing_field_instance->get_data_type(), original_field_instance->get_data_type()), "Software error in Field_mem_info *alloc_mem: special field instance exists %lx with wrong data type", new_buf_mark);
 		return existing_field_instance;
 	}
-	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER) {
-		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", check_field_name));
-		copy_field_data_values(fields_mem[fields_mem.size()-1], original_field_instance);		
-	}	
+	if (special_buf_mark == BUF_MARK_AVERAGED_INNER || special_buf_mark == BUF_MARK_AVERAGED_INTER)
+		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for averaging", check_field_name));	
 	else if (special_buf_mark == BUF_MARK_REMAP_FRAC)
 		fields_mem.push_back(new Field_mem_info(original_field_instance->get_field_name(), original_field_instance->get_decomp_id(), original_field_instance->get_comp_or_grid_id(), new_buf_mark, original_field_instance->get_unit(), original_field_instance->get_data_type(), "new field instance for the remapping with fraction", check_field_name));
 	else if (special_buf_mark == BUF_MARK_DATATYPE_TRANS || special_buf_mark == BUF_MARK_DATA_TRANSFER || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_SRC || special_buf_mark == BUF_MARK_REMAP_DATATYPE_TRANS_DST) {
