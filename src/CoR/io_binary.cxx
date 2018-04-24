@@ -47,7 +47,7 @@ IO_binary::~IO_binary()
 }
 
 
-void IO_binary::write_grid(Remap_grid_class *associated_grid, bool write_grid_name)
+void IO_binary::write_grid(Remap_grid_class *associated_grid, bool write_grid_name, bool use_scrip_format)
 {
     EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error1 in using binary io\n");    
 }
@@ -64,7 +64,8 @@ void IO_binary::write_field_data(Remap_grid_data_class *field_data,
                                 bool is_grid_data, 
                                 const char *grid_field_type, 
                                 int dim_ncid_num_vertex,
-                                bool write_grid_name)
+                                bool write_grid_name,
+                                bool use_script_format)
 {
     EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error3 in using binary io\n");    
 }

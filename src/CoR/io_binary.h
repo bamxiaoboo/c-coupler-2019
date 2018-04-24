@@ -21,8 +21,8 @@ class IO_binary: public IO_basis
     private:
         FILE *fp_binary;
         
-        void write_grid(Remap_grid_class*, bool);
-        void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool);
+        void write_grid(Remap_grid_class*, bool, bool);
+        void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool, bool);
 
     public:
         IO_binary(const char*, const char*, const char*);

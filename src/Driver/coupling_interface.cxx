@@ -851,11 +851,13 @@ extern "C" void register_h2d_grid_with_global_data_
 	*grid_id = original_grid_mgr->register_H2D_grid_via_global_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
 												                    *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												                    API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA);
-	char nc_file_name[NAME_STR_SIZE];
-	sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
-	char temp_grid_name[NAME_STR_SIZE];
-	sprintf(temp_grid_name, "%s_temp", grid_name);
-	original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
+	if (report_error_enabled) {
+		char nc_file_name[NAME_STR_SIZE];
+		sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
+		char temp_grid_name[NAME_STR_SIZE];
+		sprintf(temp_grid_name, "%s_temp", grid_name);
+		original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
+	}
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);
 }
@@ -1040,7 +1042,7 @@ extern "C" void register_parallel_decomposition_
 	int grid_size = original_grid_mgr->get_original_grid(*grid_id)->get_original_CoR_grid()->get_grid_size();
 	for (int i = 0; i < *num_local_cells; i ++)
 		if (local_cells_global_indx[i] != CCPL_NULL_INT)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": some values in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values (for example %d) in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, local_cells_global_indx[i], annotation);
 		
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 

@@ -269,7 +269,7 @@ bool IO_netcdf::read_data(Remap_data_field *read_data_field, int time_pos, bool 
 }
 
 
-void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_name)
+void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_name, bool use_script_format)
 {
     int num_sized_sub_grids, num_leaf_grids, num_masked_sub_grids, num_sphere_leaf_grids, i, dim_ncid;
     Remap_grid_class *sized_sub_grids[256], *leaf_grids[256], *masked_sub_grids[256];
@@ -304,6 +304,27 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
             sized_grids_map[sized_sub_grids[i]] = dim_ncid;
 			recorded_grids.push_back(sized_sub_grids[i]);
         }
+	if (use_script_format) {
+		if (sized_grids_map.find(associated_grid) == sized_grids_map.end()) {
+			rcode = nc_def_dim(ncfile_id, "grid_size", associated_grid->get_grid_size(), &dim_ncid);
+			report_nc_error();
+			sized_grids_map[associated_grid] = dim_ncid;
+			recorded_grids.push_back(associated_grid);
+		}
+		rcode = nc_def_dim(ncfile_id, "grid_rank", num_sized_sub_grids, &dim_ncid);
+		report_nc_error();
+		int grid_dim_size[256], dims_ncid;
+		for (int i = 0; i < num_sized_sub_grids; i ++)
+			grid_dim_size[i] = sized_sub_grids[i]->get_grid_size();
+        rcode = nc_def_var(ncfile_id, "grid_dims", NC_INT, 1, &dim_ncid, &dims_ncid);
+        report_nc_error();
+		rcode = nc_enddef(ncfile_id);
+		report_nc_error();
+		nc_put_var_int(ncfile_id, dims_ncid, grid_dim_size);
+		report_nc_error();
+		rcode = nc_redef(ncfile_id);
+		report_nc_error();
+	}
     nc_enddef(ncfile_id);
     report_nc_error();
 
@@ -311,17 +332,19 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
     for (i = 0; i < num_leaf_grids; i ++) {
         grid_data_field = leaf_grids[i]->get_grid_center_field();
         if (grid_data_field != NULL) 
-            write_field_data(grid_data_field, associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
+            write_field_data(grid_data_field, associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name, use_script_format);
 		if (leaf_grids[i]->get_sigma_grid_sigma_value_field() != NULL) {
 			EXECUTION_REPORT(REPORT_ERROR, -1, grid_data_field == NULL, "Software error in IO_netcdf::write_grid");
-			write_field_data(leaf_grids[i]->get_sigma_grid_sigma_value_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
+			write_field_data(leaf_grids[i]->get_sigma_grid_sigma_value_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name, use_script_format);
 			if (leaf_grids[i]->get_hybrid_grid_coefficient_field() != NULL)
-				write_field_data(leaf_grids[i]->get_hybrid_grid_coefficient_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name);
+				write_field_data(leaf_grids[i]->get_hybrid_grid_coefficient_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name, use_script_format);
 		}
         grid_data_field = leaf_grids[i]->get_grid_vertex_field();
         if (grid_data_field != NULL && !grid_data_field->get_coord_value_grid()->get_are_vertex_values_set_in_default()) {
 			if (grid_data_field->get_coord_value_grid()->get_num_dimensions() == 1)			
 	           sprintf(tmp_string, "num_vertexes_%s", grid_data_field->get_coord_value_grid()->get_coord_label());
+			else if (use_script_format)
+				sprintf(tmp_string, "grid_corners");
 			else sprintf(tmp_string, "num_vertexes_H2D");
             rcode = nc_inq_dimid(ncfile_id, tmp_string, &dim_ncid);            
             if (rcode == NC_EBADDIM) {
@@ -331,15 +354,15 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
                 nc_enddef(ncfile_id);
                 report_nc_error();
             }
-            write_field_data(grid_data_field, associated_grid, true, GRID_VERTEX_LABEL, dim_ncid, write_grid_name);            
+            write_field_data(grid_data_field, associated_grid, true, GRID_VERTEX_LABEL, dim_ncid, write_grid_name, use_script_format);            
         }
     }
 
     associated_grid->get_masked_sub_grids(&num_masked_sub_grids, masked_sub_grids);
     for (i = 0; i < num_masked_sub_grids; i ++)
-        write_field_data(masked_sub_grids[i]->get_grid_mask_field(), associated_grid, true, GRID_MASK_LABEL, -1, write_grid_name);
+        write_field_data(masked_sub_grids[i]->get_grid_mask_field(), associated_grid, true, GRID_MASK_LABEL, -1, write_grid_name, use_script_format);
 	if (associated_grid->get_grid_imported_area() != NULL)
-		write_field_data(associated_grid->get_grid_imported_area(), associated_grid, true, "area", -1, write_grid_name);
+		write_field_data(associated_grid->get_grid_imported_area(), associated_grid, true, "area", -1, write_grid_name, use_script_format);
 
     rcode = nc_close(ncfile_id);
     report_nc_error();
@@ -351,7 +374,8 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
                                 bool is_grid_data, 
                                 const char *grid_field_type, 
                                 int dim_ncid_num_vertex,
-                                bool write_grid_name)
+                                bool write_grid_name,
+                                bool use_script_format)
 {
     int num_sized_sub_grids, num_dims, i;
     unsigned long io_data_size, dimension_size;
@@ -377,11 +401,21 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
             sprintf(tmp_string, "%s", field_data->get_grid_data_field()->field_name_in_IO_file);
         else {
             if (words_are_the_same(grid_field_type, GRID_VERTEX_LABEL))
-                sprintf(tmp_string , "%s_%s", grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
+				if (!use_script_format)
+	                sprintf(tmp_string , "%s_%s", grid_field_type, field_data->get_grid_data_field()->field_name_in_application);
+				else if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application,COORD_LABEL_LON))
+					sprintf(tmp_string , SCRIP_VERTEX_LON_LABEL);
+				else sprintf(tmp_string , SCRIP_VERTEX_LAT_LABEL);
             else {
 				sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
-				if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, "lat"))
-					sprintf(tmp_string , "%s", field_data->get_grid_data_field()->field_name_in_application);
+				if (use_script_format) {
+					if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, COORD_LABEL_LON))
+						sprintf(tmp_string , SCRIP_CENTER_LON_LABEL);
+					else if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, COORD_LABEL_LAT))
+						sprintf(tmp_string , SCRIP_CENTER_LAT_LABEL);
+					else if (words_are_the_same(grid_field_type, GRID_MASK_LABEL))
+						sprintf(tmp_string , SCRIP_MASK_LABEL);
+				}
             }
         }
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "IO field name is %s", tmp_string);
@@ -398,7 +432,11 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
 
     if (interchange_grid != NULL) {
         field_data->interchange_grid_data(interchange_grid);        
-        field_data->get_coord_value_grid()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
+		if (sized_grids_map.find(field_data->get_coord_value_grid()) != sized_grids_map.end()) {
+			num_sized_sub_grids = 1;
+			sized_sub_grids[0] = field_data->get_coord_value_grid();
+		}
+		else field_data->get_coord_value_grid()->get_sized_sub_grids(&num_sized_sub_grids, sized_sub_grids);
         for (i = 0; i < num_sized_sub_grids; i ++) {
             EXECUTION_REPORT(REPORT_ERROR, -1, sized_grids_map.find(sized_sub_grids[i]) != sized_grids_map.end(), "remap software error1 in write_field_data\n");
             dim_ncids[num_sized_sub_grids-1-i] = sized_grids_map[sized_sub_grids[i]];
@@ -570,7 +608,7 @@ void IO_netcdf::write_grided_data(Remap_grid_data_class *grided_data, bool write
     rcode = nc_close(ncfile_id);
     report_nc_error();
 
-    write_grid(grided_data->get_coord_value_grid(), write_grid_name);
+    write_grid(grided_data->get_coord_value_grid(), write_grid_name, false);
 
     rcode = nc_open(file_name, NC_WRITE, &ncfile_id);
     report_nc_error();
@@ -578,7 +616,7 @@ void IO_netcdf::write_grided_data(Remap_grid_data_class *grided_data, bool write
     if (strlen(grided_data->get_grid_data_field()->data_type_in_IO_file) == 0)
         strcpy(grided_data->get_grid_data_field()->data_type_in_IO_file, grided_data->get_grid_data_field()->data_type_in_application);
     tmp_field_data_for_io = generate_field_data_for_IO(grided_data, is_restart_field);
-    write_field_data(tmp_field_data_for_io, grided_data->get_coord_value_grid(), false, "", -1, write_grid_name);
+    write_field_data(tmp_field_data_for_io, grided_data->get_coord_value_grid(), false, "", -1, write_grid_name, false);
     if (tmp_field_data_for_io != grided_data)
         delete tmp_field_data_for_io;
 
@@ -801,7 +839,7 @@ void IO_netcdf::put_global_attr(const char *text_title, const void *attr_value, 
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in IO_netcdf::put_global_attr: wrong nc data type %s", nc_datatype);
 	
 	if (words_are_the_same(local_data_type, DATA_TYPE_STRING))
-	    rcode = nc_put_att_text(ncfile_id, NC_GLOBAL, text_title, sizeof((const char*)attr_value), (const char*)attr_value);
+	    rcode = nc_put_att_text(ncfile_id, NC_GLOBAL, text_title, strlen((const char*)attr_value), (const char*)attr_value);
 	else if (words_are_the_same(local_data_type, DATA_TYPE_FLOAT))
 		rcode = nc_put_att_float(ncfile_id, NC_GLOBAL, text_title, NC_FLOAT, size, (const float*)attr_value);
 	else if (words_are_the_same(local_data_type, DATA_TYPE_DOUBLE))

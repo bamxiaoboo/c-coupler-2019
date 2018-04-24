@@ -33,8 +33,8 @@ class IO_basis
         std::map<const Remap_grid_class*, int> sized_grids_map;
 		std::vector<const Remap_grid_class*> recorded_grids;
 
-        virtual void write_grid(Remap_grid_class*, bool) = 0;
-        virtual void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool) = 0;
+        virtual void write_grid(Remap_grid_class*, bool, bool) = 0;
+        virtual void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool, bool) = 0;
         
     public:
         IO_basis(){}
