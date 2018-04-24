@@ -32,7 +32,9 @@
 #define COMP_TYPE_WAVE             "wave"
 #define COMP_TYPE_RUNOFF           "roff"
 #define COMP_TYPE_ROOT             "ROOT"
-#define NULL_COMM                  ((int)-1)
+#define DATAMODEL_NAME_PREFIX      "DATA_MODEL_"
+#define DATAINST_NAME_PREFIX       "DATA_INST_"
+#define ALGMODEL_NAME_PREFIX       "ALGORITHM_MODEL_"
 
 
 class Comp_comm_group_mgt_node

@@ -857,6 +857,8 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
+	EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), strncmp(comp_name, DATAINST_NAME_PREFIX, strlen(DATAINST_NAME_PREFIX)) != 0 && strncmp(comp_name, DATAMODEL_NAME_PREFIX, strlen(DATAMODEL_NAME_PREFIX)) != 0 && strncmp(comp_name, ALGMODEL_NAME_PREFIX, strlen(ALGMODEL_NAME_PREFIX)) != 0, "Error happens when registering a component model \"%s\": its name should not include the prefix \"%s\", \"%s\" and \"%s\". Please verify the model code with the annotation \"%s\"", comp_name, DATAINST_NAME_PREFIX, DATAMODEL_NAME_PREFIX, ALGMODEL_NAME_PREFIX, annotation);
+
 	return new_comp->get_local_node_id();
 }
 
