@@ -171,7 +171,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	min_remote_lag_seconds = 0;
 	max_remote_lag_seconds = 0;
 
-	if (comm != -1) {
+	if (comm != MPI_COMM_NULL) {
 		comm_group = comm;
 		if (parent == NULL)
 			synchronize_comp_processes_for_API(-1, API_ID_COMP_MGT_REG_COMP, comm, "checking the given communicator for registering root component", annotation);

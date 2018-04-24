@@ -10,6 +10,7 @@
    
 
    implicit none
+   include 'mpif.h'
    private
 
 
@@ -206,6 +207,7 @@
 
    REAL,    parameter, public  :: coupling_fill_value = 1.0e30 
    integer, parameter, public  :: CCPL_NULL_INT       = 2147483647  
+   integer, parameter, public  :: CCPL_NULL_COMM      = MPI_COMM_NULL  
    integer, parameter, public  :: CCPL_TAG_CPL        = 1
    integer, parameter, public  :: CCPL_TAG_REST       = 2
    integer, parameter, public  :: CCPL_TAG_CPL_REST   = 3

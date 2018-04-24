@@ -366,7 +366,7 @@ extern "C" void register_root_component_
 int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_name)
 {
 	int flag;
-	MPI_Comm local_comm = -1;
+	MPI_Comm local_comm = MPI_COMM_NULL;
 	int root_comp_id;
 	int current_proc_global_id;
 	char file_name[NAME_STR_SIZE];
@@ -390,7 +390,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
 	import_report_setting();
 
-	if (*comm != -1) {
+	if (*comm != MPI_COMM_NULL) {
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(*comm) == MPI_SUCCESS);
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
@@ -400,7 +400,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	original_grid_mgr = new Original_grid_mgt();
 	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
 
-	if (*comm != -1) {
+	if (*comm != MPI_COMM_NULL) {
 		int input_comm_size, new_comm_size;
 		int *input_comm_process_ids, *new_comm_process_ids, *temp_array;
 		int current_proc_global_id, current_proc_local_id;
@@ -453,7 +453,7 @@ extern "C" void register_component_
 	check_for_coupling_registration_stage(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, false, annotation);
 	check_API_parameter_string_length(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, 80, comp_name, "comp_name", annotation);
 
-	if (*comm !=-1) {
+	if (*comm != MPI_COMM_NULL) {
 		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on the parent component", annotation);
 		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_name, "comp_name", annotation);
 	}

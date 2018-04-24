@@ -120,7 +120,7 @@ Coupling_connection::Coupling_connection(int id)
 	import_procedure = NULL;
 	export_procedure = NULL;
 	connection_id = id;
-    union_comm = -1;
+    union_comm = MPI_COMM_NULL;
     src_proc_ranks_in_union_comm = NULL;
     dst_proc_ranks_in_union_comm = NULL;
 	if (connection_id > coupling_generator->get_latest_connection_id())
@@ -1370,7 +1370,7 @@ void Coupling_generator::do_external_coupling_generation(int API_id, const char 
 	int current_connection_id, max_connection_id, remote_connection_id;
 	MPI_Request request_send, request_recv;
 	MPI_Status status;
-	MPI_Comm union_comm = -1;
+	MPI_Comm union_comm = MPI_COMM_NULL;
 	bool is_current_proc_in_union_comm = false;
 	int current_proc_id_in_union_comm, size_union_comm;
 	std::vector<int> proc_global_ids_in_union_comm, proc_global_ids_in_current_comm;

@@ -48,7 +48,7 @@ long get_size_value_from_parameter(const char *function, int para_indx, Remap_st
     else {
         EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(operand->object->object_type, OBJECT_TYPE_IO) && operand->num_extension_names == 1,
                      text);
-        size = io_manager->search_IO_object(operand->object->object_name)->get_dimension_size(operand->extension_names[0], -1, true);
+        size = io_manager->search_IO_object(operand->object->object_name)->get_dimension_size(operand->extension_names[0], MPI_COMM_NULL, true);
     }
 
     EXECUTION_REPORT(REPORT_ERROR, -1, size > 0, text);

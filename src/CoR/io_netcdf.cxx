@@ -643,7 +643,7 @@ long IO_netcdf::get_dimension_size(const char *dim_name, MPI_Comm comm, bool is_
 	    report_nc_error();
 	}
 
-	if (comm != -1)
+	if (comm != MPI_COMM_NULL)
 		MPI_Bcast(&dimension_size, 1, MPI_LONG, 0, comm);
 
     return dimension_size;
@@ -932,11 +932,11 @@ bool IO_netcdf::get_file_field_string_attribute(const char *field_name, const ch
 
 	if (is_root_proc)
 		success = get_file_field_attribute(field_name, attribute_name, attribute_value, data_type)? 1 : 0;
-	if (comm != -1)
+	if (comm != MPI_COMM_NULL)
 		MPI_Bcast(&success, 1, MPI_INT, 0, comm);
 	if (success == 0)
 		return false;
-	if (comm != -1) {
+	if (comm != MPI_COMM_NULL) {
 		MPI_Bcast(attribute_value, NAME_STR_SIZE, MPI_CHAR, 0, comm);
 		MPI_Bcast(data_type, NAME_STR_SIZE, MPI_CHAR, 0, comm);
 	}
@@ -1011,7 +1011,7 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
 		}
 	}
 
-	if (comm != -1) {
+	if (comm != MPI_COMM_NULL) {
 		MPI_Bcast(&have_field, 1, MPI_INT, 0, comm);
 		if (have_field == 0)
 			return;
