@@ -720,7 +720,7 @@ const char *get_XML_attribute(int comp_id, int max_string_length, TiXmlElement *
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) > 0, "In the XML file \"%s\" that is for %s, %s (the keyword is \"%s\") has been specified but with an empty string. Please verify the XML file arround the line number %d.", 
 		             XML_file_name, XML_file_annotation, attribute_annotation, attribute_keyword, line_number);
 	if (max_string_length > 0)	
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) <= max_string_length, "Error happens when using the XML configuration file \"%s\": the string size (current is %d) of the value (\"%s\") the XML attribute \"%s\" is larger than the limit (%d). Please verify XML file arround the line %d.", XML_file_name, strlen(attribute_value), attribute_value, attribute_keyword, max_string_length, line_number);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(attribute_value) <= max_string_length, "Error happens when using the XML configuration file \"%s\": the string size (currently is %d) of the value (\"%s\") the XML attribute \"%s\" is larger than the limit (%d). Please verify XML file arround the line %d.", XML_file_name, strlen(attribute_value), attribute_value, attribute_keyword, max_string_length, line_number);
 	return attribute_value;
 }
 

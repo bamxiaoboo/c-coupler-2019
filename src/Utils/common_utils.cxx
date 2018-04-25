@@ -192,7 +192,7 @@ void check_for_coupling_registration_stage(int comp_id, int API_ID, bool require
 
 	get_API_hint(-1, API_ID, API_label);
 	check_for_ccpl_managers_allocated(API_ID, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when calling the API \"%s\": The parameter of component ID is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when calling the API \"%s\": The parameter of component ID (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, comp_id, annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, require_real_model, annotation);		
 }
 
@@ -258,14 +258,14 @@ void check_API_parameter_string_length(int comp_id, int API_ID, int str_max_size
 
 	get_API_hint(-1, API_ID, API_label);
 	
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(str) <= str_max_size, "Error happens when calling the API \"%s\": the string size (current is %d) of the parameter \"%s\" (the string is \"%s\") is larger than the limit (%d). Please verify the model code with the annotation \"%s\".", API_label, strlen(str), parameter_name, str, str_max_size, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(str) <= str_max_size, "Error happens when calling the API \"%s\": the string size (currently is %d) of the parameter \"%s\" (the string is \"%s\") is larger than the limit (%d). Please verify the model code with the annotation \"%s\".", API_label, strlen(str), parameter_name, str, str_max_size, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(str, "NULL"), "Error happens when calling the API \"%s\": the parameter \"%s\" cannot be \"NULL\". Please verify the model code with the annotation \"%s\".", API_label, parameter_name, str, annotation);
 }
 
 
 void check_XML_attribute_value_string_length(int comp_id, int str_max_size, const char *XML_attribute, const char *XML_value, const char *XML_file_name, int line_number)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(XML_value) <= str_max_size, "Error happens when using the XML configuration file \"%s\": the string size (current is %d) of the value (\"%s\") the XML attribute \"%s\" is larger than the limit (%d). Please verify XML file arround the line %d.", XML_file_name, strlen(XML_value), XML_value, XML_attribute, str_max_size, line_number);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(XML_value) <= str_max_size, "Error happens when using the XML configuration file \"%s\": the string size (currently is %d) of the value (\"%s\") the XML attribute \"%s\" is larger than the limit (%d). Please verify XML file arround the line %d.", XML_file_name, strlen(XML_value), XML_value, XML_attribute, str_max_size, line_number);
 }
 
 

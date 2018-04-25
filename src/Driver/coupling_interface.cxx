@@ -362,7 +362,7 @@ extern "C" void register_root_component
 #else
 extern "C" void register_root_component_
 #endif
-(MPI_Comm *comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
+(MPI_Fint *f_comm, const char *comp_name, const char *local_comp_type, const char *annotation, int *comp_id, 
 int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_name)
 {
 	int flag;
@@ -370,6 +370,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	int root_comp_id;
 	int current_proc_global_id;
 	char file_name[NAME_STR_SIZE];
+	MPI_Comm cpp_comm = MPI_Comm_f2c(*f_comm);
 
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register the root component model");
@@ -378,7 +379,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	check_API_parameter_string_length(-1, API_ID_COMP_MGT_REG_COMP, 80, comp_name, "comp_name", annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr == NULL, "Error happens when registering the root component (\"%s\") at the model code with the annotation \"%s\": the root compnent has been registered before at the model code with the annotation \"%s\"", comp_name, annotation, comp_comm_group_mgt_mgr->get_annotation_start());
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when registering the root component (\"%s\") at the model code with the annotation \"%s\": the root compnent (\"%s\") has been registered before, at the model code with the annotation \"%s\". Please note that there must be only one root component model at each MPI process", comp_name, annotation, comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), comp_comm_group_mgt_mgr->get_annotation_start());
 	MPI_Initialized(&flag);
 	if (flag == 0) {
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
@@ -390,9 +391,9 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
 	import_report_setting();
 
-	if (*comm != MPI_COMM_NULL) {
+	if (cpp_comm != MPI_COMM_NULL) {
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
-		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(*comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(cpp_comm) == MPI_SUCCESS);
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "After MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
 		
 	}
@@ -400,12 +401,12 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	original_grid_mgr = new Original_grid_mgt();
 	root_comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, local_comm, -1, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
 
-	if (*comm != MPI_COMM_NULL) {
+	if (cpp_comm != MPI_COMM_NULL) {
 		int input_comm_size, new_comm_size;
 		int *input_comm_process_ids, *new_comm_process_ids, *temp_array;
 		int current_proc_global_id, current_proc_local_id;
 		MPI_Comm new_comm;
-		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(*comm, &input_comm_size) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(cpp_comm, &input_comm_size) == MPI_SUCCESS);
 		new_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(root_comp_id, "C-Coupler code in register_root_component for getting component management node");
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(new_comm, &new_comm_size) == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_size == new_comm_size);  // add debug information
@@ -413,7 +414,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 		input_comm_process_ids = new int [input_comm_size];
 		new_comm_process_ids = new int [new_comm_size];
 		temp_array = new int [new_comm_size];
-		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, input_comm_process_ids, 1, MPI_INT, *comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, input_comm_process_ids, 1, MPI_INT, cpp_comm) == MPI_SUCCESS);
 		EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Allgather(&current_proc_global_id, 1, MPI_INT, new_comm_process_ids, 1, MPI_INT, new_comm) == MPI_SUCCESS);
 		do_quick_sort(input_comm_process_ids, temp_array, 0, input_comm_size-1);
 		do_quick_sort(new_comm_process_ids, temp_array, 0, new_comm_size-1);
@@ -425,7 +426,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 		delete [] new_comm_process_ids;
 		delete [] temp_array;
 	}
-	else *comm = local_comm;
+	else *f_comm = MPI_Comm_c2f(local_comm);
 
 	*comp_id = root_comp_id;
 
@@ -445,24 +446,30 @@ extern "C" void register_component
 #else
 extern "C" void register_component_
 #endif
-(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Comm *comm, const char *annotation, int *enabled_in_parent_coupling_gen, int *change_dir, int *comp_id)
+(int *parent_comp_id, const char *comp_name, const char *local_comp_type, MPI_Fint *f_comm, const char *annotation, int *enabled_in_parent_coupling_gen, int *change_dir, int *comp_id)
 {
+	MPI_Comm cpp_comm = MPI_Comm_f2c(*f_comm);
+
+
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register component model \%s\"", comp_name);
 
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id), "Error happens when calling the API \"CCPL_register_component\" to register a component model \"%s\": The parameter of \"parent_id\" (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", comp_name, *parent_comp_id, annotation);
 	check_for_coupling_registration_stage(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, false, annotation);
 	check_API_parameter_string_length(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, 80, comp_name, "comp_name", annotation);
 
-	if (*comm != MPI_COMM_NULL) {
-		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on the parent component", annotation);
-		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, *comm, "registering a component based on an available communicator", comp_name, "comp_name", annotation);
+	if (cpp_comm != MPI_COMM_NULL) {
+		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, cpp_comm, "registering a component based on the parent component", annotation);
+		check_API_parameter_string(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, cpp_comm, "registering a component based on an available communicator", comp_name, "comp_name", annotation);
 	}
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
-	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, *comm, *parent_comp_id, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
+	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, cpp_comm, *parent_comp_id, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
+
+	*f_comm = MPI_Comm_c2f(cpp_comm);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
 }
