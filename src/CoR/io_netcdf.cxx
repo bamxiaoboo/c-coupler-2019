@@ -338,6 +338,16 @@ void IO_netcdf::write_grid(Remap_grid_class *associated_grid, bool write_grid_na
 			write_field_data(leaf_grids[i]->get_sigma_grid_sigma_value_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name, use_script_format);
 			if (leaf_grids[i]->get_hybrid_grid_coefficient_field() != NULL)
 				write_field_data(leaf_grids[i]->get_hybrid_grid_coefficient_field(), associated_grid, true, GRID_CENTER_LABEL, -1, write_grid_name, use_script_format);
+			sprintf(tmp_string, "P0");
+			if (write_grid_name)
+				sprintf(tmp_string, "grid_%d_P0", get_recorded_grid_num(leaf_grids[i]));
+			double P0 = leaf_grids[i]->get_sigma_grid_top_value();			
+			rcode = nc_redef(ncfile_id);
+			report_nc_error();
+			rcode = nc_put_att_double(ncfile_id, NC_GLOBAL, tmp_string, NC_DOUBLE, 1, &P0);
+			report_nc_error();
+			nc_enddef(ncfile_id);
+			report_nc_error();
 		}
         grid_data_field = leaf_grids[i]->get_grid_vertex_field();
         if (grid_data_field != NULL && !grid_data_field->get_coord_value_grid()->get_are_vertex_values_set_in_default()) {
