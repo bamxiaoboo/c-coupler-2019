@@ -292,7 +292,7 @@ void Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights()
 		src_bottom_value_specified = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid_surface_value_field_specified();
 		src_bottom_value_updated = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->is_sigma_grid_surface_value_field_updated();
 		if (src_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_STATIC)
-			EXECUTION_REPORT(REPORT_ERROR, src_original_grid->get_comp_id(), !src_bottom_value_updated || !src_bottom_value_specified, "the surface field of the 3-D grid \"%s\" (registered in the component \"%s\") is updated while the surface field has been specified as a static one. Please verify", src_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_original_grid->get_comp_id(),"in Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights")->get_full_name());
+			EXECUTION_REPORT(REPORT_ERROR, src_original_grid->get_comp_id(), !src_bottom_value_updated || !src_bottom_value_specified, "the surface field of the 3-D grid \"%s\" (registered in the component \"%s\") is updated while the surface field has been specified as a static one. Please verify", src_original_grid->get_grid_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(src_original_grid->get_comp_id(),false,"in Runtime_remapping_weights::renew_dynamic_V1D_remapping_weights")->get_full_name());
 	}
 	if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid()) {
 		dst_bottom_value_specified = dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()->is_sigma_grid_surface_value_field_specified();

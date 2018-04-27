@@ -40,7 +40,7 @@ IO_field::IO_field(int IO_field_id, int comp_or_grid_id, int decomp_id, int fiel
 	strcpy(this->field_long_name, long_name);
 
 	if (decomp_id == -1) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id), "The parameter of component id when calling the CCPL interface \"CCPL_register_IO_field\" for registering IO field \"%s\" is wrong. Please verify the model code with the annotation \"%s\"", field_IO_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id,true), "The parameter of component id when calling the CCPL interface \"CCPL_register_IO_field\" for registering IO field \"%s\" is wrong. Please verify the model code with the annotation \"%s\"", field_IO_name, annotation);
 		this->comp_id = comp_or_grid_id;
 	}
 	else {
@@ -106,9 +106,9 @@ int IO_field_mgt::register_IO_fields(int num_field_inst, int size_field_inst_ids
 
 
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, true, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_field_inst <= size_field_inst_ids, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the array size of the parameter \"field_inst_ids\" cannot be smaller than the parameter \"num_field_inst\". Please check the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_field_inst <= size_field_inst_ids, "Error happers when calling the API \"CCPL_register_IO_fields_from_field_instances\": the array size of the parameter \"field_inst_ids\" cannot be smaller than the parameter \"num_field_inst\". Please check the model code with the annotation \"%s\".", annotation);
 	for (int i = 1; i < num_field_inst; i ++)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_inst_ids[i])->get_comp_id(), "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the field instances specified by the parameter \"field_inst_ids\" do not correspond to the same component model. Please check the model code with the annotation \"%s\".", annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_inst_ids[i])->get_comp_id(), "Error happers when calling the API \"CCPL_register_IO_fields_from_field_instances\": the field instances specified by the parameter \"field_inst_ids\" do not correspond to the same component model. Please check the model code with the annotation \"%s\".", annotation);
 	synchronize_comp_processes_for_API(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""), "registering I/O fields", annotation);
 	check_API_parameter_int(comp_id, API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, comm, NULL, num_field_inst, "\"num_field_inst\"", annotation);
 	for (int i = 0; i < num_field_inst; i ++)
@@ -156,7 +156,7 @@ IO_output_procedure::IO_output_procedure(int comp_id, int procedure_id, Coupling
 
 	field_update_status = new int [IO_fields.size()];
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in IO_output_procedure::IO_output_procedure: wrong comp id");
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true), "Software error in IO_output_procedure::IO_output_procedure: wrong comp id");
 	
 	if (default_field_timer == NULL)
 		field_timer = timer_mgr->get_timer(timer_mgr->define_timer(comp_id, FREQUENCY_UNIT_DAYS, 1, 0, 0, "default timer for I/O fields"));
@@ -245,7 +245,7 @@ Coupling_connection *IO_output_procedure::generate_coupling_connection(int conne
 	if (import_interface != NULL && export_interface != NULL) {		
 		coupling_generator->synchronize_latest_connection_id(comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""));
 		coupling_connection = new Coupling_connection(coupling_generator->apply_connection_id());
-		strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in IO_output_procedure::generate_coupling_connection")->get_full_name());
+		strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,true,"in IO_output_procedure::generate_coupling_connection")->get_full_name());
 		strcpy(coupling_connection->dst_interface_name, import_interface->get_interface_name());
 		std::pair<const char*,const char*> src_comp_interface;
 		src_comp_interface.first = strdup(coupling_connection->dst_comp_full_name);
@@ -314,7 +314,7 @@ Components_IO_output_procedures_mgt::~Components_IO_output_procedures_mgt()
 
 void Components_IO_output_procedures_mgt::add_component_IO_output_procedures(int comp_id, const char *xml_file_name, bool synchronized_IO)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Component_IO_output_procedures::Component_IO_output_procedures: wrong comp id");
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true), "Software error in Component_IO_output_procedures::Component_IO_output_procedures: wrong comp id");
 	// ...
 	int true_comp_id = (comp_id&TYPE_ID_SUFFIX_MASK);
 	for (int i = components_IO_output_procedures.size(); i <= true_comp_id; i ++)
@@ -336,7 +336,7 @@ void Components_IO_output_procedures_mgt::add_all_components_IO_output_procedure
 
 Component_IO_output_procedures *Components_IO_output_procedures_mgt::get_component_IO_output_procedures(int comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Components_IO_output_procedures_mgt::get_component_IO_output_procedures");
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true), "Software error in Components_IO_output_procedures_mgt::get_component_IO_output_procedures");
 	int true_comp_id = comp_id & TYPE_ID_SUFFIX_MASK;
 	EXECUTION_REPORT(REPORT_ERROR, -1, components_IO_output_procedures.size() > true_comp_id && components_IO_output_procedures[true_comp_id] != NULL, "Software error in Components_IO_output_procedures_mgt::get_component_IO_output_procedures");
 	return components_IO_output_procedures[true_comp_id];

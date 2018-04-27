@@ -2988,7 +2988,7 @@
    SUBROUTINE CCPL_get_local_comp_full_name(comp_id, comp_full_name, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
-   character(len=*), intent(out)             :: comp_full_name
+   character(len=*), intent(out)               :: comp_full_name
    character(len=*), intent(in), optional      :: annotation
 
    if (present(annotation)) then

@@ -60,12 +60,12 @@ Coupling_timer::Coupling_timer(int comp_id, int timer_id, int *children_timers_i
 	this->timer_id = timer_id;
 	this->comp_id = comp_id;
 	this->or_or_and = or_or_and;
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_children_timers > 1, "Error happens when calling API \"CCPL_define_complex_timer\": parameter num_children_timers cannot be smaller than 2. Please verify the model code corresponding to the annotation \"%s\"", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, or_or_and == 0 || or_or_and == 1, "Error happens when calling API \"CCPL_define_complex_timer\": the value of the parameter \"OR_or_AND\" must be 0 (means or) or 1 (means and). Please verify the model code corresponding to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_children_timers > 1, "Error happens when calling the API \"CCPL_define_complex_timer\": parameter num_children_timers cannot be smaller than 2. Please verify the model code corresponding to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, or_or_and == 0 || or_or_and == 1, "Error happens when calling the API \"CCPL_define_complex_timer\": the value of the parameter \"OR_or_AND\" must be 0 (means or) or 1 (means and). Please verify the model code corresponding to the annotation \"%s\"", annotation);
 	for (int i = 0; i < num_children_timers; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->get_timer(children_timers_id[i]) != NULL, "Error happens when calling API \"CCPL_define_complex_timer\": the %dth value in parameter \"children_timers_id\" is not a legal ID of a timer. Please verify the model code corresponding to the annotation \"%s\"", i, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->get_timer(children_timers_id[i]) != NULL, "Error happens when calling the API \"CCPL_define_complex_timer\": the %dth value in parameter \"children_timers_id\" is not a legal ID of a timer. Please verify the model code corresponding to the annotation \"%s\"", i, annotation);
 		children.push_back(timer_mgr->get_timer(children_timers_id[i]));
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, children[i]->get_comp_id() == comp_id, "Error happens when calling API \"CCPL_define_complex_timer\": all children timers (\"children_timers_id\") must be corresponding to the same component model with \"comp_id\". Please verify the model code corresponding to the annotation \"%s\"", annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, children[i]->get_comp_id() == comp_id, "Error happens when calling the API \"CCPL_define_complex_timer\": all children timers (\"children_timers_id\") must be corresponding to the same component model with \"comp_id\". Please verify the model code corresponding to the annotation \"%s\"", annotation);
 	}
 	comp_time_mgr = components_time_mgrs->get_time_mgr(comp_id);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_time_mgr != NULL, "Software error in Coupling_timer::Coupling_timer, with annotation \"%s\"", annotation);
@@ -258,7 +258,7 @@ int Timer_mgt::define_timer(int comp_id, const char *freq_unit, int freq_count, 
 
 int Timer_mgt::define_timer(int comp_id, int *timers_id, int num_timers, int array_size, int or_or_and, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size >= num_timers, "Error happens when calling API \"CCPL_define_complex_timer\": the array size of \"children_timers_id\" cannot be smaller than \"num_children_timers\". Please check the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size >= num_timers, "Error happens when calling the API \"CCPL_define_complex_timer\": the array size of \"children_timers_id\" cannot be smaller than \"num_children_timers\". Please check the model code with the annotation \"%s\"", annotation);
 	timers.push_back(new Coupling_timer(comp_id, TYPE_TIMER_ID_PREFIX|timers.size(), timers_id, num_timers, or_or_and, annotation));
  	return timers[timers.size()-1]->get_timer_id();
 }
@@ -394,7 +394,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
 	time_step_in_second = -1;
 	case_desc[0] = '\0';
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Time_mgt::Time_mgt: wrong component id");
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,false), "Software error in Time_mgt::Time_mgt: wrong component id");
 	this->comp_id = comp_id;
 	this->restart_timer = NULL;
 	this->advance_time_synchronized = false;
@@ -645,7 +645,7 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
 	EXECUTION_REPORT(REPORT_WARNING, comp_id, !is_time_out_of_execution(((long)current_num_elapsed_day)*100000+current_second), "Warning happens when advancing the model time at the model code with the annotation \"%s\": the current model time is out of the bounds of the integration period and the model coupling will not executed again. Please make sure that the component model and C-Coupler are consistent in time step, time advancing and integration period (e.g., start time and stop time).", annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second != -1, "Cannot advance the time of the component \"\%s\" at the model code with the annotation \"%s\", because the time step has not been specified.", 
-					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "")->get_comp_name(), annotation);
+					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "")->get_comp_name(), annotation);
 	if (from_external_model && !advance_time_synchronized) {		
 		synchronize_comp_processes_for_API(comp_id, API_ID_TIME_MGT_ADVANCE_TIME, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "C-Coupler code in Time_mgt::advance_model_time"), "advance the time of a component", annotation);
 		advance_time_synchronized = true;		
@@ -667,7 +667,7 @@ double Time_mgt::get_double_current_calendar_time(int shift_second, const char *
 	double calday;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling API \"CCPL_get_current_calendar_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling the API \"CCPL_get_current_calendar_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
 
 	if (leap_year_on && is_a_leap_year(current_year)) {
 		calday = elapsed_days_on_start_of_month_of_leap_year[current_month-1] + current_day + ((double)(current_second+shift_second))/SECONDS_PER_DAY;
@@ -746,7 +746,7 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
 	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, IS_TIME_UNIT_STEP(frequency_unit) || IS_TIME_UNIT_SECOND(frequency_unit) || IS_TIME_UNIT_DAY(frequency_unit) || IS_TIME_UNIT_MONTH(frequency_unit) || IS_TIME_UNIT_YEAR(frequency_unit), 
 	                 "Error happens when defining a timer: the period unit is \"%s\", not one of %s, %s, %s, %s, %s. Please check the model code with the annotation \"%s\"", frequency_unit, TIME_UNIT_STRING_STEP, TIME_UNIT_STRING_SECOND, TIME_UNIT_STRING_DAY, TIME_UNIT_STRING_MONTH, TIME_UNIT_STRING_YEAR, annotation);
-	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
+	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling the API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
 	    if (IS_TIME_UNIT_SECOND(frequency_unit) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "Error happens when defining a timer: the frequency count (%d) in timer is not a multiple of the time step (%d) of the component when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", frequency_count, time_step_in_second, frequency_unit, annotation);
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, local_lag_count%time_step_in_second == 0, "Error happens when defining a timer: the remote lag count (%d) in a timer is not a multiple of the time step (%d) of the component when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", local_lag_count, time_step_in_second, frequency_unit, annotation);        
@@ -793,7 +793,7 @@ void Time_mgt::get_current_time(int &year, int &month, int &day, int &second, in
 	int num_days_in_current_month;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling API \"CCPL_get_current_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling the API \"CCPL_get_current_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
 	
 	year = current_year;
 	month = current_month;
@@ -887,7 +887,7 @@ bool Time_mgt::set_time_step_in_second(int time_step_in_second, const char *anno
 {
 	this->time_step_in_second = time_step_in_second;
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step_in_second > 0, "The value of the time step is wrong when setting the time step of the component \"%s\". It must be a positive value. Please check the model code with the annotation \"%s\"",
-					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "get comp name in Time_mgt::set_time_step_in_second")->get_comp_name(), annotation);
+					 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "get comp name in Time_mgt::set_time_step_in_second")->get_comp_name(), annotation);
 	if (stop_year != -1) {
 		long total_seconds = (stop_num_elapsed_day-current_num_elapsed_day)*((long)SECONDS_PER_DAY) + stop_second-start_second;
 		if (!check_error && total_seconds%((long)time_step_in_second) != 0)
@@ -954,7 +954,7 @@ void Time_mgt::write_time_mgt_into_array(char **array_buffer, long &buffer_max_s
 	write_data_into_array_buffer(&temp_int, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&current_step_id, sizeof(int), array_buffer, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&leap_year_on, sizeof(bool), array_buffer, buffer_max_size, buffer_content_size);
-	dump_string(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), -1, array_buffer, buffer_max_size, buffer_content_size);
+	dump_string(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), -1, array_buffer, buffer_max_size, buffer_content_size);
 	dump_string(case_name, -1, array_buffer, buffer_max_size, buffer_content_size);
 }
 
@@ -1102,10 +1102,10 @@ Components_time_mgt::~Components_time_mgt()
 
 Time_mgt *Components_time_mgt::get_time_mgr(int comp_id)
 {
-	if (!comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id))
+	if (!comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,false))
 		return NULL;
 
-	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler native code get time manager")->get_current_proc_local_id() == -1)
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_current_proc_local_id() == -1)
 		return NULL;
 
 	for (int i = 0; i < components_time_mgrs.size(); i++)
@@ -1129,7 +1129,7 @@ void Components_time_mgt::set_component_time_step(int comp_id, int time_step, co
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
 	if (time_mgr->get_time_step_in_second() != -1 && time_mgr->get_time_step_in_second() != time_step)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_normal_time_step\": the time step of the component \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
-						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
+						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "get the local id of the current component in Components_time_mgt::set_component_time_step") == 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, time_step > 0, "The value of time step is wrong. It must be a positive value. Please check the model code with the annotation \"%s\"", annotation);
@@ -1143,7 +1143,7 @@ void Components_time_mgt::clone_parent_comp_time_mgr(int comp_id, int parent_com
 	Time_mgt *new_time_mgr;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Software error in Components_time_mgt::clone_parent_comp_time_mgr: wrong comp_id");
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,false), "Software error in Components_time_mgt::clone_parent_comp_time_mgr: wrong comp_id");
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, parent_time_mgr != NULL, "Software error in Components_time_mgt::clone_parent_comp_time_mgr: parent time manager is NULL");
 	new_time_mgr = parent_time_mgr->clone_time_mgr(comp_id);
 	components_time_mgrs.push_back(new_time_mgr);

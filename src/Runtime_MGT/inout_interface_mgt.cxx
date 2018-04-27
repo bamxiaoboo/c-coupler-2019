@@ -216,7 +216,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
 	}
 	
 	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT)
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"Connection_coupling_procedure::Connection_coupling_procedure")->update_min_max_remote_lag_seconds(fields_time_info_dst->lag_seconds);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),false,"Connection_coupling_procedure::Connection_coupling_procedure")->update_min_max_remote_lag_seconds(fields_time_info_dst->lag_seconds);
 }
 
 
@@ -330,7 +330,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			else {
 				runtime_data_transfer_algorithm->pass_transfer_parameters(current_remote_fields_time, inout_interface->get_bypass_counter());
 				runtime_data_transfer_algorithm->run(bypass_timer);
-				comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
+				comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 				for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
 						if (runtime_remap_algorithms[i] != NULL)
 							runtime_remap_algorithms[i]->run(true);
@@ -344,7 +344,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 					for (int i = 0; i < fields_mem_registered.size(); i ++)
 						restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true);
 				}
-				comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
+				comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
 			}
 		}
 		finish_status = true;
@@ -614,7 +614,7 @@ void Inout_interface::initialize_data(const char *interface_name, int interface_
 	this->interface_source = interface_source;
 	this->inversed_dst_fraction = NULL;
 	strcpy(this->interface_name, interface_name);
-	strcpy(this->comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Inout_interface::initialize_data")->get_full_name());
+	strcpy(this->comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"in Inout_interface::initialize_data")->get_full_name());
 	this->inst_or_aver = inst_or_aver;
 	annotation_mgr->add_annotation(interface_id, "registering interface", annotation);
 	time_mgr = components_time_mgrs->get_time_mgr(comp_id);
@@ -985,7 +985,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	if (bypass_timer && (execution_checking_status & 0x2) != 0)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
-		synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "software error")->get_comm_group(), "executing an import/export interface", annotation);
+		synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"software error")->get_comm_group(), "executing an import/export interface", annotation);
 		check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", interface_name, "the corresponding interface name", annotation);
 		int bypass_timer_int;
 		if (bypass_timer)
@@ -1038,7 +1038,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT) {
 
 #ifndef USE_DOUBLE_MPI
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
 #endif
 		bool all_finish = false;
 		while (!all_finish) {
@@ -1050,7 +1050,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 			}	
 		}
 #ifndef USE_DOUBLE_MPI
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
 #endif
 	}
 
@@ -1084,7 +1084,7 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
 	Field_mem_info *template_field_dst = children_interfaces[1]->fields_mem_registered[0];
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, template_field_src->get_size_of_field() == size_frac_src, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of the parameter \"frac_src\" is different from the size of each source field instance. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
 	int has_frac_dst = size_frac_dst == -1? 0 : 1;
-	check_API_parameter_int(comp_id, API_ID_INTERFACE_REG_FRAC_REMAP, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in add_remappling_fraction_processing")->get_comm_group(), "specification (or not)", has_frac_dst, "frac_dst", annotation);
+	check_API_parameter_int(comp_id, API_ID_INTERFACE_REG_FRAC_REMAP, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"in add_remappling_fraction_processing")->get_comm_group(), "specification (or not)", has_frac_dst, "frac_dst", annotation);
 	if (size_frac_dst != -1)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, template_field_dst->get_size_of_field() == size_frac_dst, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of the parameter \"frac_dst\" is different from the size of each target field instance. Please verify the model code model with the annotation \"%s\".", API_label, interface_name, annotation);
 
@@ -1351,7 +1351,7 @@ void Inout_interface_mgt::generate_remapping_interface_connection(Inout_interfac
 
 	if (!has_frac_remapping)
 		interfaces.push_back(new_interface);
-	strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(), "in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
+	strcpy(coupling_connection->dst_comp_full_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(new_interface->get_comp_id(),false,"in Inout_interface_mgt::register_normal_remap_interface")->get_full_name());
 	strcpy(coupling_connection->dst_interface_name, child_interface_import->get_interface_name());
 	for (int i = 0; i < num_fields; i ++)
 		coupling_connection->fields_name.push_back(strdup(memory_manager->get_field_instance(field_ids_src[i])->get_field_name()));
@@ -1527,7 +1527,7 @@ void Inout_interface_mgt::execute_interface(int comp_id, int API_id, const char 
 {
 	Inout_interface *inout_interface;
 
-	if (!comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id))
+	if (!comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true))
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "0x%x is not an legal ID of a component. Please check the model code with the annotation \"%s\"", comp_id, annotation);
 	inout_interface = get_interface(comp_id, interface_name);
 	if (inout_interface == NULL)

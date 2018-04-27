@@ -32,9 +32,9 @@
 #define COMP_TYPE_WAVE             "wave"
 #define COMP_TYPE_RUNOFF           "roff"
 #define COMP_TYPE_ROOT             "ROOT"
-#define DATAMODEL_NAME_PREFIX      "DATA_MODEL_"
-#define DATAINST_NAME_PREFIX       "DATA_INST_"
-#define ALGMODEL_NAME_PREFIX       "ALGORITHM_MODEL_"
+#define DATAMODEL_NAME_PREFIX      "DATA_MODEL"
+#define DATAINST_NAME_PREFIX       "DATA_INST"
+#define ALGMODEL_NAME_PREFIX       "ALGORITHM_MODEL"
 
 
 class Comp_comm_group_mgt_node
@@ -87,7 +87,6 @@ class Comp_comm_group_mgt_node
 		int get_local_node_id() { return comp_id; }
 		Comp_comm_group_mgt_node *get_child(int indx) { return children[indx]; }
 		void reset_local_node_id(int);
-		void reset_comm_group(int new_comm_group) { comm_group = new_comm_group; }
 		void reset_current_proc_local_id(int new_current_proc_local_id) { current_proc_local_id = new_current_proc_local_id; }
 		bool is_definition_finalized() { return definition_finalized; }
 		const char *get_annotation_start() { return annotation_start; }
@@ -151,9 +150,9 @@ class Comp_comm_group_mgt_mgr
 		Comp_comm_group_mgt_mgr(const char*);
 		~Comp_comm_group_mgt_mgr();
 		int register_component(const char*, const char*, MPI_Comm&, int, bool, int, const char*);
-		bool is_legal_local_comp_id(int);
+		bool is_legal_local_comp_id(int, bool);
 		void transform_global_node_tree_into_array(Comp_comm_group_mgt_node*, Comp_comm_group_mgt_node**, int&);
-		Comp_comm_group_mgt_node *get_global_node_of_local_comp(int, const char*);
+		Comp_comm_group_mgt_node *get_global_node_of_local_comp(int, bool, const char*);
 		MPI_Comm get_comm_group_of_local_comp(int, const char*);
 		const char *get_executable_name() { return executable_name; }
 		const char *get_annotation_start() { return global_node_array[0]->get_annotation_start(); }
@@ -192,6 +191,7 @@ class Comp_comm_group_mgt_mgr
 		void output_log(const char *, bool);
 		const char *get_exe_log_file_name() { return exe_log_file_name; }		
 		void output_performance_timing();
+		bool does_comp_name_include_reserved_prefix(const char *);
 };
 
 

@@ -149,7 +149,7 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 
 	while(ancestor != NULL && words_are_the_same(ancestor->get_comp_type(), COMP_TYPE_PSEUDO_COUPLED)) 
 		ancestor = ancestor->get_parent();
-	if (ancestor == NULL || words_are_the_same(ancestor->get_comp_name(), "ROOT"))
+	if (ancestor == NULL || words_are_the_same(ancestor->get_comp_name(), COMP_TYPE_ROOT))
 		strcpy(this->full_name, this->comp_name);
 	else sprintf(this->full_name, "%s@%s", ancestor->get_full_name(), this->comp_name);
 	strcpy(this->annotation_start, annotation);
@@ -179,13 +179,13 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 			char tmp_string[NAME_STR_SIZE];
 			sprintf(tmp_string, "for checking the given communicator for registering a child component \"%s\"", comp_name);
 			synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, tmp_string, annotation);			
-			check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, "registering a component model", parent->get_comp_name(), "\"parent_id\" (the corresponding component model)", annotation);
+			check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, comm, "registering a component model", parent->get_comp_name(), "\"parent_id\" (the parent component model)", annotation);
 		}	
 	}
 	else {
 		EXECUTION_REPORT(REPORT_ERROR,-1, parent != NULL, "Software error in Comp_comm_group_mgt_node::Comp_comm_group_mgt_node for checking parent");
-		synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "for checking the communicator of the current component for registering its children component", annotation);
-		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "registering a component model", parent->get_comp_name(), "\"parent_id\" (the corresponding component model)", annotation);
+		synchronize_comp_processes_for_API(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "checking the communicator of the current component for registering its children component", annotation);
+		check_API_parameter_string(parent->get_comp_id(), API_ID_COMP_MGT_REG_COMP, parent->get_comm_group(), "registering a component model", parent->get_comp_name(), "\"parent_id\" (the parent component model)", annotation);
 		parent_comm = parent->get_comm_group();
 		if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
 			EXECUTION_REPORT_LOG(REPORT_LOG, parent->comp_id, true, 
@@ -235,16 +235,15 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(comp_type, COMP_TYPE_CPL) || words_are_the_same(comp_type, COMP_TYPE_ATM) || words_are_the_same(comp_type, COMP_TYPE_ATM_CHEM) || words_are_the_same(comp_type, COMP_TYPE_OCN) ||
 		             words_are_the_same(comp_type, COMP_TYPE_LND) || words_are_the_same(comp_type, COMP_TYPE_SEA_ICE) || words_are_the_same(comp_type, COMP_TYPE_WAVE) || words_are_the_same(comp_type, COMP_TYPE_ROOT) || 
 		             words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED) || words_are_the_same(comp_type, COMP_TYPE_ACTIVE_COUPLED) || words_are_the_same(comp_type, COMP_TYPE_GLC) || words_are_the_same(comp_type, COMP_TYPE_RUNOFF), 
-		             "cannot register component \"%s\" (the corresponding model code annotation is \"%s\") because its type \"%s\" is wrong", 
-		             comp_name, annotation, comp_type);	
+		             "Error happens when registering the component model \"%s\" at the model code with the annotation is \"%s\": the model type \"%s\" is wrong. Please verify.", comp_name, annotation, comp_type);	
 	if (parent != NULL && words_are_the_same(comp_type, COMP_TYPE_PSEUDO_COUPLED))
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(parent->comp_type, COMP_TYPE_PSEUDO_COUPLED) || words_are_the_same(parent->comp_type, COMP_TYPE_ROOT), 
-		                 "Error happens when calling API \"CCPL_register_component\" to register a component model \"%s\" of type \"pesudo_coupled_system\": the type of its parent component model \"%s\" is \"%s\" but not \"pesudo_coupled_system\". Please check the model code related to the annotation \"%s\". Please verify", 
+		                 "Error happens when calling the API \"CCPL_register_component\" to register a component model \"%s\" of type \"pesudo_coupled_system\": the type of its parent component model \"%s\" is \"%s\" but not \"pesudo_coupled_system\". Please check the model code related to the annotation \"%s\". Please verify", 
 		                 comp_name, parent->comp_name, parent->comp_type, annotation);
 /*
 	if (parent != NULL && words_are_the_same(parent->comp_type, COMP_TYPE_PSEUDO_COUPLED) && parent->children.size() > 0)
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, 
-		                 "Error happens when calling API \"CCPL_register_component\" to register a component model \"%s\" at the model code with the annotation \"%s\": its parent \"%s\" is a coupled system (type is \"pesudo_coupled_system\") that can only have one child in a process while it already has a child \"%s\" (registerd at the model code with the annotation \"%s\"). Please verify.", 
+		                 "Error happens when calling the API \"CCPL_register_component\" to register a component model \"%s\" at the model code with the annotation \"%s\": its parent \"%s\" is a coupled system (type is \"pesudo_coupled_system\") that can only have one child in a process while it already has a child \"%s\" (registerd at the model code with the annotation \"%s\"). Please verify.", 
 		                 comp_name, annotation, parent->comp_name, parent->children[0]->comp_name, parent->children[0]->get_annotation_start());
 */
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(comm_group, &current_proc_local_id) == MPI_SUCCESS);
@@ -765,21 +764,30 @@ void Comp_comm_group_mgt_mgr::transform_global_node_tree_into_array(Comp_comm_gr
 }
 
 
-bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id)
+bool Comp_comm_group_mgt_mgr::is_legal_local_comp_id(int local_comp_id, bool is_external_call)
 {
+	int i;
+
+	
 	if ((local_comp_id&TYPE_ID_PREFIX_MASK) != TYPE_COMP_LOCAL_ID_PREFIX)
 		return false;
-	for (int i = 0; i < global_node_array.size(); i ++)
+	
+	for (i = 0; i < global_node_array.size(); i ++)
 		if (local_comp_id == global_node_array[i]->get_comp_id())
-			return true;
+			break;
 
-	return false;
+	if (i == global_node_array.size())
+		return false;
+
+	if (is_external_call)
+	 	return !does_comp_name_include_reserved_prefix(global_node_array[i]->get_comp_name());
+	else return true;
 }
 
 
 int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const char *comp_type, MPI_Comm &comm, int parent_local_id, bool enabled_in_parent_coupling_gen, int change_dir, const char *annotation)
 {
-	int i, true_parent_id = 0;
+	int i;
 	Comp_comm_group_mgt_node *root_local_node, *new_comp;
 	MPI_Comm global_comm = MPI_COMM_WORLD;
 	char hint[NAME_STR_SIZE];
@@ -795,12 +803,10 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 			break;
 		
 	if (i < global_node_array.size())
-		EXECUTION_REPORT(REPORT_ERROR, -1, i == global_node_array.size(),  
-		                 "Error happens when registering a component model named \"%s\" at the model code with the annotation \"%s\": a component model with the same name has already been registered before at the model code with the annotation \"%s\".", 
-		                 comp_name, annotation, global_node_array[i]->get_annotation_start());
+		EXECUTION_REPORT(REPORT_ERROR, -1, i == global_node_array.size(), "Error happens when registering a component model named \"%s\" at the model code with the annotation \"%s\": a component model with the same name has already been registered before, at the model code with the annotation \"%s\". Please note that, any two component models on the same MPI process cannot have the same name", comp_name, annotation, global_node_array[i]->get_annotation_start());
 
 	if (parent_local_id == -1) {
-		root_local_node = new Comp_comm_group_mgt_node("ROOT", COMP_TYPE_ROOT, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, enabled_in_parent_coupling_gen, annotation);
+		root_local_node = new Comp_comm_group_mgt_node(COMP_TYPE_ROOT, COMP_TYPE_ROOT, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, NULL, global_comm, enabled_in_parent_coupling_gen, annotation);
 		global_node_array.push_back(root_local_node);
 		global_node_root = root_local_node;
 		new_comp = new Comp_comm_group_mgt_node(comp_name, comp_type, (unique_comp_id_indx++)|TYPE_COMP_LOCAL_ID_PREFIX, root_local_node, comm, enabled_in_parent_coupling_gen, annotation);
@@ -857,15 +863,15 @@ int Comp_comm_group_mgt_mgr::register_component(const char *comp_name, const cha
 
 	EXECUTION_REPORT(REPORT_PROGRESS, new_comp->get_comp_id(), true, "The component model \"%s\" is successfully registered at the model code with the annotation \"%s\".", new_comp->get_full_name(), annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), strncmp(comp_name, DATAINST_NAME_PREFIX, strlen(DATAINST_NAME_PREFIX)) != 0 && strncmp(comp_name, DATAMODEL_NAME_PREFIX, strlen(DATAMODEL_NAME_PREFIX)) != 0 && strncmp(comp_name, ALGMODEL_NAME_PREFIX, strlen(ALGMODEL_NAME_PREFIX)) != 0, "Error happens when registering a component model \"%s\": its name should not include the prefix \"%s\", \"%s\" and \"%s\". Please verify the model code with the annotation \"%s\"", comp_name, DATAINST_NAME_PREFIX, DATAMODEL_NAME_PREFIX, ALGMODEL_NAME_PREFIX, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, new_comp->get_comp_id(), !does_comp_name_include_reserved_prefix(comp_name), "Error happens when registering a component model \"%s\": its name should not include the prefix \"%s\", \"%s\", \"%s\" and \"%s\". Please verify the model code with the annotation \"%s\"", comp_name, COMP_TYPE_ROOT, DATAINST_NAME_PREFIX, DATAMODEL_NAME_PREFIX, ALGMODEL_NAME_PREFIX, annotation);
 
 	return new_comp->get_local_node_id();
 }
 
 
-Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp(int local_comp_id, const char *annotation)
+Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp(int local_comp_id, bool is_external_call, const char *annotation)
 {	
-	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, is_legal_local_comp_id(local_comp_id), "The id of component is wrong when getting the management node of a component. Please check the model code with the annotation \"%s\"", annotation); 
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, is_legal_local_comp_id(local_comp_id, is_external_call), "The id of component is wrong when getting the management node of a component. Please check the model code with the annotation \"%s\"", annotation); 
 
 	return search_global_node(local_comp_id);
 }
@@ -873,27 +879,27 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::get_global_node_of_local_comp
 
 MPI_Comm Comp_comm_group_mgt_mgr::get_comm_group_of_local_comp(int local_comp_id, const char *annotation)
 {
-	return get_global_node_of_local_comp(local_comp_id, annotation)->get_comm_group();
+	return get_global_node_of_local_comp(local_comp_id,false,annotation)->get_comm_group();
 }
 
 
 void Comp_comm_group_mgt_mgr::get_output_data_file_header(int comp_id, char *data_file_header)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_data_file_header");
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id, true), "software error in Comp_comm_group_mgt_mgr::get_data_file_header");
 	sprintf(data_file_header, "%s/%s", search_global_node(comp_id)->get_working_dir(), search_global_node(comp_id)->get_comp_name());
 }
 
 
 const char *Comp_comm_group_mgt_mgr::get_comp_ccpl_log_file_name(int comp_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_comp_ccpl_log_file_name");
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id, true), "software error in Comp_comm_group_mgt_mgr::get_comp_ccpl_log_file_name");
 	return search_global_node(comp_id)->get_comp_ccpl_log_file_name();
 }
 
 
 const char *Comp_comm_group_mgt_mgr::get_comp_model_log_file(int comp_id, int &device_id)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::get_comp_model_log_file");
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id, true), "software error in Comp_comm_group_mgt_mgr::get_comp_model_log_file");
 	return search_global_node(comp_id)->get_comp_model_log_file(device_id);
 }
 
@@ -949,7 +955,7 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::search_global_node(int global
 
 int Comp_comm_group_mgt_mgr::get_current_proc_id_in_comp(int comp_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), 
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id, true), 
 		             "The component id specified for getting the id of the current process is wrong. Please check the model code with the annotation %s.", 
 		             annotation); 
 	return search_global_node(comp_id)->get_current_proc_local_id();
@@ -958,7 +964,7 @@ int Comp_comm_group_mgt_mgr::get_current_proc_id_in_comp(int comp_id, const char
 
 int Comp_comm_group_mgt_mgr::get_num_proc_in_comp(int comp_id, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id), 
+	EXECUTION_REPORT(REPORT_ERROR, -1, is_legal_local_comp_id(comp_id, true), 
 		             "The component id specified for getting the the number of processes is wrong. Please check the model code with the annotation %s.", 
 		             annotation); 
 	EXECUTION_REPORT(REPORT_ERROR, -1, search_global_node(comp_id)->get_current_proc_local_id() != -1, 
@@ -970,8 +976,8 @@ int Comp_comm_group_mgt_mgr::get_num_proc_in_comp(int comp_id, const char *annot
 
 void Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active(int comp_id, int API_id, bool require_real_model, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "software error in Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active");
-	get_global_node_of_local_comp(comp_id, "in Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active")->confirm_coupling_configuration_active(API_id, require_real_model, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, true), "software error in Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active");
+	get_global_node_of_local_comp(comp_id,true,"in Comp_comm_group_mgt_mgr::confirm_coupling_configuration_active")->confirm_coupling_configuration_active(API_id, require_real_model, annotation);
 }
 
 
@@ -1019,7 +1025,7 @@ Comp_comm_group_mgt_node *Comp_comm_group_mgt_mgr::pop_comp_node()
 
 void Comp_comm_group_mgt_mgr::set_current_proc_current_time(int comp_id, int days, int second)
 {
-	get_global_node_of_local_comp(comp_id,"Comp_comm_group_mgt_mgr::set_current_proc_time")->set_current_proc_current_time(days, second);
+	get_global_node_of_local_comp(comp_id,true,"Comp_comm_group_mgt_mgr::set_current_proc_time")->set_current_proc_current_time(days, second);
 }
 
 
@@ -1092,3 +1098,11 @@ void Comp_comm_group_mgt_mgr::output_performance_timing()
 			global_node_array[i]->get_performance_timing_mgr()->performance_timing_output();
 }
 
+
+bool Comp_comm_group_mgt_mgr::does_comp_name_include_reserved_prefix(const char *comp_name)
+{
+	return strncmp(comp_name, COMP_TYPE_ROOT, strlen(COMP_TYPE_ROOT)) == 0 || 
+		   strncmp(comp_name, DATAINST_NAME_PREFIX, strlen(DATAINST_NAME_PREFIX)) == 0 || 
+		   strncmp(comp_name, DATAMODEL_NAME_PREFIX, strlen(DATAMODEL_NAME_PREFIX)) == 0 || 
+		   strncmp(comp_name, ALGMODEL_NAME_PREFIX, strlen(ALGMODEL_NAME_PREFIX)) == 0;
+}

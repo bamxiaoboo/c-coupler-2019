@@ -28,7 +28,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 	this->center_lon_values = NULL;
 	this->center_lat_values = NULL;
 	this->grid_name = strdup(grid_name);
-	comp_full_name = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+	comp_full_name = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "Original_grid_info")->get_full_name());
 	annotation_mgr->add_annotation(this->grid_id, "grid_registration", annotation);
 	generate_remapping_grids();
 
@@ -45,7 +45,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 
 	if (model_registration && H2D_sub_CoR_grid != NULL && V1D_sub_CoR_grid == NULL && T1D_sub_CoR_grid == NULL) {
 		char nc_file_name[NAME_STR_SIZE];
-		sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+		sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "Original_grid_info")->get_full_name());
 		if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in register_h2d_grid_with_data") == 0) {
 			IO_netcdf *netcdf_file_object = new IO_netcdf("H2D_grid_data", nc_file_name, "w", false);
 			netcdf_file_object->write_grid(H2D_sub_CoR_grid, false, true);
@@ -68,7 +68,7 @@ Original_grid_info::Original_grid_info(int comp_id, int grid_id, const char *gri
 			netcdf_file_object->put_global_attr("title", grid_name, DATA_TYPE_STRING, DATA_TYPE_STRING, -1);
 			delete netcdf_file_object;
 			char status_file_name[NAME_STR_SIZE];
-			sprintf(status_file_name, "%s/%s@%s.nc.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "Original_grid_info")->get_full_name());
+			sprintf(status_file_name, "%s/%s@%s.nc.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "Original_grid_info")->get_full_name());
 			FILE *status_file = fopen(status_file_name, "w+");
 			EXECUTION_REPORT(REPORT_ERROR, -1, status_file != NULL, "Software error in Comp_comm_group_mgt_node::merge_comp_comm_info: configuration ending status file cannot be created: %s", status_file_name);
 			fclose(status_file);
@@ -201,20 +201,20 @@ void Original_grid_info::get_grid_data(int decomp_id, const char *label, const c
 	Remap_grid_class *field_CoR_grid;
 	
 		
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(label, COORD_LABEL_LON) || words_are_the_same(label, COORD_LABEL_LAT) || words_are_the_same(label, GRID_MASK_LABEL), "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the label is wrong (must be \"lon\", \"lat\" or \"mask\"). Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(label, COORD_LABEL_LON) || words_are_the_same(label, COORD_LABEL_LAT) || words_are_the_same(label, GRID_MASK_LABEL), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the label is wrong (must be \"lon\", \"lat\" or \"mask\"). Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);	
 	if (words_are_the_same(label, GRID_MASK_LABEL))
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type, DATA_TYPE_INT), "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the data type corresponding to the parameter of \"grid_data\" is wrong when the label is \"mask\" (the right data type must be integer). Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the data type corresponding to the parameter of \"grid_data\" is wrong when the label is not \"mask\" (the right data type must be floating-point). Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type, DATA_TYPE_INT), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the data type corresponding to the parameter of \"grid_data\" is wrong when the label is \"mask\" (the right data type must be integer). Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the data type corresponding to the parameter of \"grid_data\" is wrong when the label is not \"mask\" (the right data type must be floating-point). Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size > 0, "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the array of \"grid_data\" has not been allocated. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size > 0, "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the array of \"grid_data\" has not been allocated. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
 	if (decomp_id != -1) {
 		field_CoR_grid = decomp_grids_mgr->search_decomp_grid_info(decomp_id, original_CoR_grid, false)->get_decomp_grid();
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells(), "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the array size of the parameter of \"grid_data\" is different from the size corresponding to the parallel decomposition. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_CoR_grid(decomps_info_mgr->get_decomp_info(decomp_id)->get_grid_id()) == original_CoR_grid, "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the grid_id and decomp_id do not correspond to the same H2D grid. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells(), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the array size of the parameter of \"grid_data\" is different from the size corresponding to the parallel decomposition. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_CoR_grid(decomps_info_mgr->get_decomp_info(decomp_id)->get_grid_id()) == original_CoR_grid, "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the grid_id and decomp_id do not correspond to the same H2D grid. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
 	}
 	else {
 		field_CoR_grid = H2D_sub_CoR_grid;
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == field_CoR_grid->get_grid_size(), "Error happens when calling API \"%s\" to get the grid data of an H2D grid \"%s\": the array size of the parameter of \"grid_data\" is different from the size corresponding to the parallel decomposition. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == field_CoR_grid->get_grid_size(), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid \"%s\": the array size of the parameter of \"grid_data\" is different from the size corresponding to the parallel decomposition. Please verify the model code with the annotation \"%s.", API_label, grid_name, annotation);
 	}
 
 	if (!words_are_the_same(label, GRID_MASK_LABEL)) {
@@ -341,7 +341,7 @@ Original_grid_info *Original_grid_mgt::search_grid_info(int grid_id)
 
 void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_name, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,false), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
 	if (search_grid_info(grid_name, comp_id) != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to register grid \"%s\" again because it has already been registered before. Please check the model code with the annotation \"%s\" and \"%s\"", grid_name, search_grid_info(grid_name, comp_id)->get_annotation(), annotation);
 }
@@ -354,9 +354,9 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 	int line_number;
 	
 
-	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in register_H2D_grid_via_comp")->get_full_name());
+	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "in register_H2D_grid_via_comp")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_H2D_grid_via_comp"), false);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, XML_file != NULL, "Error happens when calling the API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") does not exist. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 
 	TiXmlElement *root_XML_element;
 	TiXmlNode *root_XML_element_node = get_XML_first_child_of_unique_root(comp_id, XML_file_name, XML_file);
@@ -376,13 +376,13 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 			if (words_are_the_same(xml_grid_name, grid_name)) {
 				another_comp_full_name = get_XML_attribute(comp_id, 512, grid_XML_element, "another_comp_full_name", XML_file_name, line_number, "the full name of the another component", "the coupling connection configuration file", true);
 				another_comp_grid_name = get_XML_attribute(comp_id, 80, grid_XML_element, "another_comp_grid_name", XML_file_name, line_number, "the grid name of the another component", "the coupling connection configuration file", true);
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(another_comp_grid_name) > 0, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") specifies an empty name of the remote grid. Please check the XML file around line number %d", grid_name, XML_file_name, line_number);
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(another_comp_grid_name) > 0, "Error happens when calling the API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") specifies an empty name of the remote grid. Please check the XML file around line number %d", grid_name, XML_file_name, line_number);
 				break;
 			}
 		}	
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL && another_comp_grid_name != NULL, "Error happens when calling the C-Coupler API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, another_comp_full_name != NULL && another_comp_grid_name != NULL, "Error happens when calling the API \"CCPL_register_H2D_grid_from_another_component\" to register an H2D grid \"%s\": the coupling connection configuration file (\"%s\") does not contain the information for this grid. The API call is at the model code with the annotation \"%s\". ", grid_name, XML_file_name, annotation);
 	sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), another_comp_grid_name, another_comp_full_name);
 	sprintf(status_file_name, "%s/%s@%s.nc.end", comp_comm_group_mgt_mgr->get_comps_ending_config_status_dir(), another_comp_grid_name, another_comp_full_name);
 	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Wait to read NetCDF file \"%s\" to register H2D grid \"%s\" based on the grid \"%s\" of remote component \"%s\". Dead wait will be encounted if the full name of the remote component is wrong. So please make sure the full name of the remote component is correct in the the coupling connection configuration file (\"%s\")", nc_file_name, grid_name, another_comp_grid_name, another_comp_full_name, XML_file_name);
@@ -496,17 +496,17 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 
 	get_API_hint(comp_id, API_id, API_label);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_local_cells >= 0, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": the number of local cells is wrong (smaller than 0). Please check the model code related to \"%s\"", API_label, grid_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_local_cells <= size_local_cells_global_index, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": the array size of \"local_cells_global_index\" is smaller than \"num_local_cells\". Please check the model code related to \"%s\"", API_label, grid_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *decomp_id == 0 && strlen(decomp_name) > 0 || *decomp_id == -1 && strlen(decomp_name) == 0, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": parameters \"decomp_name\" and \"decomp_id\" are not speicified/unspecified at the same time. Please check the model code related to \"%s\"", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_local_cells >= 0, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": the number of local cells is wrong (smaller than 0). Please check the model code related to \"%s\"", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_local_cells <= size_local_cells_global_index, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": the array size of \"local_cells_global_index\" is smaller than \"num_local_cells\". Please check the model code related to \"%s\"", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *decomp_id == 0 && strlen(decomp_name) > 0 || *decomp_id == -1 && strlen(decomp_name) == 0, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": parameters \"decomp_name\" and \"decomp_id\" are not speicified/unspecified at the same time. Please check the model code related to \"%s\"", API_label, grid_name, annotation);
 	
 	common_checking_for_H2D_registration_via_data(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, size_mask, size_center_lon, size_center_lat, 
 		                                          size_vertex_lon, size_vertex_lat, mask, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, vertex_lon, vertex_lat, annotation, API_id);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, grid_size > 0, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": the \"grid_size\" is too small (smaller than 1). Please check the model code related to \"%s\"", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, grid_size > 0, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": the \"grid_size\" is too small (smaller than 1). Please check the model code related to \"%s\"", API_label, grid_name, annotation);
 	check_API_parameter_int(comp_id, API_id, comm, NULL, grid_size, "\"grid_size\"", annotation);
 	for (int i = 0; i < num_local_cells; i ++)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_index[i] >= 1 && local_cells_global_index[i] <= grid_size, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": some values in \"local_cells_global_index\" are out of bound (smaller than 1 or larger than \"grid_size\"). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_index[i] >= 1 && local_cells_global_index[i] <= grid_size, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": some values in \"local_cells_global_index\" are out of bound (smaller than 1 or larger than \"grid_size\"). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
 
 	data_type_size = get_data_type_size(data_type);
 	char *global_center_lon = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_center_lon, data_type_size, (char*) center_lon, "center_lon", num_local_cells, local_cells_global_index, global_center_lon_size, annotation);
@@ -514,7 +514,7 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 	char *global_area = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_area, data_type_size, (char*) area, "area", num_local_cells, local_cells_global_index, global_area_size, annotation);
 	char *global_vertex_lon = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_vertex_lon, data_type_size, (char*) vertex_lon, "vertex_lon", num_local_cells, local_cells_global_index, global_vertex_lon_size, annotation);
 	char *global_vertex_lat = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_vertex_lat, data_type_size, (char*) vertex_lat, "vertex_lat", num_local_cells, local_cells_global_index, global_vertex_lat_size, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, global_vertex_lon_size == global_vertex_lat_size, "Error happens when calling API \"%s\" to register an H2D grid \"%s\": \"vertex_lon\" or \"vertex_lat\" are not consistent with each other (not specified/unspecified at the same time or have different array sizes). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, global_vertex_lon_size == global_vertex_lat_size, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": \"vertex_lon\" or \"vertex_lat\" are not consistent with each other (not specified/unspecified at the same time or have different array sizes). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
 
 	int *global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_mask, sizeof(int), (char*) mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
 	if (global_mask == NULL) {
@@ -548,7 +548,7 @@ int Original_grid_mgt::create_H2D_grid_from_global_data(int comp_id, const char 
 	double min_lon_value, max_lon_value, min_lat_value, max_lat_value;
 
 
-	sprintf(true_H2D_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, annotation)->get_full_name());
+	sprintf(true_H2D_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, annotation)->get_full_name());
 	sprintf(true_lon_grid_name, "lon_%s", true_H2D_grid_name);
 	sprintf(true_lat_grid_name, "lat_%s", true_H2D_grid_name);
 	if (dim_size2 == 0) {
@@ -786,7 +786,7 @@ int Original_grid_mgt::register_V1D_grid_via_data(int API_id, int comp_id, const
 	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", grid_size, sizeof(double), (const char*)(value2), "floating-point parameters", annotation);
 	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_V1D_grid_via_data"), "registering a V1D grid", grid_size, sizeof(double), (const char*)(value3), "floating-point parameters", annotation);
 
-	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in register_V1D_grid_via_data")->get_full_name());
+	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"in register_V1D_grid_via_data")->get_full_name());
 	CoR_V1D_grid = new Remap_grid_class(full_grid_name, COORD_LABEL_LEV, coord_unit, NULL, grid_size);
 	if (grid_type == 1)
 		CoR_V1D_grid->read_grid_data_from_array("center", COORD_LABEL_LEV, DATA_TYPE_DOUBLE, (const char*)value2, 0);
@@ -841,7 +841,7 @@ int Original_grid_mgt::register_md_grid_via_multi_grids(int comp_id, const char 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_V1D_grid <= 1, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": more than one V1D grid are used to generate a multi-dimension grid. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_T1D_grid <= 1, "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": more than one T1D grid are used to generate a multi-dimension grid. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
 	
-	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"register_md_grid_via_multi_grids")->get_full_name());
+	sprintf(full_grid_name, "%s@%s", grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"register_md_grid_via_multi_grids")->get_full_name());
 	CoR_MD_grid = new Remap_grid_class(full_grid_name, num_sub_grids, sub_grids, 0);
 	if (size_mask > 0)	{
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_mask == CoR_MD_grid->get_grid_size(), "Error happends when calling the API \"CCPL_register_MD_grid_via_multi_grids\" to register a multi-dimension grid \"%s\": the array size of \"mask\" is different from the grid size. Please check the model code related to the annotation \"%s\".", grid_name, annotation);
@@ -865,18 +865,18 @@ void Original_grid_mgt::set_3d_grid_bottom_field(int comp_id, int grid_id, int f
 
 	synchronize_comp_processes_for_API(comp_id, API_id, local_comm, "setting the surface field of a 3-D grid", annotation);
 	check_API_parameter_string(comp_id, API_id, local_comm, "setting the surface field of a 3-D grid", original_grid->get_grid_name(), "\"grid_id\" (the name of the 3-D grid)", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->is_3D_grid(), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid \"%s\": this grid is not a 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->get_original_CoR_grid()->is_sigma_grid(), "Error happens when calling API \"%s\" to set the surface field of the 3-D grid \"%s\": cannot set the surface field to this grid because its V1D sub grid is not a SIGMA or HYBRID grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->is_3D_grid(), "Error happens when calling the API \"%s\" to set the surface field of a 3-D grid \"%s\": this grid is not a 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid->get_original_CoR_grid()->is_sigma_grid(), "Error happens when calling the API \"%s\" to set the surface field of the 3-D grid \"%s\": cannot set the surface field to this grid because its V1D sub grid is not a SIGMA or HYBRID grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation);
 	if (original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling API \"%s\" to set the surface field of the 3-D grid \"%s\": the surface field has been set before at the model code with the annotation \"%s\" and cannot be set again at the model code with the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation_mgr->get_annotation(grid_id, "set surface field"), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"%s\" to set the surface field of the 3-D grid \"%s\": the surface field has been set before at the model code with the annotation \"%s\" and cannot be set again at the model code with the annotation \"%s\".", API_label, original_grid->get_grid_name(), annotation_mgr->get_annotation(grid_id, "set surface field"), annotation);
 	if (static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
 		check_API_parameter_field_instance(comp_id, API_id, local_comm, "setting the surface field of a 3-D grid", field_id, "\"field_id\" (the corresponding surface field)", annotation);
 		Field_mem_info *field_inst = memory_manager->get_field_instance(field_id);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, field_inst->get_grid_id() != -1, "Error happens when calling API \"%s\" to set the surface field of the 3-D grid \"%s\": the surface field \"%s\" is not on a grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, field_inst->get_grid_id() != -1, "Error happens when calling the API \"%s\" to set the surface field of the 3-D grid \"%s\": the surface field \"%s\" is not on a grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
 		field_original_grid = original_grid_mgr->get_original_grid(field_inst->get_grid_id());
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, field_original_grid->is_H2D_grid(), "Error happens when calling API \"%s\" to set the surface field of the 3-D grid \"%s\": the grid \"%s\" corresponding to the surface field \"%s\" is not a H2D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, field_original_grid->get_original_CoR_grid()->is_subset_of_grid(original_grid->get_original_CoR_grid()), "Error happens when calling API \"%s\" to set the surface field of the 3-D grid \"%s\": the grid \"%s\" corresponding to the surface field \"%s\" is not a sub grid of the 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(field_inst->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(field_inst->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "Error happens when calling API \"%s\" to set the surface field of the 3-D grid \"%s\": the data type of the surface field \"%s\" is not floating-point. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, field_original_grid->is_H2D_grid(), "Error happens when calling the API \"%s\" to set the surface field of the 3-D grid \"%s\": the grid \"%s\" corresponding to the surface field \"%s\" is not a H2D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, field_original_grid->get_original_CoR_grid()->is_subset_of_grid(original_grid->get_original_CoR_grid()), "Error happens when calling the API \"%s\" to set the surface field of the 3-D grid \"%s\": the grid \"%s\" corresponding to the surface field \"%s\" is not a sub grid of the 3-D grid. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(field_inst->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(field_inst->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE), "Error happens when calling the API \"%s\" to set the surface field of the 3-D grid \"%s\": the data type of the surface field \"%s\" is not floating-point. Please check the model code related to the annotation \"%s\".", API_label, original_grid->get_grid_name(), field_inst->get_field_name(), annotation);
 	}
 	original_grid->set_unique_bottom_field(field_id, static_or_dynamic_or_external, annotation);
 	if (original_grid->get_mid_point_grid() != NULL)
@@ -897,9 +897,9 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	original_CoR_grid = remap_grid_manager->search_remap_grid_with_grid_name(CoR_grid_name);
 	if (original_CoR_grid == NULL)
 		if (strlen(CoR_script_name) > 0)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not define the corresponding CoR grid. Please check the CoR script or the model code corresponding to the annotation \"%s\"",
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not define the corresponding CoR grid. Please check the CoR script or the model code corresponding to the annotation \"%s\"",
 				             grid_name, CoR_grid_name, CoR_script_name, annotation);	
-		else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not exist. Please verify", 
+		else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not exist. Please verify", 
 				              grid_name, CoR_grid_name, CoR_script_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->format_sub_grids(original_CoR_grid), "Please modify the definition of grid \"%s\" in the CoR script \"%s\". We propose to order the dimensions of the grid into the order such as lon, lat, level and time");
 	original_CoR_grid->end_grid_definition_stage(NULL);
@@ -908,13 +908,13 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	original_grid = new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, original_CoR_grid, true);
 	original_grids.push_back(original_grid);
 	if (original_grid->get_H2D_sub_CoR_grid() != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->get_grid_center_field(COORD_LABEL_LON) != NULL, "Error happens when calling API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not specify the center values of longitude (X) of the CoR grid. Please verify.", grid_name, CoR_grid_name, CoR_script_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->get_grid_center_field(COORD_LABEL_LAT) != NULL, "Error happens when calling API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not specify the center values of latitude (Y) of the CoR grid. Please verify.", grid_name, CoR_grid_name, CoR_script_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->get_grid_center_field(COORD_LABEL_LON) != NULL, "Error happens when calling the API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not specify the center values of longitude (X) of the CoR grid. Please verify.", grid_name, CoR_grid_name, CoR_script_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->get_grid_center_field(COORD_LABEL_LAT) != NULL, "Error happens when calling the API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not specify the center values of latitude (Y) of the CoR grid. Please verify.", grid_name, CoR_grid_name, CoR_script_file_name);
 	}
 	if (original_grid->get_V1D_sub_CoR_grid() != NULL) {
 		Remap_grid_data_class *level_field = original_CoR_grid->get_grid_center_field(COORD_LABEL_LEV);
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, level_field != NULL && level_field->get_coord_value_grid()->get_grid_size() == original_grid->get_V1D_sub_CoR_grid()->get_grid_size(),
-						 "Error happens when calling API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not specify the center values of the vertical coordinate of the CoR grid or the vertical coordinate is not a Z grid. Please verify.", grid_name, CoR_grid_name, CoR_script_file_name);
+						 "Error happens when calling the API \"CCPL_register_CoR_defined_grid\" to register grid \"%s\" based on the CoR grid \"%s\": the CoR script \"%s\" does not specify the center values of the vertical coordinate of the CoR grid or the vertical coordinate is not a Z grid. Please verify.", grid_name, CoR_grid_name, CoR_script_file_name);
 	}
 	return original_grid->get_local_grid_id();
 }
@@ -973,7 +973,7 @@ int Original_grid_mgt::get_grid_size(int grid_id, const char *annotation) const
 
 int Original_grid_mgt::get_grid_id(int comp_id, const char *grid_name, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when getting the ID of a grid: the parameter of component ID is wrong. Please verify the model code corresponding to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,false), "Error happens when getting the ID of a grid: the parameter of component ID is wrong. Please verify the model code corresponding to the annotation \"%s\"", annotation);
 	Original_grid_info *original_grid = search_grid_info(grid_name, comp_id);
 	if (original_grid == NULL)
 		return -1;
@@ -1023,11 +1023,11 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(level_3D_grid->get_comp_id(), "in Original_grid_mgt::register_mid_point_grid");
 	synchronize_comp_processes_for_API(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", annotation);
 	check_API_parameter_string(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", level_3D_grid->get_grid_name(), "\"level_3D_grid_id\" (the name of the interface-level grid)", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), level_3D_grid->is_3D_grid(), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the grid specified by the parameter \"level_3D_grid_id\" is not a 3-D grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), level_3D_grid->is_3D_grid(), "Error happens when calling the API \"%s\" to register the mid-point grid of a grid: the grid specified by the parameter \"level_3D_grid_id\" is not a 3-D grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	if (level_3D_grid->get_mid_point_grid() != NULL)	
-		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the mid-point grid of the grid \"%s\" has been registered before (at the model code with the annotation \"%s\"). Please verify the model code with the annotation \"%s\".", API_label, level_3D_grid->get_grid_name(), level_3D_grid->get_mid_point_grid()->get_annotation(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling the API \"%s\" to register the mid-point grid of a grid: the mid-point grid of the grid \"%s\" has been registered before (at the model code with the annotation \"%s\"). Please verify the model code with the annotation \"%s\".", API_label, level_3D_grid->get_grid_name(), level_3D_grid->get_mid_point_grid()->get_annotation(), annotation);
 	if (level_3D_grid->get_interface_level_grid() != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the specified interface-level grid itself is a mid-point grid (registered at the model code with the annotation \"%s\") of the grid \"%s\". It cannot be used to register another mid-point grid. Please verify the model code with the annotation \"%s.", API_label, level_3D_grid->get_annotation(), level_3D_grid->get_interface_level_grid()->get_grid_name(), annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), false, "Error happens when calling the API \"%s\" to register the mid-point grid of a grid: the specified interface-level grid itself is a mid-point grid (registered at the model code with the annotation \"%s\") of the grid \"%s\". It cannot be used to register another mid-point grid. Please verify the model code with the annotation \"%s.", API_label, level_3D_grid->get_annotation(), level_3D_grid->get_interface_level_grid()->get_grid_name(), annotation);
 	check_API_parameter_data_array(level_3D_grid->get_comp_id(), API_ID_GRID_MGT_REG_MID_POINT_GRID, comm, "registering a mid-point grid", size_mask, sizeof(int), (const char*)mask, "\"mask\"", annotation);
 	level_1D_CoR_grid = level_3D_grid->get_V1D_sub_CoR_grid();
 	level_H2D_CoR_grid = level_3D_grid->get_H2D_sub_CoR_grid(); 
@@ -1054,8 +1054,8 @@ void Original_grid_mgt::register_mid_point_grid(int level_3D_grid_id, int *mid_3
 	*mid_3D_grid_id = mid_3D_grid->get_grid_id();
 	level_3D_grid->set_mid_point_grid(mid_3D_grid);
 	if (size_mask > 0) {
-		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), size_mask == mid_3D_CoR_grid->get_grid_size(), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the array size of \"mask\" is different from the size of the mid-point grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), are_array_values_between_boundaries("integer", mask, size_mask, 0, 1, 0, false), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: some values of the parameter \"mask\" are wrong (not 0 and 1). Please check the model code related to the annotation \"%s\".", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), size_mask == mid_3D_CoR_grid->get_grid_size(), "Error happens when calling the API \"%s\" to register the mid-point grid of a grid: the array size of \"mask\" is different from the size of the mid-point grid. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, level_3D_grid->get_comp_id(), are_array_values_between_boundaries("integer", mask, size_mask, 0, 1, 0, false), "Error happens when calling the API \"%s\" to register the mid-point grid of a grid: some values of the parameter \"mask\" are wrong (not 0 and 1). Please check the model code related to the annotation \"%s\".", API_label, annotation);
 		mid_3D_CoR_grid->read_grid_data_from_array("mask", "mask", DATA_TYPE_INT, (const char*)mask, 0);
 	}
 }

@@ -30,10 +30,8 @@ void check_for_component_registered(int comp_id, int API_ID, const char *annotat
 	check_for_ccpl_managers_allocated(API_ID, annotation);
 
 	if (comp_id == -1)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, enable_minus_1, "The component ID (-1) is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
-	
-	if (comp_id != -1)
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) && comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in check_for_component_registered") >= 0, "The component ID is wrong when calling the C-Coupler API \"%s\". Please check the model code with the annotation \"%s\"", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, enable_minus_1, "Error happens when calling the API \"%s\": the given component model ID (-1) is not valid. Please check the model code with the annotation \"%s\"", API_label, annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, true) && comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "in check_for_component_registered") >= 0, "Error happens when calling the API \"%s\": the given component ID (0x%d) is wrong. Please check the model code with the annotation \"%s\"", API_label, comp_id, annotation);
 }
 
 
@@ -420,7 +418,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 		do_quick_sort(new_comm_process_ids, temp_array, 0, new_comm_size-1);
 		for (int i = 0; i < input_comm_size; i ++)
 			EXECUTION_REPORT(REPORT_ERROR,-1, input_comm_process_ids[i] == new_comm_process_ids[i], 
-			                 "The communicator of root component \"%s\" does not match the communicator generated (processes of the two communicators are not the same). Please check the model code with the annotation \"%s\"",
+			                 "The communicator of root component model \"%s\" does not match the communicator generated (processes of the two communicators are not the same). Please check the model code with the annotation \"%s\"",
 			                 comp_name, annotation);
 		delete [] input_comm_process_ids;
 		delete [] new_comm_process_ids;
@@ -434,7 +432,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	components_time_mgrs->define_root_comp_time_mgr(root_comp_id, file_name);
 	fields_info = new Field_info_mgt();
 	remapping_configuration_mgr->add_remapping_configuration(comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id());
-	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(root_comp_id,"")->is_real_component_model())
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(root_comp_id, true, "")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(root_comp_id);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering the root component model");
@@ -454,7 +452,7 @@ extern "C" void register_component_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register component model \%s\"", comp_name);
 
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id), "Error happens when calling the API \"CCPL_register_component\" to register a component model \"%s\": The parameter of \"parent_id\" (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", comp_name, *parent_comp_id, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id, true), "Error happens when calling the API \"CCPL_register_component\" to register a component model \"%s\": The parameter of \"parent_id\" (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", comp_name, *parent_comp_id, annotation);
 	check_for_coupling_registration_stage(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, false, annotation);
 	check_API_parameter_string_length(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, 80, comp_name, "comp_name", annotation);
 
@@ -465,13 +463,13 @@ extern "C" void register_component_
 	else synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*parent_comp_id, "C-Coupler code for get comm group in register_component interface"), "registering component based on the parent component", annotation);
 
 	*comp_id = comp_comm_group_mgt_mgr->register_component(comp_name, local_comp_type, cpp_comm, *parent_comp_id, (*enabled_in_parent_coupling_gen) == 1, *change_dir, annotation);
-	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->is_real_component_model())
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->is_real_component_model())
 		remapping_configuration_mgr->add_remapping_configuration(*comp_id);
 	components_time_mgrs->clone_parent_comp_time_mgr(*comp_id, *parent_comp_id, annotation);
 
 	*f_comm = MPI_Comm_c2f(cpp_comm);
 
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
 
@@ -502,7 +500,7 @@ extern "C" void get_ccpl_comp_log_file_device_
 (int *comp_id, int *log_file_device_id, int *log_file_opened, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_LOG_FILE_DEVICE, annotation, true);
-	*log_file_opened = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "get_ccpl_comp_log_file_device_")->open_comp_model_log_file(log_file_device_id);
+	*log_file_opened = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, "get_ccpl_comp_log_file_device_")->open_comp_model_log_file(log_file_device_id);
 }
 
 
@@ -518,9 +516,11 @@ extern "C" void get_id_of_component_
 	check_API_parameter_string_length(-1, API_ID_COMP_MGT_GET_COMP_ID, 80, comp_name, "comp_name", annotation);
 
 	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_comp_with_comp_name(comp_name);
+	if (comp_comm_group_mgt_mgr->does_comp_name_include_reserved_prefix(comp_name))
+		node = NULL;
 
 	if (node == NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling API \"CCPL_get_component_id\" to get the ID of component \"%s\": no component with the name of \"%s\" has been registerred. Please check the model code at the annotation \"%s\"", comp_name, comp_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling the API \"CCPL_get_component_id\" to get the ID of a component model: no component model with the name of \"%s\" has been registerred. Please check the model code at the annotation \"%s\"", comp_name, annotation);
 		*comp_id = -1;
 	}
 	else *comp_id = node->get_local_node_id();	
@@ -534,7 +534,7 @@ extern "C" void check_is_comp_type_coupled_
 #endif
 (int *comp_id, const char *comp_type, int *is_coupled, const char *annotation)
 {
-	check_for_component_registered(-1, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, annotation, true);
+	check_for_component_registered(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, annotation, true);
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "check_is_comp_type_coupled_"), "synchorization for checking whether a type of component models is coupled", annotation);
 	check_API_parameter_string(*comp_id, API_ID_COMP_MGT_IS_COMP_TYPE_COUPLED, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "check_is_comp_type_coupled_"), "checking whether a type of component models have been registered to C-Coupler", comp_type, "comp_type", annotation);
 	if (comp_comm_group_mgt_mgr->is_comp_type_coupled(*comp_id, comp_type, annotation))
@@ -553,6 +553,8 @@ extern "C" void is_current_process_in_component_
 	check_for_component_registered(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, annotation, true);
 	check_API_parameter_string_length(-1, API_ID_COMP_MGT_IS_CURRENT_PROC_IN_COMP, 512, comp_full_name, "comp_full_name", annotation);
 	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->search_global_node(comp_full_name);
+	if (comp_node != NULL && comp_comm_group_mgt_mgr->does_comp_name_include_reserved_prefix(comp_node->get_comp_name()))
+		comp_node = NULL;
 	*is_in_comp = comp_node != NULL && comp_node->get_current_proc_local_id() != -1? 1 : 0;
 }
 
@@ -590,7 +592,7 @@ extern "C" void get_comp_proc_global_id_
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_GET_COMP_PROC_GLOBAL_ID, annotation, false);
 	int num_proc = comp_comm_group_mgt_mgr->get_num_proc_in_comp(*comp_id, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *local_proc_id >= 0 && *local_proc_id < num_proc, "Error happens when calling the API \"CCPL_get_component_process_global_id\": the parameter \"local_proc_id\" is wrong (its value is %d, not between 0 and %d). Please verify the model code corresponding to the annotation \"%s\"", *local_proc_id, num_proc-1, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *local_proc_id >= 0 && *local_proc_id < num_proc, "Error happens when calling the API \"CCPL_get_component_process_global_id\": the parameter \"local_proc_id\" is wrong (its value (%d) is not between 0 and %d (maximum local process ID)). Please verify the model code corresponding to the annotation \"%s\"", *local_proc_id, num_proc-1, annotation);
 	*global_proc_id = comp_comm_group_mgt_mgr->search_global_node(*comp_id)->get_local_proc_global_id(*local_proc_id);
 }
 
@@ -645,10 +647,10 @@ extern "C" void ccpl_family_coupling_generation_
 (int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);
-	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
 	coupling_generator->generate_coupling_procedures_internal(*comp_id, true, annotation);
-	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
 
@@ -660,10 +662,10 @@ extern "C" void ccpl_individual_coupling_generation_
 (int *comp_id, const char * annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
-	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_individual_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);	
 	coupling_generator->generate_coupling_procedures_internal(*comp_id, false, annotation);
-	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
 
@@ -714,18 +716,18 @@ extern "C" void ccpl_end_registration_
 {
 	check_for_component_registered(*comp_id, API_ID_COMP_MGT_END_COMP_REG, annotation, false);
 	
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());	
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to end the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());	
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_end_registration_"), "first synchorization for ending the registration of a component", annotation);
 
 	if (((*comp_id) & TYPE_ID_SUFFIX_MASK) == 1) {
-		coupling_generator->do_overall_coupling_generation(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in ccpl_end_registration_")->get_comp_full_name(), annotation);
+		coupling_generator->do_overall_coupling_generation(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, "in ccpl_end_registration_")->get_comp_full_name(), annotation);
  		coupling_generator->generate_IO_procedures();
 		delete all_H2D_remapping_wgt_files_info;
 	}
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COMP_MGT_END_COMP_REG, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in register_component for getting component management node"), "second synchorization for ending the registration of a component", annotation);
 
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish ending the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
-	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "The coupling registration stage of the component model \"%s\" is successfully ended at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name(), annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish ending the coupling registration for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, "")->get_full_name());
+	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "The coupling registration stage of the component model \"%s\" is successfully ended at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name(), annotation);
 }
 
 
@@ -762,8 +764,8 @@ extern "C" void register_v1d_grid_with_data_
 	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_id, annotation);
 
 	get_API_hint(*comp_id, API_id, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 != 0 && *dim_size3 != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some parameters of array have not be allocated. Please verify the model code with the annotation \"%s\" (please make sure all the arrays of grid data have been allocated)", API_label, grid_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: grid size is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s\".", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 != 0 && *dim_size3 != 0, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": some parameters of array have not be allocated. Please verify the model code with the annotation \"%s\" (please make sure all the arrays of grid data have been allocated)", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: grid size is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s\".", API_label, grid_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Software error in register_V1D_grid_with_data: wrong data type");
 	temp_value2 = new double [*dim_size2];
 	temp_value3 = new double [*dim_size3];
@@ -778,8 +780,8 @@ extern "C" void register_v1d_grid_with_data_
 		transform_datatype_of_arrays((double*)value3, temp_value3, *dim_size3);
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0, "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
-//	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the C-Coupler API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
+//	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
 	*grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, *comp_id, grid_name, *grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, annotation);
 
 	delete [] temp_value2;
@@ -809,14 +811,14 @@ extern "C" void set_3d_grid_surface_field_
 	else EXECUTION_REPORT(REPORT_ERROR, -1, false, "software error in set_3d_grid_surface_field_: wrong value of static_or_dynamic_or_external");
 	get_API_hint(-1, API_id, API_label);	
 	check_for_component_registered(-1, API_id, annotation, true);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling the API \"%s\" to set the surface field of a 3-D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to set surface field for the 3D grid %s", original_grid_mgr->get_name_of_grid(*grid_id));
 	
 	comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the parameter of \"field_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling API \"%s\" to set the surface field of a 3-D grid: the components corresponding to the parameters of \"grid_id\" and \"field_id\" are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->check_is_legal_field_instance_id(*field_id), "Error happens when calling the API \"%s\" to set the surface field of a 3-D grid: the parameter of \"field_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(*field_id)->get_comp_id(), "Error happens when calling the API \"%s\" to set the surface field of a 3-D grid: the components corresponding to the parameters of \"grid_id\" and \"field_id\" are different. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	}	
 	check_for_coupling_registration_stage(comp_id, API_id, true, annotation);
 	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
@@ -860,7 +862,7 @@ extern "C" void register_h2d_grid_with_global_data_
 												                    API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA);
 	if (report_error_enabled) {
 		char nc_file_name[NAME_STR_SIZE];
-		sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_full_name());
+		sprintf(nc_file_name, "%s/%s@%s.nc", comp_comm_group_mgt_mgr->get_internal_H2D_grids_dir(), grid_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, annotation)->get_full_name());
 		char temp_grid_name[NAME_STR_SIZE];
 		sprintf(temp_grid_name, "%s_temp", grid_name);
 		original_grid_mgr->register_H2D_grid_via_file(*comp_id, temp_grid_name, nc_file_name, annotation);
@@ -960,7 +962,7 @@ extern "C" void register_mid_point_grid_
 
 	get_API_hint(-1, API_ID_GRID_MGT_REG_MID_POINT_GRID, API_label);	
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_REG_MID_POINT_GRID, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*level_3D_grid_id), "Error happens when calling API \"%s\" to register the mid-point grid of a grid: the grid ID of the interface-level grid (level_3D_grid_id) is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*level_3D_grid_id), "Error happens when calling the API \"%s\" to register the mid-point grid of a grid: the grid ID of the interface-level grid (level_3D_grid_id) is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	check_for_coupling_registration_stage(original_grid_mgr->get_comp_id_of_grid(*level_3D_grid_id), API_ID_GRID_MGT_REG_MID_POINT_GRID, true, annotation);
 	original_grid_mgr->register_mid_point_grid(*level_3D_grid_id, mid_3D_grid_id, mid_1D_grid_id, *size_mask, mask, annotation, API_label);
 
@@ -1018,11 +1020,11 @@ extern "C" void get_h2d_grid_data_
 
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_H2D_GRID_DATA, annotation);
 	get_API_hint(-1, API_ID_GRID_MGT_GET_H2D_GRID_DATA, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the grid \"%s\" is not an H2D grid. Please verify the model code with the annotation \"%s.", API_label, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
-	EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), *decomp_id == -1 || decomps_info_mgr->is_decomp_id_legal(*decomp_id), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the decomp_id is wrong (must be -1 or a legal decomp_id). Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid: the parameter of \"grid_id\" is wrong. Please verify the model code with the annotation \"%s.", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid: the grid \"%s\" is not an H2D grid. Please verify the model code with the annotation \"%s.", API_label, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), *decomp_id == -1 || decomps_info_mgr->is_decomp_id_legal(*decomp_id), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid: the decomp_id is wrong (must be -1 or a legal decomp_id). Please verify the model code with the annotation \"%s.", API_label, annotation);
 	if (*decomp_id != -1)
-		EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), original_grid_mgr->get_comp_id_of_grid(*grid_id) == decomps_info_mgr->get_decomp_info(*decomp_id)->get_comp_id(), "Error happens when calling API \"%s\" to get the grid data of an H2D grid: the grid_id and decomp_id do not correspond to the same component model. Please verify the model code with the annotation \"%s.", API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, original_grid_mgr->get_comp_id_of_grid(*grid_id), original_grid_mgr->get_comp_id_of_grid(*grid_id) == decomps_info_mgr->get_decomp_info(*decomp_id)->get_comp_id(), "Error happens when calling the API \"%s\" to get the grid data of an H2D grid: the grid_id and decomp_id do not correspond to the same component model. Please verify the model code with the annotation \"%s.", API_label, annotation);
 	original_grid_mgr->get_original_grid(*grid_id)->get_grid_data(*decomp_id, label, data_type, *array_size, grid_data, annotation, API_label);
 }
 
@@ -1037,19 +1039,19 @@ extern "C" void register_parallel_decomposition_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a parallel decomp %s", decomp_name);
 	
 	check_for_ccpl_managers_allocated(API_ID_DECOMP_MGT_REG_DECOMP, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	int comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
 	check_API_parameter_string_length(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, 80, decomp_name, "decomp_name", annotation);
 	check_for_coupling_registration_stage(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, true, annotation);
 	check_and_verify_name_format_of_string_for_API(comp_id, decomp_name, API_ID_DECOMP_MGT_REG_DECOMP, "the parallel decomposition", annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the grid \"%s\" corresponding to the parameter \"grid_id\" is not a horizontal grid. Please check the model code with the annotation \"%s\"", decomp_name, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the array size of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\". Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the grid \"%s\" corresponding to the parameter \"grid_id\" is not a horizontal grid. Please check the model code with the annotation \"%s\"", decomp_name, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the array size of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\". Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	int grid_size = original_grid_mgr->get_original_grid(*grid_id)->get_original_CoR_grid()->get_grid_size();
 	for (int i = 0; i < *num_local_cells; i ++)
 		if (local_cells_global_indx[i] != CCPL_NULL_INT)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values (for example %d) in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, local_cells_global_indx[i], annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling the API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values (for example %d) in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, local_cells_global_indx[i], annotation);
 		
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 
@@ -1103,8 +1105,8 @@ extern "C" void register_io_fields_from_field_instances_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register I/O fields");
 
 	check_for_ccpl_managers_allocated(API_ID_FIELD_MGT_REG_IO_FIELDs_from_INSTs, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, *num_field_inst > 0, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"num_field_inst\" must be larger than 0. Please check the model code with the annotation \"%s\".", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, *size_field_inst_ids > 0, "Error happers when calling API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"field_inst_ids\" seems to be an empty array, which means it has not been allocated. Please check the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *num_field_inst > 0, "Error happers when calling the API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"num_field_inst\" must be larger than 0. Please check the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, *size_field_inst_ids > 0, "Error happers when calling the API \"CCPL_register_IO_fields_from_field_instances\": the parameter \"field_inst_ids\" seems to be an empty array, which means it has not been allocated. Please check the model code with the annotation \"%s\".", annotation);
 	IO_fields_mgr->register_IO_fields(*num_field_inst, *size_field_inst_ids, field_inst_ids, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering I/O fields");
@@ -1138,8 +1140,8 @@ extern "C" void define_single_timer_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to define a timer");
 	
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, true, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling API \"CCPL_define_single_timer\": the time step of the corresponding component has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
-		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling the API \"CCPL_define_single_timer\": the time step of the corresponding component has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *local_lag_count, *remote_lag_count, annotation);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish defining a timer");
@@ -1157,7 +1159,7 @@ extern "C" void define_complex_timer_
 
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, true, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
-		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, annotation)->get_comp_name(), annotation);
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, annotation)->get_comp_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *array_size, *or_or_and, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish defining a timer");
@@ -1173,13 +1175,13 @@ extern "C" void set_component_time_step_
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, true, annotation);
 
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to set the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to set the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 		
 	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in set_component_time_step_"), "setting the time step of a component model", annotation);
 	check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), NULL, *time_step_in_second, "time step (the unit is seconds)", annotation);
 	components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
 	
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finsh setting the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finsh setting the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
 
@@ -1192,10 +1194,10 @@ extern "C" void reset_component_current_time_to_start_time_
 {
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_RESET_TIME_TO_START, true, annotation);
 
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to reset the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to reset the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 	synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in CCPL_reset_current_time_to_start_time_"), "resetting the current time of a component model to the initial time", annotation);
 	components_time_mgrs->get_time_mgr(*comp_id)->reset_current_time_to_start_time(annotation);
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finishing resetting the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name());	
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finishing resetting the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());	
 }
 
 
@@ -1211,7 +1213,7 @@ extern "C" void advance_component_time_
 	check_for_component_registered(*comp_id, API_ID_TIME_MGT_ADVANCE_TIME, annotation, false);
 //	components_IO_output_procedures_mgr->get_component_IO_output_procedures(*comp_id)->execute();
 	components_time_mgrs->advance_component_time(*comp_id, annotation);
-	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "Component model \"%s\" advance time at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"")->get_full_name(), annotation);
+	EXECUTION_REPORT(REPORT_PROGRESS, *comp_id, true, "Component model \"%s\" advance time at the model code with the annotation \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name(), annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish advancing time");
 }
 
@@ -1225,8 +1227,8 @@ extern "C" void ccpl_write_restart_
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart write");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE_IO, annotation, false);
-	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1);
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->is_real_component_model())
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart write");
 }
 
@@ -1240,8 +1242,8 @@ extern "C" void ccpl_read_restart_
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart read");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_START_READ_IO, annotation, false);
-	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->is_real_component_model())
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,annotation)->get_restart_mgr()->read_restart_mgt_info(specified_file_name, annotation);
+	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->is_real_component_model())
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->get_restart_mgr()->read_restart_mgt_info(specified_file_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart read");
 }
 
@@ -1335,8 +1337,8 @@ extern "C" void is_restart_timer_on_
 (int *comp_id, int *check_result, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_IS_TIMER_ON, annotation, false);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in is_restart_timer_on_")->is_real_component_model(), "Error happens when calling the API CCPL_is_restart_timer_on: the given component model \"%s\" is not a real model. Please verify the model code related to the annotation \"%s\"",
-		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,"in is_restart_timer_on_")->get_comp_full_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"in is_restart_timer_on_")->is_real_component_model(), "Error happens when calling the API CCPL_is_restart_timer_on: the given component model \"%s\" is not a real model. Please verify the model code related to the annotation \"%s\"",
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"in is_restart_timer_on_")->get_comp_full_name(), annotation);
 	if (components_time_mgrs->get_time_mgr(*comp_id)->is_restart_timer_on())
 		*check_result = 1;
 	else *check_result = 0;
@@ -1529,7 +1531,7 @@ extern "C" void get_local_comp_full_name_
 (int *comp_id, char *comp_full_name, int *comp_full_name_size, const char *annotation)
 {
 	check_for_component_registered(*comp_id, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, annotation, false);
-	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, "in get_local_comp_full_name_")->get_full_name();
+	const char *full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, "in get_local_comp_full_name_")->get_full_name();
 	copy_out_string_to_Fortran_API(*comp_id, *comp_full_name_size, comp_full_name, full_name, API_ID_INTERFACE_GET_LOCAL_COMP_FULL_NAME, "comp_full_name", annotation);
 }
 

@@ -84,30 +84,30 @@ void Performance_timing_unit::timing_output()
 {
 	if (unit_type == TIMING_TYPE_IO) {
 		if (unit_behavior == TIMING_IO_INPUT) 
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for reading input data file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for reading input data file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time);
 		else if (unit_behavior == TIMING_IO_OUTPUT) 
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for writing output data file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for writing output data file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time);
 		else if (unit_behavior == TIMING_IO_RESTART)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for writing restart file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for writing restart file at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time);
 	}
 	else if (unit_type == TIMING_TYPE_COMMUNICATION) {
 		if (unit_behavior == TIMING_COMMUNICATION_RECV_WAIT)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for waiting for receiving data from the component model \"%s\" at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for waiting for receiving data from the component model \"%s\" at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 		else if (unit_behavior == TIMING_COMMUNICATION_RECV)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for receiving data (without the time of querrying buffer status) from the component model \"%s\" at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for receiving data (without the time of querrying buffer status) from the component model \"%s\" at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 		else if (unit_behavior == TIMING_COMMUNICATION_SEND_WAIT)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for waiting for sending data at the export interface \"%s\" at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for waiting for sending data at the export interface \"%s\" at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 		else if (unit_behavior == TIMING_COMMUNICATION_SEND)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for sending data to the component model \"%s\" (without the time of querrying buffer status) at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for sending data to the component model \"%s\" (without the time of querrying buffer status) at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 		else if (unit_behavior == TIMING_COMMUNICATION_SEND_QUERRY)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for querrying the status of the remote data buffer of the component model \"%s\" for data send at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for querrying the status of the remote data buffer of the component model \"%s\" for data send at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 		else if (unit_behavior == TIMING_COMMUNICATION_RECV_QUERRY)
-			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for querrying the status of the local data buffer for data receive from the component model \"%s\" at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+			EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "TIMING RESULT: the component model \"%s\" spends %lf seconds for querrying the status of the local data buffer for data receive from the component model \"%s\" at the current process", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 //		if (unit_behavior == TIMING_COMMUNICATION_SENDRECV)
 //			printf("%s spends %lf seconds for data communication for data remapping in each process on average\n", compset_communicators_info_mgr->get_current_comp_name(), all_process_sum_time/num_procs);
 	}
 	else if (unit_type == TIMING_TYPE_COMPUTATION)
-		EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "the component model \"%s\" spends %lf seconds for numerical algorithm %s at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_full_name(), total_time, unit_char_keyword);
+		EXECUTION_REPORT(REPORT_CONSTANTLY, comp_id, true, "the component model \"%s\" spends %lf seconds for numerical algorithm %s at the current process\n", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_full_name(), total_time, unit_char_keyword);
 }
 
 

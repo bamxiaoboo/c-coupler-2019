@@ -144,7 +144,7 @@ void H2D_remapping_wgt_file_info::get_checksum_mask(int comp_id, const char *mas
 {
 	int local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
 	int wgts_status_tag = checksum_mask != -1? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "in H2D_remapping_wgt_file_info::read_remapping_weights");
 	MPI_Comm file_read_comm;
 
 
@@ -169,7 +169,7 @@ void H2D_remapping_wgt_file_info::read_grid_size(int comp_id, const char *label,
 	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
 	char data_type[NAME_STR_SIZE];
 	int wgts_status_tag = grid_size != -1? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "in H2D_remapping_wgt_file_info::read_remapping_weights");
 	MPI_Comm file_read_comm;
 
 
@@ -194,7 +194,7 @@ void H2D_remapping_wgt_file_info::read_weight_grid_data(int comp_id, const char 
 	int field_size, i, local_proc_id_in_file_read_comm, num_procs_in_file_read_comm;
 	char data_type[NAME_STR_SIZE];
 	int wgts_status_tag = (*buffer_ptr) != NULL? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "in H2D_remapping_wgt_file_info::read_remapping_weights");
 	MPI_Comm file_read_comm;
 
 
@@ -221,7 +221,7 @@ void H2D_remapping_wgt_file_info::read_remapping_weights(int comp_id)
 	char data_type[NAME_STR_SIZE];
 	int *temp_wgts_src_indexes, *temp_wgts_dst_indexes;
 	int wgts_status_tag = wgts_src_indexes != NULL? 1 : 0;
-	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in H2D_remapping_wgt_file_info::read_remapping_weights");
+	Comp_comm_group_mgt_node *comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "in H2D_remapping_wgt_file_info::read_remapping_weights");
 	MPI_Comm file_read_comm;
 
 
@@ -1034,10 +1034,10 @@ void Remapping_configuration_mgt::add_remapping_configuration(int comp_id)
 		remapping_configurations.push_back(new Remapping_configuration());
 
 	char XML_file_name[NAME_STR_SIZE];
-	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration");
+	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false,"in Remapping_configuration_mgt::add_remapping_configuration");
 	if (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id())
 		sprintf(XML_file_name, "%s/all/overall_remapping_configuration.xml", comp_comm_group_mgt_mgr->get_config_root_dir());
-	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_root_comp_config_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
+	else sprintf(XML_file_name, "%s/remapping_configs/%s.remapping_configuration.xml", comp_comm_group_mgt_mgr->get_root_comp_config_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false,"in Remapping_configuration_mgt::add_remapping_configuration")->get_full_name());
 	TiXmlDocument *XML_file = open_XML_file_to_read(comp_id, XML_file_name, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Remapping_configuration::Remapping_configuration"), false);
 	if (XML_file == NULL) {
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The remapping configuration file \"%s\" for the current component does not exist.", XML_file_name);
@@ -1061,7 +1061,7 @@ Remapping_configuration *Remapping_configuration_mgt::search_remapping_configura
 void Remapping_configuration_mgt::get_field_remapping_setting(Remapping_setting &field_remapping_setting, int comp_id, const char *field_name)
 {
 	field_remapping_setting.reset_remapping_setting();
-	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Remapping_configuration_mgt::get_current_remapping_setting");
+	Comp_comm_group_mgt_node *current_comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "in Remapping_configuration_mgt::get_current_remapping_setting");
 	EXECUTION_REPORT(REPORT_ERROR, -1, current_comp_node != NULL, "Software error in Remapping_configuration_mgt::get_field_remapping_setting1");
 	for (; current_comp_node != NULL; current_comp_node = current_comp_node->get_parent()) {
 		Remapping_configuration *current_remapping_configuration = search_remapping_configuration(current_comp_node->get_comp_id());

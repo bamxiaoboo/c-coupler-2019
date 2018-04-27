@@ -85,7 +85,7 @@ void wtime(double *t)
 
 void report_header(int report_type, int comp_id, bool &condition, char *output_format)
 {
-	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
+	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, true) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
 	
 	output_format[0] = '\0';
@@ -106,7 +106,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_f
 		case REPORT_PROGRESS:
 			if (comp_id == -1)
 				condition = comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0 && report_progress_enabled;
-			else condition = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_current_proc_local_id() == 0 && report_progress_enabled;
+			else condition = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,true,"")->get_current_proc_local_id() == 0 && report_progress_enabled;
 			break;
 		case REPORT_CONSTANTLY:
 			condition = true;
@@ -176,7 +176,7 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_f
 			int current_second = components_time_mgrs->get_time_mgr(comp_id)->get_current_second();
 			int current_step_id = components_time_mgrs->get_time_mgr(comp_id)->get_current_step_id();
 			sprintf(output_format+strlen(output_format)-2, " in the component model \"%s\" corresponding to the executable named \"%s\", at the current simulation time of %08d-%05d (the current step number is %d): ", 
-				    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"execution report")->get_full_name(), comp_comm_group_mgt_mgr->get_executable_name(), current_date, current_second, current_step_id);
+				    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,true,"execution report")->get_full_name(), comp_comm_group_mgt_mgr->get_executable_name(), current_date, current_second, current_step_id);
 		}
 	}
 #endif
@@ -197,7 +197,7 @@ void execution_report(int report_type, int comp_id, bool condition, const char *
 	strcat(output_format, format);
 	strcat(output_format, "\n\n");
 
-	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
+	if (comp_id != -1 && (comp_id == comp_comm_group_mgt_mgr->get_global_node_root()->get_comp_id() || !comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, true) || components_time_mgrs->get_time_mgr(comp_id) == NULL))
 		comp_id = -1;
 
 	va_list pArgList;

@@ -89,11 +89,11 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 	remote_comp_node_updated = false;
 	timer_not_bypassed = false;
     comp_id = local_comp_node->get_comp_id();
-	comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Runtime_trans_algorithm::Runtime_trans_algorithm");
+	comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "in Runtime_trans_algorithm::Runtime_trans_algorithm");
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
     time_mgr = components_time_mgrs->get_time_mgr(comp_id);
-	EXECUTION_REPORT(REPORT_ERROR, -1, time_mgr != NULL, "software error in Runtime_trans_algorithm::Runtime_trans_algorithm: wrong time mgr: %x: %d: %d: %s : %s: %s %s %s", comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler native code get time manager")->get_current_proc_local_id(), current_proc_local_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "C-Coupler native code get time manager")->get_comp_full_name(), local_comp_node->get_comp_full_name(), remote_comp_node->get_comp_full_name(), fields_routers[0]->get_src_comp_node()->get_comp_name(), fields_routers[0]->get_dst_comp_node()->get_comp_name());
+	EXECUTION_REPORT(REPORT_ERROR, -1, time_mgr != NULL, "software error in Runtime_trans_algorithm::Runtime_trans_algorithm: wrong time mgr: %x: %d: %d: %s : %s: %s %s %s", comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_current_proc_local_id(), current_proc_local_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_comp_full_name(), local_comp_node->get_comp_full_name(), remote_comp_node->get_comp_full_name(), fields_routers[0]->get_src_comp_node()->get_comp_name(), fields_routers[0]->get_dst_comp_node()->get_comp_name());
     num_remote_procs = remote_comp_node->get_num_procs();
     num_local_procs = local_comp_node->get_num_procs();
     remote_proc_ranks_in_union_comm = new int [num_remote_procs];
@@ -519,7 +519,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 		remote_comp_node->allocate_proc_latest_model_time();
 	}
 #ifdef USE_DOUBLE_MPI
-	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
+	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     if (!is_first_run) {
         for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
             int remote_proc_index = index_remote_procs_with_common_data[i];
@@ -527,7 +527,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
             MPI_Wait(&request[i], &state);
         }
     }
-	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
+	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     is_first_run = false;
 #endif
 

@@ -181,7 +181,7 @@ void check_for_ccpl_managers_allocated(int API_ID, const char *annotation)
 	
 
 	get_API_hint(-1, API_ID, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Error happens when calling the API \"%s\": the stage of registering coupling configurations has not been started or the C-Coupler has been finalized. Please call the C-Coupler API \"CCPL_register_component\" for the registration of the root component model (parameter \"parent_id\" should be -1) to start the configuration stage. Please check the model code related to the annotation \"%s\".", API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr != NULL, "Error happens when calling the API \"%s\": the stage of registering coupling configurations has not been started or the C-Coupler has been finalized. Please call the API \"CCPL_register_component\" for the registration of the root component model (parameter \"parent_id\" should be -1) to start the configuration stage. Please check the model code related to the annotation \"%s\".", API_label, annotation);
 }
 
 
@@ -192,7 +192,7 @@ void check_for_coupling_registration_stage(int comp_id, int API_ID, bool require
 
 	get_API_hint(-1, API_ID, API_label);
 	check_for_ccpl_managers_allocated(API_ID, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "Error happens when calling the API \"%s\": The parameter of component ID (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, comp_id, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true), "Error happens when calling the API \"%s\": The parameter of component ID (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", API_label, comp_id, annotation);
 	comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_ID, require_real_model, annotation);		
 }
 

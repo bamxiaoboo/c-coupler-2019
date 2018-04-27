@@ -127,7 +127,7 @@ Decomp_info *Decomp_info_mgt::generate_remap_weights_src_decomp(Decomp_info *dst
 	int i, j, num_local_cells = 0, src_H2D_original_grid_id;
 
 
-    sprintf(decomp_name_remap, "src_decomp_for_%s_%s_%s", remap_weights->get_object_name(), dst_decomp_info->get_decomp_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(dst_decomp_info->get_comp_id(),"in Decomp_info_mgt::generate_remap_weights_src_decomp")->get_comp_full_name());
+    sprintf(decomp_name_remap, "src_decomp_for_%s_%s_%s", remap_weights->get_object_name(), dst_decomp_info->get_decomp_name(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(dst_decomp_info->get_comp_id(),true,"in Decomp_info_mgt::generate_remap_weights_src_decomp")->get_comp_full_name());
 	dst_decomp_info->check_local_cell_global_indx();
     decomp_map_src = new long [src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size()];
 	decomp_map_dst = new long [dst_original_grid->get_H2D_sub_CoR_grid()->get_grid_size()];
@@ -185,7 +185,7 @@ int Decomp_info_mgt::register_H2D_parallel_decomposition(const char *decomp_name
 
 	if (search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id)) != NULL)
 		EXECUTION_REPORT(REPORT_ERROR, new_decomp->get_comp_id(), false, 
-		                 "Error happens when calling API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\" at the model code with the annotation \"%s\": a parallel decomposition with the same name has already been registered before at the model code with the annotations \"%s\". Please verify.",
+		                 "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\" at the model code with the annotation \"%s\": a parallel decomposition with the same name has already been registered before at the model code with the annotations \"%s\". Please verify.",
 					     decomp_name, annotation, annotation_mgr->get_annotation(search_decomp_info(decomp_name, original_grid_mgr->get_comp_id_of_grid(grid_id))->get_decomp_id(), "register decomposition"), annotation);
 
 	decomps_info.push_back(new_decomp);

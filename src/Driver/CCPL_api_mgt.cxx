@@ -301,7 +301,7 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 {
 	char API_label_local[NAME_STR_SIZE], API_label_another[NAME_STR_SIZE];
 	int local_process_id, num_processes;
-	int *API_ids, *comp_ids;
+	int *API_ids;
 	char *annotations, *comp_names, local_annotation[NAME_STR_SIZE];
 
 
@@ -311,20 +311,19 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	get_API_hint(-1, API_id, API_label_local);
 
 	if (comp_id != -1)
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id), "The component id is wrong when calling the interface \"%s\" for \"%s\". Please check the model code with the annotation \"%s\"", API_label_local, hint, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, false), "The given component model ID (0x%x) is wrong when calling the interface \"%s\" for %s. Please check the model code with the annotation \"%s\"", comp_id, API_label_local, hint, annotation);
 
 	if (comm == MPI_COMM_NULL)
 		comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in synchronize_comp_processes_for_API");
 
-	if (hint != NULL) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
-	}
-	else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
+	if (hint != NULL)
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler API \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
+	else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Before the MPI_barrier for synchronizing all processes of a communicator at C-Coupler API \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
 	MPI_Barrier(comm);
 	if (hint != NULL) {
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler interface \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator for %s at C-Coupler API \"%s\" with model code annotation \"%s\"", hint, API_label_local, annotation);	
 	}	
-	else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator at C-Coupler interface \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
+	else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "After the MPI_barrier for synchronizing all processes of a communicator at C-Coupler API \"%s\" with model code annotation \"%s\"", API_label_local, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);
 	API_ids = new int [num_processes];
@@ -337,23 +336,16 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	if (local_process_id == 0) {
 		for (int i = 1; i < num_processes; i ++) {
 			get_API_hint(comp_id, API_ids[i], API_label_another);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, API_id == API_ids[i], "different kinds of C-Coupler API calls (\"%s\" and \"%s\") are mapped to the same synchronization. Please check the model code related to the annotations \"%s\" and \"%s\".",
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, API_id == API_ids[i], "Different kinds of C-Coupler API calls (\"%s\" and \"%s\") are mapped to the same synchronization. Please check the model code related to the annotations \"%s\" and \"%s\".",
 							 API_label_local, API_label_another, annotation, annotations+NAME_STR_SIZE*i);			
 		}	
 	}
-	comp_ids = new int [num_processes];
-	EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Gather(&comp_id, 1, MPI_INT, comp_ids, 1, MPI_INT, 0, comm) == MPI_SUCCESS);
-	if (local_process_id == 0) {
-		for (int i = 1; i < num_processes; i ++)
-			EXECUTION_REPORT(REPORT_ERROR, -1, comp_ids[0] == -1 && comp_ids[i] == -1 || comp_ids[0] != -1 && comp_ids[i] != -1, "It is wrong that different components take part in the same API (\"%s\"). Please check the model code related to the annotations \"%s\" and \"%s\".", 
-						     API_label_local, annotation, annotations+NAME_STR_SIZE*i);
-	}
 	if (comp_id != -1) {
 		comp_names = new char [num_processes*NAME_STR_SIZE];
-		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather((void*)comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,"C-Coupler gets component node in synchronize_comp_processes_for_API")->get_comp_name(), NAME_STR_SIZE, MPI_CHAR, comp_names, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
+		EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Gather((void*)comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"C-Coupler gets component node in synchronize_comp_processes_for_API")->get_comp_full_name(), NAME_STR_SIZE, MPI_CHAR, comp_names, NAME_STR_SIZE, MPI_CHAR, 0, comm) == MPI_SUCCESS);
 		if (local_process_id == 0) {
 			for (int i = 1; i < num_processes; i ++)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(comp_names, comp_names+NAME_STR_SIZE*i), "It is wrong that two different components (\"%s\" and \"%s\") take part in the same API (\"%s\"). Please check the model code related to the annotations \"%s\" and \"%s\".",
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(comp_names, comp_names+NAME_STR_SIZE*i), "It is wrong that two different component models (\"%s\" and \"%s\") take part in the same API (\"%s\"). Please check the model code related to the annotations \"%s\" and \"%s\".",
 							 comp_names, comp_names+NAME_STR_SIZE*i, API_label_local, annotation, annotations+NAME_STR_SIZE*i);		
 		}
 		delete [] comp_names;
@@ -361,7 +353,6 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	
 	delete [] API_ids;
 	delete [] annotations;
-	delete [] comp_ids;
 }
 
 
@@ -392,9 +383,9 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 		get_API_hint(comp_id, API_id, API_label);
 		for (i = 1; i < num_processes; i ++) {
 			if (hint != NULL)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling the API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
-			else EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling API \"%s\": parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, values[0] == values[i], "Error happens when calling the API \"%s\": parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                  API_label, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
 		}
 	}
@@ -422,8 +413,8 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 
 	check_API_parameter_int(comp_id, API_id, comm, "data type", data_type_size, parameter_name, annotation);
 	if (words_are_the_same(parameter_name, "vertex_lon") || words_are_the_same(parameter_name, "vertex_lat"))
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == 0 && num_local_cells == 0 || (array_size % num_local_cells) == 0, "Error happens when calling API \"%s\" for %s: the array size of parameter \"%s\" is not an integer multiple of parameter \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == num_local_cells, "Error happens when calling API \"%s\" for %s: the array size of parameter \"%s\" must be the same as \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == 0 && num_local_cells == 0 || (array_size % num_local_cells) == 0, "Error happens when calling the API \"%s\" for %s: the array size of parameter \"%s\" is not an integer multiple of parameter \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == num_local_cells, "Error happens when calling the API \"%s\" for %s: the array size of parameter \"%s\" must be the same as \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);	
@@ -465,7 +456,7 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 					continue;
 				if (num_point == 0)
 					num_point = counts_for_array[i] / counts_for_cell_index[i];
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, num_point == counts_for_array[i] / counts_for_cell_index[i], "Error happens when calling API \"%s\" for %s: the number of vertexes corresponding to parameter \"%s\" does not keep the same among the processes. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, num_point == counts_for_array[i] / counts_for_cell_index[i], "Error happens when calling the API \"%s\" for %s: the number of vertexes corresponding to parameter \"%s\" does not keep the same among the processes. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 			}
 
 		}
@@ -491,7 +482,7 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 					}
 					else {
 						bool is_the_same = memcmp(grid_data+global_index*num_point*data_type_size, all_array_values+(displs_for_array[i]+j*num_point)*data_type_size, num_point*data_type_size) == 0;
-						EXECUTION_REPORT(REPORT_ERROR, comp_id, is_the_same, "Error happens when calling API \"%s\" for %s: the grid data (\"%s\") of some common cells is not the same among the processes. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+						EXECUTION_REPORT(REPORT_ERROR, comp_id, is_the_same, "Error happens when calling the API \"%s\" for %s: the grid data (\"%s\") of some common cells is not the same among the processes. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 					}
 				}
 			delete [] grid_data_mark;
@@ -527,7 +518,7 @@ void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, cons
 
 
 	get_API_hint(comp_id, API_id, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling API \"%s\" for %s: parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling the API \"%s\" for %s: parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 
 	int parameter_specified = array_size >= 0 ? 1 : 0;
 	check_API_parameter_int(comp_id, API_id, comm, "specification (or not)", parameter_specified, parameter_name, annotation);
@@ -622,7 +613,7 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 		return;
 
 	local_string_size = strlen(string);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, local_string_size > 0, "Error happens when calling API \"%s\" for %s: parameter %s is an empty string. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, local_string_size > 0, "Error happens when calling the API \"%s\" for %s: parameter %s is an empty string. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);
 	all_string_size = new int [num_processes];
@@ -632,9 +623,9 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 		get_API_hint(comp_id, API_id, API_label);
 		for (int i = 1; i < num_processes; i ++)
 			if (comp_id != -1)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling the API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
-			else EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes. Please check the model code related to the annotation \"%s\"",
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, all_string_size[0] == all_string_size[i], "Error happens when calling the API \"%s\" for %s: parameter %s is not consistent among processes. Please check the model code related to the annotation \"%s\"",
 				                  API_label, hint, parameter_name, annotation);
 	}
 	all_string_para = new char [local_string_size*num_processes];
@@ -644,10 +635,10 @@ void check_API_parameter_string(int comp_id, int API_id, MPI_Comm comm, const ch
 		for (int i = 1; i < num_processes; i ++)
 			if (comp_id != -1)
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, strncmp(all_string_para, all_string_para+local_string_size*i, local_string_size) == 0, 
-				                 "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
+				                 "Error happens when calling the API \"%s\" for %s: parameter %s is not consistent among processes of component \"%s\". Please check the model code related to the annotation \"%s\"",
 				                 API_label, hint, parameter_name, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comp_name(), annotation);
 			else EXECUTION_REPORT(REPORT_ERROR, comp_id, strncmp(all_string_para, all_string_para+local_string_size*i, local_string_size) == 0, 
-				                  "Error happens when calling API \"%s\" for %s: parameter %s is not consistent among processes. Please check the model code related to the annotation \"%s\"",
+				                  "Error happens when calling the API \"%s\" for %s: parameter %s is not consistent among processes. Please check the model code related to the annotation \"%s\"",
 				                  API_label, hint, parameter_name, annotation);			
 	}
 	

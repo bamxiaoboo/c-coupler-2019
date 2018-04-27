@@ -792,7 +792,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 				components_default_setting = 1;
 				const int *all_components_ids = comp_comm_group_mgt_mgr->get_all_components_ids();
 				for (i = 1; i < all_components_ids[0]; i ++) {
-					producer_info.first = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i], "in Import_direction_setting()")->get_comp_full_name());
+					producer_info.first = strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(all_components_ids[i],false,"in Import_direction_setting()")->get_comp_full_name());
 					producer_info.second = strdup("\0");
 					producers_info.push_back(producer_info);
 				}
@@ -1192,11 +1192,11 @@ void Coupling_generator::generate_coupling_procedures_internal(int comp_id, bool
 
 
 	if (family_generation) {
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_comp_fullnames_for_coupling_generation, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, true, "in Coupling_generator::generate_coupling_procedures")->get_all_descendant_real_comp_fullnames(comp_id, all_comp_fullnames_for_coupling_generation, &temp_array_buffer, max_array_buffer_size, current_array_buffer_size);
 		generate_coupling_procedures_common(API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures"), (comp_id & TYPE_ID_SUFFIX_MASK)==0, annotation);
 	}
 	else {
-		all_comp_fullnames_for_coupling_generation.push_back(strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures")->get_full_name()));
+		all_comp_fullnames_for_coupling_generation.push_back(strdup(comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, true, "in Coupling_generator::generate_coupling_procedures")->get_full_name()));
 		generate_coupling_procedures_common(API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Coupling_generator::generate_coupling_procedures"), (comp_id & TYPE_ID_SUFFIX_MASK)==0, annotation);
 	}
 }
@@ -1579,7 +1579,7 @@ void Coupling_generator::do_external_coupling_generation(int API_id, const char 
 void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, const char *keyword, int size_comps_full_names, int size_individual_or_family, int *num_comps, const char *annotation)
 {
 	char XML_file_name[NAME_STR_SIZE];
-	const char *current_comp_full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name();
+	const char *current_comp_full_name = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, true, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name();
 	const char *temp_full_name;
 	const char *XML_keyword;
 	int line_number, i;
@@ -1659,7 +1659,7 @@ void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int i
 	char XML_file_name[NAME_STR_SIZE];
 
 
-	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
+	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, true, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, str_size >= strlen(all_comp_fullnames_for_coupling_generation[index]), "Error happens when calling the API \"CCPL_get_configurable_comps_full_names\": the string length of the input parameter \"comps_full_names\" (%d) is smaller than the length of the full name of a component model (%s) that is loaded from the XML file \"%s\". Please verify the model code with the annotation \"%s\".", str_size, all_comp_fullnames_for_coupling_generation[index], XML_file_name, annotation);
 	strncpy(comp_full_name, all_comp_fullnames_for_coupling_generation[index], strlen(all_comp_fullnames_for_coupling_generation[index]));
 	*local_individual_or_family = individual_or_family_generation[index];
