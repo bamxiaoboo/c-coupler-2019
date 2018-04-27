@@ -42,7 +42,7 @@ void copy_out_string_to_Fortran_API(int comp_id, int size_API_string, char *API_
 
 	get_API_hint(comp_id, API_id,API_label);
 	
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_API_string >= strlen(CCPL_string), "Error happens when calling the API \"%s\": the parameter string \"%s\" is too short: only %d while the size of the log file name is %d. Please verify the model code with the annotation \"%s\"", API_label, parameter_name, size_API_string, strlen(CCPL_string));
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_API_string >= strlen(CCPL_string), "Error happens when calling the API \"%s\": the parameter string \"%s\" is too short: only %d while the required size is %d. Please verify the model code with the annotation \"%s\"", API_label, parameter_name, size_API_string, strlen(CCPL_string));
 	strncpy(API_string, CCPL_string, strlen(CCPL_string));
 	for (int i = strlen(CCPL_string); i < size_API_string; i ++)
 		API_string[i] = ' ';	
@@ -1140,8 +1140,8 @@ extern "C" void define_single_timer_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to define a timer");
 	
 	check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_SINGLE_TIMER, true, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling the API \"CCPL_define_single_timer\": the time step of the corresponding component has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
-		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, annotation)->get_comp_name(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "Error happers when calling the API \"CCPL_define_single_timer\": the time step of the corresponding component model \"%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+		             comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, annotation)->get_comp_full_name(), annotation);
 	*timer_id = timer_mgr->define_timer(*comp_id, freq_unit, *freq_count, *local_lag_count, *remote_lag_count, annotation);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish defining a timer");

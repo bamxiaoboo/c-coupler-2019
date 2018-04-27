@@ -667,7 +667,7 @@ double Time_mgt::get_double_current_calendar_time(int shift_second, const char *
 	double calday;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling the API \"CCPL_get_current_calendar_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling the API \"CCPL_get_current_calendar_time\": the parameter \"shift_second\" (currently is %d) cannot be a negative value. Please verify the model code with the annotation \"%s\".", shift_second, annotation);
 
 	if (leap_year_on && is_a_leap_year(current_year)) {
 		calday = elapsed_days_on_start_of_month_of_leap_year[current_month-1] + current_day + ((double)(current_second+shift_second))/SECONDS_PER_DAY;
@@ -745,7 +745,7 @@ void Time_mgt::check_timer_format(const char *frequency_unit, int frequency_coun
 {
 	if (time_step_in_second > 0) {
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, IS_TIME_UNIT_STEP(frequency_unit) || IS_TIME_UNIT_SECOND(frequency_unit) || IS_TIME_UNIT_DAY(frequency_unit) || IS_TIME_UNIT_MONTH(frequency_unit) || IS_TIME_UNIT_YEAR(frequency_unit), 
-	                 "Error happens when defining a timer: the period unit is \"%s\", not one of %s, %s, %s, %s, %s. Please check the model code with the annotation \"%s\"", frequency_unit, TIME_UNIT_STRING_STEP, TIME_UNIT_STRING_SECOND, TIME_UNIT_STRING_DAY, TIME_UNIT_STRING_MONTH, TIME_UNIT_STRING_YEAR, annotation);
+	                 "Error happens when calling the API \"CCPL_define_single_timer\": the period unit is \"%s\", not one of %s, %s, %s, %s, %s. Please check the model code with the annotation \"%s\"", frequency_unit, TIME_UNIT_STRING_STEP, TIME_UNIT_STRING_SECOND, TIME_UNIT_STRING_DAY, TIME_UNIT_STRING_MONTH, TIME_UNIT_STRING_YEAR, annotation);
 	    EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count > 0, "Error happers when calling the API \"CCPL_define_single_timer\": \"period_count\" must be a positive number. Please verify the model code with the annotation \"%s\"", annotation);
 	    if (IS_TIME_UNIT_SECOND(frequency_unit) && check_value) {
 	        EXECUTION_REPORT(REPORT_ERROR, comp_id, frequency_count%time_step_in_second == 0, "Error happens when defining a timer: the frequency count (%d) in timer is not a multiple of the time step (%d) of the component when the frequency unit is \"%s\". Please check the model code with the annotation \"%s\"", frequency_count, time_step_in_second, frequency_unit, annotation);
@@ -793,7 +793,7 @@ void Time_mgt::get_current_time(int &year, int &month, int &day, int &second, in
 	int num_days_in_current_month;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling the API \"CCPL_get_current_time\": the parameter \"shift_second\" cannot be a negative value. Please verify the model code with the annotation \"%s\".", annotation);
+	EXECUTION_REPORT(REPORT_ERROR,-1, shift_second >= 0, "Error happens when calling the API \"CCPL_get_current_time\": the parameter \"shift_second\" (currently is %d) cannot be a negative value. Please verify the model code with the annotation \"%s\".", shift_second, annotation);
 	
 	year = current_year;
 	month = current_month;
@@ -1128,7 +1128,7 @@ void Components_time_mgt::set_component_time_step(int comp_id, int time_step, co
 {
 	Time_mgt *time_mgr = get_time_mgr(comp_id);
 	if (time_mgr->get_time_step_in_second() != -1 && time_mgr->get_time_step_in_second() != time_step)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_normal_time_step\": the time step of the component \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when clalling API \"CCPL_set_normal_time_step\": the time step of the component model \"%s\" has already been set before (the corresponding model code annotation is \"%s\"). It cannot be set again at the model code with the annotation \"%s\"",
 						 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, annotation)->get_comp_name(), annotation_mgr->get_annotation(comp_id, "setting time step"), annotation);
 	annotation_mgr->add_annotation(comp_id, "setting time step", annotation);
 	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id, "get the local id of the current component in Components_time_mgt::set_component_time_step") == 0)

@@ -488,7 +488,7 @@ void Comp_comm_group_mgt_node::confirm_coupling_configuration_active(int API_id,
 		             API_label, annotation, comp_name, get_annotation_end());
 	if (require_real_model)
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, is_real_component_model(), 
-			             "ERROR happens when calling the API \"%s\" at the model code with the annotation \"%s\": the corresponding component model \"%s\" cannot handle coupling configuration because it is a coupled system (its type is \"pesudo_coupled_system\"). Please verify.", 
+			             "ERROR happens when calling the API \"%s\" at the model code with the annotation \"%s\": the corresponding component model \"%s\" cannot handle coupling configuration because it is a pesudo coupled system (its type is \"pesudo_coupled_system\"). Please verify.", 
 			             API_label, annotation, comp_name);
 }
 
