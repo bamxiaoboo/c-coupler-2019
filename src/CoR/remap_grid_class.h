@@ -27,7 +27,7 @@
 #define PI                                    ((double) 3.14159265358979323846)
 #define PARTIAL_AREA_BOUND_TYPE_INDEX         "index"
 #define PARTIAL_AREA_BOUND_TYPE_VALUE         "value"
-#define NULL_COORD_VALUE                      ((double) -9999.)
+#define NULL_COORD_VALUE                      ((double) -999999.)
 #define TOLERABLE_ERROR                       ((double) 0.0000001)
 #define COORD_LABEL_LAT                       "lat"
 #define COORD_LABEL_LON                       "lon"

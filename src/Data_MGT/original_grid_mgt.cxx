@@ -339,14 +339,6 @@ Original_grid_info *Original_grid_mgt::search_grid_info(int grid_id)
 }
 
 
-void Original_grid_mgt::check_for_grid_definition(int comp_id, const char *grid_name, const char *annotation)
-{
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,false), "The component id is wrong when defining a grid \"%s\". Please check the model code with the annotation \"%s\"", grid_name, annotation);
-	if (search_grid_info(grid_name, comp_id) != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to register grid \"%s\" again because it has already been registered before. Please check the model code with the annotation \"%s\" and \"%s\"", grid_name, search_grid_info(grid_name, comp_id)->get_annotation(), annotation);
-}
-
-
 int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_name, const char *annotation)
 {
 	char XML_file_name[NAME_STR_SIZE], nc_file_name[NAME_STR_SIZE], status_file_name[NAME_STR_SIZE];
@@ -408,79 +400,130 @@ int Original_grid_mgt::register_H2D_grid_via_comp(int comp_id, const char *grid_
 }
 
 
+void Original_grid_mgt::calculate_min_max_H2D_coord_value(int comp_id, char *center_coord, char *vertex_coord, int size_center_coord, int size_vertex_coord, const char *data_type, double &min_coord_value, double &max_coord_value)
+{
+	if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
+		float float_min_value = (float)NULL_COORD_VALUE, float_max_value = (float)NULL_COORD_VALUE;
+		get_min_value_in_array((float*)center_coord, size_center_coord, true, (float)NULL_COORD_VALUE, float_min_value);
+		get_min_value_in_array((float*)vertex_coord, size_vertex_coord, true, (float)NULL_COORD_VALUE, float_min_value);
+		get_max_value_in_array((float*)center_coord, size_center_coord, true, (float)NULL_COORD_VALUE, float_max_value);
+		get_max_value_in_array((float*)vertex_coord, size_vertex_coord, true, (float)NULL_COORD_VALUE, float_max_value);
+		min_coord_value = float_min_value;
+		max_coord_value = float_max_value;
+	}
+	else {
+		min_coord_value = NULL_COORD_VALUE, max_coord_value = NULL_COORD_VALUE;
+		get_min_value_in_array((double*)center_coord, size_center_coord, true, NULL_COORD_VALUE, min_coord_value);
+		get_min_value_in_array((double*)vertex_coord, size_vertex_coord, true, NULL_COORD_VALUE, min_coord_value);
+		get_max_value_in_array((double*)center_coord, size_center_coord, true, NULL_COORD_VALUE, max_coord_value);
+		get_max_value_in_array((double*)vertex_coord, size_vertex_coord, true, NULL_COORD_VALUE, max_coord_value);
+	}
+	double *all_min_coord_values = new double [comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_num_procs()];
+	double *all_max_coord_values = new double [comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_num_procs()];
+	EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The min and max values calculated by C-Coupler is %lf and %lf", min_coord_value, max_coord_value);
+	MPI_Gather(&min_coord_value, 1, MPI_DOUBLE, all_min_coord_values, 1, MPI_DOUBLE, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""));
+	MPI_Gather(&max_coord_value, 1, MPI_DOUBLE, all_max_coord_values, 1, MPI_DOUBLE, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""));
+	if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_id,"") == 0)
+		for (int i = 0; i < comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_num_procs(); i ++) {
+			if (are_floating_values_equal(NULL_COORD_VALUE, min_coord_value) || !are_floating_values_equal(NULL_COORD_VALUE, all_min_coord_values[i]) && min_coord_value > all_min_coord_values[i])
+				min_coord_value = all_min_coord_values[i];
+			if (are_floating_values_equal(NULL_COORD_VALUE, max_coord_value) || !are_floating_values_equal(NULL_COORD_VALUE, all_max_coord_values[i]) && max_coord_value < all_max_coord_values[i])
+				max_coord_value = all_max_coord_values[i];
+		}
+	MPI_Bcast(&min_coord_value, 1, MPI_DOUBLE, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""));
+	MPI_Bcast(&max_coord_value, 1, MPI_DOUBLE, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,""));
+	delete [] all_min_coord_values;
+	delete [] all_max_coord_values;
+}
+
+
 void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int size_mask, int size_center_lon, 
 	                                                                  int size_center_lat, int size_vertex_lon, int size_vertex_lat, int *mask, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, char *vertex_lon, char *vertex_lat, const char *annotation, int API_id)
 {
-	char API_label[NAME_STR_SIZE];
+	char API_label[NAME_STR_SIZE], hint[NAME_STR_SIZE];
 	double eps = 1.0000001;
 	double min_lon_value, max_lon_value, min_lat_value, max_lat_value;
 
 	
 	get_API_hint(comp_id, API_id, API_label);
+	sprintf(hint, "registering an H2D grid \"%s\"", grid_name);
 	
-	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), "registering an H2D grid", edge_type, "edge_type", annotation);
-	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), "registering an H2D grid", cyclic_or_acyclic, "cyclic_or_acyclic", annotation);
-	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), "registering an H2D grid", data_type, "implicit data type", annotation);
-	if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
-		check_API_parameter_float(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((float*)min_lon)[0], "\"min_lon\"", annotation);
-		check_API_parameter_float(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((float*)max_lon)[0], "\"max_lon\"", annotation);
-		check_API_parameter_float(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((float*)min_lat)[0], "\"min_lat\"", annotation);
-		check_API_parameter_float(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((float*)max_lat)[0], "\"max_lat\"", annotation);
-	}
-	else {
-		check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((double*)min_lon)[0], "\"min_lon\"", annotation);
-		check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((double*)max_lon)[0], "\"max_lon\"", annotation);
-		check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((double*)min_lat)[0], "\"min_lat\"", annotation);
-		check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, ((double*)max_lat)[0], "\"max_lat\"", annotation);
-	}
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(edge_type, "LON_LAT") || words_are_the_same(edge_type, "GREAT_ARC") || words_are_the_same(edge_type, "XY") || words_are_the_same(edge_type, "TriPolar"), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of parameter \"edge_type\" is not \"LON_LAT\", \"GREAT_ARC\", \"TriPolar\" or \"XY\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	if (words_are_the_same(edge_type, "LON_LAT") || words_are_the_same(edge_type, "GREAT_ARC") || words_are_the_same(edge_type, "TriPolar"))
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(coord_unit, COORD_UNIT_DEGREES) || words_are_the_same(coord_unit, COORD_UNIT_RADIANS), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the parameter \"coord_unit\" is not \"degrees\" or \"radians\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(cyclic_or_acyclic, "cyclic") || words_are_the_same(cyclic_or_acyclic, "acyclic"), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of parameter \"cyclic_or_acyclic\" is not \"cyclic\" or \"acyclic\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "software error in register_h2d_grid_with_data: wrong implicit data type");
-
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries("integer", mask, size_mask, 0, 1, 0, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"mask\" are wrong (not 0 and 1). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-
 	transform_datatype_of_arrays(min_lon, (char*)(&min_lon_value), data_type, DATA_TYPE_DOUBLE, 1);
 	transform_datatype_of_arrays(max_lon, (char*)(&max_lon_value), data_type, DATA_TYPE_DOUBLE, 1);
 	transform_datatype_of_arrays(min_lat, (char*)(&min_lat_value), data_type, DATA_TYPE_DOUBLE, 1);
 	transform_datatype_of_arrays(max_lat, (char*)(&max_lat_value), data_type, DATA_TYPE_DOUBLE, 1);
+	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), hint, edge_type, "edge_type", annotation);
+	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), hint, cyclic_or_acyclic, "cyclic_or_acyclic", annotation);
+	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), hint, data_type, "implicit data type", annotation);
+	check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, min_lon_value, "\"min_lon\"", annotation);
+	check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, max_lon_value, "\"max_lon\"", annotation);
+	check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, min_lat_value, "\"min_lat\"", annotation);
+	check_API_parameter_double(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in register_h2d_grid_with_data"), NULL, max_lat_value, "\"max_lat\"", annotation);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, max_lat_value > min_lat_value, "Error happens when registering an H2D grid \"%s\" through API \"%s\": \"min_lat\" (%lf) is not smaller than \"max_lat\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, max_lat_value, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(edge_type, "LON_LAT") || words_are_the_same(edge_type, "GREAT_ARC") || words_are_the_same(edge_type, "XY") || words_are_the_same(edge_type, "TriPolar"), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the value of parameter \"edge_type\" is not \"LON_LAT\", \"GREAT_ARC\", \"TriPolar\" or \"XY\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	if (words_are_the_same(edge_type, "LON_LAT") || words_are_the_same(edge_type, "GREAT_ARC") || words_are_the_same(edge_type, "TriPolar"))
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(coord_unit, COORD_UNIT_DEGREES) || words_are_the_same(coord_unit, COORD_UNIT_RADIANS), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the parameter \"coord_unit\" is not \"degrees\" or \"radians\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(cyclic_or_acyclic, "cyclic") || words_are_the_same(cyclic_or_acyclic, "acyclic"), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the value of parameter \"cyclic_or_acyclic\" is not \"cyclic\" or \"acyclic\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "software error in register_h2d_grid_with_data: wrong implicit data type");
+
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries("integer", mask, size_mask, 0, 1, 0, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": some values of the parameter \"mask\" are wrong (not 0 and 1). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_floating_values_equal(NULL_COORD_VALUE, min_lon_value) && are_floating_values_equal(NULL_COORD_VALUE, max_lon_value) || !are_floating_values_equal(NULL_COORD_VALUE, min_lon_value) && !are_floating_values_equal(NULL_COORD_VALUE, max_lon_value), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": \"min_lon\" and \"max_lon\" must be CCPL_NULL_COORD_VALUE (%lf) or not at the same time. Please check the model code related to the annotation \"%s\"", grid_name, API_label, NULL_COORD_VALUE, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_floating_values_equal(NULL_COORD_VALUE, min_lat_value) && are_floating_values_equal(NULL_COORD_VALUE, max_lat_value) || !are_floating_values_equal(NULL_COORD_VALUE, min_lat_value) && !are_floating_values_equal(NULL_COORD_VALUE, max_lat_value), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": \"min_lat\" and \"max_lat\" must be CCPL_NULL_COORD_VALUE (%lf) or not at the same time. Please check the model code related to the annotation \"%s\"", grid_name, API_label, NULL_COORD_VALUE, annotation);
+
+	if (!are_floating_values_equal(NULL_COORD_VALUE, min_lat_value))
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, max_lat_value > min_lat_value, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": \"min_lat\" (%lf) is not smaller than \"max_lat\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, max_lat_value, annotation);
 	if (words_are_the_same(coord_unit, COORD_UNIT_DEGREES)) {
-		if (words_are_the_same(cyclic_or_acyclic, "acyclic")) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) min_lon, 1, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"min_lon\" is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) max_lon, 1, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"max_lon\" is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, fabs(max_lon_value-min_lon_value) <= ((double)360.0)*eps, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the difference between \"min_lon\" and \"max_lon\" (%lf) is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, fabs(max_lon_value-min_lon_value), annotation);
-		}
-		else {
+		if (words_are_the_same(cyclic_or_acyclic, "cyclic")) {
 			min_lon_value = -360;
 			max_lon_value = 360;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) min_lat, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"min_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) max_lat, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"max_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		if (!are_floating_values_equal(NULL_COORD_VALUE, min_lon_value)) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lon_value, 1, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lon\" is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lon_value, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lon_value, 1, (double) -360.0*eps, (double) 360.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lon\" is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lon_value, annotation);
+			if (words_are_the_same(cyclic_or_acyclic, "acyclic"))
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, fabs(max_lon_value-min_lon_value) <= ((double)360.0)*eps, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the difference between \"min_lon\" and \"max_lon\" (%lf) is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, fabs(max_lon_value-min_lon_value), annotation);			
+		}
+		if (!are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lat_value, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lat_value, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lat_value, annotation);
+		}
 	}
 	else if (words_are_the_same(coord_unit, COORD_UNIT_RADIANS)) {
-		if (words_are_the_same(cyclic_or_acyclic, "acyclic")) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) min_lon, 1, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"min_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) max_lon, 1, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"max_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, fabs(max_lon_value-min_lon_value) <= ((double)3.1416)*2*eps, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the difference between \"min_lon\" and \"max_lon\" is wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);	
-		}
-		else {
+		if (words_are_the_same(cyclic_or_acyclic, "cyclic")) {
 			min_lon_value = -((double)3.1416)*2;
 			max_lon_value = -((double)3.1416)*2;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) min_lat, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"min_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) max_lat, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"max_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) NULL_COORD_VALUE, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		if (are_floating_values_equal(NULL_COORD_VALUE, min_lon_value)) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lon_value, 1, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lon_value, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lon_value, 1, -((double)3.1416)*2*eps, ((double)3.1416)*2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lon\" are wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lon_value, annotation);
+			if (words_are_the_same(cyclic_or_acyclic, "acyclic"))
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, fabs(max_lon_value-min_lon_value) <= ((double)3.1416)*2*eps, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the difference between \"min_lon\" and \"max_lon\" is wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);	
+		}
+		if (are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lat_value, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lat_value, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lat_value, annotation);
+		}
 	}
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, min_lon_value, max_lon_value, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lon\" are wrong (not between \"min_lon\" and \"max_lon\"). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, min_lon_value, max_lon_value, (double) NULL_COORD_VALUE, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lon\" are wrong (not between \"min_lon\" and \"max_lon\"). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lat, size_center_lat, min_lat_value, max_lat_value, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"center_lat\" are wrong (not between \"min_lat\" and \"max_lat\"). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lat, size_vertex_lat, min_lat_value, max_lat_value, (double) NULL_COORD_VALUE, true), "Error happens when registering an H2D grid \"%s\" through API \"%s\": some values of the parameter \"vertex_lat\" are wrong (not between \"min_lat\" and \"max_lat\"). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	if (are_floating_values_equal(NULL_COORD_VALUE, min_lon_value)) {
+		calculate_min_max_H2D_coord_value(comp_id, center_lon, vertex_lon, size_center_lon, size_vertex_lon, data_type, min_lon_value, max_lon_value);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The min and max longitude values of the grid \"%s\" calculated by C-Coupler is %lf and %lf", grid_name, min_lon_value, max_lon_value);
+		transform_datatype_of_arrays((char*)(&min_lon_value), min_lon, DATA_TYPE_DOUBLE, data_type, 1);
+		transform_datatype_of_arrays((char*)(&max_lon_value), max_lon, DATA_TYPE_DOUBLE, data_type, 1);
+	}
+	if (are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
+		calculate_min_max_H2D_coord_value(comp_id, center_lat, vertex_lat, size_center_lat, size_vertex_lat, data_type, min_lat_value, max_lat_value);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The min and max latitude values of the grid \"%s\" calculated by C-Coupler is %lf and %lf", grid_name, min_lat_value, max_lat_value);
+		transform_datatype_of_arrays((char*)(&min_lat_value), min_lat, DATA_TYPE_DOUBLE, data_type, 1);
+		transform_datatype_of_arrays((char*)(&max_lat_value), max_lat, DATA_TYPE_DOUBLE, data_type, 1);
+	}
+	if (!are_floating_values_equal(NULL_COORD_VALUE, min_lon_value)) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, min_lon_value, max_lon_value, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": some values of the parameter \"center_lon\" are not between \"min_lon\" (%lf) and \"max_lon\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lon_value, max_lon_value, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lon, size_vertex_lon, min_lon_value, max_lon_value, (double) NULL_COORD_VALUE, true), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": some values of the parameter \"vertex_lon\" are not between \"min_lon\" (%lf) and \"max_lon\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lon_value, max_lon_value, annotation);
+	}
+	if (!are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lat, size_center_lat, min_lat_value, max_lat_value, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": some values of the parameter \"center_lat\" are not between \"min_lat\" (%lf) and \"max_lat\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, max_lat_value, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) vertex_lat, size_vertex_lat, min_lat_value, max_lat_value, (double) NULL_COORD_VALUE, true), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": some values of the parameter \"vertex_lat\" are not between \"min_lat\" (%lf) and \"max_lat\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, max_lat_value, annotation);
+	}
 }
 
 
@@ -489,12 +532,13 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 {
 	int data_type_size;
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data");
-	char API_label[NAME_STR_SIZE];
+	char API_label[NAME_STR_SIZE], hint[NAME_STR_SIZE];
 	int global_center_lon_size, global_center_lat_size, global_area_size, global_mask_size, global_vertex_lon_size, global_vertex_lat_size;
 	
 
 
 	get_API_hint(comp_id, API_id, API_label);
+	sprintf(hint, "registering an H2D grid \"%s\"", grid_name);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_local_cells >= 0, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": the number of local cells is wrong (smaller than 0). Please check the model code related to \"%s\"", API_label, grid_name, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, num_local_cells <= size_local_cells_global_index, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": the array size of \"local_cells_global_index\" is smaller than \"num_local_cells\". Please check the model code related to \"%s\"", API_label, grid_name, annotation);
@@ -509,14 +553,14 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_index[i] >= 1 && local_cells_global_index[i] <= grid_size, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": some values in \"local_cells_global_index\" are out of bound (smaller than 1 or larger than \"grid_size\"). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
 
 	data_type_size = get_data_type_size(data_type);
-	char *global_center_lon = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_center_lon, data_type_size, (char*) center_lon, "center_lon", num_local_cells, local_cells_global_index, global_center_lon_size, annotation);
-	char *global_center_lat = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_center_lat, data_type_size, (char*) center_lat, "center_lat", num_local_cells, local_cells_global_index, global_center_lat_size, annotation);
-	char *global_area = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_area, data_type_size, (char*) area, "area", num_local_cells, local_cells_global_index, global_area_size, annotation);
-	char *global_vertex_lon = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_vertex_lon, data_type_size, (char*) vertex_lon, "vertex_lon", num_local_cells, local_cells_global_index, global_vertex_lon_size, annotation);
-	char *global_vertex_lat = check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_vertex_lat, data_type_size, (char*) vertex_lat, "vertex_lat", num_local_cells, local_cells_global_index, global_vertex_lat_size, annotation);
+	char *global_center_lon = check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, size_center_lon, data_type_size, (char*) center_lon, "center_lon", num_local_cells, local_cells_global_index, global_center_lon_size, annotation);
+	char *global_center_lat = check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, size_center_lat, data_type_size, (char*) center_lat, "center_lat", num_local_cells, local_cells_global_index, global_center_lat_size, annotation);
+	char *global_area = check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, size_area, data_type_size, (char*) area, "area", num_local_cells, local_cells_global_index, global_area_size, annotation);
+	char *global_vertex_lon = check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, size_vertex_lon, data_type_size, (char*) vertex_lon, "vertex_lon", num_local_cells, local_cells_global_index, global_vertex_lon_size, annotation);
+	char *global_vertex_lat = check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, size_vertex_lat, data_type_size, (char*) vertex_lat, "vertex_lat", num_local_cells, local_cells_global_index, global_vertex_lat_size, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, global_vertex_lon_size == global_vertex_lat_size, "Error happens when calling the API \"%s\" to register an H2D grid \"%s\": \"vertex_lon\" or \"vertex_lat\" are not consistent with each other (not specified/unspecified at the same time or have different array sizes). Please check the model code related to the annotation \"%s\".", API_label, grid_name, annotation);
 
-	int *global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, size_mask, sizeof(int), (char*) mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
+	int *global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, size_mask, sizeof(int), (char*) mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
 	if (global_mask == NULL) {
 		int *active_mask = NULL;
 		if (num_local_cells > 0) {
@@ -524,7 +568,7 @@ int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char 
 			for (int i = 0; i < num_local_cells; i ++)
 				active_mask[i] = 1;
 		}
-		global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, "registering an H2D grid", grid_size, num_local_cells, sizeof(int), (char*) active_mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
+		global_mask = (int*) check_and_aggregate_local_grid_data(comp_id, API_id, comm, hint, grid_size, num_local_cells, sizeof(int), (char*) active_mask, "mask", num_local_cells, local_cells_global_index, global_mask_size, annotation);
 		if (active_mask != NULL)
 			delete [] active_mask;
 	}
@@ -621,55 +665,56 @@ int Original_grid_mgt::register_H2D_grid_via_global_data(int comp_id, const char
 {
 	int data_type_size, grid_size, num_vertex;
 	char true_H2D_grid_name[NAME_STR_SIZE], true_lon_grid_name[NAME_STR_SIZE], true_lat_grid_name[NAME_STR_SIZE];
-	char coord_label[NAME_STR_SIZE], coord_name[NAME_STR_SIZE], API_label[NAME_STR_SIZE];
+	char coord_label[NAME_STR_SIZE], coord_name[NAME_STR_SIZE], API_label[NAME_STR_SIZE], hint[NAME_STR_SIZE];
 	Remap_grid_class *CoR_H2D_grid, *CoR_lon_grid, *CoR_lat_grid, *sub_grids[256];
 	
 
 	get_API_hint(comp_id, API_id, API_label);
+	sprintf(hint, "registering an H2D grid \"%s\"", grid_name);
 	
 	common_checking_for_H2D_registration_via_data(comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, size_mask, size_center_lon, size_center_lat, 
 		                                          size_vertex_lon, size_vertex_lat, mask, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, vertex_lon, vertex_lat, annotation, API_id);
 	
 	data_type_size = get_data_type_size(data_type);
-	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), "registering an H2D grid", size_center_lon, data_type_size, (const char*)center_lon, "center_lon", annotation);
-	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), "registering an H2D grid", size_center_lat, data_type_size, (const char*)center_lat, "center_lat", annotation);
-	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), "registering an H2D grid", size_mask, sizeof(int), (const char*)mask, "mask", annotation);
-	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), "registering an H2D grid", size_area, data_type_size, (const char*)area, "area", annotation);
-	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), "registering an H2D grid", size_vertex_lon, data_type_size, (const char*)vertex_lon, "vertex_lon", annotation);
-	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), "registering an H2D grid", size_vertex_lat, data_type_size, (const char*)vertex_lat, "vertex_lat", annotation);
+	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), hint, size_center_lon, data_type_size, (const char*)center_lon, "center_lon", annotation);
+	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), hint, size_center_lat, data_type_size, (const char*)center_lat, "center_lat", annotation);
+	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), hint, size_mask, sizeof(int), (const char*)mask, "mask", annotation);
+	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), hint, size_area, data_type_size, (const char*)area, "area", annotation);
+	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), hint, size_vertex_lon, data_type_size, (const char*)vertex_lon, "vertex_lon", annotation);
+	check_API_parameter_data_array(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), hint, size_vertex_lat, data_type_size, (const char*)vertex_lat, "vertex_lat", annotation);
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), NULL, dim_size1, "dim_size1", annotation);
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in register_h2d_grid_with_data"), NULL, dim_size2, "dim_size2", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_size1 > 3, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"dim_size1\" is wrong. It must be larger than 3. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_size2 == 0 || dim_size2 > 3, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the value of the parameter \"dim_size2\" is wrong. It must be 0 or a positive value larger than 3. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_size1 > 3, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the value of the parameter \"dim_size1\" is wrong. It must be larger than 3. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_size2 == 0 || dim_size2 > 3, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the value of the parameter \"dim_size2\" is wrong. It must be 0 or a positive value larger than 3. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	if (dim_size2 == 0) {
 		grid_size = dim_size1;
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lon == grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"center_lon\" is different from the grid size that is determined by \"dim_size1\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lat == grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"center_lat\" is different from the grid size that is determined by \"dim_size1\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lon == grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"center_lon\" is different from the grid size that is determined by \"dim_size1\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lat == grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"center_lat\" is different from the grid size that is determined by \"dim_size1\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	}
 	else {
 		grid_size = (dim_size1)*(dim_size2);
 		if (size_center_lon == dim_size1)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lat == dim_size2, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"center_lat\" is different from \"dim_size2\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lat == dim_size2, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"center_lat\" is different from \"dim_size2\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 		else {			
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lon == grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"center_lon\" is different from \"dim_size1\" and the grid size that is determined by the product of \"dim_size1\" and \"dim_size2\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lat == grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"center_lat\" is different from the grid size that is determined by the product of \"dim_size1\" and \"dim_size2\" (the array size of \"center_lon\" is the same as the grid size). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lon == grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"center_lon\" is different from \"dim_size1\" and the grid size that is determined by the product of \"dim_size1\" and \"dim_size2\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, size_center_lat == grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"center_lat\" is different from the grid size that is determined by the product of \"dim_size1\" and \"dim_size2\" (the array size of \"center_lon\" is the same as the grid size). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 		}	
 	}
 	if (size_mask > 0)		
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_mask == grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"mask\" is different from the grid size. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_mask == grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"mask\" is different from the grid size. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	if (size_area > 0)		
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_area == grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"area\" is different from the grid size. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, (size_vertex_lon == -1 && size_vertex_lat == -1) || (size_vertex_lon > 0 && size_vertex_lat > 0), "Error happens when registering an H2D grid \"%s\" through API \"%s\": optional parameters \"vertex_lon\" and \"vertex_lat\" are not set/unset at the same time. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_area == grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"area\" is different from the grid size. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, (size_vertex_lon == -1 && size_vertex_lat == -1) || (size_vertex_lon > 0 && size_vertex_lat > 0), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": optional parameters \"vertex_lon\" and \"vertex_lat\" are not set/unset at the same time. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 	if (size_vertex_lon > 0) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, (size_vertex_lon) % (size_center_lon) == 0, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"vertex_lon\" is not an integral multiple of the array size of \"center_lon\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, (size_vertex_lat) % (size_center_lat) == 0, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"vertex_lat\" is not an integral multiple of the array size of \"center_lat\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, (size_vertex_lon) % (size_center_lon) == 0, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"vertex_lon\" is not an integral multiple of the array size of \"center_lon\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, (size_vertex_lat) % (size_center_lat) == 0, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"vertex_lat\" is not an integral multiple of the array size of \"center_lat\". Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 		int num_vertex_lon = (size_vertex_lon) / (size_center_lon);
 		int num_vertex_lat = (size_vertex_lat) / (size_center_lat);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, num_vertex_lon == num_vertex_lat, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the numbers of vertexes determined by \"vertex_lon\" and \"vertex_lat\" respectively are not the same. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_vertex_lon > grid_size && size_vertex_lat > grid_size || size_vertex_lon < grid_size && size_vertex_lat < grid_size, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the array size of \"vertex_lon\" and \"vertex_lat\" are not bigger/smaller than the grid size at the same time. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, num_vertex_lon == num_vertex_lat, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the numbers of vertexes determined by \"vertex_lon\" and \"vertex_lat\" respectively are not the same. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_vertex_lon > grid_size && size_vertex_lat > grid_size || size_vertex_lon < grid_size && size_vertex_lat < grid_size, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the array size of \"vertex_lon\" and \"vertex_lat\" are not bigger/smaller than the grid size at the same time. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 		if (size_center_lon == grid_size) 
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, num_vertex_lon >= 3, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the number of vertexes is wrong as it is smaller than 3. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
-		else EXECUTION_REPORT(REPORT_ERROR, comp_id ,num_vertex_lon == 2, "Error happens when registering an H2D grid \"%s\" through API \"%s\": the number of vertexes is wrong as it is not 2. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, num_vertex_lon >= 3, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the number of vertexes is wrong as it is smaller than 3. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
+		else EXECUTION_REPORT(REPORT_ERROR, comp_id ,num_vertex_lon == 2, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the number of vertexes is wrong as it is not 2. Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);
 		num_vertex = num_vertex_lon;
 	}
 
@@ -706,8 +751,8 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 	netcdf_file_object->read_file_field("area", (void**)(&area), &size_area, data_type_for_area, comm, is_root_proc);
 	netcdf_file_object->read_file_field(SCRIP_MASK_LABEL, (void**)(&mask), &size_mask, data_type_for_mask, comm, is_root_proc);
 	if (dim_lon_size > 0 && dim_lat_size > 0 && dim_H2D_size > 0)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size == dim_lon_size*dim_lat_size, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the size of dimension \"grid_size\" is different from the multiple of sizes of dimensions \"lon\" and \"lat\"", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size > 0 || (dim_lon_size > 0 && dim_lat_size > 0), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: the dimension size (dimensions \"lon\" and \"lat\" in the file) or the grid size (dimension \"grid_size\" in the file) is not correctly specified in the file \"%s\". Please verify.", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size == dim_lon_size*dim_lat_size, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the size of dimension \"grid_size\" is different from the multiple of sizes of dimensions \"lon\" and \"lat\"", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, dim_H2D_size > 0 || (dim_lon_size > 0 && dim_lat_size > 0), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: the dimension size (dimensions \"lon\" and \"lat\" in the file) or the grid size (dimension \"grid_size\" in the file) is not correctly specified in the file \"%s\". Please verify.", grid_name, annotation, data_file_name);
 	if (dim_lon_size > 0 && dim_lat_size > 0) {
 		dim_size1 = dim_lon_size;
 		dim_size2 = dim_lat_size;
@@ -717,43 +762,43 @@ int Original_grid_mgt::register_H2D_grid_via_file(int comp_id, const char *grid_
 		dim_size2 = 0;
 	}
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, center_lon != NULL, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: the longitude value for the center of each grid point (variable \"lon\" in the file) is not specified in the data file \"%s\". ", 
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, center_lon != NULL, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: the longitude value for the center of each grid point (variable \"lon\" in the file) is not specified in the data file \"%s\". ", 
 		             grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, center_lat != NULL, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: the latitude value for the center of each grid point (variable \"lat\" in the file) is not specified in the data file \"%s\". ", 
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, center_lat != NULL, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: the latitude value for the center of each grid point (variable \"lat\" in the file) is not specified in the data file \"%s\". ", 
 		             grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, vertex_lon != NULL && vertex_lat != NULL || vertex_lon == NULL && vertex_lat == NULL, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the longitude and latitude values for each vertex (variables \"vertex_lon\" and \"vertex_lat\" in the file) of each grid point must be specified/unspecified at the same time", 
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, vertex_lon != NULL && vertex_lat != NULL || vertex_lon == NULL && vertex_lat == NULL, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the longitude and latitude values for each vertex (variables \"vertex_lon\" and \"vertex_lat\" in the file) of each grid point must be specified/unspecified at the same time", 
 					 grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variables \"lon\" and \"lat\" are not the same", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,DATA_TYPE_FLOAT) || words_are_the_same(data_type_for_center_lon,DATA_TYPE_DOUBLE), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variables \"lon\" is not floating-point", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variables \"lon\" and \"lat\" are not the same", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,DATA_TYPE_FLOAT) || words_are_the_same(data_type_for_center_lon,DATA_TYPE_DOUBLE), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variables \"lon\" is not floating-point", grid_name, annotation, data_file_name);
 	if (vertex_lon != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"vertex_lon\" is different from the data type of variable \"lon\".", grid_name, annotation, data_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"vertex_lat\" is different from the data type of variable \"lat\".", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"vertex_lon\" is different from the data type of variable \"lon\".", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"vertex_lat\" is different from the data type of variable \"lat\".", grid_name, annotation, data_file_name);
 	}
 	if (area != NULL)		
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_area), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"area\" is different from the data type of variable \"lon\".", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_center_lon,data_type_for_area), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"area\" is different from the data type of variable \"lon\".", grid_name, annotation, data_file_name);
 	if (mask != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_mask, DATA_TYPE_INT), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"mask\" is not \"integer\".", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(data_type_for_mask, DATA_TYPE_INT), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the data type of variable \"mask\" is not \"integer\".", grid_name, annotation, data_file_name);
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "edge_type", edge_type, data_type_temp, comm, is_root_proc) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the global attribute \"edge_type\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "cyclic_or_acyclic", cyclic_or_acyclic, data_type_temp, comm, is_root_proc) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the global attribute \"cyclic_or_acyclic\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(edge_type) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"edge_type\" is not specified as a global attribute", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(cyclic_or_acyclic) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"cyclic_or_acyclic\" is not specified as a global attribute", grid_name, annotation, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, (netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LON_LABEL, "unit", unit_center_lon, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LON_LABEL, "units", unit_center_lon, data_type_temp, comm, is_root_proc)) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"%s\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, SCRIP_CENTER_LON_LABEL, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, (netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LAT_LABEL, "unit", unit_center_lat, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LAT_LABEL, "units", unit_center_lat, data_type_temp, comm, is_root_proc)) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"%s\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, SCRIP_CENTER_LAT_LABEL, data_file_name);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "min_lon", min_lon, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"min_lon\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "edge_type", edge_type, data_type_temp, comm, is_root_proc) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the global attribute \"edge_type\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "cyclic_or_acyclic", cyclic_or_acyclic, data_type_temp, comm, is_root_proc) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the global attribute \"cyclic_or_acyclic\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(edge_type) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"edge_type\" is not specified as a global attribute", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, strlen(cyclic_or_acyclic) > 0, "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", \"cyclic_or_acyclic\" is not specified as a global attribute", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, (netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LON_LABEL, "unit", unit_center_lon, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LON_LABEL, "units", unit_center_lon, data_type_temp, comm, is_root_proc)) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"%s\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, SCRIP_CENTER_LON_LABEL, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, (netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LAT_LABEL, "unit", unit_center_lat, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_CENTER_LAT_LABEL, "units", unit_center_lat, data_type_temp, comm, is_root_proc)) && words_are_the_same(data_type_temp, DATA_TYPE_STRING), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"%s\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, SCRIP_CENTER_LAT_LABEL, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "min_lon", min_lon, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"min_lon\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);
 	transform_datatype_of_arrays(min_lon, min_lon, data_type_temp, data_type_for_center_lon, 1);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "max_lon", max_lon, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"max_lon\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "max_lon", max_lon, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"max_lon\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);
 	transform_datatype_of_arrays(max_lon, max_lon, data_type_temp, data_type_for_center_lon, 1);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "min_lat", min_lat, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"min_lat\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);	
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "min_lat", min_lat, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"min_lat\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);	
 	transform_datatype_of_arrays(min_lat, min_lat, data_type_temp, data_type_for_center_lon, 1);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "max_lat", max_lat, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"max_lat\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(NULL, "max_lat", max_lat, data_type_temp, comm, is_root_proc) && (words_are_the_same(data_type_temp, DATA_TYPE_FLOAT) || words_are_the_same(data_type_temp, DATA_TYPE_DOUBLE)), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the value of the global attribute \"max_lat\" from the data file \"%s\": it does not exist or its type is not float or double", grid_name, annotation, data_file_name);
 	transform_datatype_of_arrays(max_lat, max_lat, data_type_temp, data_type_for_center_lon, 1);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lon\" and \"lat\" are different", grid_name, annotation, data_file_name);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_center_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lon\" and \"lat\" are different", grid_name, annotation, data_file_name);
 	if (vertex_lon != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LON_LABEL, "unit", unit_vertex_lon, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LON_LABEL, "units", unit_vertex_lon, data_type_temp, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lon\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LAT_LABEL, "unit", unit_vertex_lat, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LAT_LABEL, "units", unit_vertex_lat, data_type_temp, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lat\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lon\" and \"vertex_lon\" are different", grid_name, annotation, data_file_name);
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lat,unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lat\" and \"vertex_lat\" are different", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LON_LABEL, "unit", unit_vertex_lon, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LON_LABEL, "units", unit_vertex_lon, data_type_temp, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lon\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LAT_LABEL, "unit", unit_vertex_lat, data_type_temp, comm, is_root_proc) || netcdf_file_object->get_file_field_string_attribute(SCRIP_VERTEX_LAT_LABEL, "units", unit_vertex_lat, data_type_temp, comm, is_root_proc), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: fail to get the unit of variable \"vertex_lat\" from the data file \"%s\": it does not exist or its type is not string", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lon,unit_vertex_lon), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lon\" and \"vertex_lon\" are different", grid_name, annotation, data_file_name);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(unit_center_lat,unit_vertex_lat), "Error happens when registering an H2D grid \"%s\" (the corresponding model code annotation is \"%s\") through the API CCPL_register_H2D_grid_via_data_file: in the data file \"%s\", the units of variables \"lat\" and \"vertex_lat\" are different", grid_name, annotation, data_file_name);
 	}
 
 	grid_id = register_H2D_grid_via_global_data(comp_id, grid_name, edge_type, unit_center_lon, cyclic_or_acyclic, data_type_for_center_lon, dim_size1, dim_size2,size_center_lon, size_center_lat,
@@ -903,7 +948,7 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 				              grid_name, CoR_grid_name, CoR_script_file_name);
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->format_sub_grids(original_CoR_grid), "Please modify the definition of grid \"%s\" in the CoR script \"%s\". We propose to order the dimensions of the grid into the order such as lon, lat, level and time");
 	original_CoR_grid->end_grid_definition_stage(NULL);
-	if (original_CoR_grid->get_is_sphere_grid() && original_CoR_grid->get_boundary_min_lon() == NULL_COORD_VALUE)
+	if (original_CoR_grid->get_is_sphere_grid() && are_floating_values_equal(NULL_COORD_VALUE, original_CoR_grid->get_boundary_min_lon()))
 		original_CoR_grid->set_grid_boundary(-360.0, 360.0, -90.0, 90.0);
 	original_grid = new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, original_CoR_grid, true);
 	original_grids.push_back(original_grid);

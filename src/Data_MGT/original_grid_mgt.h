@@ -93,7 +93,6 @@ class Original_grid_mgt
 		Original_grid_mgt();
 		~Original_grid_mgt();
 		void initialize_CoR_grids();
-		void check_for_grid_definition(int, const char*, const char*);
 		int get_CoR_defined_grid(int, const char*, const char*, const char*);
 		Original_grid_info *search_grid_info(const char*, int);
 		Original_grid_info *search_grid_info(int);
@@ -120,6 +119,7 @@ class Original_grid_mgt
 		void set_3d_grid_bottom_field(int, int, int, int, int, const char*, const char*);
 		void register_mid_point_grid(int, int*, int*, int, const int*, const char*, const char *);
 		void delete_external_original_grids();
+		void calculate_min_max_H2D_coord_value(int, char *, char *, int, int, const char *, double &, double &);
 };
 
 

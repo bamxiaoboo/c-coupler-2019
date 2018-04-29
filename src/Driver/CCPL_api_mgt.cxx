@@ -10,6 +10,7 @@
 #include "CCPL_api_mgt.h"
 #include "global_data.h"
 #include <unistd.h>
+#include "quick_sort.h"
 
 
 
@@ -395,7 +396,7 @@ template <class T> void check_API_parameter_scalar(int comp_id, int API_id, MPI_
 
 
 char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm, const char *hint, int grid_size, int array_size, int data_type_size, char *array_value, 
-	                                                     const char *parameter_name, int num_local_cells, int *local_cells_global_index, int &grid_data_size, const char *annotation)
+	                                      const char *parameter_name, int num_local_cells, int *local_cells_global_index, int &grid_data_size, const char *annotation)
 {
 	char API_label[NAME_STR_SIZE];
 	int local_process_id, num_processes, *counts_for_cell_index, *displs_for_cell_index, *counts_for_array, *displs_for_array;
@@ -486,6 +487,13 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 					}
 				}
 			delete [] grid_data_mark;
+			if (report_error_enabled) {
+				do_quick_sort(all_local_cells_global_index, (int*)NULL, 0, num_total_cells-1);
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, all_local_cells_global_index[0] == 1, "Error happens when calling the API \"%s\" for %s: no process provide grid data (\"%s\") for the first grid cell. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, all_local_cells_global_index[num_total_cells-1] == grid_size, "Error happens when calling the API \"%s\" for %s: no process provide grid data (\"%s\") for the last (%dth) grid cell. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, grid_size, annotation);
+				for (int i = 1; i < num_total_cells; i ++)					
+					EXECUTION_REPORT(REPORT_ERROR, comp_id, all_local_cells_global_index[i] == all_local_cells_global_index[i-1] || all_local_cells_global_index[i] == all_local_cells_global_index[i-1]+1, "Error happens when calling the API \"%s\" for %s: no process provide grid data (\"%s\") for the %dth grid cell. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, all_local_cells_global_index[i-1]+1, annotation);
+			}
 		}
 	}
 

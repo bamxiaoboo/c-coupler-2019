@@ -37,6 +37,15 @@ extern char *load_string(char *, long &, long, const char *, long &, const char 
 extern long get_restart_time_in_rpointer_file(const char *);
 
 
+template <typename T> bool are_floating_values_equal(T value1, T value2)
+{
+	T eps = (T)1.0000001;
+	if (value1 < 0)
+		return value2 >= value1*eps && value2 <= value1/eps;
+	else return value2 <= value1*eps && value2 >= value1/eps;
+}
+
+
 template <typename T1, typename T2> void transform_datatype_of_arrays(const T1 *src_array, T2 *dst_array, long num_local_cells)
 {
 	for (long i = 0; i < num_local_cells; i ++)
@@ -65,9 +74,9 @@ template <typename T1, typename T2, typename T3> void arrays_division_template(T
 template <typename T> bool are_array_values_between_boundaries_kernel(const T *data_array, int array_size, T lower_bound, T upper_bound, T missing_value, bool has_missing_value)
 {	
 	for (int i = 0; i < array_size; i ++) {
-		if (has_missing_value && data_array[i] == missing_value)
+		if (has_missing_value && are_floating_values_equal(data_array[i], missing_value))
 			continue;
-		if (lower_bound < upper_bound) {
+		if (lower_bound <= upper_bound) {
 			if (data_array[i] < lower_bound || data_array[i] > upper_bound)
 				return false;
 		}
@@ -119,6 +128,29 @@ template <typename T> int is_array_in_sorting_order(T *array, int array_size)   
 	return 0;
 }
 
+
+template <typename T> void get_min_value_in_array(T *array, int array_size, bool have_missing_value, T missing_value, T &min_value)
+{
+	for (int i = 0; i < array_size; i ++) {
+		if (have_missing_value && are_floating_values_equal(min_value, missing_value))
+			min_value = array[i];
+		else if (have_missing_value && are_floating_values_equal(array[i], missing_value))
+			continue;
+		else min_value = min_value < array[i]? min_value : array[i];
+	}
+}
+
+
+template <typename T> void get_max_value_in_array(T *array, int array_size, bool have_missing_value, T missing_value, T &max_value)
+{
+	for (int i = 0; i < array_size; i ++) {
+		if (have_missing_value && are_floating_values_equal(max_value, missing_value))
+			max_value = array[i];
+		else if (have_missing_value && are_floating_values_equal(array[i], missing_value))
+			continue;
+		else max_value = max_value > array[i]? max_value : array[i];
+	}
+}
 
 
 #endif
