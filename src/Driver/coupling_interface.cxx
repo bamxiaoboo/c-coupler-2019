@@ -853,7 +853,7 @@ extern "C" void register_h2d_grid_with_global_data_
 (int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *dim_size1, int *dim_size2, int *size_center_lon, int *size_center_lat, 
  int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *annotation)
 {
-	char tmp_min_lon[8], tmp_max_lon[8], tmp_min_lat[8], tmp_max_lat[8];
+	char tmp_min_lon[8], tmp_max_lon[8], tmp_min_lat[8], tmp_max_lat[8], tmp_cyclic_or_acyclic[NAME_STR_SIZE];
 	int data_type_size = 4;
 
 
@@ -867,8 +867,9 @@ extern "C" void register_h2d_grid_with_global_data_
 	memcpy(tmp_max_lon, max_lon, data_type_size);
 	memcpy(tmp_min_lat, min_lat, data_type_size);
 	memcpy(tmp_max_lat, max_lat, data_type_size);
+	strcpy(tmp_cyclic_or_acyclic, cyclic_or_acyclic);
 
-	*grid_id = original_grid_mgr->register_H2D_grid_via_global_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
+	*grid_id = original_grid_mgr->register_H2D_grid_via_global_data(*comp_id, grid_name, edge_type, coord_unit, tmp_cyclic_or_acyclic, data_type, *dim_size1, *dim_size2, *size_center_lon, *size_center_lat, 
 												                    *size_mask, *size_area, *size_vertex_lon, *size_vertex_lat, tmp_min_lon, tmp_max_lon, tmp_min_lat, tmp_max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation,
 												                    API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA);
 	if (report_error_enabled) {
@@ -891,7 +892,7 @@ extern "C" void register_h2d_grid_with_local_data_
 (int *comp_id, int *grid_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int *grid_size, int *num_local_cells, int *size_local_cells_global_index, int *size_center_lon, int *size_center_lat, 
  int *size_mask, int *size_area, int *size_vertex_lon, int *size_vertex_lat, int *local_cells_global_index, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *decomp_name, int *decomp_id, const char *annotation)
 {
-	char tmp_min_lon[8], tmp_max_lon[8], tmp_min_lat[8], tmp_max_lat[8];
+	char tmp_min_lon[8], tmp_max_lon[8], tmp_min_lat[8], tmp_max_lat[8], tmp_cyclic_or_acyclic[NAME_STR_SIZE];
 	int data_type_size = 4;
 
 
@@ -906,8 +907,9 @@ extern "C" void register_h2d_grid_with_local_data_
 	memcpy(tmp_max_lon, max_lon, data_type_size);
 	memcpy(tmp_min_lat, min_lat, data_type_size);
 	memcpy(tmp_max_lat, max_lat, data_type_size);
+	strcpy(tmp_cyclic_or_acyclic, cyclic_or_acyclic);
 
-	*grid_id = original_grid_mgr->register_H2D_grid_via_local_data(*comp_id, grid_name, edge_type, coord_unit, cyclic_or_acyclic, data_type, *grid_size, *num_local_cells, *size_local_cells_global_index, *size_center_lon, *size_center_lat, *size_mask, *size_area, 
+	*grid_id = original_grid_mgr->register_H2D_grid_via_local_data(*comp_id, grid_name, edge_type, coord_unit, tmp_cyclic_or_acyclic, data_type, *grid_size, *num_local_cells, *size_local_cells_global_index, *size_center_lon, *size_center_lat, *size_mask, *size_area, 
 	                                                               *size_vertex_lon, *size_vertex_lat, local_cells_global_index, tmp_min_lon, tmp_max_lon, tmp_min_lat, tmp_max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, decomp_name, decomp_id, annotation, API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering an H2D grid %s", grid_name);

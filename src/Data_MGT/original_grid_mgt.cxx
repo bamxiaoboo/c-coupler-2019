@@ -437,7 +437,7 @@ void Original_grid_mgt::calculate_min_max_H2D_coord_value(int comp_id, char *cen
 }
 
 
-void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int size_mask, int size_center_lon, 
+void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, char *cyclic_or_acyclic, const char *data_type, int size_mask, int size_center_lon, 
 	                                                                  int size_center_lat, int size_vertex_lon, int size_vertex_lat, int *mask, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, char *vertex_lon, char *vertex_lat, const char *annotation, int API_id)
 {
 	char API_label[NAME_STR_SIZE], hint[NAME_STR_SIZE];
@@ -472,7 +472,19 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 
 	if (!are_floating_values_equal(NULL_COORD_VALUE, min_lat_value))
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, max_lat_value > min_lat_value, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": \"min_lat\" (%lf) is not smaller than \"max_lat\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, max_lat_value, annotation);
+	else {
+		calculate_min_max_H2D_coord_value(comp_id, center_lat, vertex_lat, size_center_lat, size_vertex_lat, data_type, min_lat_value, max_lat_value);
+		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The min and max latitude values of the grid \"%s\" calculated by C-Coupler is %lf and %lf", grid_name, min_lat_value, max_lat_value);
+		transform_datatype_of_arrays((char*)(&min_lat_value), min_lat, DATA_TYPE_DOUBLE, data_type, 1);
+		transform_datatype_of_arrays((char*)(&max_lat_value), max_lat, DATA_TYPE_DOUBLE, data_type, 1);
+	}	
 	if (words_are_the_same(coord_unit, COORD_UNIT_DEGREES)) {
+		if (!are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lat_value, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lat_value, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lat_value, annotation);
+		}
+		if (are_floating_values_equal((double)-90.0, min_lat_value) || are_floating_values_equal((double)90.0, max_lat_value))
+			strcpy(cyclic_or_acyclic, "cyclic");	
 		if (words_are_the_same(cyclic_or_acyclic, "cyclic")) {
 			min_lon_value = -360;
 			max_lon_value = 360;
@@ -483,12 +495,14 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 			if (words_are_the_same(cyclic_or_acyclic, "acyclic"))
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, fabs(max_lon_value-min_lon_value) <= ((double)360.0)*eps, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the difference between \"min_lon\" and \"max_lon\" (%lf) is wrong (not between -360 and 360). Please check the model code related to the annotation \"%s\".", grid_name, API_label, fabs(max_lon_value-min_lon_value), annotation);			
 		}
-		if (!are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lat_value, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lat_value, 1, (double) -90.0*eps, (double) 90.0*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lat\" is wrong (not between -90 and 90). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lat_value, annotation);
-		}
 	}
 	else if (words_are_the_same(coord_unit, COORD_UNIT_RADIANS)) {
+		if (are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lat_value, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lat_value, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lat_value, annotation);
+		}
+		if (are_floating_values_equal((double)-PI/2, min_lat_value) || are_floating_values_equal((double)PI/2, max_lat_value))
+			strcpy(cyclic_or_acyclic, "cyclic");
 		if (words_are_the_same(cyclic_or_acyclic, "cyclic")) {
 			min_lon_value = -((double)3.1416)*2;
 			max_lon_value = -((double)3.1416)*2;
@@ -499,22 +513,12 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 			if (words_are_the_same(cyclic_or_acyclic, "acyclic"))
 				EXECUTION_REPORT(REPORT_ERROR, comp_id, fabs(max_lon_value-min_lon_value) <= ((double)3.1416)*2*eps, "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the difference between \"min_lon\" and \"max_lon\" is wrong (not between -2PI and 2PI). Please check the model code related to the annotation \"%s\".", grid_name, API_label, annotation);	
 		}
-		if (are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &min_lat_value, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"min_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lat_value, annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, &max_lat_value, 1, -((double)3.1416)/2*eps, ((double)3.1416)/2*eps, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": the specified value (%lf) of the parameter \"max_lat\" are wrong (not between -PI/2 and PI/2). Please check the model code related to the annotation \"%s\".", grid_name, API_label, max_lat_value, annotation);
-		}
 	}
 	if (are_floating_values_equal(NULL_COORD_VALUE, min_lon_value)) {
 		calculate_min_max_H2D_coord_value(comp_id, center_lon, vertex_lon, size_center_lon, size_vertex_lon, data_type, min_lon_value, max_lon_value);
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The min and max longitude values of the grid \"%s\" calculated by C-Coupler is %lf and %lf", grid_name, min_lon_value, max_lon_value);
 		transform_datatype_of_arrays((char*)(&min_lon_value), min_lon, DATA_TYPE_DOUBLE, data_type, 1);
 		transform_datatype_of_arrays((char*)(&max_lon_value), max_lon, DATA_TYPE_DOUBLE, data_type, 1);
-	}
-	if (are_floating_values_equal(NULL_COORD_VALUE, min_lat_value)) {
-		calculate_min_max_H2D_coord_value(comp_id, center_lat, vertex_lat, size_center_lat, size_vertex_lat, data_type, min_lat_value, max_lat_value);
-		EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The min and max latitude values of the grid \"%s\" calculated by C-Coupler is %lf and %lf", grid_name, min_lat_value, max_lat_value);
-		transform_datatype_of_arrays((char*)(&min_lat_value), min_lat, DATA_TYPE_DOUBLE, data_type, 1);
-		transform_datatype_of_arrays((char*)(&max_lat_value), max_lat, DATA_TYPE_DOUBLE, data_type, 1);
 	}
 	if (!are_floating_values_equal(NULL_COORD_VALUE, min_lon_value)) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_id, are_array_values_between_boundaries(data_type, (double*) center_lon, size_center_lon, min_lon_value, max_lon_value, (double) NULL_COORD_VALUE, false), "Error happens when registering an H2D grid \"%s\" through the API \"%s\": some values of the parameter \"center_lon\" are not between \"min_lon\" (%lf) and \"max_lon\" (%lf). Please check the model code related to the annotation \"%s\".", grid_name, API_label, min_lon_value, max_lon_value, annotation);
@@ -527,7 +531,7 @@ void Original_grid_mgt::common_checking_for_H2D_registration_via_data(int comp_i
 }
 
 
-int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int grid_size, int num_local_cells, int size_local_cells_global_index, int size_center_lon, int size_center_lat, 
+int Original_grid_mgt::register_H2D_grid_via_local_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, char *cyclic_or_acyclic, const char *data_type, int grid_size, int num_local_cells, int size_local_cells_global_index, int size_center_lon, int size_center_lat, 
 	                                               int size_mask, int size_area, int size_vertex_lon, int size_vertex_lat, int *local_cells_global_index, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *decomp_name, int *decomp_id, const char *annotation, int API_id)
 {
 	int data_type_size;
@@ -645,9 +649,9 @@ int Original_grid_mgt::create_H2D_grid_from_global_data(int comp_id, const char 
 		max_lat_value = max_lat_value*180/PI;
 	}
 	if (words_are_the_same(cyclic_or_acyclic, "cyclic")) {
-		min_lon_value = -360.0;
+		min_lon_value = 0.0;
 		max_lon_value = 360.0;
-	}	
+	}
 	CoR_H2D_grid->set_grid_boundary(min_lon_value, max_lon_value, min_lat_value, max_lat_value);
 	
 	remap_grid_manager->add_remap_grid(CoR_lon_grid);
@@ -660,7 +664,7 @@ int Original_grid_mgt::create_H2D_grid_from_global_data(int comp_id, const char 
 }
 
 
-int Original_grid_mgt::register_H2D_grid_via_global_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, const char *cyclic_or_acyclic, const char *data_type, int dim_size1, int dim_size2, int size_center_lon, int size_center_lat, 
+int Original_grid_mgt::register_H2D_grid_via_global_data(int comp_id, const char *grid_name, const char *edge_type, const char *coord_unit, char *cyclic_or_acyclic, const char *data_type, int dim_size1, int dim_size2, int size_center_lon, int size_center_lat, 
 	                                               int size_mask, int size_area, int size_vertex_lon, int size_vertex_lat, char *min_lon, char *max_lon, char *min_lat, char *max_lat, char *center_lon, char *center_lat, int *mask, char *area, char *vertex_lon, char *vertex_lat, const char *annotation, int API_id)
 {
 	int data_type_size, grid_size, num_vertex;
@@ -949,7 +953,7 @@ int Original_grid_mgt::get_CoR_defined_grid(int comp_id, const char *grid_name, 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_CoR_grid->format_sub_grids(original_CoR_grid), "Please modify the definition of grid \"%s\" in the CoR script \"%s\". We propose to order the dimensions of the grid into the order such as lon, lat, level and time");
 	original_CoR_grid->end_grid_definition_stage(NULL);
 	if (original_CoR_grid->get_is_sphere_grid() && are_floating_values_equal(NULL_COORD_VALUE, original_CoR_grid->get_boundary_min_lon()))
-		original_CoR_grid->set_grid_boundary(-360.0, 360.0, -90.0, 90.0);
+		original_CoR_grid->set_grid_boundary(0, 360.0, -90.0, 90.0);
 	original_grid = new Original_grid_info(comp_id, original_grids.size()|TYPE_GRID_LOCAL_ID_PREFIX, grid_name, annotation, original_CoR_grid, true);
 	original_grids.push_back(original_grid);
 	if (original_grid->get_H2D_sub_CoR_grid() != NULL) {

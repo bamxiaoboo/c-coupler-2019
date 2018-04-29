@@ -387,6 +387,10 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
     duplicated_grid->are_vertex_values_set_in_default = this->are_vertex_values_set_in_default;
 	duplicated_grid->sigma_grid_scale_factor = this->sigma_grid_scale_factor;
 	duplicated_grid->sigma_grid_top_value = this->sigma_grid_top_value;
+	duplicated_grid->boundary_min_lon = this->boundary_min_lon;
+	duplicated_grid->boundary_max_lon = this->boundary_max_lon;
+	duplicated_grid->boundary_min_lat = this->boundary_min_lat;
+	duplicated_grid->boundary_max_lat = this->boundary_max_lat;
 	duplicated_grid->whole_grid = this->whole_grid;
 	if (this->sigma_grid_sigma_value_field != NULL)
 		duplicated_grid->sigma_grid_sigma_value_field = this->sigma_grid_sigma_value_field->duplicate_grid_data_field(duplicated_grid, 1, true, true);
@@ -1917,6 +1921,7 @@ void Remap_grid_class::set_grid_boundary(double min_lon, double max_lon, double 
     boundary_max_lon = max_lon;
     boundary_min_lat = min_lat;
     boundary_max_lat = max_lat;
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Set boundary of grid \"%s\" to %lf %lf %lf %lf", grid_name, boundary_min_lon, boundary_max_lon, boundary_min_lat, boundary_max_lat);
 }
 
 
@@ -1930,16 +1935,10 @@ void Remap_grid_class::generate_voronoi_grid()
 
   
     EXECUTION_REPORT(REPORT_ERROR, -1, this->get_is_sphere_grid(), "remap software error1 in generate_voronoi_grid\n");
-    EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s has not been set by user. Default boundary area (global area) will be used to generate the voronoi grid\n", grid_name);
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Generate voronoi grid for \"%s\"", grid_name);
+    EXECUTION_REPORT(REPORT_ERROR, -1, !are_floating_values_equal(NULL_COORD_VALUE, boundary_min_lon), "remap software error2 in generate_voronoi_grid\n");
+    EXECUTION_REPORT(REPORT_WARNING, -1, boundary_min_lon != NULL_COORD_VALUE, "the boundary of area of grid %s (%lx) has not been set by user. Default boundary area (global area) will be used to generate the voronoi grid\n", grid_name, this);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Generate voronoi grid for \"%s\": %lf  %lf  %lf  %lf", grid_name, boundary_min_lon, boundary_max_lon, boundary_min_lat, boundary_max_lat);
 
-	if (boundary_min_lon == NULL_COORD_VALUE) {
-		boundary_min_lat = -90;
-		boundary_max_lat = 90;
-		boundary_min_lon = 0;
-		boundary_max_lon = 360;
-	}
-	
     are_vertex_values_set_in_default = true;
 
     is_global_grid = boundary_min_lat == -90 && boundary_max_lat == 90 && fabs(boundary_min_lon-boundary_max_lon) == 360;
@@ -3364,6 +3363,8 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	
 	if (this == top_grid)
 		link_grids(top_grid, grid_name_suffix);
+
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "read boundary of grid \"%s\" (%lx) to %lf %lf %lf %lf", grid_name, this, boundary_min_lon, boundary_max_lon, boundary_min_lat, boundary_max_lat);
 }
 
 

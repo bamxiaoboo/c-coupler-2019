@@ -509,7 +509,7 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 	for (i = 0; i < num_points; i ++)
 		mark[i] = true;
 
-	if (max_lat != 90 && min_lat != -90 && !cyclic) {
+	if (max_lat != 90 && min_lat != -90 && !cyclic && false) {
 		get_convex_set(num_points, lat_values, lon_values, min_lon, max_lon, num_convex_set_points, &convex_set_points_indx);
 		for (i = 0; i < num_convex_set_points; i ++)
 			mark[convex_set_points_indx[i]] = false;
@@ -533,7 +533,7 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 	
 	delete [] mark;
 
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "there are %d valid grid points in the grid for Voronoi generation", root->remained_points_in_triangle.size());
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "there are %d valid grid points in the grid for Voronoi generation: %lf %lf %lf %lf", root->remained_points_in_triangle.size(), min_lon, max_lon, min_lat, max_lat);
 
 	if (cyclic) {
 		for (i = 0; i < 4; i ++)
@@ -562,8 +562,12 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 		else boundary_points[set_id++].push_back(generate_boundary_point(0, max_lat, root, true));
 	}
 	else {
+		double enlarged_max_lat1 = max_lat + (max_lat-min_lat) / 3;
+		double enlarged_max_lat2 = max_lat + (90.0-max_lat) / 2;
+		double enlarged_max_lat = enlarged_max_lat1 < enlarged_max_lat2? enlarged_max_lat1 : enlarged_max_lat2;
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "enlarged_max_lat is %lf vs %lf", enlarged_max_lat, max_lat);
 		for (i = 0; i < 4; i ++)
-			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], max_lat, root, true));
+			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], enlarged_max_lat, root, true));
 		set_id ++;
 	}
 	if (is_global_grid || min_lat == -90 && max_lat == 90) {
@@ -577,12 +581,16 @@ Delaunay_Voronoi::Delaunay_Voronoi(int num_points, double *lat_values, double *l
 		else boundary_points[set_id++].push_back(generate_boundary_point(0, min_lat, root, true));
 	}
 	else {
+		double enlarged_min_lat1 = min_lat - (max_lat-min_lat) / 3;
+		double enlarged_min_lat2 = min_lat - (min_lat+90.0) / 2;
+		double enlarged_min_lat = enlarged_min_lat1 > enlarged_min_lat2? enlarged_min_lat1 : enlarged_min_lat2;
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "enlarged_min_lat is %lf vs %lf", enlarged_min_lat, min_lat);
 		for (i = 0; i < 4; i ++)
-			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], min_lat, root, true));
+			boundary_points[set_id].push_back(generate_boundary_point(boundary_point_lons[i], enlarged_min_lat, root, true));
 		set_id ++;
 	}
 
-	if (max_lat != 90 && min_lat != -90 && !cyclic) {
+	if (max_lat != 90 && min_lat != -90 && !cyclic && false) {
 		boundary_points[0].clear();
 		boundary_points[1].clear();
 		for (i = 1; i < num_convex_set_points; i ++) {
@@ -715,7 +723,7 @@ void Delaunay_Voronoi::distribute_points_into_triangles(vector<Point*> *pnts, ve
 		if (!find_triangle) 
 			if (is_global_grid)
 				EXECUTION_REPORT(REPORT_ERROR, -1, false, "CoR may have bugs, please contact liuli-cess@tsinghua.edu.cn");
-			else EXECUTION_REPORT(REPORT_ERROR, -1, false, "please enlarge the boundary of the regional grid"); 
+			else EXECUTION_REPORT(REPORT_ERROR, -1, false, "please enlarge the boundary of the regional grid: point (%lf %lf): ", (*pnts)[i]->lon, (*pnts)[i]->lat); 
 	}
 }
 
