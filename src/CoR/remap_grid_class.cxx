@@ -3297,6 +3297,10 @@ void Remap_grid_class::write_grid_into_array(char **array, long &buffer_max_size
 	write_data_into_array_buffer(&masks_are_known, sizeof(bool), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&num_vertexes, sizeof(int), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&num_dimensions, sizeof(int), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&boundary_min_lon, sizeof(double), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&boundary_max_lon, sizeof(double), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&boundary_min_lat, sizeof(double), array, buffer_max_size, buffer_content_size);
+	write_data_into_array_buffer(&boundary_max_lat, sizeof(double), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(&grid_size, sizeof(long), array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(coord_unit, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
@@ -3325,6 +3329,10 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 	read_data_from_array_buffer(coord_unit, NAME_STR_SIZE, array, buffer_content_iter, true);
 	read_data_from_array_buffer(decomp_name, NAME_STR_SIZE, array, buffer_content_iter, true);
 	read_data_from_array_buffer(&grid_size, sizeof(long), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&boundary_max_lat, sizeof(double), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&boundary_min_lat, sizeof(double), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&boundary_max_lon, sizeof(double), array, buffer_content_iter, true);
+	read_data_from_array_buffer(&boundary_min_lon, sizeof(double), array, buffer_content_iter, true);
 	read_data_from_array_buffer(&num_dimensions, sizeof(int), array, buffer_content_iter, true);
 	read_data_from_array_buffer(&num_vertexes, sizeof(int), array, buffer_content_iter, true);
 	read_data_from_array_buffer(&masks_are_known, sizeof(bool), array, buffer_content_iter, true);
