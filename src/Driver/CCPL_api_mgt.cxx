@@ -312,7 +312,7 @@ void synchronize_comp_processes_for_API(int comp_id, int API_id, MPI_Comm comm, 
 	get_API_hint(-1, API_id, API_label_local);
 
 	if (comp_id != -1)
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, false), "The given component model ID (0x%x) is wrong when calling the interface \"%s\" for %s. Please check the model code with the annotation \"%s\"", comp_id, API_label_local, hint, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id, false), "Error happens when calling the interface \"%s\" for %s: the given component model ID (0x%x). Please check the model code with the annotation \"%s\"", API_label_local, hint, comp_id, annotation);
 
 	if (comm == MPI_COMM_NULL)
 		comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in synchronize_comp_processes_for_API");
@@ -414,8 +414,8 @@ char *check_and_aggregate_local_grid_data(int comp_id, int API_id, MPI_Comm comm
 
 	check_API_parameter_int(comp_id, API_id, comm, "data type", data_type_size, parameter_name, annotation);
 	if (words_are_the_same(parameter_name, "vertex_lon") || words_are_the_same(parameter_name, "vertex_lat"))
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == 0 && num_local_cells == 0 || (array_size % num_local_cells) == 0, "Error happens when calling the API \"%s\" for %s: the array size of parameter \"%s\" is not an integer multiple of parameter \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
-	else EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == num_local_cells, "Error happens when calling the API \"%s\" for %s: the array size of parameter \"%s\" must be the same as \"num_local_cells\". Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == 0 && num_local_cells == 0 || (array_size % num_local_cells) == 0, "Error happens when calling the API \"%s\" for %s: the array size (currently is %d) of the parameter \"%s\" is not an integer multiple of parameter \"num_local_cells\" (currently is %d). Please check the model code related to the annotation \"%s\"", API_label, hint, array_size, parameter_name, num_local_cells, annotation);
+	else EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size == num_local_cells, "Error happens when calling the API \"%s\" for %s: the array size (currently is %d) of the parameter \"%s\" must be the same as \"num_local_cells\" (currently is %d). Please check the model code related to the annotation \"%s\"", API_label, hint, array_size, parameter_name, num_local_cells, annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_rank(comm, &local_process_id) == MPI_SUCCESS);
 	EXECUTION_REPORT(REPORT_ERROR, -1, MPI_Comm_size(comm, &num_processes) == MPI_SUCCESS);	

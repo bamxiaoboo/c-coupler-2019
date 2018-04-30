@@ -1912,6 +1912,11 @@ void Remap_grid_class::set_grid_boundary(double min_lon, double max_lon, double 
     EXECUTION_REPORT(REPORT_ERROR, -1, max_lat >= -90*eps && max_lat <= 90*eps, "the maximum latitude (%lf) of the boundary of grid %s must be between -90 and +90 degrees", max_lat, grid_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, min_lat < max_lat, "the minimum latitude (%lf) of the boundary must be smaller than the maximum latitude (%lf) of the boundary", min_lat, max_lat, grid_name);
 
+	if (are_floating_values_equal(min_lat, (double)-90))
+		min_lat = -90;
+	if (are_floating_values_equal(max_lat, (double)90))
+		max_lat = 90;
+
     get_leaf_grids(&num_leaf_grids, leaf_grids, this);
     if (words_are_the_same(leaf_grids[0]->get_coord_label(), COORD_LABEL_LON))
         lon_sub_grid = leaf_grids[0];
@@ -2823,8 +2828,13 @@ void Remap_grid_class::transform_coord_values_from_radian_to_degrees(Remap_grid_
     coord_value_array = (double*) remap_grid_data->grid_data_field->data_buf;
     array_size = remap_grid_data->grid_data_field->required_data_size;    
     for (i = 0; i < array_size; i ++)
-        if (coord_value_array[i] != NULL_COORD_VALUE)
+        if (coord_value_array[i] != NULL_COORD_VALUE) {
             coord_value_array[i] = RADIAN_TO_DEGREE(coord_value_array[i]);
+			if (are_floating_values_equal((double)90, coord_value_array[i]))
+				coord_value_array[i] = 90;
+			if (are_floating_values_equal((double)-90, coord_value_array[i]))
+				coord_value_array[i] = -90;
+        }
     for (i = 0; i < remap_grid_data->grid_data_field->field_attributes.size(); i ++)
         if (words_are_the_same(remap_grid_data->grid_data_field->field_attributes[i].attribute_name, GRID_FIELD_ATTRIBUTE_UNIT) ||
             words_are_the_same(remap_grid_data->grid_data_field->field_attributes[i].attribute_value, COORD_UNIT_RADIANS))
