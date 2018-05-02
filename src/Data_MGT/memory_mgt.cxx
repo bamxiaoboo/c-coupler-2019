@@ -21,12 +21,10 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 {
 	int mem_size;
 	Remap_grid_class *remap_grid_grid = NULL, *remap_grid_decomp = NULL;
-	bool grid_match;
     Remap_data_field *remap_data_field;
 
 
 	if (decomp_id == -1) {
-		grid_match = true;
 		if (comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id,false)) {
 			comp_id = comp_or_grid_id;
 			grid_id = -1;
@@ -36,7 +34,7 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 			comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
 			grid_id = comp_or_grid_id;
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_CoR_grid(grid_id)->get_num_dimensions() == 1 && original_grid_mgr->get_original_CoR_grid(grid_id)->has_grid_coord_label(COORD_LABEL_LEV), 
-				             "When the given parallel decomposition id (parameter \"decomp_id\") for registering an instance of coupling field of \"%s\" is -1, the corresponding grid must be one-dimension vertical grid. Please check the model code with the annotation \"%s\"", field_name, annotation);
+				             "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": when the given parallel decomposition ID (the parameter \"decomp_id\") is -1, the corresponding grid \"%s\" must be an one-dimension vertical grid. Please check the model code with the annotation \"%s\"", field_name, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_grid_name(), annotation);
 			mem_size = original_grid_mgr->get_grid_size(grid_id, "in Field_mem_info::Field_mem_info") * get_data_type_size(data_type);
 		}
 		host_comp_id = comp_id;
@@ -51,17 +49,16 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 			             "Software error4 in new Field_mem_info");
 		remap_grid_decomp = decomps_info_mgr->get_CoR_grid_of_decomp(decomp_id);
 		remap_grid_grid = original_grid_mgr->get_original_CoR_grid(comp_or_grid_id);
-		grid_match = remap_grid_decomp->is_subset_of_grid(remap_grid_grid);
 		mem_size = decomps_info_mgr->get_decomp_info(decomp_id)->get_num_local_cells() * get_data_type_size(data_type) * remap_grid_grid->get_grid_size()/remap_grid_decomp->get_grid_size();
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, remap_grid_decomp->is_subset_of_grid(remap_grid_grid), "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition (grid \"%s\") is not a subset of the grid corresponding to the grid ID (grid \"%s\"). Please check the model code with the annotation \"%s\"", field_name, decomps_info_mgr->get_decomp_info(decomp_id)->get_grid_name(), original_grid_mgr->get_original_grid(comp_or_grid_id)->get_grid_name(), annotation);
 	}
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, grid_match, "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: the grid corresponding to the decomposition should be a subset of the grid corresponding to the grid ID. Please check the model code with the annotation \"%s\"", field_name, annotation);
 	
 	host_comp_time_mgr = components_time_mgrs->get_time_mgr(host_comp_id);
 
 	const field_attr *field_attributes = fields_info->search_field_info(field_name);
 
 	if (check_field_name) {
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, field_attributes != NULL, "When trying to register an instance of a coupling field, the field name \"%s\" is unknown (has not been registered through the configuration XML file public_field_attribute.xml). Please check the model code with the annotation \"%s\"", field_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, field_attributes != NULL, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the field name \"%s\" is unknown (has not been registered through the configuration XML file public_field_attribute.xml). Please check the model code with the annotation \"%s\"", field_name, field_name, annotation);
 		bool dimensions_match_grid;
 		if (words_are_the_same(field_attributes->field_dim, FIELD_0_DIM))
 			dimensions_match_grid = decomp_id == -1 && remap_grid_grid == NULL;
@@ -73,8 +70,8 @@ Field_mem_info::Field_mem_info(const char *field_name, int decomp_id, int comp_o
 			dimensions_match_grid = decomp_id != -1 && remap_grid_grid != NULL && remap_grid_grid->get_num_dimensions() == 3;
 		if (!dimensions_match_grid) {
 			if (grid_id != -1)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when trying to register a field instance of \"%s\" at the model code with the annotation \"%s\": the dimension information (\"%s\") of the field does not match the dimensions of the corresponding grid \"%s\"", field_name, annotation, field_attributes->field_dim, original_grid_mgr->get_name_of_grid(grid_id));
-			else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when trying to register a field instance of \"%s\" at the model code with the annotation \"%s\": the dimension information (\"%s\") of the field does not match the dimensions of the corresponding empty grid", field_name, annotation, field_attributes->field_dim);
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\" at the model code with the annotation \"%s\": the dimension information (\"%s\") of the field does not match the dimensions of the corresponding grid \"%s\"", field_name, annotation, field_attributes->field_dim, original_grid_mgr->get_name_of_grid(grid_id));
+			else EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the dimension information (\"%s\") of the field does not match the dimensions of the corresponding empty grid", field_name, annotation, field_attributes->field_dim);
 		}
 	}	
 
@@ -242,7 +239,7 @@ void Field_mem_info::check_field_sum(const char *hint)
 		else {
 			total_sum = partial_sum;
 			MPI_Bcast(&total_sum, 1, MPI_INT, 0, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "Field_mem_info::check_field_sum"));
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, partial_sum == total_sum, "Field %s should be the same but not the same across all processes of the component. Please check the model code related to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, partial_sum == total_sum, "As an instance of the field \"%s\" is not on a horizontal grid, it should be the same but currently are not the same across all processes of the corresponding component model. Please check the model code related to the annotation \"%s\"", field_name, annotation_mgr->get_annotation(field_instance_id, "allocate field instance"));
 		}
 	}
 }
@@ -454,19 +451,20 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		API_id = API_ID_FIELD_MGT_REG_IO_FIELD_from_BUFFER;
 	else API_id = API_ID_FIELD_MGT_REG_FIELD_INST;
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id,true) || original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "The parameter of \"comp_or_grid_id\" for registering an instance of coupling field of \"%s\" is wrong: not a grid id or a component id. Please check the model code with the annotation \"%s\"", field_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id,true) || original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the parameter of \"comp_or_grid_id\" is not a grid id or a component id. Please check the model code with the annotation \"%s\"", field_name, annotation);
 	
 	if (comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_or_grid_id,true))
 		comp_id = comp_or_grid_id;
 	else comp_id = original_grid_mgr->get_comp_id_of_grid(comp_or_grid_id);
 
-	check_API_parameter_string_length(comp_id, API_id, 80, field_name, "field_name", annotation);
+	check_API_parameter_string_length(comp_id, API_id, CCPL_NAME_STR_LEN, field_name, "field_name", annotation);
+	check_and_verify_name_format_of_string_for_API(comp_id, field_name, API_id, "the field instance", annotation);
 
 	if (decomp_id != -1) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "The parameter of decomposition ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);
-		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "The parameter of grid ID for registering an instance of coupling field of \"%s\" is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);		
+		EXECUTION_REPORT(REPORT_ERROR, -1, decomps_info_mgr->is_decomp_id_legal(decomp_id), "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the parameter of decomposition ID is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(comp_or_grid_id), "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the parameter of grid ID is wrong. Please check the model code with the annotation \"%s\"", field_name, annotation);		
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == decomps_info_mgr->get_comp_id_of_decomp(decomp_id), 
-			             "When registering an instance of coupling field of \"%s\", the parameters of grid ID and decomposition ID do not match each other: they belong to different components. Please check the model code with the annotation \"%s\"",
+			             "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the parameters of grid ID and decomposition ID do not match each other: they belong to different component models. Please check the model code with the annotation \"%s\"",
 			             field_name, annotation);
 		EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true), "Software error in Memory_mgt::register_external_field_instance: illegal component id from grid id");
 	}
@@ -484,9 +482,9 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 		check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), NULL, decomp_id, "comp_or_grid_id (a grid id or a component id)", annotation);
 		if (comp_id != comp_or_grid_id)	{
 			check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", original_grid_mgr->get_name_of_grid(comp_or_grid_id), "the grid name specified by the corresponding ID", annotation);
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_H2D_sub_CoR_grid() == NULL && original_grid_mgr->get_original_grid(comp_or_grid_id)->get_V1D_sub_CoR_grid() != NULL, "The grid corresponding to the parameter of \"comp_or_grid_id\" for registering an instance of coupling field of \"%s\" should be a vertical grid when the given \"decomp_id\" is -1. Please check the model code with the annotation \"%s\"", field_name, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_H2D_sub_CoR_grid() == NULL && original_grid_mgr->get_original_grid(comp_or_grid_id)->get_V1D_sub_CoR_grid() != NULL, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the grid corresponding to the parameter of \"comp_or_grid_id\" (the grid is \"%s\") should be but not a vertical grid when the given \"decomp_id\" is -1. Please check the model code with the annotation \"%s\"", field_name, original_grid_mgr->get_original_grid(comp_or_grid_id)->get_grid_name(), annotation);
 		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == comp_or_grid_id, "Fail to register a field instance of \"%s\" at the model code with the annotation \"%s\". We are sorry that C-Coupler now only supports the coupling of a scalar field or a field on a grid related to a horizontal grid that is decomposed in parallelization of a model. If you want to couple more kinds of fields, please contact us", field_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, comp_id == comp_or_grid_id, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\" at the model code with the annotation \"%s\". We are sorry that C-Coupler now only supports the coupling of a scalar field or a field on a grid related to a horizontal grid that is decomposed in parallelization of a model. If you want to couple more kinds of fields, please contact us (liuli-cess@tsinghua.edu.cn)", field_name, annotation);
 	}
 	else {
 		check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"C-Coupler code in register_external_field_instance for getting component management node"), "registering a field instance or a I/O field", decomps_info_mgr->get_decomp_info(decomp_id)->get_decomp_name(), "the parallel decomposition name specified by the corresponding ID", annotation);
@@ -494,20 +492,20 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 	}
 
 	if (buf_mark != BUF_MARK_IO_FIELD_REG)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, buf_mark >= 0, "When registering an instance of coupling field of \"%s\", the parameter of the mark of the field instance cannot be a negative integer. Please check the model code with the annotation \"%s\"",
-				         field_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, buf_mark >= 0, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the parameter of the mark (\"buf_mark\") of the field instance cannot be a negative integer (currently is %d). Please check the model code with the annotation \"%s\"",
+				         field_name, buf_mark, annotation);
 
 	existing_field_instance_instance = search_field_instance(field_name, decomp_id, comp_or_grid_id, buf_mark);
 	if (existing_field_instance_instance != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Cannot register an instance of coupling field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": cannot register an instance of the field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
 						 field_name, annotation, annotation_mgr->get_annotation(existing_field_instance_instance->get_field_instance_id(), "allocate field instance"));
 
 	new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, (buf_mark!=BUF_MARK_IO_FIELD_REG) && (usage_tag&REG_FIELD_TAG_CPL) == REG_FIELD_TAG_CPL);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Fail to register a field instance of \"%s\" because the size of the model data buffer (%d) is different from the size determined by the parallel decomposition and grid (%ld). Please check the model code with the annotation \"%s\"",
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, field_size == new_field_instance->get_size_of_field(), "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the size of the model data buffer (currently is %d) is different from the size determined by the parallel decomposition and grid (currently is %ld). Please check the model code with the annotation \"%s\"",
 					 field_name, field_size, new_field_instance->get_size_of_field(), annotation);
 	new_field_instance->set_field_instance_id(TYPE_FIELD_INST_ID_PREFIX|fields_mem.size(), annotation);
 	new_field_instance->reset_mem_buf(data_buffer, true, usage_tag);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, usage_tag >= 0 && usage_tag <= 3, "Fail to register a field instance of \"%s\": the value of the parameter \"usage_tag\" (%d) is wrong. The right value should be between 1 and 3. Please check the model code with the annotation \"%s\"", field_name, usage_tag, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, usage_tag >= 0 && usage_tag <= 3, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": the value of the parameter \"usage_tag\" (%d) is wrong. The right value should be between 1 and 3. Please check the model code with the annotation \"%s\"", field_name, usage_tag, annotation);
 	fields_mem.push_back(new_field_instance);
 
 	return new_field_instance->get_field_instance_id();

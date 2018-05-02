@@ -405,9 +405,9 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
 		TiXmlDocument XML_file(XML_file_name);
 		EXECUTION_REPORT(REPORT_ERROR, -1, XML_file.LoadFile(MPI_COMM_WORLD), "Fail to read XML file \"%s\" with the time information setting. The XML file may not exist or may not be a legal XML file. Please check.", XML_file_name);
 		TiXmlElement *XML_element = XML_file.FirstChildElement();
-		const char *exp_model_name = get_XML_attribute(-1, 80, XML_element, "model_name", XML_file_name, line_number, "the name of the model for the simulation", "the overall parameters to run the model", true);
+		const char *exp_model_name = get_XML_attribute(-1, CCPL_NAME_STR_LEN, XML_element, "model_name", XML_file_name, line_number, "the name of the model for the simulation", "the overall parameters to run the model", true);
 		strcpy(this->exp_model_name, exp_model_name);	
-		const char *case_name = get_XML_attribute(-1, 80, XML_element, "case_name", XML_file_name, line_number, "the name of the simulation", "the overall parameters to run the model", true);
+		const char *case_name = get_XML_attribute(-1, CCPL_NAME_STR_LEN, XML_element, "case_name", XML_file_name, line_number, "the name of the simulation", "the overall parameters to run the model", true);
 		strcpy(this->case_name, case_name);
 		const char *case_desc = XML_element->Attribute("case_description", &line_number);
 		if (case_desc != NULL) {
@@ -427,7 +427,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
 			runtype_mark = RUNTYPE_MARK_BRANCH;
 		else runtype_mark = RUNTYPE_MARK_HYBRID;
 		if (words_are_the_same(run_type,RUNTYPE_BRANCH) || words_are_the_same(run_type,RUNTYPE_HYBRID)) {
-			const char *rest_refcase = get_XML_attribute(-1, 80, XML_element, "rest_ref_case", XML_file_name, line_number, "the name of the reference case for branch run of hybrid run", "the overall parameters to run the model", true);
+			const char *rest_refcase = get_XML_attribute(-1, CCPL_NAME_STR_LEN, XML_element, "rest_ref_case", XML_file_name, line_number, "the name of the reference case for branch run of hybrid run", "the overall parameters to run the model", true);
 			strcpy(this->rest_refcase, rest_refcase);
 			const char *refdate_string = get_XML_attribute(-1, -1, XML_element, "rest_ref_date", XML_file_name, line_number, "the date of the reference case for branch run of hybrid run", "the overall parameters to run the model", true);	
 			EXECUTION_REPORT(REPORT_ERROR, -1, is_string_decimal_number(refdate_string), "Error happens when using the XML configuration file \"%s\": the value (\"%s\") of the attribute \"%s\" is not a decimal integer. Please verify the XML file around the line %d", XML_file_name, refdate_string, "rest_ref_date", line_number);

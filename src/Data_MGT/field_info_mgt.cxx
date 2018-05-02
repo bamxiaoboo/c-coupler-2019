@@ -80,7 +80,7 @@ Field_info_mgt::Field_info_mgt()
 			continue;
 		TiXmlElement *field_XML_element = field_XML_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_XML_element->Value(),"field"), "The XML element for specifying the attributes of a public field in the XML configuration file \"%s\" should be named \"field\". Please verify the XML file arround the line number %d.", XML_file_name, field_XML_element->Row());
-		const char *field_name = get_XML_attribute(-1, 80, field_XML_element, "name", XML_file_name, line_number, "name of a field", "configuration of the attributes of shared fields for coupling", true);
+		const char *field_name = get_XML_attribute(-1, CCPL_NAME_STR_LEN, field_XML_element, "name", XML_file_name, line_number, "name of a field", "configuration of the attributes of shared fields for coupling", true);
 		const field_attr *existing_field = search_field_info(field_name);
 		if (existing_field != NULL)
 			EXECUTION_REPORT(REPORT_ERROR, -1, false, "Cannot spefify the attributes of field \"%s\" in the XML file \"%s\" around the line number %d again because it has already been specified around the line number %d", field_name, XML_file_name, line_number, existing_field->line_number);
@@ -88,7 +88,7 @@ Field_info_mgt::Field_info_mgt()
 		const char *field_dimensions = get_XML_attribute(-1, -1, field_XML_element, "dimensions", XML_file_name, line_number, "information of dimensions (0D, H2D, V1D or V3D) of a field", "configuration of the attributes of shared fields for coupling", true);
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
 			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_dimensions, FIELD_0_DIM) || words_are_the_same(field_dimensions, FIELD_2_DIM) || words_are_the_same(field_dimensions, FIELD_3_DIM) || words_are_the_same(field_dimensions, FIELD_V1_DIM), "The dimensions of field \"%s\" is wrong (must be \"0D\", \"H2D\", \"V1D\" or \"V3D\"). Please verify the XML file \"%s\" arround the line number %d.", field_name, XML_file_name, field_XML_element->Row());
-		const char *default_unit = get_XML_attribute(-1, 80, field_XML_element, "default_unit", XML_file_name, line_number, "default unit of a field", "configuration of the attributes of shared fields for coupling", true);
+		const char *default_unit = get_XML_attribute(-1, CCPL_NAME_STR_LEN, field_XML_element, "default_unit", XML_file_name, line_number, "default unit of a field", "configuration of the attributes of shared fields for coupling", true);
 		const char *field_type = get_XML_attribute(-1, -1, field_XML_element, "type", XML_file_name, line_number, "default unit of a field", "configuration of the attributes of shared fields for coupling", true);
 		add_field_info(field_name, field_long_name, default_unit, field_dimensions, field_type, line_number);
 	}

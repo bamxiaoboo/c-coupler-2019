@@ -526,7 +526,7 @@ void check_API_parameter_data_array(int comp_id, int API_id, MPI_Comm comm, cons
 
 
 	get_API_hint(comp_id, API_id, API_label);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling the API \"%s\" for %s: parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, array_size != 0, "Error happens when calling the API \"%s\" for %s: the parameter array of \"%s\" may have not been allocated. Please check the model code related to the annotation \"%s\"", API_label, hint, parameter_name, annotation);
 
 	int parameter_specified = array_size >= 0 ? 1 : 0;
 	check_API_parameter_int(comp_id, API_id, comm, "specification (or not)", parameter_specified, parameter_name, annotation);

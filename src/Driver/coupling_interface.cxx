@@ -374,7 +374,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register the root component model");
 
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the root component", annotation);
-	check_API_parameter_string_length(-1, API_ID_COMP_MGT_REG_COMP, 80, comp_name, "comp_name", annotation);
+	check_API_parameter_string_length(-1, API_ID_COMP_MGT_REG_COMP, CCPL_NAME_STR_LEN, comp_name, "comp_name", annotation);
 
 	if (comp_comm_group_mgt_mgr != NULL) 
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when registering the root component (\"%s\") at the model code with the annotation \"%s\": the root compnent (\"%s\") has been registered before, at the model code with the annotation \"%s\". Please note that there must be only one root component model at each MPI process", comp_name, annotation, comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), comp_comm_group_mgt_mgr->get_annotation_start());
@@ -454,7 +454,7 @@ extern "C" void register_component_
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_REG_COMP, "the new component", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, comp_comm_group_mgt_mgr->is_legal_local_comp_id(*parent_comp_id, true), "Error happens when calling the API \"CCPL_register_component\" to register a component model \"%s\": The parameter of \"parent_id\" (currently is 0x%x) is wrong (not the legal ID of a component). Please check the model code with the annotation \"%s\"", comp_name, *parent_comp_id, annotation);
 	check_for_coupling_registration_stage(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, false, annotation);
-	check_API_parameter_string_length(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, 80, comp_name, "comp_name", annotation);
+	check_API_parameter_string_length(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, CCPL_NAME_STR_LEN, comp_name, "comp_name", annotation);
 
 	if (cpp_comm != MPI_COMM_NULL) {
 		synchronize_comp_processes_for_API(*parent_comp_id, API_ID_COMP_MGT_REG_COMP, cpp_comm, "registering a component based on the parent component", annotation);
@@ -513,7 +513,7 @@ extern "C" void get_id_of_component_
 {
 	check_and_verify_name_format_of_string_for_API(-1, comp_name, API_ID_COMP_MGT_GET_COMP_ID, "the component", annotation);
 	check_for_component_registered(-1, API_ID_COMP_MGT_GET_COMP_ID, annotation, true);
-	check_API_parameter_string_length(-1, API_ID_COMP_MGT_GET_COMP_ID, 80, comp_name, "comp_name", annotation);
+	check_API_parameter_string_length(-1, API_ID_COMP_MGT_GET_COMP_ID, CCPL_NAME_STR_LEN, comp_name, "comp_name", annotation);
 
 	Comp_comm_group_mgt_node *node = comp_comm_group_mgt_mgr->search_comp_with_comp_name(comp_name);
 	if (comp_comm_group_mgt_mgr->does_comp_name_include_reserved_prefix(comp_name))
@@ -607,7 +607,7 @@ extern "C" void ccpl_load_comps_full_names_from_config_file_
 	check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, annotation, false);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to the full names of a set of component models from the corresponding configuration file.");
 	synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "ccpl_load_omps_full_names_from_config_file_"), "first synchorization for getting the full names of a set of component models", annotation);
-	check_API_parameter_string_length(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, 80, keyword, "keyword", annotation);
+	check_API_parameter_string_length(*comp_id, API_ID_COUPLING_GEN_GET_COMPS, CCPL_NAME_STR_LEN, keyword, "keyword", annotation);
 	coupling_generator->load_comps_full_names_from_config_file(*comp_id, keyword, *size_comps_full_names, *size_individual_or_family, num_comps, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "finish ccpl_load_comps_full_names_from_config_file");
 }
@@ -765,7 +765,7 @@ extern "C" void register_v1d_grid_with_data_
 
 	get_API_hint(*comp_id, API_id, API_label);
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 != 0 && *dim_size3 != 0, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": some parameters of array have not be allocated. Please verify the model code with the annotation \"%s\" (please make sure all the arrays of grid data have been allocated)", API_label, grid_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: grid size is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s\".", API_label, grid_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, *comp_id, *dim_size2 > 1 && *dim_size3 == *dim_size2, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": the implicit grid size that is determined by the parameter arrays is wrong: the grid size (currently is %d) is smaller than 2 or the sizes of two paramenter arrays are different. Please verify the model code with the annotation \"%s\".", API_label, grid_name, dim_size2, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(data_type, DATA_TYPE_FLOAT) || words_are_the_same(data_type, DATA_TYPE_DOUBLE), "Software error in register_V1D_grid_with_data: wrong data type");
 	temp_value2 = new double [*dim_size2];
 	temp_value3 = new double [*dim_size3];
@@ -781,7 +781,6 @@ extern "C" void register_v1d_grid_with_data_
 	}
 
 	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) != 0, "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);
-//	EXECUTION_REPORT(REPORT_ERROR, *comp_id, is_array_in_sorting_order(temp_value2,*dim_size2) == is_array_in_sorting_order(temp_value3,*dim_size2), "Error happens when calling the API \"%s\" to register a V1D grid \"%s\": the two arrays of parameters are not in the same sorting order. Please check the model code with the annotation \"%s\".", API_label, grid_name, annotation);	
 	*grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, *comp_id, grid_name, *grid_type, coord_unit, *dim_size2, temp_value1, temp_value2, temp_value3, annotation);
 
 	delete [] temp_value2;
@@ -857,9 +856,9 @@ extern "C" void register_h2d_grid_with_global_data_
 	int data_type_size = 4;
 
 
-	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA, annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an H2D grid \"%s\" with global data", grid_name);
 
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
+	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_GLOBAL_DATA, annotation);
 
 	if (words_are_the_same(data_type, DATA_TYPE_DOUBLE))
 		data_type_size = 8;
@@ -899,7 +898,7 @@ extern "C" void register_h2d_grid_with_local_data_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an H2D grid %s", grid_name);
 
 	common_checking_for_grid_registration(*comp_id, grid_name, coord_unit, API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA, annotation);
-	check_API_parameter_string_length(-1, API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA, 80, decomp_name, "decomp_name", annotation);
+	check_API_parameter_string_length(-1, API_ID_GRID_MGT_REG_H2D_GRID_VIA_LOCAL_DATA, CCPL_NAME_STR_LEN, decomp_name, "decomp_name", annotation);
 
 	if (words_are_the_same(data_type, DATA_TYPE_DOUBLE))
 		data_type_size = 8;
@@ -1016,7 +1015,7 @@ extern "C" void get_grid_id_
 (int *comp_id, const char *grid_name, int *grid_id, const char *annotation)
 {
 	check_for_ccpl_managers_allocated(API_ID_GRID_MGT_GET_GRID_ID, annotation);
-	check_API_parameter_string_length(*comp_id, API_ID_GRID_MGT_GET_GRID_ID, 80, grid_name, "grid_name", annotation);
+	check_API_parameter_string_length(*comp_id, API_ID_GRID_MGT_GET_GRID_ID, CCPL_NAME_STR_LEN, grid_name, "grid_name", annotation);
 	*grid_id = original_grid_mgr->get_grid_id(*comp_id, grid_name, annotation);
 }
 
@@ -1066,17 +1065,17 @@ extern "C" void register_parallel_decomposition_
 	check_for_ccpl_managers_allocated(API_ID_DECOMP_MGT_REG_DECOMP, annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, original_grid_mgr->is_grid_id_legal(*grid_id), "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"grid_id\" is wrong. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
 	int comp_id = original_grid_mgr->get_comp_id_of_grid(*grid_id);
-	check_API_parameter_string_length(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, 80, decomp_name, "decomp_name", annotation);
+	check_API_parameter_string_length(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, CCPL_NAME_STR_LEN, decomp_name, "decomp_name", annotation);
 	check_for_coupling_registration_stage(comp_id, API_ID_DECOMP_MGT_REG_DECOMP, true, annotation);
 	check_and_verify_name_format_of_string_for_API(comp_id, decomp_name, API_ID_DECOMP_MGT_REG_DECOMP, "the parallel decomposition", annotation);
 
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, original_grid_mgr->get_original_grid(*grid_id)->is_H2D_grid(), "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the grid \"%s\" corresponding to the parameter \"grid_id\" is not a horizontal grid. Please check the model code with the annotation \"%s\"", decomp_name, original_grid_mgr->get_original_grid(*grid_id)->get_grid_name(), annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the array size of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\". Please check the model code with the annotation \"%s\"", decomp_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells >= 0, "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the parameter \"num_local_cells\" (currently is %d) cannot be smaller than 0. Please check the model code with the annotation \"%s\"", decomp_name, *num_local_cells, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, *num_local_cells <= *array_size, "Error happens when calling the API \"CCPL_register_normal_parallel_decomp\" to register a parallel decomposition \"%s\": the array size (currently is %d) of the parameter \"local_cells_global_index\" cannot be smaller than the parameter \"num_local_cells\" (currently is %d). Please check the model code with the annotation \"%s\"", decomp_name, *num_local_cells, *array_size, annotation);
 	int grid_size = original_grid_mgr->get_original_grid(*grid_id)->get_original_CoR_grid()->get_grid_size();
 	for (int i = 0; i < *num_local_cells; i ++)
 		if (local_cells_global_indx[i] != CCPL_NULL_INT)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling the API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values (for example %d) in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid. Please check the model code with the annotation \"%s\"", decomp_name, local_cells_global_indx[i], annotation);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, local_cells_global_indx[i] > 0 && local_cells_global_indx[i] <= grid_size, "Error happens when calling the API \"CCPL_register_parallel_decomp\" to register a parallel decomposition \"%s\": some values (for example %d) in parameter \"local_cells_global_indx\" are not between 1 and the size of the grid (currently is %d). Please check the model code with the annotation \"%s\"", decomp_name, local_cells_global_indx[i], grid_size, annotation);
 		
 	*decomp_id = decomps_info_mgr->register_H2D_parallel_decomposition(decomp_name, *grid_id, *num_local_cells, local_cells_global_indx, annotation);
 
@@ -1437,7 +1436,7 @@ extern "C" void register_normal_remap_interface_
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register remap interface");
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_NORMAL_REMAP, annotation);	
-	check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_NORMAL_REMAP, 80, interface_name, "interface_name", annotation);
+	check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_NORMAL_REMAP, CCPL_NAME_STR_LEN, interface_name, "interface_name", annotation);
 	get_API_hint(-1, API_ID_INTERFACE_REG_NORMAL_REMAP, API_label);
 	*interface_id = inout_interface_mgr->register_normal_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, API_label, annotation);
 
@@ -1458,7 +1457,7 @@ extern "C" void register_frac_based_remap_interface_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register fraction based remap interface");
 
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_FRAC_REMAP, annotation);		
-	check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_FRAC_REMAP, 80, interface_name, "interface_name", annotation);
+	check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_FRAC_REMAP, CCPL_NAME_STR_LEN, interface_name, "interface_name", annotation);
 	get_API_hint(-1, API_ID_INTERFACE_REG_FRAC_REMAP, API_label);
 	*interface_id = inout_interface_mgr->register_frac_based_remap_interface(interface_name, *num_fields, field_ids_src, field_ids_dst, *timer_id, *inst_or_aver, *array_size1, *array_size2, frac_src, frac_dst, *size_frac_src, *size_frac_dst, frac_data_type, API_label, annotation);
 
@@ -1477,12 +1476,12 @@ extern "C" void register_inout_interface_
 
 	if (*import_or_export == 0) {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
-		check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_IMPORT, 80, interface_name, "interface_name", annotation);
+		check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_IMPORT, CCPL_NAME_STR_LEN, interface_name, "interface_name", annotation);
 		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, *inst_or_aver, annotation, INTERFACE_SOURCE_REGISTER);
 	}
 	else {
 		check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_EXPORT, annotation);
-		check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_EXPORT, 80, interface_name, "interface_name", annotation);
+		check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_EXPORT, CCPL_NAME_STR_LEN, interface_name, "interface_name", annotation);
 		*interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, annotation, INTERFACE_SOURCE_REGISTER);
 	}	
 
@@ -1541,7 +1540,7 @@ extern "C" void execute_inout_interface_with_name_
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to execute an interface");
 
 	check_for_ccpl_managers_allocated(API_ID_INTERFACE_EXECUTE_WITH_NAME, annotation);
-	check_API_parameter_string_length(-1, API_ID_INTERFACE_EXECUTE_WITH_NAME, 80, interface_name, "interface_name", annotation);
+	check_API_parameter_string_length(-1, API_ID_INTERFACE_EXECUTE_WITH_NAME, CCPL_NAME_STR_LEN, interface_name, "interface_name", annotation);
 	inout_interface_mgr->execute_interface(*comp_id, API_ID_INTERFACE_EXECUTE_WITH_NAME, interface_name, *bypass_timer == 1, field_update_status, *size_field_update_status, num_dst_fields, annotation);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish executing an interface");

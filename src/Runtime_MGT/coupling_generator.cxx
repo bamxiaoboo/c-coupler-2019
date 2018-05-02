@@ -915,7 +915,7 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 			continue;
 		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
 		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
-		const char *interface_name = get_XML_attribute(host_comp_id, 80, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file", true);
+		const char *interface_name = get_XML_attribute(host_comp_id, CCPL_NAME_STR_LEN, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file", true);
 		if (!is_XML_setting_on(host_comp_id, interface_XML_element, XML_file_name, "the \"status\" of the redirection configurations for an import interface", "import interface configuration file"))
 			continue;
 		check_and_verify_name_format_of_string_for_XML(-1, interface_name, "the import interface", XML_file_name, line_number);

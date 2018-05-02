@@ -711,7 +711,7 @@ Remapping_setting::Remapping_setting(int comp_id, TiXmlElement *XML_element, con
 					if (field_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 						continue;
 					TiXmlElement *field_element = field_element_node->ToElement();
-					const char *field_name = get_XML_attribute(comp_id, 80, field_element, "value", XML_file_name, line_number, "the field name corresponding to a remapping setting", "remapping configuration", true);
+					const char *field_name = get_XML_attribute(comp_id, CCPL_NAME_STR_LEN, field_element, "value", XML_file_name, line_number, "the field name corresponding to a remapping setting", "remapping configuration", true);
 					for (i = 0; i < fields_specification.size(); i ++)
 						if (words_are_the_same(fields_specification[i], field_name))
 							break;
