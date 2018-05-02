@@ -100,7 +100,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     memcpy(remote_proc_ranks_in_union_comm, ranks, num_remote_procs*sizeof(int));
     sender_time_has_matched = false;
 
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
     request = new MPI_Request[num_remote_procs];
     is_first_run = true;
 #endif
@@ -238,7 +238,7 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] recv_displs_in_current_proc;
     delete [] remote_proc_ranks_in_union_comm;
     delete [] temp_receive_data_buffer;
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
     delete [] request;
 #endif
 }
@@ -330,7 +330,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 			return;
 	}
 
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
 	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
@@ -354,7 +354,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 
 	wtime(&time1);
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, current_proc_id_union_comm, 0, data_win);
 #endif
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
@@ -366,19 +366,19 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         }
         else is_ready = is_ready && (current_receive_field_sender_time == tag_buf[0]);
     }
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
 #endif
 
     if (!is_ready) {
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error1 in MPI_send/recv implementation in Runtime_trans_algorithm::receive_data_in_temp_buffer");
 #endif
         return;
     }
 
     if (last_receive_field_sender_time == current_receive_field_sender_time) {
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error2 in MPI_send/recv implementation in Runtime_trans_algorithm::receive_data_in_temp_buffer");
 #endif
         return;
@@ -398,7 +398,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 		}
 	}
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 	wtime(&time2);	
 	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_QUERRY, -1, remote_comp_full_name, time2-time1);
 #endif	
@@ -454,7 +454,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
     history_receive_usage_time[empty_history_receive_buffer_index] = current_receive_field_usage_time;
     last_receive_field_sender_time = current_receive_field_sender_time;
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
 #endif
     int offset = 0;
@@ -466,7 +466,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         memcpy(temp_receive_data_buffer+offset, data_buf, transfer_size_with_remote_procs[remote_proc_index]);
         offset += transfer_size_with_remote_procs[remote_proc_index];
     }    
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
 #endif
 	
@@ -488,7 +488,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time);
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
     set_local_tags();
 	wtime(&time3);
 	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name, time3-time2);
@@ -518,7 +518,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 		remote_comp_node_updated = true;
 		remote_comp_node->allocate_proc_latest_model_time();
 	}
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
 	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     if (!is_first_run) {
         for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
@@ -533,7 +533,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
     if (index_remote_procs_with_common_data.size() > 0) {
         preprocess();
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
         if (!is_remote_data_buf_ready(bypass_timer)) {
 			inout_interface_mgr->runtime_receive_algorithms_receive_data();
             return false;
@@ -584,7 +584,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
 
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
         MPI_Isend(tag_buf, 4*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, comm_tag, union_comm, &request[i]);
 #else
         MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
@@ -614,7 +614,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     bool received_data_ready = false;
 	
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
 #endif
     if (bypass_timer) {
@@ -624,7 +624,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 
     if (index_remote_procs_with_common_data.size() > 0) {
         preprocess();
-#ifdef USE_DOUBLE_MPI
+#ifndef USE_ONE_SIDED_MPI
         receive_data_in_temp_buffer();
 #else
         while (!received_data_ready) {
@@ -657,7 +657,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\" at the remote model time %ld vs %ld", remote_comp_full_name, last_receive_sender_time, current_remote_fields_time);
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
 #endif
 

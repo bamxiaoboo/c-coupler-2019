@@ -290,7 +290,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 	}
 	
 	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT) { 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 		((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->receive_data_in_temp_buffer();
 #endif
 		if (bypass_timer) {
@@ -1037,7 +1037,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 
 	if (interface_type == COUPLING_INTERFACE_MARK_EXPORT) {
 
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
 #endif
 		bool all_finish = false;
@@ -1049,7 +1049,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 				all_finish = all_finish && coupling_procedures[i]->get_finish_status();
 			}	
 		}
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, interface_name);
 #endif
 	}
@@ -1543,7 +1543,7 @@ void Inout_interface_mgt::execute_interface(int comp_id, int API_id, const char 
 
 void Inout_interface_mgt::runtime_receive_algorithms_receive_data()
 {
-#ifndef USE_DOUBLE_MPI
+#ifdef USE_ONE_SIDED_MPI
 	for (int i = 0; i < all_runtime_receive_algorithms.size(); i ++)
 		all_runtime_receive_algorithms[i]->receive_data_in_temp_buffer();
 #endif
