@@ -74,6 +74,7 @@ class Restart_mgt
 		IO_netcdf *restart_write_data_file;
 		char *restart_read_data_file_name;
 		bool restart_normal_fields_enabled;
+		bool are_all_restarted_fields_read;
 
 	public:
 		Restart_mgt(Comp_comm_group_mgt_node*);
@@ -97,6 +98,8 @@ class Restart_mgt
 		void add_restarted_field_instances(Field_mem_info*);
 		void get_field_IO_name(char *, Field_mem_info*, const char *, const char*, bool);
 		void read_all_restarted_fields(const char*);
+		bool check_restart_read_started();
+		bool get_are_all_restarted_fields_read() { return are_all_restarted_fields_read; }
 };
 
 

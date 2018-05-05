@@ -650,7 +650,11 @@ void Time_mgt::advance_model_time(const char *annotation, bool from_external_mod
 		synchronize_comp_processes_for_API(comp_id, API_ID_TIME_MGT_ADVANCE_TIME, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "C-Coupler code in Time_mgt::advance_model_time"), "advance the time of a component", annotation);
 		advance_time_synchronized = true;		
 		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_performance_timing_mgr()->performance_timing_output();
-		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_performance_timing_mgr()->performance_timing_reset();
+		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_performance_timing_mgr()->performance_timing_reset();		
+		if (get_runtype_mark() != RUNTYPE_MARK_INITIAL) {
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_restart_mgr()->check_restart_read_started(), "Error happens in a \"%s\" run where restart data should be read in: the API \"CCPL_start_!restart_read_IO\" has not been called before advancing the model time. Please verify.", run_type);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_restart_mgr()->get_are_all_restarted_fields_read(), "Error happens in a \"%s\" run where restart data should be read in: the API \"CCPL_restart_read_fields_all\" has not been called before advancing the model time. Please verify.", run_type);
+		}
 	}
 
 	previous_year = current_year;

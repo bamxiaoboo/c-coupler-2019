@@ -103,6 +103,7 @@ Restart_mgt::Restart_mgt(Comp_comm_group_mgt_node *comp_node)
 	time_mgr = NULL;
 	restart_write_data_file = NULL;
 	restart_read_data_file_name = NULL;
+	are_all_restarted_fields_read = false;
 	restart_normal_fields_enabled = false;
 }
 
@@ -182,12 +183,12 @@ void Restart_mgt::read_restart_mgt_info(const char *specified_file_name, const c
 	else strcpy(restart_file_short_name, specified_file_name);
 	sprintf(restart_file_full_name, "%s/%s", comp_node->get_working_dir(), restart_file_short_name);
 	if (input_restart_mgt_info_file != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), false, "Error happens when reading the restart data file \"%s\" at the model code with the annotation \"%s\": another restart data file \"%s\" has already been read before at the model code with the annotation \"%s\". Please verify.", restart_file_full_name, annotation, input_restart_mgt_info_file, restart_read_annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), false, "Error happens when reading the restart data file \"%s\" at the model code with the annotation \"%s\": a restart data file \"%s\" has already been read before at the model code with the annotation \"%s\", which indicates that the current component model calls the API \"CCPL_start_restart_read_IO\" more than once. Please note that a component model can call this API only once. Please verify.", restart_file_full_name, annotation, input_restart_mgt_info_file, restart_read_annotation);
 	input_restart_mgt_info_file = strdup(restart_file_full_name);
 	restart_read_annotation = strdup(annotation);
 
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), !time_mgr->get_time_has_been_advanced(), "Error happens when reading the restart file \"%s\": cannot advance the model time before reading the restart file. Please check the model code with the annotation \"%s\"", restart_file_full_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), !time_mgr->get_time_has_been_advanced(), "Error happens when reading the restart file \"%s\": the model time has been advanced, while a component model cannot read any restart file after its model time has been advanced. Please check the model code with the annotation \"%s\"", restart_file_full_name, annotation);
 	read_restart_mgt_info((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH), restart_file_full_name, annotation);
 }
 
@@ -227,7 +228,7 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 
 	if ((time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE) || (time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)) {
 		Restart_buffer_container *time_mgr_restart_buffer = search_restart_buffer(RESTART_BUF_TYPE_TIME, "local time manager");
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), time_mgr_restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), time_mgr_restart_buffer != NULL, "Error happens when loading the restart file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the time information", file_name, annotation);
 		long buffer_size = time_mgr_restart_buffer->get_buffer_content_iter();
 		time_mgr->import_restart_data(time_mgr_restart_buffer->get_buffer_content(), buffer_size, file_name, check_existing_data);
 	}
@@ -251,7 +252,7 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 	current_full_time = time_mgr->get_current_full_time();
 
 	if (bypass_timer || time_mgr->is_restart_timer_on()) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write_IO\" has been called more than once in the same time step. Please verify the model code with the annotation \"%s\"", annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write_IO\" has been called more than once at the same time step. Please verify the model code with the annotation \"%s\"", annotation);
 		if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH) {
 			EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), time_mgr->get_restart_full_time() != ((long)time_mgr->get_current_num_elapsed_day()*((long)100000))+time_mgr->get_current_second(), "Error happens when the component model calls the API \"CCPL_do_restart_write_IO\" to write restart data at the model time %ld: the current model run is a %s run restarted at the same model time, while the model time to write restart data cannot be the same as the restarted model time. Please verify the model code with the annotation \"%s\".", current_full_time, time_mgr->get_run_type(), annotation);
 		}	
@@ -327,9 +328,10 @@ void Restart_mgt::read_all_restarted_fields(const char *annotation)
 	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL)
 		return;
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL,  "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the API \"CCPL_start_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation %s", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation %s", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_normal_fields_enabled, "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: some import interfaces have been executed without bypassing the timer. Please verify the model code corresponding to the annotation %s", annotation);
+	are_all_restarted_fields_read = true;
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), input_restart_mgt_info_file != NULL,  "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the API \"CCPL_start_restart_read_IO\" has not been called before. Please verify the model code corresponding to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), !time_mgr->get_time_has_been_advanced(), "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: the model time has already been advanced before. Please verify the model code corresponding to the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_normal_fields_enabled, "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: some import interfaces have been executed without bypassing the timer, which is not allowed. Please verify the model code corresponding to the annotation \"%s\"", annotation);
 
 	for (int i = 0; i < restarted_field_instances.size(); i ++)
 		read_restart_field_data(restarted_field_instances[i], NULL, NULL, false, NULL, annotation);
@@ -496,5 +498,11 @@ void Restart_mgt::add_restarted_field_instances(Field_mem_info *field_instance)
 			return;
 
 	restarted_field_instances.push_back(field_instance);
+}
+
+
+bool Restart_mgt::check_restart_read_started()
+{
+	return input_restart_mgt_info_file != NULL;
 }
 
