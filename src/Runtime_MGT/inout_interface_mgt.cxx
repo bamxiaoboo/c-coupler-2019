@@ -92,7 +92,7 @@ void Connection_field_time_info::import_restart_data(Restart_buffer_container *r
 	restart_buffer->load_restart_data(&current_month, sizeof(int));
 	restart_buffer->load_restart_data(&current_year, sizeof(int));
 
-	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inst_or_aver == restart_inst_or_aver, "Error happens when restarting the simulation in a \"continue\" run or a \"branch\" run: the values of \"inst_or aver\" of the coupling interface \"%s\" are not consistent (the original value is %d while the new value is %d)", inout_interface->get_interface_name(), restart_inst_or_aver, inst_or_aver);
+	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), inst_or_aver == restart_inst_or_aver, "Error happens when restarting the simulation in a \"continue\" run or a \"branch\" run: the values of \"inst_or aver\" of the coupling interface \"%s\" are not the same with the original value recorded in the restart data file (the original value is %d while the new value used in the restart run is %d)", inout_interface->get_interface_name(), restart_inst_or_aver, inst_or_aver);
 }
 
 
@@ -269,7 +269,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), !((local_fields_time_info->last_timer_num_elapsed_days != -1)) || ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second >= ((long)local_fields_time_info->last_timer_num_elapsed_days)*100000+local_fields_time_info->last_timer_second,
 		                 "Software error in Connection_coupling_procedure::execute: current time is earlier than last timer time");
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, local_fields_time_info->inout_interface->get_comp_id(), ((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second <= ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second,
-		                 "Please make sure that the import/export interface \"%s\" is called when its timer is on. Please check the model code with the annotation \"%s\"", 
+		                 "Error happens when executing the import/export interface \"%s\": it should but not have already been called at any time when its timer is on. Please check the model code with the annotation \"%s\"", 
 		                 local_fields_time_info->inout_interface->get_interface_name(), annotation_mgr->get_annotation(local_fields_time_info->inout_interface->get_interface_id(), "registering interface"));
 		if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_local_lag_count())) {
 			if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {
@@ -354,12 +354,12 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			remote_bypass_counter = runtime_data_transfer_algorithm->get_history_receive_sender_time(i) / ((long)100000000000000);
 			EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
 			if (bypass_timer) {
-				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when bypassing the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. %d %d", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, remote_bypass_counter, inout_interface->get_bypass_counter());
+				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when executing the import interface \"%s\" with its timer bypassed (the corresponding input parameter \"bypass_timer\" has been set to true): the data currently obtained by this import interface should be but is not from a timer bypassed execution of the corresponding export interface \"%s\" of the component model \"%s\". Please verify.", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
 			}
 			else {
-				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding timer non-bypassed call of the export interface \"%s\" from the component model \"%s\". Please verify. ", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
+				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when executing the import interface \"%s\" with its timer unbypassed (the corresponding input parameter \"bypass_timer\" has been set to false): the data currently obtained by this import interface should be but is not from a timer unbypassed execution of the corresponding export interface \"%s\" of the component model \"%s\". Please verify.", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
 				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time, 
-					             "Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %ld). Please verify. ", 
+					             "Software error: Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %ld). Please verify. ", 
 					             inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, current_remote_fields_time, runtime_data_transfer_algorithm->get_history_receive_sender_time(i));
 			}	
 		}
@@ -494,7 +494,7 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 
 
 	restart_buffer->load_restart_data(&num_total_fields, sizeof(int));
-	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name());
+	EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), num_total_fields == fields_mem_registered.size(), "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\": the original number of total fields of this interface recorded in the restart data file is %d while the current number is %d. Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name(), num_total_fields, fields_mem_registered.size());
 
 	if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
 		for (int i = 0; i < runtime_inter_averaging_algorithm.size(); i ++) {
@@ -522,7 +522,7 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
 		for (j = 0; j < fields_mem_registered.size(); j ++)
 			if (words_are_the_same(restart_field_name, fields_mem_registered[j]->get_field_name()))
 				break;
-		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), i == j, "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name());
+		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), i == j, "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\": its original %th field recorded in the restart data file is \"%s\" while the current %th field is \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name(), i, restart_field_name, fields_mem_registered[i]->get_field_name());
 	}
 	restart_buffer->load_restart_data(&current_remote_fields_time, sizeof(long));
 	restart_buffer->load_restart_data(&last_remote_fields_time, sizeof(long));
@@ -589,7 +589,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	for (int i = 0; i < num_fields; i ++) {
 		Field_mem_info *field_instance = memory_manager->get_field_instance(field_ids[i]);
 		if (!is_child_interface)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_instance->is_CPL_field_inst(), "Error happens when calling the API \"%s\" to register an interface named \"%s\" at the model code with the annotation \"%s\": the field instance \"%s\" cannot not be referred by an import/export interface because it has not been declared as a coupling interface. Please check the parameter \"usage_tag\" when registerring this field instance (at the model code with the annotation \"%s\")", API_label, interface_name, annotation, field_instance->get_field_name(), annotation_mgr->get_annotation(field_instance->get_field_instance_id(), "allocate field instance"));
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_instance->is_CPL_field_inst(), "Error happens when calling the API \"%s\" to register an interface named \"%s\" at the model code with the annotation \"%s\": the field instance of \"%s\" cannot not be referred by an import/export interface because it has not been declared as a coupling field instance. Please check the parameter \"usage_tag\" when registerring this field instance (at the model code with the annotation \"%s\")", API_label, interface_name, annotation, field_instance->get_field_name(), annotation_mgr->get_annotation(field_instance->get_field_instance_id(), "allocate field instance"));
 		fields_mem_registered.push_back(field_instance);
 		fields_connected_status.push_back(false);
 		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
@@ -650,21 +650,21 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 
 	get_API_hint(-1, API_id, API_label);
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0 && num_fields <= 1000, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" cannot be smaller than 1 or larger than 1000. Please verify the model code with the annotation \"%s\".", API_label, interface_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0 && num_fields <= 1000, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"num_field_instances\" (currently is %d) cannot be smaller than 1 or larger than the maximum number (1000). Please verify the model code with the annotation \"%s\".", API_label, interface_name, num_fields, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields <= array_size, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the array size (currently is %d) of parameter \"%s\" cannot be smaller than the parameter \"num_field_instances\" (currently is %d). Please verify the model code with the annotation \"%s\".", API_label, interface_name, num_fields, field_ids_parameter_name, array_size, annotation);
 	for (int i = 0; i < num_fields; i ++) {
 		if (interface_source != INTERFACE_SOURCE_IO_WRITE)
-			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"%s\" contains wrong field instance ID. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+			EXECUTION_REPORT(REPORT_ERROR, -1, memory_manager->check_is_legal_field_instance_id(field_ids[i]) && memory_manager->get_field_instance(field_ids[i])->get_is_registered_model_buf(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"%s\" contains wrong field instance ID (the %dth element of the array is wrong). Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, i+1, annotation);
 		if (i == 0)
 			comp_id = memory_manager->get_field_instance(field_ids[i])->get_comp_id();
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the field instances specified via the parameter \"%s\" cannot correspond to different component models. Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, annotation);
+		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the field instances specified via the parameter \"%s\" should but not correspond to the same component model currently: the first field instance corresponds to the component model \"%s\" while the %dth field instance corresponds to the component model \"%s\". Please verify the model code with the annotation \"%s\".", API_label, interface_name, field_ids_parameter_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "")->get_comp_full_name(), i+1, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(memory_manager->get_field_instance(field_ids[i])->get_comp_id(),false, "")->get_comp_full_name(), annotation);
 	}
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(timer_id), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" (currently is 0x%x) is not the legal ID of a timer. Please verify the model code related to the annotation \"%s\"", API_label, interface_name, timer_id, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(timer_id)->get_comp_id(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"timer_ID\" and the parameter \"%s\" do not correspond to the same component model (the parameter \"timer_ID\" corresponds to the component model \"%s\" while \"%s\" corresponds to the component model \"%s\"). Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(timer_id)->get_comp_id(),false, "")->get_comp_full_name(), field_ids_parameter_name, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "")->get_comp_full_name(), annotation);
 	if (interface_source != INTERFACE_SOURCE_IO_WRITE && interface_type == COUPLING_INTERFACE_MARK_EXPORT)
 		for (int i = 0; i < num_fields; i ++) 
 			for (int j = i+1; j < num_fields; j ++)
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(memory_manager->get_field_instance(field_ids[i])->get_field_name(),memory_manager->get_field_instance(field_ids[j])->get_field_name()), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"%s\" is not allowed to include more than one instance of the field \"%s\". Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, memory_manager->get_field_instance(field_ids[i])->get_field_name(), annotation);			
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, !words_are_the_same(memory_manager->get_field_instance(field_ids[i])->get_field_name(),memory_manager->get_field_instance(field_ids[j])->get_field_name()), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the parameter \"%s\" is not allowed to include more than one instance of the same field (field \"%s\"). Please verify the model code related to the annotation \"%s\"", API_label, interface_name, field_ids_parameter_name, memory_manager->get_field_instance(field_ids[i])->get_field_name(), annotation);			
 
 	sprintf(str, "registerring an interface named \"%s\"", interface_name);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Inout_interface::Inout_interface"), str, annotation);
@@ -672,6 +672,7 @@ void Inout_interface::common_checking_for_interface_registration(int num_fields,
 	if (interface_source == INTERFACE_SOURCE_REGISTER)
 		comp_comm_group_mgt_mgr->confirm_coupling_configuration_active(comp_id, API_id, true, annotation);	
 	check_and_verify_name_format_of_string_for_API(comp_id, interface_name, API_id, "the interface", annotation);
+	check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), str, interface_name, "the corresponding interface name", annotation);
 	check_API_parameter_int(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"in Inout_interface::Inout_interface"), NULL, num_fields, "num_field_instances", annotation);
 	sprintf(str, "\"%s\" (the information of the field instances)", field_ids_parameter_name);
 	for (int i = 0; i < num_fields; i ++)
@@ -951,19 +952,19 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 						delete [] error_string;
 				}	
 		if (fields_mem_registered.size() > size_field_update_status)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, fields_mem_registered.size());
 		for (int i = 0; i < fields_mem_registered.size(); i ++)
 			field_update_status[i] = 0;
 	}	
 	else if (interface_type == COUPLING_INTERFACE_MARK_NORMAL_REMAP) {
 		if (((int)children_interfaces[0]->fields_mem_registered.size()) > size_field_update_status)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size());
 		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size()); i ++)
 			field_update_status[i] = 0;
 	}	
 	else if (interface_type == COUPLING_INTERFACE_MARK_FRAC_REMAP) {
 		if (((int)children_interfaces[0]->fields_mem_registered.size())-1 > size_field_update_status)
-			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
+			EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Fail to execute the interface \"%s\" corresponding to the model code with the annotation \"%s\": the array size of \"field_update_status\" (%d) is smaller than the number of fields (%d). Please verify.", interface_name, annotation, size_field_update_status, children_interfaces[0]->fields_mem_registered.size()-1);
 		for (int i = 0; i < ((int)children_interfaces[0]->fields_mem_registered.size())-1; i ++)
 			field_update_status[i] = 0;
 	}
@@ -983,7 +984,7 @@ void Inout_interface::execute(bool bypass_timer, int API_id, int *field_update_s
 	}
 
 	if (bypass_timer && (execution_checking_status & 0x2) != 0)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "The timers of the import/export interface \"%s\" cannot be bypassed again (the corresponding annotation of the model code is \"%s\") because the timers have been bypassed before", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when executing the interface \"%s\" at the model code with the corresponding annotation \"%s\": the timer of this interface cannot be bypassed again because this interface has been executed with the timer unbypassed before (at the model code with the corresponding annotation \"%s\"). Please check and verify.", interface_name, annotation, annotation_mgr->get_annotation(interface_id, "using timer"));
 	if ((execution_checking_status & 0x1) == 0 && bypass_timer || (execution_checking_status & 0x2) == 0 && !bypass_timer) {
 		synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"software error")->get_comm_group(), "executing an import/export interface", annotation);
 		check_API_parameter_string(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id,"executing an import/export interface"), "executing an import/export interface", interface_name, "the corresponding interface name", annotation);
@@ -1204,10 +1205,10 @@ void Inout_interface::write_export_info_into_XML_file(TiXmlElement *parent_eleme
 
 void Inout_interface::set_fields_necessity(int *necessity, int size_necessity, const char *annotation)
 {
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_necessity >= fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_register_import_interface\" to register the export interface \"%s\": the array size (%d) of the parameter \"necessity\" is smaller than the number of field instances in this interface. Please verify the model code with the annotation \"%s\".", interface_name, size_necessity, fields_mem_registered.size(), annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_necessity >= fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_register_import_interface\" to register the export interface \"%s\": the array size (currently is %d) of the parameter \"necessity\" is smaller than the number of field instances (currently is %d) of this interface. Please verify the model code with the annotation \"%s\".", interface_name, size_necessity, fields_mem_registered.size(), annotation);
 	check_API_parameter_data_array(comp_id, API_ID_INTERFACE_REG_IMPORT, comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_comm_group(), "registerring an import interface", fields_mem_registered.size(), sizeof(int), (const char*)necessity, "necessity", annotation);
 	for (int i = 0; i < fields_mem_registered.size(); i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, necessity[i] == FIELD_NECESSITY_NECESSARY || necessity[i] == FIELD_NECESSITY_OPTIONAL, "CCPL_register_import_interface\" to register the export interface \"%s\": the number %d value (%d) in the parameter \"necessity\" is not either %d (means necessary) nor %d (means optional). Please verify the model code with the annotation \"%s\".", interface_name, i, necessity[i], FIELD_NECESSITY_NECESSARY, FIELD_NECESSITY_OPTIONAL, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, necessity[i] == FIELD_NECESSITY_NECESSARY || necessity[i] == FIELD_NECESSITY_OPTIONAL, "ERROR happens when calling the API \"CCPL_register_import_interface\" to register the export interface \"%s\": the number %d value (%d) in the parameter \"necessity\" is not either %d (means necessary) nor %d (means optional). Please verify the model code with the annotation \"%s\".", interface_name, i, necessity[i], FIELD_NECESSITY_NECESSARY, FIELD_NECESSITY_OPTIONAL, annotation);
 		imported_fields_necessity.push_back(necessity[i]);
 	}
 }
@@ -1220,7 +1221,7 @@ int Inout_interface::check_is_import_field_connected(int field_instance_id, cons
 	for (i = 0; i < fields_mem_registered.size(); i ++)
 		if (fields_mem_registered[i]->get_field_instance_id() == field_instance_id)
 			break;
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the parameter \"field_instance_id\" fails to specify a field instance in the corresponding coupling interface \"%s\". Please verify the model code with the annotation \"%s\".", interface_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the parameter \"field_instance_id\" (currently is 0x%x) fails to specify a field instance in the corresponding coupling interface \"%s\". Please verify the model code with the annotation \"%s\".", field_instance_id, interface_name, annotation);
 
 	return (fields_connected_status[i]? 1 : 0);
 }
@@ -1405,7 +1406,7 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 		if (new_interface->get_comp_id() != interfaces[i]->get_comp_id())
 			continue;
 		EXECUTION_REPORT(REPORT_ERROR, new_interface->get_comp_id(), !words_are_the_same(interface_name, interfaces[i]->get_interface_name()), 
-		                 "cannot register the import/export interface named \"%s\" at the model code with the annotation \"%s\" because an interface with the same name has been registerred at the model code with the annotation \"%s\"",
+		                 "Fail to register an import/export interface named \"%s\" at the model code with the annotation \"%s\" because an interface with the same name has been registerred at the model code with the annotation \"%s\"",
 		                 interface_name, annotation, annotation_mgr->get_annotation(interfaces[i]->get_interface_id(), "registering interface"));
 		//new_interface->report_common_field_instances(interfaces[i]);
 		
@@ -1510,9 +1511,13 @@ void Inout_interface_mgt::get_all_import_interfaces_of_a_component(std::vector<I
 void Inout_interface_mgt::execute_interface(int interface_id, int API_id, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	Inout_interface *inout_interface;
+	char API_label[NAME_STR_SIZE];
+
+	
+	get_API_hint(-1, API_id, API_label);
 
 	if (!is_interface_id_legal(interface_id))
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "0x%x is not an legal ID of an import/export interface. Please check the model code with the annotation \"%s\"", interface_id, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when executing an interface through the API \"%s\": the given interface ID 0x%x is illegal. Please check the model code with the annotation \"%s\"", API_label, interface_id, annotation);
 	inout_interface = get_interface(interface_id);
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, API_id, field_update_status, size_field_update_status, annotation);
@@ -1526,12 +1531,15 @@ void Inout_interface_mgt::execute_interface(int interface_id, int API_id, bool b
 void Inout_interface_mgt::execute_interface(int comp_id, int API_id, const char *interface_name, bool bypass_timer, int *field_update_status, int size_field_update_status, int *num_dst_fields, const char *annotation)
 {
 	Inout_interface *inout_interface;
+	char API_label[NAME_STR_SIZE];
 
+	
+	get_API_hint(-1, API_id, API_label);
 	if (!comp_comm_group_mgt_mgr->is_legal_local_comp_id(comp_id,true))
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "0x%x is not an legal ID of a component. Please check the model code with the annotation \"%s\"", comp_id, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when executing an interface through the API \"%s\": the given component model ID 0x%x is illegal. Please check the model code with the annotation \"%s\"", API_label, comp_id, annotation);
 	inout_interface = get_interface(comp_id, interface_name);
 	if (inout_interface == NULL)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Registered interface of this component does not contain an import/export interface named \"%s\". Please check the model code with the annotation \"%s\"", interface_name, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when executing an interface through the API \"%s\": the corresponding component model \"%s\" does not have an interface with the given name \"%s\". Please check the model code with the annotation \"%s\"", API_label, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_comp_full_name(), interface_name, annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Begin to execute interface \"%s\" (model code annotation is \"%s\")", inout_interface->get_interface_name(), annotation);	
 	inout_interface->execute(bypass_timer, API_id, field_update_status, size_field_update_status, annotation);
 	*num_dst_fields = inout_interface->get_num_dst_fields();

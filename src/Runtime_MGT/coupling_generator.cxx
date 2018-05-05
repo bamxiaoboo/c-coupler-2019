@@ -398,7 +398,7 @@ void Coupling_connection::add_bottom_field_coupling_info(int field_connection_in
 
 	if (V3D_remapping_weights->get_parallel_remapping_weights() != NULL) {
 		Remap_weight_of_operator_class *dynamic_V1D_remap_weight_of_operator = V3D_remapping_weights->get_parallel_remapping_weights()->get_dynamic_V1D_remap_weight_of_operator();
-		EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator != NULL, "Coupling_connection::add_bottom_field_coupling_info: do not have dynamic_V1D_remap_weight_of_operator");
+		EXECUTION_REPORT(REPORT_ERROR, -1, dynamic_V1D_remap_weight_of_operator != NULL, "Software error in Coupling_connection::add_bottom_field_coupling_info: do not have dynamic_V1D_remap_weight_of_operator");
 		
 		EXECUTION_REPORT(REPORT_ERROR, -1, bottom_field_coupling_info->bottom_field_inst->get_field_data()->get_coord_value_grid()->is_subset_of_grid(dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()) && bottom_field_coupling_info->bottom_field_inst->get_field_data()->get_coord_value_grid()->is_subset_of_grid(dynamic_V1D_remap_weight_of_operator->get_field_data_grid_dst()), "Software error in Coupling_connection::add_bottom_field_coupling_info: wrong surface field grid or wrong 2-D+1-D order");
 		if (dynamic_V1D_remap_weight_of_operator->get_field_data_grid_src()->get_sigma_grid_dynamic_surface_value_field() != NULL)
@@ -483,13 +483,13 @@ void Coupling_connection::generate_interpolation(bool has_frac_remapping)
 			EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), words_are_the_same(src_fields_info[i]->data_type, DATA_TYPE_FLOAT) || words_are_the_same(src_fields_info[i]->data_type, DATA_TYPE_DOUBLE),  "Error happens when trying to generate data interpolation for the field \%s\" in the coupling from the component model \"%s\" (interface is \"%s\") to the component model \"%s\" (interface is \"%s\"): the data type in the source component model is not floating-point but %s. Please verify.", fields_name[i], src_comp_interfaces[0].first, src_comp_interfaces[0].second, dst_comp_full_name, dst_interface_name, src_fields_info[i]->data_type);
 			EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), words_are_the_same(dst_fields_info[i]->data_type, DATA_TYPE_FLOAT) || words_are_the_same(dst_fields_info[i]->data_type, DATA_TYPE_DOUBLE),  "Error happens when trying to generate data interpolation for the field \%s\" in the coupling from the component model \"%s\" (interface is \"%s\") to the component model \"%s\" (interface is \"%s\"): the data type in the source component model is not floating-point but %s. Please verify.", fields_name[i], src_comp_interfaces[0].first, src_comp_interfaces[0].second, dst_comp_full_name, dst_interface_name, dst_fields_info[i]->data_type);	
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
-				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
-				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL, "Fail to generate interpolation from component \"%s\" to \"%s\": it is not allowed to set the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate to be an external field. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate an interpolation from component model \"%s\" to \"%s\": the surface field of the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_EXTERNAL, "Fail to generate an interpolation from component model \"%s\" to \"%s\": the source 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has an external surface field while a 3-D grid with external surface field cannot be referred as a source grid in interpolation. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, src_original_grid->get_grid_name());
 			}
 			if (dst_original_grid->get_original_CoR_grid()->is_sigma_grid()) {
-				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), dst_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate interpolation from component \"%s\" to \"%s\": the surface field of the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name());
+				EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), dst_original_grid->get_bottom_field_variation_type() != BOTTOM_FIELD_VARIATION_UNSET, "Fail to generate an interpolation from component model \"%s\" to \"%s\": the surface field of the target 3-D grid \"%s\" that includes SIGMA or HYBRID vertical coordinate has not been specified. Please verify.", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name());
 				if (dst_original_grid->get_bottom_field_variation_type() == BOTTOM_FIELD_VARIATION_EXTERNAL)
-					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate interpolation from component \"%s\" to \"%s\": when the target 3-D grid \"%s\" with SIGMA or HYBRID vertical coordinate has external surface field, the source 3-D grid \"%s\" must include SIGMA or HYBRID vertical coordinate. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
+					EXECUTION_REPORT(REPORT_ERROR, dst_comp_node->get_comp_id(), src_original_grid->get_original_CoR_grid()->is_sigma_grid(), "Fail to generate an interpolation from component model \"%s\" to \"%s\": the target 3-D grid \"%s\" has an external surface field; at this time, the source 3-D grid \"%s\" should include SIGMA or HYBRID vertical coordinate but actually not. Please verify. ", src_comp_interfaces[0].first, dst_comp_full_name, dst_original_grid->get_grid_name(), src_original_grid->get_grid_name());
 			}	
 			dst_fields_info[i]->runtime_remapping_weights = runtime_remapping_weights_mgr->search_or_generate_runtime_remapping_weights(src_comp_node->get_comp_full_name(), dst_comp_node->get_comp_full_name(), src_original_grid, dst_original_grid, &field_remapping_setting, decomps_info_mgr->search_decomp_info(dst_fields_info[i]->decomp_name, dst_comp_node->get_comp_id()));
 			if (src_original_grid->get_original_CoR_grid()->is_sigma_grid())
@@ -596,7 +596,7 @@ void Coupling_connection::write_field_info_into_array(Field_mem_info *field, cha
 	char tmp_string[NAME_STR_SIZE];
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, field != NULL, "Coupling_connection::write_field_info_into_array");
+	EXECUTION_REPORT(REPORT_ERROR, -1, field != NULL, "Software error in Coupling_connection::write_field_info_into_array");
 	write_data_into_array_buffer(field->get_field_data()->get_grid_data_field()->data_type_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 	write_data_into_array_buffer(field->get_unit(), NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 	const char *grid_name = field->get_grid_name();
@@ -624,7 +624,7 @@ void Coupling_connection::write_connection_fields_info_into_array(Inout_interfac
 	for (int i = fields_name.size() - 1; i >= 0; i --) {
 		Field_mem_info *field = inout_interface->search_registered_field_instance(fields_name[i], field_local_index);
 		if (field == NULL)
-		EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), field != NULL, "%s %s", inout_interface->get_interface_name(), fields_name[i]);
+			EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), field != NULL, "Software error in Coupling_connection::write_connection_fields_info_into_array: %s %s", inout_interface->get_interface_name(), fields_name[i]);
 		write_field_info_into_array(field, array, buffer_max_size, buffer_content_size);
 	}
 	*timer = inout_interface->get_timer();
@@ -714,33 +714,33 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 		if (words_are_the_same(detailed_element->Value(), "fields")) {
 			if (!is_XML_setting_on(host_comp_id, detailed_element, XML_file_name, "the status of \"fields\"", "import interface configuration file"))
 				continue;
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element == NULL, "When setting a coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"fields\" can be set only once but currently has been set at least twice. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			fields_element = detailed_element;
 			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting of \"fields\"", "import interface configuration file", true);
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all") || words_are_the_same(default_str, "remain"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"fields\" is wrong (legal values are \"off\", \"all\" and \"remain\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all") || words_are_the_same(default_str, "remain"), "When setting a coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"fields\" is wrong (legal values are \"off\", \"all\" and \"remain\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				fields_default_setting = 0;
 				for (TiXmlNode *field_element_node = detailed_element->FirstChild(); field_element_node != NULL; field_element_node = field_element_node->NextSibling()) {
 					if (field_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 						continue;					
 					TiXmlElement *field_element = field_element_node->ToElement();
-					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field (arround line %d of the XML file)", interface_name, XML_file_name, field_element->Row());
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(field_element->Value(),"field"), "When setting the attribute \"fields\" for an coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"field\" for the name of a field. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_element->Row());
 					const char *field_name = get_XML_attribute(host_comp_id, -1, field_element, "name", XML_file_name, line_number, "the name of a field", "import interface configuration file", true);	
 					check_and_verify_name_format_of_string_for_XML(host_comp_id, field_name, "the field", XML_file_name, line_number);
-					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", an illegal field name (\"%s\") is detected. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_name, field_element->Row());
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_info->search_field_info(field_name) != NULL, "When setting the attribute \"fields\" for an coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", an illegal field name (\"%s\") is detected. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, field_name, field_element->Row());
 					for (i = 0; i < interface_fields_name.size(); i ++)
 						if (words_are_the_same(interface_fields_name[i], field_name))
 							break;
 					if (i < interface_fields_name.size())
 						fields_name.push_back(strdup(interface_fields_name[i]));
-					else EXECUTION_REPORT(REPORT_WARNING, host_comp_id, true, "When setting the attribute \"fields\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the interface does not contain a field with the name of \"%s\"", interface_name, XML_file_name, field_name);
+					else EXECUTION_REPORT(REPORT_WARNING, host_comp_id, true, "When setting the attribute \"fields\" for the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the interface does not contain a field with the name of \"%s\"", interface_name, XML_file_name, field_name);
 				}
-				EXECUTION_REPORT(REPORT_WARNING, host_comp_id, fields_name.size() > 0, "When setting a redirection configuration of the import interface \"%s\" in the XML file \"%s\", there are no fields specified. Please note the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
+				EXECUTION_REPORT(REPORT_WARNING, host_comp_id, fields_name.size() > 0, "When setting a coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", there are no fields specified. Please note the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			}
 			else if (words_are_the_same(default_str, "all")) {
 				fields_default_setting = 1;
 				for (i = 0; i < interface_fields_name.size(); i ++) {
-					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_count[i] == 0, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the configuration information of field \"%s\" has been set more than once. This is not allowed. Please note that the default value \"all\" means all fields. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, interface_fields_name[i], detailed_element->Row()); 
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_count[i] == 0, "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the configuration information of field \"%s\" has been set more than once. This is not allowed. Please note that the default value \"all\" means all fields. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, interface_fields_name[i], detailed_element->Row()); 
 					fields_count[i] ++;
 					fields_name.push_back(strdup(interface_fields_name[i]));					
 				}
@@ -758,20 +758,20 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 		else if (words_are_the_same(detailed_element->Value(), "components")) {
 			if (!is_XML_setting_on(host_comp_id, detailed_element, XML_file_name, "the status of \"components\"", "import interface configuration file"))
 				continue;
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element == NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a redirection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element == NULL, "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"components\" has been set at least twice in a coupling connection specification. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 			components_element = detailed_element;
 			const char *default_str = get_XML_attribute(host_comp_id, -1, detailed_element, "default", XML_file_name, line_number, "default setting for components", "import interface configuration file", true);
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"componets\" is wrong (legal values are \"off\" and \"all\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(default_str, "off") || words_are_the_same(default_str, "all"), "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the value of \"default\" for the attribute of \"componets\" is wrong (legal values are \"off\" and \"all\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, line_number);
 			if (words_are_the_same(default_str, "off")) {
 				components_default_setting = 0;
 				for (TiXmlNode *component_element_node = detailed_element->FirstChild(); component_element_node != NULL; component_element_node = component_element_node->NextSibling()) {
 					if (component_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 						continue;
 					TiXmlElement *component_element = component_element_node->ToElement();
-					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the redirection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for the full name of a component. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Row());
+					EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(component_element->Value(),"component"), "When setting the attribute \"components\" for the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", please use the keyword \"component\" for a specification of source component models (current wrong keyword is \"%s\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, component_element->Value(), component_element->Row());
 					const char *full_name = get_XML_attribute(host_comp_id, 512, component_element, "comp_full_name", XML_file_name, line_number, "the full name of a component", "import interface configuration file", false);
 //					if (check_comp_existence)
-//						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
+//						EXECUTION_REPORT(REPORT_ERROR, host_comp_id, comp_comm_group_mgt_mgr->search_global_node(full_name) != NULL, "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the full component name (\"%s\") is wrong. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, full_name, line_number);
 					const char *interface_name = component_element->Attribute("interface_name", &line_number);
 					if (full_name == NULL && interface_name == NULL)
 						continue;
@@ -799,12 +799,12 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 			}
 		}
 		else if (words_are_the_same(detailed_element->Value(), "merge_setting")) {
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"merge_setting\" is not supported currently", interface_name, XML_file_name);
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the attribute of \"merge_setting\" is not supported currently", interface_name, XML_file_name);
 		}
-		else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Value(), detailed_element->Row());
+		else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", \"%s\" is not a legal attribute. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Value(), detailed_element->Row());
 	}		
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about fields is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element != NULL, "For a redirection configuration of the import interface \"%s\" in the XML file \"%s\", the information about components is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, fields_element != NULL, "For a coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the information about fields is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_element != NULL, "For a coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the information about source component models is not set. Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
 	for (i = 0; i < fields_name.size(); i ++)
 		for (int j = 0; j < producers_info.size(); j ++)
 			interface_configuration->add_field_src_component(host_comp_id, fields_name[i], producers_info[j]);
@@ -837,8 +837,8 @@ Import_interface_configuration::Import_interface_configuration(int host_comp_id,
 		if (redirection_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 			continue;
 		TiXmlElement *redirection_element = redirection_element_node->ToElement();
-		EXECUTION_REPORT(REPORT_ERROR, interface_ptr->get_comp_id(), words_are_the_same(redirection_element->Value(),"import_connection"), "When setting the redirection configuration of the import interface \"%s\" in the XML file \"%s\", the XML element for specifying the redirection configuration should be named \"import_connection\". Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Row());
-		if (!is_XML_setting_on(interface_ptr->get_comp_id(), redirection_element, XML_file_name, "the status of some redirection configurations for an import interface", "import interface configuration file"))
+		EXECUTION_REPORT(REPORT_ERROR, interface_ptr->get_comp_id(), words_are_the_same(redirection_element->Value(),"import_connection"), "When setting the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the XML element for specifying the coupling connection configuration should be named \"import_connection\" (current wrong name is \"%s\"). Please verify the XML file arround the line number %d.", interface_name, XML_file_name, redirection_element->Value(), redirection_element->Row());
+		if (!is_XML_setting_on(interface_ptr->get_comp_id(), redirection_element, XML_file_name, "the status of some coupling connection configurations for an import interface", "import interface configuration file"))
 			continue;
 		import_directions.push_back(new Import_direction_setting(host_comp_id, this, comp_full_name, interface_name, redirection_element, XML_file_name, fields_name, fields_count, check_comp_existence));
 	}
@@ -914,21 +914,21 @@ Component_import_interfaces_configuration::Component_import_interfaces_configura
 		if (interface_XML_element_node->Type() != TiXmlNode::TINYXML_ELEMENT)
 			continue;
 		TiXmlElement *interface_XML_element = interface_XML_element_node->ToElement();
-		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "The XML element for specifying the configuration information of an import interface in the XML configuration file \"%s\" should be named \"import_interface\". Please verify the XML file arround the line number %d.", XML_file_name, interface_XML_element->Row());
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(interface_XML_element->Value(),"import_interface"), "Detect a wrong name (\"%s\") of an XML element in the XML configuration file \"%s\": the XML element for specifying the coupling connection configuration of an import interface should be named \"import_interface\". Please verify the XML file arround the line number %d.", interface_XML_element->Value(), XML_file_name, interface_XML_element->Row());
 		const char *interface_name = get_XML_attribute(host_comp_id, CCPL_NAME_STR_LEN, interface_XML_element, "name", XML_file_name, line_number, "the \"name\" of an import interface", "import interface configuration file", true);
-		if (!is_XML_setting_on(host_comp_id, interface_XML_element, XML_file_name, "the \"status\" of the redirection configurations for an import interface", "import interface configuration file"))
+		if (!is_XML_setting_on(host_comp_id, interface_XML_element, XML_file_name, "the \"status\" of the coupling connection configurations for an import interface", "import interface configuration file"))
 			continue;
 		check_and_verify_name_format_of_string_for_XML(-1, interface_name, "the import interface", XML_file_name, line_number);
 		Inout_interface *import_interface = interface_mgr->get_interface(comp_full_name, interface_name);
 		if (import_interface == NULL) {
-			EXECUTION_REPORT(REPORT_WARNING, -1, false, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" does not register the corresponding import interface. So this redirection configuration information is negleted.\"", 
+			EXECUTION_REPORT(REPORT_WARNING, -1, false, "The coupling connection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" does not register the corresponding import interface. So this coupling connection configuration information is negleted.\"", 
 				             interface_name, XML_file_name, comp_full_name);
 			continue;
 		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT, "The redirection configuration of the import interface named \"%s\" has been specified in the XML configuration file \"%s\", while the component \"%s\" registers \"%s\" as an export interface. Please verify the model code or the XML file",
-			             interface_name, XML_file_name, comp_full_name, interface_name);
+		EXECUTION_REPORT(REPORT_ERROR, -1, import_interface->get_interface_type() == COUPLING_INTERFACE_MARK_IMPORT, "Detect the coupling connection configuration of a non-import interface \"%s\" of the component model \"%s\" in the XML configuration file \"%s\": please note that it is meaningless and not allowed to specify coupling connections of a non-export interface. Please verify the model code or the XML file arround the line number %d",
+			             interface_name, comp_full_name, XML_file_name, interface_XML_element->Row());
 		for (int i = 0; i < import_interfaces_configuration.size(); i ++)
-			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The redirection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
+			EXECUTION_REPORT(REPORT_ERROR, -1, !words_are_the_same(import_interfaces_configuration[i]->get_interface_name(), import_interface->get_interface_name()), "The coupling connection configuration of the import interface named \"%s\" has been set more than once in the XML file \"%s\", which is not allowed (only once for an interface). Please verify.", import_interface->get_interface_name(), XML_file_name);
 		import_interfaces_configuration.push_back(new Import_interface_configuration(host_comp_id, comp_full_name, import_interface->get_interface_name(), interface_XML_element, XML_file_name, interface_mgr, check_comp_existence));
 	}
 
@@ -1296,7 +1296,7 @@ void Coupling_generator::add_comp_for_external_coupling_generation(const char *c
 	int i;
 
 	
-	EXECUTION_REPORT(REPORT_ERROR, -1, strlen(comp_full_name) > 0, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full name of a component model cannot be an empty string. Please verify the model code with the annotation \"%s\"", annotation);
+	EXECUTION_REPORT(REPORT_ERROR, -1, strlen(comp_full_name) > 0, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the full name of a given component model cannot be an empty string. Please verify the model code with the annotation \"%s\"", annotation);
 	EXECUTION_REPORT(REPORT_ERROR, -1, individual_or_family == 1 || individual_or_family == 2, "ERROR happens when calling the API \"CCPL_do_external_coupling_generation\": the value of the parameter \"individual_or_family\" must be 1 (individual) or 2 (family). Please verify the model code with the annotation \"%s\"", annotation);
 	for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 		if (words_are_the_same(comp_full_name, all_comp_fullnames_for_coupling_generation[i])) {
@@ -1606,9 +1606,9 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 
 	for (XML_element_node = root_XML_element->FirstChild(); XML_element_node != NULL; XML_element_node = XML_element_node->NextSibling()) {
 		XML_element = XML_element_node->ToElement();
-		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status for the full names of a set of component models", "the redirection configuration file"))
+		if (!is_XML_setting_on(comp_id, XML_element, XML_file_name, "the status for the full names of a set of component models", "the coupling connection configuration file"))
 			continue;
-		XML_keyword = get_XML_attribute(comp_id, -1, XML_element, "keyword", XML_file_name, line_number, "the keyword of the set of component models' full names", "the redirection configuration file", true);
+		XML_keyword = get_XML_attribute(comp_id, -1, XML_element, "keyword", XML_file_name, line_number, "the keyword of the set of component models' full names", "the coupling connection configuration file", true);
 		if (words_are_the_same(keyword, XML_keyword))
 			break;
 	}	
@@ -1617,7 +1617,7 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 
 	for (detailed_XML_element_node = XML_element->FirstChild(); detailed_XML_element_node != NULL; detailed_XML_element_node = detailed_XML_element_node->NextSibling()) {
 		detailed_XML_element = detailed_XML_element_node->ToElement();
-		temp_full_name = get_XML_attribute(comp_id, -1, detailed_XML_element, "comp_full_name", XML_file_name, line_number, "the full name of a component model", "the redirection configuration file", true);
+		temp_full_name = get_XML_attribute(comp_id, -1, detailed_XML_element, "comp_full_name", XML_file_name, line_number, "the full name of a component model", "the coupling connection configuration file", true);
 		if (temp_full_name != NULL) {
 			for (i = 0; i < all_comp_fullnames_for_coupling_generation.size(); i ++)
 				if (words_are_the_same(temp_full_name, all_comp_fullnames_for_coupling_generation[i]))
@@ -1628,7 +1628,7 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 			const char *individual_or_family = detailed_XML_element->Attribute("individual_or_family", &line_number);
 			int value_individual_or_family = 1;
 			if (individual_or_family != NULL) {
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(individual_or_family, "individual") || words_are_the_same(individual_or_family, "family"), "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the value of \"individual_or_family\" in the XML file \"%s\" must be \"individual\" or \"family\". Please verify the XML file at line %d", XML_file_name, line_number);
+				EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(individual_or_family, "individual") || words_are_the_same(individual_or_family, "family"), "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the value of \"individual_or_family\" in the XML file \"%s\" must be \"individual\" or \"family\" (currently is \"%s\"). Please verify the XML file at line %d", XML_file_name, individual_or_family, line_number);
 				if (words_are_the_same(individual_or_family, "family"))
 					value_individual_or_family = 2;
 			}
@@ -1646,21 +1646,21 @@ void Coupling_generator::load_comps_full_names_from_config_file(int comp_id, con
 	
 	*num_comps = all_comp_fullnames_for_coupling_generation.size();
 
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_comps_full_names >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the array size of the input parameter \"comps_full_names\" (%d) is smaller than the number component models specified in the XML file \"%s\" (%d). Please verify the model code with the annotation \"%s\" or the configuration file.", size_comps_full_names, XML_file_name, *num_comps, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, size_comps_full_names >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\" with the keyword \"%s\": the array size (currently is %d) of the input parameter \"comps_full_names\" is smaller than the number of component models (currently is %d) specified in the XML file \"%s\". Please verify the model code with the annotation \"%s\" or the configuration file.", keyword, size_comps_full_names, XML_file_name, *num_comps, annotation);
 	if (size_individual_or_family != -1)
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_individual_or_family >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\": the array size of the input parameter \"individual_or_family\" (%d) is smaller than the number component models specified in the XML file \"%s\" (%d). Please verify the model code with the annotation \"%s\" or the configuration file.", size_comps_full_names, XML_file_name, *num_comps, annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, size_individual_or_family >= *num_comps, "ERROR happens when calling the API \"CCPL_get_configurable_comps_full_names\" with the keyword \"%s\": the array size (currently is %d) of the input parameter \"individual_or_family\" is smaller than the number of component models (currently is %d) specified in the XML file \"%s\". Please verify the model code with the annotation \"%s\" or the configuration file.", keyword, size_comps_full_names, XML_file_name, *num_comps, annotation);
 	
 	delete XML_file;
 }
 
 
-void Coupling_generator::get_one_comp_full_name(int comp_id, int str_size, int index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
+void Coupling_generator::get_one_comp_full_name(int comp_id, const char *keyword, int str_size, int index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
 {
 	char XML_file_name[NAME_STR_SIZE];
 
 
 	sprintf(XML_file_name, "%s/all/coupling_connections/%s.coupling_connections.xml", comp_comm_group_mgt_mgr->get_config_root_dir(), comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, true, "in Coupling_generator::load_comps_full_names_from_config_file")->get_full_name());
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, str_size >= strlen(all_comp_fullnames_for_coupling_generation[index]), "Error happens when calling the API \"CCPL_get_configurable_comps_full_names\": the string length of the input parameter \"comps_full_names\" (%d) is smaller than the length of the full name of a component model (%s) that is loaded from the XML file \"%s\". Please verify the model code with the annotation \"%s\".", str_size, all_comp_fullnames_for_coupling_generation[index], XML_file_name, annotation);
+	EXECUTION_REPORT(REPORT_ERROR, comp_id, str_size >= strlen(all_comp_fullnames_for_coupling_generation[index]), "Error happens when calling the API \"CCPL_get_configurable_comps_full_names\" with the keyword \"%s\": the string length (currently is %d) of the input parameter \"comps_full_names\" is smaller than the length (currently is %d) of the full name of a component model (\"%s\") that is loaded from the XML file \"%s\". Please verify the model code with the annotation \"%s\".", keyword, str_size, strlen(all_comp_fullnames_for_coupling_generation[index]), all_comp_fullnames_for_coupling_generation[index], XML_file_name, annotation);
 	strncpy(comp_full_name, all_comp_fullnames_for_coupling_generation[index], strlen(all_comp_fullnames_for_coupling_generation[index]));
 	*local_individual_or_family = individual_or_family_generation[index];
 	for (int i = strlen(all_comp_fullnames_for_coupling_generation[index]); i < str_size; i ++)

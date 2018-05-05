@@ -618,10 +618,10 @@ extern "C" void ccpl_get_one_comp_full_name
 #else
 extern "C" void ccpl_get_one_comp_full_name_
 #endif
-(int *comp_id, int *str_size, int *index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
+(int *comp_id, const char *keyword, int *str_size, int *index, char *comp_full_name, int *local_individual_or_family, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the beginning of cpl_get_one_comp_full_name_");
-	coupling_generator->get_one_comp_full_name(*comp_id, *str_size, *index-1, comp_full_name, local_individual_or_family , annotation);
+	coupling_generator->get_one_comp_full_name(*comp_id, keyword, *str_size, *index-1, comp_full_name, local_individual_or_family , annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "At the end of cpl_get_one_comp_full_name_");
 }
 

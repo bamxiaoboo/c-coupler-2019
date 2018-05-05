@@ -199,7 +199,7 @@ class Coupling_generator
 		void add_comp_for_external_coupling_generation(const char *, int, const char*);
 		void do_external_coupling_generation(int, const char*);
 		void load_comps_full_names_from_config_file(int, const char *, int, int, int *, const char *);
-		void get_one_comp_full_name(int, int, int, char *, int *, const char *);
+		void get_one_comp_full_name(int, const char*, int, int, char *, int *, const char *);
 		void do_overall_coupling_generation(const char*, const char *);
 };
 

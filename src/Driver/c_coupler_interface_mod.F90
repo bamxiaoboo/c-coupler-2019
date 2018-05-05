@@ -3131,7 +3131,7 @@
 
    call ccpl_load_comps_full_names_from_config_file(comp_id, trim(keyword)//char(0), size_comps_full_names, size_individual_or_family, num_comps, trim(local_annotation)//char(0))
    do i = 1, num_comps
-      call ccpl_get_one_comp_full_name(comp_id, len(comps_full_names(i)), i, comps_full_names(i), local_individual_or_family, trim(local_annotation)//char(0)) 
+      call ccpl_get_one_comp_full_name(comp_id, keyword, len(comps_full_names(i)), i, comps_full_names(i), local_individual_or_family, trim(local_annotation)//char(0)) 
       if (present(individual_or_family)) individual_or_family(i) = local_individual_or_family
    enddo
    call ccpl_finish_getting_configurable_comps_full_names(comp_id, trim(local_annotation)//char(0)) 
