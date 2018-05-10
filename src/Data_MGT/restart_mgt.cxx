@@ -30,7 +30,7 @@ Restart_buffer_container::Restart_buffer_container(const char *array_buffer, lon
 	long total_size, str_size;
 
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&total_size, sizeof(long), array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&total_size, sizeof(long), array_buffer, buffer_content_iter, file_name == NULL), "Fail to load the restart data file \"%s\": its format is wrong, or the information it includes is not complete. Please try a different restart time with complete restart data files.", file_name);
 	
 	buffer_content = load_string(NULL, str_size, -1, array_buffer, buffer_content_iter, file_name);
 	this->buffer_content_iter = str_size;
@@ -59,7 +59,7 @@ void Restart_buffer_container::dump_in_data(const void *data, long size)
 
 void Restart_buffer_container::load_restart_data(void *data, long data_size)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(data, data_size, buffer_content, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", restart_mgr->get_input_restart_mgt_info_file());
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(data, data_size, buffer_content, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong, or the information it includes is not complete. Please try a different restart time with complete restart data files.", restart_mgr->get_input_restart_mgt_info_file());
 }
 
 
@@ -218,7 +218,7 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 	bcast_array_in_one_comp(local_proc_id, &array_buffer, buffer_content_iter, comp_node->get_comm_group());
 
 	int num_restart_buffer_containers;
-	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong", file_name);
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&num_restart_buffer_containers, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong, or the information it includes is not complete. Please try a different restart time with complete restart data files.", file_name);
 	for (int i = 0; i < num_restart_buffer_containers; i ++) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), buffer_content_iter > 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
 		restart_read_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name, this));

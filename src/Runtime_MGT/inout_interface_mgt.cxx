@@ -806,7 +806,7 @@ void Inout_interface::import_restart_data(Restart_buffer_container *restart_buff
 		restart_buffer = restart_mgr->search_restart_buffer(RESTART_BUF_TYPE_INTERFACE, interface_name); 
 	EXECUTION_REPORT(REPORT_ERROR, restart_mgr->get_comp_id(), restart_buffer != NULL, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": this file does not include the data for restarting the interface \"%s\"", restart_mgr->get_input_restart_mgt_info_file(), restart_mgr->get_restart_read_annotation(), interface_name);
 	Coupling_timer *restart_timer = new Coupling_timer(restart_buffer->get_buffer_content(), *(restart_buffer->get_buffer_content_iter_ptr()), comp_id, false, successful);
-	EXECUTION_REPORT(REPORT_ERROR, -1, successful, "Fail to load the restart data file \"%s\": its format is wrong", restart_mgr->get_input_restart_mgt_info_file());
+	EXECUTION_REPORT(REPORT_ERROR, -1, successful, "Fail to load the restart data file \"%s\": its format is wrong, or the information it includes is not complete. Please try a different restart time with complete restart data files.", restart_mgr->get_input_restart_mgt_info_file());
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, restart_timer->is_the_same_with(timer), "Error happens when loading the restart data file \"%s\": the timer of the interface \"%s\" in the restart data file is different from the current timer speicifed by the model code. Please verify.", restart_mgr->get_input_restart_mgt_info_file(), interface_name);
 	restart_buffer->load_restart_data(&last_execution_time, sizeof(long));
 	restart_buffer->load_restart_data(&num_children, sizeof(int));
