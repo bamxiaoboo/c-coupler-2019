@@ -592,7 +592,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 			EXECUTION_REPORT(REPORT_ERROR, comp_id, field_instance->is_CPL_field_inst(), "Error happens when calling the API \"%s\" to register an interface named \"%s\" at the model code with the annotation \"%s\": the field instance of \"%s\" cannot not be referred by an import/export interface because it has not been declared as a coupling field instance. Please check the parameter \"usage_tag\" when registerring this field instance (at the model code with the annotation \"%s\")", API_label, interface_name, annotation, field_instance->get_field_name(), annotation_mgr->get_annotation(field_instance->get_field_instance_id(), "allocate field instance"));
 		fields_mem_registered.push_back(field_instance);
 		fields_connected_status.push_back(false);
-		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
+		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT && !is_child_interface)
 			restart_mgr->add_restarted_field_instances(fields_mem_registered[fields_mem_registered.size()-1]);
 	}
 	fields_connected_status.push_back(false);
