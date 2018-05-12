@@ -3390,6 +3390,26 @@ void Remap_grid_class::link_grids(Remap_grid_class *top_grid, const char *grid_n
 
 	for (int i = 0; i < sub_grids.size(); i ++)
 		sub_grids[i]->link_grids(top_grid, grid_name_suffix);	
+	for (int i = 0; i < grid_center_fields.size(); i ++)
+		grid_center_fields[i]->generate_grid_info(grid_center_fields[i]->coord_value_grid);
+	for (int i = 0; i < grid_vertex_fields.size(); i ++)
+		grid_vertex_fields[i]->generate_grid_info(grid_vertex_fields[i]->coord_value_grid);
+	if (grid_mask_field != NULL)
+		grid_mask_field->generate_grid_info(grid_mask_field->coord_value_grid);
+	if (imported_area != NULL)
+		imported_area->generate_grid_info(imported_area->coord_value_grid);
+	if (original_grid_mask_field != NULL)
+		original_grid_mask_field->generate_grid_info(original_grid_mask_field->coord_value_grid);
+	if (redundant_cell_mark_field != NULL)
+		redundant_cell_mark_field->generate_grid_info(redundant_cell_mark_field->coord_value_grid);
+	if (hybrid_grid_coefficient_field != NULL)
+		hybrid_grid_coefficient_field->generate_grid_info(hybrid_grid_coefficient_field->coord_value_grid);
+	if (sigma_grid_sigma_value_field != NULL)
+		sigma_grid_sigma_value_field->generate_grid_info(sigma_grid_sigma_value_field->coord_value_grid);
+	if (sigma_grid_surface_value_field != NULL)
+		sigma_grid_surface_value_field->generate_grid_info(sigma_grid_surface_value_field->coord_value_grid);
+	if (sigma_grid_dynamic_surface_value_field != NULL)
+		sigma_grid_dynamic_surface_value_field->generate_grid_info(sigma_grid_dynamic_surface_value_field->coord_value_grid);
 }
 
 
