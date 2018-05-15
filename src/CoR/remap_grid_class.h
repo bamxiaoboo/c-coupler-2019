@@ -150,6 +150,7 @@ class Remap_grid_class
         void calculate_area_of_sphere_grid();
         void calculate_area_or_volumn();
 		void generate_default_grid_mask();
+		void reset_super_grids_of_setting_mask_value(Remap_grid_class *);
 
     public:
 

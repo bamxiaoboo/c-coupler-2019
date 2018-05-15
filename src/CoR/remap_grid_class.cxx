@@ -3318,6 +3318,17 @@ void Remap_grid_class::write_grid_into_array(char **array, long &buffer_max_size
 }
 
 
+void Remap_grid_class::reset_super_grids_of_setting_mask_value(Remap_grid_class *super_grid)
+{
+	for (int i = 0; i < super_grid->super_grids_of_setting_mask_value.size(); i ++)
+		this->super_grids_of_setting_mask_value.push_back(super_grid->super_grids_of_setting_mask_value[i]);
+	if (this->grid_mask_field != NULL)
+		this->super_grids_of_setting_mask_value.push_back(this);
+	for (int i = 0; i < sub_grids.size(); i ++)
+		sub_grids[i]->reset_super_grids_of_setting_mask_value(this);
+}
+
+
 Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_name_suffix, const char *array, long &buffer_content_iter)
 {
 	int temp_int;
@@ -3371,8 +3382,10 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *top_grid, const char *grid_
 		sub_grids.push_back(existing_grid);
 	}
 	
-	if (this == top_grid)
+	if (this == top_grid) {
 		link_grids(top_grid, grid_name_suffix);
+		reset_super_grids_of_setting_mask_value(top_grid);
+	}
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "read boundary of grid \"%s\" (%lx) to %lf %lf %lf %lf", grid_name, this, boundary_min_lon, boundary_max_lon, boundary_min_lat, boundary_max_lat);
 }
