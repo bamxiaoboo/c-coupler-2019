@@ -115,7 +115,7 @@ Remap_operator_linear::~Remap_operator_linear()
 }
 
 
-void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
+void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, double *data_values_dst, int dst_array_size)
 {
 	int i;
 	long temp_long_value1, temp_long_value2;
@@ -137,7 +137,7 @@ void Remap_operator_linear::do_remap_values_caculation(double *data_values_src, 
 
 	preprocess_field_value(data_values_src);
 
-	remap_weights_groups[1]->remap_values(packed_data_values_src, data_values_dst);
+	remap_weights_groups[1]->remap_values(packed_data_values_src, data_values_dst, dst_array_size);
 
 	postprocess_field_value(data_values_dst);
 }

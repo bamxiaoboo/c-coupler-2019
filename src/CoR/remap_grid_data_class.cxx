@@ -136,6 +136,31 @@ void Remap_grid_data_class::generate_data_field_info(const char *field_data_name
 }
 
 
+void Remap_grid_data_class::set_masked_cell_to_missing_value()
+{
+	if (coord_value_grid == NULL || coord_value_grid->get_grid_mask_field() == NULL)
+		return;
+
+	if (!words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_FLOAT) && words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_DOUBLE))
+		return;
+	
+	bool *mask = (bool*) coord_value_grid->get_grid_mask_field()->grid_data_field->data_buf;
+	if (words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_FLOAT)) {
+		float *data_buf = (float*) grid_data_field->data_buf;
+		for (int i = 0; i < grid_data_field->required_data_size; i ++)
+			if (!mask[i])
+				data_buf[i] = (float) DEFAULT_FILL_VALUE;
+	}
+	else {
+		double *data_buf = (double*) grid_data_field->data_buf;
+		for (int i = 0; i < grid_data_field->required_data_size; i ++)
+			if (!mask[i])
+				data_buf[i] = (double) DEFAULT_FILL_VALUE;		
+	}
+			
+}
+
+
 Remap_grid_data_class::~Remap_grid_data_class()
 {
     delete grid_data_field;

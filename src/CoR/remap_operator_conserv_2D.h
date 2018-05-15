@@ -26,7 +26,7 @@ class Remap_operator_conserv_2D: public Remap_operator_basis
         void set_parameter(const char *, const char *);
 		int check_parameter(const char *, const char *, char*);
         void calculate_remap_weights();
-        void do_remap_values_caculation(double*, double*);
+        void do_remap_values_caculation(double*, double*, int);
         void do_src_decomp_caculation(long*, const long*);
         Remap_operator_basis *duplicate_remap_operator(bool);
         Remap_operator_basis *generate_parallel_remap_operator(Remap_grid_class**, int**);

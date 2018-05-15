@@ -37,7 +37,7 @@
 
 #define FILL_VALUE_LABEL                      "_FillValue"
 #define MISS_VALUE_LABEL                      "missing_value"
-#define DEFAULT_FILL_VALUE                    (1.0e30)
+#define DEFAULT_FILL_VALUE                    (1.0e20)
 
 
 extern IO_mgt *io_manager;

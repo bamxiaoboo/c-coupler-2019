@@ -230,7 +230,7 @@ void Remap_operator_spline_1D::calculate_remap_weights()
 }
 
 
-void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
+void Remap_operator_spline_1D::do_remap_values_caculation(double *data_values_src, double *data_values_dst, int dst_array_size)
 {
 	int i, j, k, m, start_index_monotonicity_range, end_index_monotonicity_range;
 	int original_index1, original_index2, original_index3;

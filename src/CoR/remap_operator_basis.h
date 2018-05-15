@@ -55,7 +55,7 @@ class Remap_operator_basis
         virtual ~Remap_operator_basis();
         virtual void set_parameter(const char*, const char*) = 0;
 		virtual int check_parameter(const char*, const char*, char*) = 0;
-        virtual void do_remap_values_caculation(double*, double*) = 0;
+        virtual void do_remap_values_caculation(double*, double*, int) = 0;
         virtual void do_src_decomp_caculation(long*, const long*) = 0;
         virtual void calculate_remap_weights() = 0;
         virtual Remap_operator_basis *duplicate_remap_operator(bool) = 0;

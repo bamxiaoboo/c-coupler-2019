@@ -58,9 +58,9 @@ Remap_operator_smooth::Remap_operator_smooth(const char *object_name, int num_re
 }
 
 
-void Remap_operator_smooth::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
+void Remap_operator_smooth::do_remap_values_caculation(double *data_values_src, double *data_values_dst, int dst_array_size)
 {
-    remap_weights_groups[0]->remap_values(data_values_src, data_values_dst);
+    remap_weights_groups[0]->remap_values(data_values_src, data_values_dst, dst_array_size);
 }
 
 

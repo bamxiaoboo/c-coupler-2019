@@ -142,7 +142,7 @@ void Remap_weight_sparse_matrix::get_weight(long *index_src, long *index_dst, do
 }
 
 
-void Remap_weight_sparse_matrix::remap_values(double *data_values_src, double *data_values_dst)
+void Remap_weight_sparse_matrix::remap_values(double *data_values_src, double *data_values_dst, int dst_array_size)
 {
     for (long i = 0; i < num_remaped_dst_cells_indexes; i ++)
         data_values_dst[remaped_dst_cells_indexes[i]] = 0.0;

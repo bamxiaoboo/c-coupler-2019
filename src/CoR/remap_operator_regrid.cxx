@@ -45,7 +45,7 @@ Remap_operator_regrid::Remap_operator_regrid(const char *object_name, int num_re
 }
 
 
-void Remap_operator_regrid::do_remap_values_caculation(double *data_values_src, double *data_values_dst)
+void Remap_operator_regrid::do_remap_values_caculation(double *data_values_src, double *data_values_dst, int dst_array_size)
 {
     EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error in do_remap_values_caculation of Remap_operator_regrid\n");
 }

@@ -396,6 +396,9 @@ void IO_netcdf::write_field_data(Remap_grid_data_class *field_data,
     nc_type nc_data_type;
 
 
+	if (!is_grid_data)
+		field_data->set_masked_cell_to_missing_value();
+
     tmp_string[0] = '\0';
     if (is_grid_data && write_grid_name) {
         if (words_are_the_same(field_data->get_grid_data_field()->field_name_in_application, "mask"))
