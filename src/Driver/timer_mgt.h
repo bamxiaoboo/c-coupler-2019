@@ -241,7 +241,7 @@ class Time_mgt
 		bool is_time_out_of_execution(long);
 		void write_time_mgt_into_array(char **, long &, long &);
 		void import_restart_data(const char*, long&, const char *, bool);
-		bool is_restart_timer_on() { return restart_timer->is_timer_on(); }
+		bool is_restart_timer_on();
 		const char *get_case_name() { return case_name; }
 		const char *get_run_type() { return run_type; }
 		const char *get_rest_refcase() { return rest_refcase; }

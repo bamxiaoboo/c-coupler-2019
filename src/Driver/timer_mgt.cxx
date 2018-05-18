@@ -1053,6 +1053,16 @@ void Time_mgt::reset_current_time_to_start_time(const char *annotation)
 }
 
 
+bool Time_mgt::is_restart_timer_on() 
+{ 
+	if (restart_timer == NULL)
+		return false;
+	
+	return restart_timer->is_timer_on(); 
+}
+
+
+
 long Time_mgt::determine_continue_run_restart_time()
 {
 	DIR *cur_dir = opendir(comp_comm_group_mgt_mgr->get_restart_common_dir());
