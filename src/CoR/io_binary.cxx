@@ -7,10 +7,8 @@
   ***************************************************************/
 
 
-#ifndef ONLY_CoR
 #include <mpi.h>
 #include "global_data.h"
-#endif
 #include "io_binary.h"
 #include "cor_global_data.h"
 #include "remap_operator_conserv_2D.h"
@@ -120,9 +118,7 @@ void IO_binary::read_remap_weights(Remap_weight_of_strategy_class *remap_weights
 		fseek(fp_binary, 0, SEEK_END);
 		long array_size = ftell(fp_binary);
 		int num_proc_computing_node_comp_group, current_proc_id_computing_node_comp_group = 0;
-#ifndef ONLY_CoR
 		EXECUTION_REPORT(REPORT_ERROR, -1, false, "to be rewritten: IO_binary::read_remap_weights");
-#endif
 		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "begin reading file of weights values at process %d", current_proc_id_computing_node_comp_group); 
 		fseek(fp_binary, 0, SEEK_SET);
 		remap_weights->read_remap_weights_from_array(NULL, fp_binary, array_size, true, NULL, read_weight_values);

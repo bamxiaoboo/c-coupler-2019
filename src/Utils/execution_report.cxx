@@ -7,11 +7,7 @@
   ***************************************************************/
 
 
-#ifndef ONLY_CoR
 #include "global_data.h"
-#else
-#define NAME_STR_SIZE 1024
-#endif
 #include "execution_report.h"
 #include "cor_global_data.h"
 #include <assert.h>
@@ -121,54 +117,29 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_f
 
 	switch (report_type) {
 		case REPORT_ERROR:
-			if (line_number > 0 && execution_phase_number < 2)
-				sprintf(output_format+strlen(output_format), "CoR REPORT ERROR at script line %d: ", line_number);
-#ifndef ONLY_CoR
-			else sprintf(output_format+strlen(output_format), "C-Coupler REPORT ERROR: ");
-#endif
+			sprintf(output_format+strlen(output_format), "C-Coupler REPORT ERROR: ");
 			break;
 		case REPORT_LOG:
-			if (line_number > 0 && execution_phase_number < 2)
-				sprintf(output_format+strlen(output_format), "CoR REPORT LOG at script line %d: ", line_number);
-#ifndef ONLY_CoR
-			else sprintf(output_format+strlen(output_format), "C-Coupler REPORT LOG: ");
-#endif			
+			sprintf(output_format+strlen(output_format), "C-Coupler REPORT LOG: ");	
 			break;
-			case REPORT_EXTERNAL_LOG:
-				if (line_number > 0 && execution_phase_number < 2)
-					sprintf(output_format+strlen(output_format), "CoR REPORT LOG at script line %d: ", line_number);
-#ifndef ONLY_CoR
-				else sprintf(output_format+strlen(output_format), "C-Coupler REPORT LOG: ");
-#endif			
-				break;
+		case REPORT_EXTERNAL_LOG:
+			sprintf(output_format+strlen(output_format), "C-Coupler REPORT LOG: ");
+			break;
 		case REPORT_WARNING:
-			if (line_number > 0 && execution_phase_number < 2)
-				sprintf(output_format+strlen(output_format), "CoR REPORT WARNING at script line %d: ", line_number);
-#ifndef ONLY_CoR
-			else sprintf(output_format+strlen(output_format), "C-Coupler REPORT WARNING: ");
-#endif
+			sprintf(output_format+strlen(output_format), "C-Coupler REPORT WARNING: ");
 			break;
 		case REPORT_PROGRESS:
-			if (line_number > 0 && execution_phase_number < 2)
-				sprintf(output_format+strlen(output_format), "CoR REPORT PROGRESS at script line %d: ", line_number);
-#ifndef ONLY_CoR
- 			else sprintf(output_format+strlen(output_format), "C-Coupler REPORT PROGRESS: ");
-#endif
+ 			sprintf(output_format+strlen(output_format), "C-Coupler REPORT PROGRESS: ");
 			break;
 		case REPORT_CONSTANTLY:
-			if (line_number > 0 && execution_phase_number < 2)
-				sprintf(output_format+strlen(output_format), "CoR REPORT at script line %d: ", line_number);
-#ifndef ONLY_CoR
-				else sprintf(output_format+strlen(output_format), "C-Coupler REPORT PROGRESS: ");
-#endif
-				break;
+			sprintf(output_format+strlen(output_format), "C-Coupler REPORT PROGRESS: ");
+			break;
 		default:
 			printf("Software error: report type %d is not supported\n", report_type);
 			assert(false);
 			break;
 	}
-#ifndef ONLY_CoR
-	if (!(line_number > 0 && execution_phase_number < 2) && comp_comm_group_mgt_mgr != NULL) {
+	if (comp_comm_group_mgt_mgr != NULL) {
 		if (comp_id == -1)
 			sprintf(output_format+strlen(output_format)-2, " in the root component model corresponding to the executable named \"%s\": ", comp_comm_group_mgt_mgr->get_executable_name());
 		else {
@@ -179,7 +150,6 @@ void report_header(int report_type, int comp_id, bool &condition, char *output_f
 				    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,true,"execution report")->get_full_name(), comp_comm_group_mgt_mgr->get_executable_name(), current_date, current_second, current_step_id);
 		}
 	}
-#endif
 }
 
 
