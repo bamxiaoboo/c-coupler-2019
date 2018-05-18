@@ -324,7 +324,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
 			if (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_time)) {
 				EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will not receive data from the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_src_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
 				for (int i = 0; i < fields_mem_registered.size(); i ++)
-					restart_mgr->read_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true, NULL, annotation);
+					restart_mgr->read_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true, NULL, false, annotation);
 				transfer_data = false;
 			}
 			else {
@@ -569,10 +569,10 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 	children_interfaces[0]->timer->reset_remote_lag_count();
 	children_interfaces[1]->timer->reset_remote_lag_count();
 
-	bool same_field_name = true;
-	for (int i = 0; i < num_fields; i ++)
-		same_field_name = same_field_name && words_are_the_same(memory_manager->get_field_instance(field_ids_src[i])->get_field_name(),memory_manager->get_field_instance(field_ids_dst[i])->get_field_name());	
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, same_field_name, "Error happens when calling the API \"%s\" to register an interface named \"%s\": the field instances specified by the parameter \"field_instance_IDs_source\" are not consistent with the field instances specified by the parameter \"field_instance_IDs_target\" (the ith source field instance must have the same field name with the ith target field instance). Please check the model code with the annotation \"%s\".", API_label, interface_name, annotation);	
+	for (int i = 0; i < num_fields; i ++) {	
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, words_are_the_same(memory_manager->get_field_instance(field_ids_src[i])->get_field_name(),memory_manager->get_field_instance(field_ids_dst[i])->get_field_name()), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the number %d field instance (\"%s\") specified by the parameter \"field_instance_IDs_source\" are not consistent with the number %d field instance (\"%s\") specified by the parameter \"field_instance_IDs_target\" (a source field instance must have the same field name with the same number of target field instance). Please check the model code with the annotation \"%s\".", API_label, interface_name, i+1, memory_manager->get_field_instance(field_ids_src[i])->get_field_name(), i+1, memory_manager->get_field_instance(field_ids_dst[i])->get_field_name(), annotation);		
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, memory_manager->get_field_instance(field_ids_src[i])->get_data_buf() != memory_manager->get_field_instance(field_ids_dst[i])->get_data_buf(), "Error happens when calling the API \"%s\" to register an interface named \"%s\": the number %d field instance (\"%s\") specified by the parameter \"field_instance_IDs_source\" have the same model data buffer with the number %d field instance (\"%s\") specified by the parameter \"field_instance_IDs_target\" (the source and target field instances may be the same), which is not allowed. Please check the model code with the annotation \"%s\".", API_label, interface_name, i+1, memory_manager->get_field_instance(field_ids_src[i])->get_field_name(), i+1, memory_manager->get_field_instance(field_ids_dst[i])->get_field_name(), annotation);
+	}
 }
 
 
@@ -593,7 +593,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
 		fields_mem_registered.push_back(field_instance);
 		fields_connected_status.push_back(false);
 		if (interface_type == COUPLING_INTERFACE_MARK_IMPORT && !is_child_interface)
-			restart_mgr->add_restarted_field_instances(fields_mem_registered[fields_mem_registered.size()-1]);
+			restart_mgr->add_restarted_field_instance(fields_mem_registered[fields_mem_registered.size()-1], true);
 	}
 	fields_connected_status.push_back(false);
 	num_fields_connected = 0;
@@ -836,7 +836,7 @@ void Inout_interface::read_restart_fields(int API_id, const char *annotation)
 	EXECUTION_REPORT(REPORT_ERROR, comp_id, (execution_checking_status & 0x2) == 0, "Error happens when calling the API \"CCPL_restart_read_fields_interface\": the corresponding import interface \"%s\" has been executed without bypassing the timer. Please verify the model code with the annotation \"%s\"", interface_name, annotation);
 	synchronize_comp_processes_for_API(comp_id, API_id, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, ""), "read restart fields for the given coupling interface", annotation);
 	for (int i = 0; i < fields_mem_registered.size(); i ++)
-		restart_mgr->read_restart_field_data(fields_mem_registered[i], NULL, NULL, false, NULL, annotation);
+		restart_mgr->read_restart_field_data(fields_mem_registered[i], NULL, NULL, false, NULL, restart_mgr->get_bypass_import_fields_at_read(), annotation);
 }
 
 

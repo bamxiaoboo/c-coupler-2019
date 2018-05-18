@@ -822,7 +822,7 @@ extern "C" void set_3d_grid_surface_field_
 	check_for_coupling_registration_stage(comp_id, API_id, true, annotation);
 	original_grid_mgr->set_3d_grid_bottom_field(comp_id, *grid_id, *field_id, *static_or_dynamic_or_external, API_id, API_label, annotation);
 	if (*static_or_dynamic_or_external != BOTTOM_FIELD_VARIATION_EXTERNAL)
-		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->add_restarted_field_instances(memory_manager->get_field_instance(*field_id));
+		comp_comm_group_mgt_mgr->search_global_node(comp_id)->get_restart_mgr()->add_restarted_field_instance(memory_manager->get_field_instance(*field_id), true);
 
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish to setting surface field for the 3D grid %s", original_grid_mgr->get_name_of_grid(*grid_id));
 }
@@ -1097,7 +1097,7 @@ extern "C" void register_external_field_instance_
 	*field_instance_id = memory_manager->register_external_field_instance(field_name, (void*)(*data_buffer_ptr), *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, *usage_tag, unit, data_type, annotation);
 	Field_mem_info *field_instance = memory_manager->get_field_instance(*field_instance_id);
 	if (field_instance->is_REST_field_inst())
-		comp_comm_group_mgt_mgr->search_global_node(field_instance->get_host_comp_id())->get_restart_mgr()->add_restarted_field_instances(field_instance);
+		comp_comm_group_mgt_mgr->search_global_node(field_instance->get_host_comp_id())->get_restart_mgr()->add_restarted_field_instance(field_instance, false);
 	
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a field instance %s", field_name);
 }
@@ -1247,12 +1247,12 @@ extern "C" void ccpl_write_restart
 #else
 extern "C" void ccpl_write_restart_
 #endif
-(int *comp_id, int *bypass_timer, const char *annotation)
+(int *comp_id, int *bypass_timer, int *bypass_imported_fields, const char *annotation)
 {
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to do restart write");
 	check_for_component_registered(*comp_id, API_ID_RESTART_MGT_WRITE_IO, annotation, false);
 	if (comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->is_real_component_model())
-		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1);
+		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,annotation)->get_restart_mgr()->do_restart_write(annotation, *bypass_timer == 1, *bypass_imported_fields == 1);
 	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish doing restart write");
 }
 

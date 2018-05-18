@@ -196,6 +196,7 @@ void Restart_mgt::read_restart_mgt_info(const char *specified_file_name, const c
 void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *file_name, const char *annotation)
 {
 	int local_proc_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(comp_node->get_comp_id(), "in Restart_mgt::do_restart");
+	int temp_int;
 	char *array_buffer = NULL;
 	char temp_restart_read_data_file_name[NAME_STR_SIZE*2];
 	long buffer_content_iter;
@@ -223,6 +224,8 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), buffer_content_iter > 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
 		restart_read_buffer_containers.push_back(new Restart_buffer_container(array_buffer, buffer_content_iter, file_name, this));
 	}
+	EXECUTION_REPORT(REPORT_ERROR, -1, read_data_from_array_buffer(&temp_int, sizeof(int), array_buffer, buffer_content_iter, false), "Fail to load the restart data file \"%s\": its format is wrong, or the information it includes is not complete. Please try a different restart time with complete restart data files.", file_name);
+	bypass_import_fields_at_read = (temp_int == 1);
 	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), buffer_content_iter == 0, "Software error in Restart_mgt::read_restart_mgt_info: wrong organization of restart data file");
 	delete [] array_buffer;
 
@@ -239,7 +242,7 @@ void Restart_mgt::read_restart_mgt_info(bool check_existing_data, const char *fi
 }
 
 
-void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
+void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer, bool bypass_imported_fields)
 {
 	int local_proc_id = comp_node->get_current_proc_local_id();
 	const char *comp_full_name = comp_node->get_full_name();
@@ -247,9 +250,14 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 	Restart_buffer_container *time_mgr_restart_buffer;
 
 
+	bypass_import_fields_at_write = bypass_imported_fields;
+
 	if (time_mgr == NULL)
 		time_mgr = components_time_mgrs->get_time_mgr(comp_node->get_comp_id());
 	current_full_time = time_mgr->get_current_full_time();
+
+	check_API_parameter_bool(comp_node->get_comp_id(), API_ID_RESTART_MGT_WRITE_IO, comp_node->get_comm_group(), "generating restart data files", bypass_timer, "bypass_timer", annotation);
+	check_API_parameter_bool(comp_node->get_comp_id(), API_ID_RESTART_MGT_WRITE_IO, comp_node->get_comm_group(), "generating restart data files", bypass_imported_fields, "bypass_timer", annotation);
 
 	if (bypass_timer || time_mgr->is_restart_timer_on()) {
 		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), current_full_time != last_restart_write_full_time, "Error happens when the component model tries to write restart data files: the corresponding API \"CCPL_do_restart_write_IO\" has been called more than once at the same time step. Please verify the model code with the annotation \"%s\"", annotation);
@@ -273,8 +281,12 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer)
 		}
 		inout_interface_mgr->write_into_restart_buffers(comp_node->get_comp_id());
 		restart_mgt_info_written = false;
-		for (int i = 0; i < restarted_field_instances.size(); i ++)
-			write_restart_field_data(restarted_field_instances[i], NULL, NULL, false);
+		for (int i = 0; i < restarted_field_instances.size(); i ++) {
+			if (!bypass_imported_fields)
+				write_restart_field_data(restarted_field_instances[i].first, NULL, NULL, false);
+			else if (!restarted_field_instances[i].second)
+				write_restart_field_data(restarted_field_instances[i].first, NULL, NULL, false);
+		}
 	}
 }
 
@@ -315,6 +327,10 @@ void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const
 		EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write variable \"%s\" into restart data file \"%s\"", global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, restart_write_data_file->get_file_name());
 		restart_write_data_file->write_grided_data(global_field->get_field_data(), true, -1, -1, true);
 		sprintf(hint, "restart writing field \"%s\" to the file \"%s\"", field_IO_name, restart_write_data_file->get_file_name());
+		if (words_are_the_same(field_IO_name, "V3D_grid_bottom_field.receive_from_OCN.imported.   4033114400")) {
+			for (int i = 0; i < global_field->get_size_of_field(); i ++)
+				EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "detailed value of V3D_grid_bottom_field.receive_from_OCN.imported.\ \ \ 4033114400 at %d is %0.25lf", i, ((double*)global_field->get_data_buf())[i]);
+		}
 	}
 	else sprintf(hint, "restart writing field \"%s\" to the file", field_IO_name);
 	field_instance->check_field_sum(hint);
@@ -334,11 +350,11 @@ void Restart_mgt::read_all_restarted_fields(const char *annotation)
 	EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), restart_normal_fields_enabled, "Error happens when calling the API \"CCPL_restart_read_fields_all\" to read restart fields: some import interfaces have been executed without bypassing the timer, which is not allowed. Please verify the model code corresponding to the annotation \"%s\"", annotation);
 
 	for (int i = 0; i < restarted_field_instances.size(); i ++)
-		read_restart_field_data(restarted_field_instances[i], NULL, NULL, false, NULL, annotation);
+		read_restart_field_data(restarted_field_instances[i].first, NULL, NULL, false, NULL, bypass_import_fields_at_read&&restarted_field_instances[i].second, annotation);
 }
 
 
-void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char *label, bool use_time_info, const char *API_label, const char *annotation)
+void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const char *interface_name, const char *label, bool use_time_info, const char *API_label, bool optional, const char *annotation)
 {
 	char field_IO_name[NAME_STR_SIZE*2], hint[NAME_STR_SIZE*2];
 
@@ -357,8 +373,10 @@ void Restart_mgt::read_restart_field_data(Field_mem_info *field_instance, const 
 	IO_netcdf *restart_read_data_file = new IO_netcdf(restart_read_data_file_name, restart_read_data_file_name, "r", false);
 	bool has_data_in_file = fields_gather_scatter_mgr->read_scatter_field(restart_read_data_file, field_instance, field_IO_name, -1, false);
 	delete restart_read_data_file;
-	if (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH)
-		EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), has_data_in_file, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the data file does not contain the variable \"%s\" for the field \"%s\" of the coupling interface %s", restart_read_data_file_name, annotation, field_IO_name, field_instance->get_field_name(), interface_name);
+	if (!optional && (time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH))
+		if (interface_name != NULL)
+			EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), has_data_in_file, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the data file does not contain the variable \"%s\" for the field \"%s\" of the coupling interface \"%s\"", restart_read_data_file_name, annotation, field_IO_name, field_instance->get_field_name(), interface_name);
+		else EXECUTION_REPORT(REPORT_ERROR, comp_node->get_comp_id(), has_data_in_file, "Error happens when loading the restart data file \"%s\" at the model code with the annotation \"%s\": the data file does not contain the variable \"%s\" for the field \"%s\"", restart_read_data_file_name, annotation, field_IO_name, field_instance->get_field_name());
 	sprintf(hint, "restart reading field \"%s\" from the file \"%s\"", field_IO_name, restart_read_data_file_name);
 	field_instance->check_field_sum(hint);
 	field_instance->define_field_values(false);
@@ -403,6 +421,9 @@ void Restart_mgt::write_restart_mgt_into_file()
 		return;
 
 	restart_mgt_info_written = true;
+
+	temp_int = bypass_import_fields_at_write? 1 : 0;
+	write_data_into_array_buffer(&temp_int, sizeof(int), &array_buffer, buffer_max_size, buffer_content_size);
 	
 	for (int i = restart_write_buffer_containers.size()-1; i >= 0; i --)
 		restart_write_buffer_containers[i]->dump_out(&array_buffer, buffer_max_size, buffer_content_size);
@@ -491,13 +512,16 @@ bool Restart_mgt::is_in_restart_read_window(long full_time)
 }
 
 
-void Restart_mgt::add_restarted_field_instances(Field_mem_info *field_instance)
+void Restart_mgt::add_restarted_field_instance(Field_mem_info *field_instance, bool is_imported_field)
 {
 	for (int i = 0; i < restarted_field_instances.size(); i ++)
-		if (restarted_field_instances[i] == field_instance)
+		if (restarted_field_instances[i].first == field_instance) {
+			if (!is_imported_field)
+				restarted_field_instances[i].second = is_imported_field;
 			return;
+		}
 
-	restarted_field_instances.push_back(field_instance);
+	restarted_field_instances.push_back(std::make_pair(field_instance, is_imported_field));
 }
 
 

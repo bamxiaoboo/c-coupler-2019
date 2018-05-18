@@ -345,6 +345,8 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
 		return;
 	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
 		return;
+	
+    iterative_threshold_distance = 1.0/6000.0;
 
     if (src_cell_index == -1 || !src_cell_mask) {
         compute_dist_remap_weights_of_one_dst_cell(dst_cell_index, 

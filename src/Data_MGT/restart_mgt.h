@@ -65,7 +65,7 @@ class Restart_mgt
 		long last_restart_write_elapsed_time;
 		std::vector<Restart_buffer_container*> restart_write_buffer_containers;
 		std::vector<Restart_buffer_container*> restart_read_buffer_containers;
-		std::vector<Field_mem_info*> restarted_field_instances;
+		std::vector<std::pair<Field_mem_info*, bool> > restarted_field_instances;
 		Comp_comm_group_mgt_node *comp_node;
 		Time_mgt *time_mgr;
 		char *input_restart_mgt_info_file;
@@ -75,12 +75,14 @@ class Restart_mgt
 		char *restart_read_data_file_name;
 		bool restart_normal_fields_enabled;
 		bool are_all_restarted_fields_read;
+		bool bypass_import_fields_at_read;
+		bool bypass_import_fields_at_write;
 
 	public:
 		Restart_mgt(Comp_comm_group_mgt_node*);
 		~Restart_mgt();
 		void clean(bool);
-		void do_restart_write(const char *, bool);
+		void do_restart_write(const char *, bool, bool);
 		void write_restart_mgt_into_file();
 		void read_restart_mgt_info(bool, const char *, const char *);
 		void read_restart_mgt_info(const char *, const char *);
@@ -93,15 +95,15 @@ class Restart_mgt
 		bool is_in_restart_write_window(long, bool);
 		bool is_in_restart_read_window(long);
 		void write_restart_field_data(Field_mem_info *, const char*, const char*, bool);
-		void read_restart_field_data(Field_mem_info *, const char *, const char *, bool, const char *, const char*);
+		void read_restart_field_data(Field_mem_info *, const char *, const char *, bool, const char *, bool, const char*);
 		const char *get_restart_read_data_file_name() { return restart_read_data_file_name; }
-		void add_restarted_field_instances(Field_mem_info*);
+		void add_restarted_field_instance(Field_mem_info*, bool);
 		void get_field_IO_name(char *, Field_mem_info*, const char *, const char*, bool);
 		void read_all_restarted_fields(const char*);
 		bool check_restart_read_started();
 		bool get_are_all_restarted_fields_read() { return are_all_restarted_fields_read; }
+		bool get_bypass_import_fields_at_read() { return bypass_import_fields_at_read; }
 };
-
 
 
 #endif

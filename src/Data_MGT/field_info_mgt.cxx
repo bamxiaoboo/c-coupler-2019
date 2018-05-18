@@ -71,7 +71,7 @@ Field_info_mgt::Field_info_mgt()
 	TiXmlDocument *XML_file = open_XML_file_to_read(-1, XML_file_name, MPI_COMM_WORLD, false);
 	if (XML_file == NULL) {
 		if (comp_comm_group_mgt_mgr->get_current_proc_global_id() == 0)
-			EXECUTION_REPORT(REPORT_WARNING, -1, true, "There is no configuration file public_field_attribute.xml under the directory \"%s/all\", which indicates that no fields will be coupled among component models.", comp_comm_group_mgt_mgr->get_config_root_dir());
+			EXECUTION_REPORT(REPORT_WARNING, -1, false, "There is no configuration file public_field_attribute.xml under the directory \"%s/all\", which indicates that no fields will be coupled among component models.", comp_comm_group_mgt_mgr->get_config_root_dir());
 		return;
 	}
 	

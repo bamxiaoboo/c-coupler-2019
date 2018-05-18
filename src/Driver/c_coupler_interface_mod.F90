@@ -3064,20 +3064,24 @@
 
 
 
-   SUBROUTINE CCPL_do_restart_write_IO(comp_id, bypass_timer, annotation)
+   SUBROUTINE CCPL_do_restart_write_IO(comp_id, bypass_timer, bypass_import_fields, annotation)
    implicit none
    integer,          intent(in)                :: comp_id
    logical,          intent(in)                :: bypass_timer
+   logical,          intent(in), optional      :: bypass_import_fields
    character(len=*), intent(in), optional      :: annotation
    integer                                     :: local_bypass_timer
+   integer                                     :: local_bypass_import_fields
 
    local_bypass_timer = 0
    if (bypass_timer) local_bypass_timer = 1
+   local_bypass_import_fields = 0
+   if (present(bypass_import_fields) .and. bypass_import_fields) local_bypass_import_fields = 1
 
    if (present(annotation)) then
-       call CCPL_write_restart(comp_id, local_bypass_timer, trim(annotation)//char(0))
+       call CCPL_write_restart(comp_id, local_bypass_timer, local_bypass_import_fields, trim(annotation)//char(0))
    else 
-       call CCPL_write_restart(comp_id, local_bypass_timer, trim("")//char(0))
+       call CCPL_write_restart(comp_id, local_bypass_timer, local_bypass_import_fields, trim("")//char(0))
    endif
    
    END SUBROUTINE CCPL_do_restart_write_IO

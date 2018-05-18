@@ -733,7 +733,7 @@ Import_direction_setting::Import_direction_setting(int host_comp_id, Import_inte
 							break;
 					if (i < interface_fields_name.size())
 						fields_name.push_back(strdup(interface_fields_name[i]));
-					else EXECUTION_REPORT(REPORT_WARNING, host_comp_id, true, "When setting the attribute \"fields\" for the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the interface does not contain a field with the name of \"%s\"", interface_name, XML_file_name, field_name);
+					else EXECUTION_REPORT(REPORT_WARNING, host_comp_id, false, "When setting the attribute \"fields\" for the coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", the interface does not contain a field with the name of \"%s\"", interface_name, XML_file_name, field_name);
 				}
 				EXECUTION_REPORT(REPORT_WARNING, host_comp_id, fields_name.size() > 0, "When setting a coupling connection configuration of the import interface \"%s\" in the XML file \"%s\", there are no fields specified. Please note the XML file arround the line number %d.", interface_name, XML_file_name, detailed_element->Row());
 			}

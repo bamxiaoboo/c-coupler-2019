@@ -158,7 +158,7 @@ void Runtime_cumulate_average_algorithm::restart_read(Restart_buffer_container *
 			if (temp_current_computing_count != 0) {
 				char temp_label[NAME_STR_SIZE*2];
 				sprintf(temp_label, "%s_%s_%s", label, coupling_procedure->get_coupling_connection()->get_dst_comp_full_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name());
-				restart_buffer->get_restart_mgr()->read_restart_field_data(cumulate_average_fields[i]->mem_info_dst, coupling_procedure->get_inout_interface()->get_interface_name(), temp_label, false, NULL, "");
+				restart_buffer->get_restart_mgr()->read_restart_field_data(cumulate_average_fields[i]->mem_info_dst, coupling_procedure->get_inout_interface()->get_interface_name(), temp_label, false, NULL, false, "");
 				sprintf(temp_label, "restart read of field \"%s\" average algorithm of export interface \"%s\" to the import interface \"%s\" of the component model \"%s\"", cumulate_average_fields[i]->mem_info_dst->get_field_name(), coupling_procedure->get_inout_interface()->get_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_interface_name(), coupling_procedure->get_coupling_connection()->get_dst_comp_full_name());
 				cumulate_average_fields[i]->mem_info_dst->check_field_sum(temp_label);
 			}
