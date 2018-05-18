@@ -21,18 +21,18 @@ template <class T> void Gather_scatter_rearrange_info::rearrange_gather_data(T *
 
 
     for (m = 0; m < num_local_procs; m ++) {
-		num_data_in_each_level = counts[m] / num_levels;
-		num_local_cells = num_data_in_each_level / num_points_in_each_cell;
-		rearrange_indexes_start = displs[m] / num_levels / num_points_in_each_cell;
-		for (k = 0; k < num_levels; k ++) 
-			for (i = 0; i < num_local_cells; i ++) {
-				if (rearrange_indexes[rearrange_indexes_start+i] == CCPL_NULL_INT)
-					continue;
-				tmp_buf_src = buf_src + displs[m] + k*num_data_in_each_level + i*num_points_in_each_cell;
-				tmp_buf_dst = buf_dst + rearrange_indexes[rearrange_indexes_start+i]*num_points_in_each_cell + k*num_cells_in_fully_decomp*num_points_in_each_cell;
-				for (j = 0; j < num_points_in_each_cell; j ++)
-					tmp_buf_dst[j] = tmp_buf_src[j];
-			}
+        num_data_in_each_level = counts[m] / num_levels;
+        num_local_cells = num_data_in_each_level / num_points_in_each_cell;
+        rearrange_indexes_start = displs[m] / num_levels / num_points_in_each_cell;
+        for (k = 0; k < num_levels; k ++) 
+            for (i = 0; i < num_local_cells; i ++) {
+                if (rearrange_indexes[rearrange_indexes_start+i] == CCPL_NULL_INT)
+                    continue;
+                tmp_buf_src = buf_src + displs[m] + k*num_data_in_each_level + i*num_points_in_each_cell;
+                tmp_buf_dst = buf_dst + rearrange_indexes[rearrange_indexes_start+i]*num_points_in_each_cell + k*num_cells_in_fully_decomp*num_points_in_each_cell;
+                for (j = 0; j < num_points_in_each_cell; j ++)
+                    tmp_buf_dst[j] = tmp_buf_src[j];
+            }
     }
 }
 
@@ -44,18 +44,18 @@ template <class T> void Gather_scatter_rearrange_info::rearrange_scatter_data(T 
 
 
     for (m = 0; m < num_local_procs; m ++) {
-		num_data_in_each_level = counts[m] / num_levels;
-		num_local_cells = num_data_in_each_level / num_points_in_each_cell;
-		rearrange_indexes_start = displs[m] / num_levels / num_points_in_each_cell;
-		for (k = 0; k < num_levels; k ++)
-			for (i = 0; i < num_local_cells; i ++) {
-				if (rearrange_indexes[rearrange_indexes_start+i] == CCPL_NULL_INT)
-					continue;
-				tmp_buf_src = buf_src + rearrange_indexes[rearrange_indexes_start+i]*num_points_in_each_cell + k*num_cells_in_fully_decomp*num_points_in_each_cell; 
+        num_data_in_each_level = counts[m] / num_levels;
+        num_local_cells = num_data_in_each_level / num_points_in_each_cell;
+        rearrange_indexes_start = displs[m] / num_levels / num_points_in_each_cell;
+        for (k = 0; k < num_levels; k ++)
+            for (i = 0; i < num_local_cells; i ++) {
+                if (rearrange_indexes[rearrange_indexes_start+i] == CCPL_NULL_INT)
+                    continue;
+                tmp_buf_src = buf_src + rearrange_indexes[rearrange_indexes_start+i]*num_points_in_each_cell + k*num_cells_in_fully_decomp*num_points_in_each_cell; 
                 tmp_buf_dst = buf_dst + displs[m] + k*num_data_in_each_level + i*num_points_in_each_cell;
-				for (j = 0; j < num_points_in_each_cell; j ++)
-					tmp_buf_dst[j] = tmp_buf_src[j];
-			}
+                for (j = 0; j < num_points_in_each_cell; j ++)
+                    tmp_buf_dst[j] = tmp_buf_src[j];
+            }
     }  
 }
 
@@ -63,7 +63,7 @@ template <class T> void Gather_scatter_rearrange_info::rearrange_scatter_data(T 
 Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *local_field)
 {
     int num_local_cells, i;
-	int *local_cell_global_indx;
+    int *local_cell_global_indx;
 
 
     counts = NULL;
@@ -71,56 +71,56 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
     mpibuf = NULL;
     rearrange_indexes = NULL;
     global_field_mem = NULL;
-	host_comp_id = local_field->get_host_comp_id();
-	original_decomp_id = local_field->get_decomp_id();
-	grid_id = local_field->get_grid_id();
+    host_comp_id = local_field->get_host_comp_id();
+    original_decomp_id = local_field->get_decomp_id();
+    grid_id = local_field->get_grid_id();
     sprintf(data_type, local_field->get_field_data()->get_grid_data_field()->data_type_in_application);
     num_local_procs = comp_comm_group_mgt_mgr->get_num_proc_in_comp(host_comp_id, "in Gather_scatter_rearrange_info");
-	current_proc_local_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(host_comp_id, "in Gather_scatter_rearrange_info");
-	local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "in Gather_scatter_rearrange_info");
+    current_proc_local_id = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(host_comp_id, "in Gather_scatter_rearrange_info");
+    local_comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "in Gather_scatter_rearrange_info");
 
     if (original_decomp_id == -1) {
         has_global_field = false;
         return;
     }
 
-	new_decomp_id = decomps_info_mgr->generate_fully_decomp(original_decomp_id);
+    new_decomp_id = decomps_info_mgr->generate_fully_decomp(original_decomp_id);
 
     has_global_field = true;
     num_local_cells = decomps_info_mgr->get_decomp_info(original_decomp_id)->get_num_local_cells();
-	if (num_local_cells > 0) {
-		num_levels = local_field->get_field_data()->get_coord_value_grid()->get_grid_size() / num_local_cells;
-	    num_points_in_each_cell = local_field->get_field_data()->get_grid_data_field()->required_data_size / num_local_cells / num_levels;
-	    EXECUTION_REPORT(REPORT_ERROR,-1, num_points_in_each_cell > 0, "C-Coupler software error in Gather_scatter_rearrange_info\n");
-		EXECUTION_REPORT(REPORT_ERROR,-1, local_field->get_field_data()->get_coord_value_grid()->get_grid_size()%num_local_cells == 0, "c_coupler error in Gather_scatter_rearrange_info::Gather_scatter_rearrange_info\n");		
-	}
-	else {
-		num_levels = -1;
-		num_points_in_each_cell = -1;
-	}
+    if (num_local_cells > 0) {
+        num_levels = local_field->get_field_data()->get_coord_value_grid()->get_grid_size() / num_local_cells;
+        num_points_in_each_cell = local_field->get_field_data()->get_grid_data_field()->required_data_size / num_local_cells / num_levels;
+        EXECUTION_REPORT(REPORT_ERROR,-1, num_points_in_each_cell > 0, "C-Coupler software error in Gather_scatter_rearrange_info\n");
+        EXECUTION_REPORT(REPORT_ERROR,-1, local_field->get_field_data()->get_coord_value_grid()->get_grid_size()%num_local_cells == 0, "c_coupler error in Gather_scatter_rearrange_info::Gather_scatter_rearrange_info\n");        
+    }
+    else {
+        num_levels = -1;
+        num_points_in_each_cell = -1;
+    }
 
     if (current_proc_local_id == 0) {
         counts = new int [num_local_procs];
         displs = new int [num_local_procs];
     }
 
-	MPI_Gather(&num_levels, 1, MPI_INT, counts, 1, MPI_INT, 0, local_comm);
-	MPI_Gather(&num_points_in_each_cell, 1, MPI_INT, displs, 1, MPI_INT, 0, local_comm);
+    MPI_Gather(&num_levels, 1, MPI_INT, counts, 1, MPI_INT, 0, local_comm);
+    MPI_Gather(&num_points_in_each_cell, 1, MPI_INT, displs, 1, MPI_INT, 0, local_comm);
 
     if (current_proc_local_id == 0) {
-		for (i = 0; i < num_local_procs; i ++) {
-			if (counts[i] != -1)
-				num_levels = counts[i];
-			if (displs[i] != -1)
-				num_points_in_each_cell = displs[i];
-		}
-		EXECUTION_REPORT(REPORT_ERROR, -1, num_levels != -1 && num_points_in_each_cell != -1, "C-Coupler software error2 in Gather_scatter_rearrange_info: empty parallel decomposition");
-		for (i = 0; i < num_local_procs; i ++)
-			EXECUTION_REPORT(REPORT_ERROR,-1, (counts[i] == -1 || num_levels == counts[i]) && (displs[i] == -1 || num_points_in_each_cell == displs[i]), "C-Coupler software error2 in Gather_scatter_rearrange_info\n");
+        for (i = 0; i < num_local_procs; i ++) {
+            if (counts[i] != -1)
+                num_levels = counts[i];
+            if (displs[i] != -1)
+                num_points_in_each_cell = displs[i];
+        }
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_levels != -1 && num_points_in_each_cell != -1, "C-Coupler software error2 in Gather_scatter_rearrange_info: empty parallel decomposition");
+        for (i = 0; i < num_local_procs; i ++)
+            EXECUTION_REPORT(REPORT_ERROR,-1, (counts[i] == -1 || num_levels == counts[i]) && (displs[i] == -1 || num_points_in_each_cell == displs[i]), "C-Coupler software error2 in Gather_scatter_rearrange_info\n");
     }
-	MPI_Bcast(&num_levels, 1, MPI_INT, 0, local_comm);	
-	MPI_Bcast(&num_points_in_each_cell, 1, MPI_INT, 0, local_comm);
-	
+    MPI_Bcast(&num_levels, 1, MPI_INT, 0, local_comm);    
+    MPI_Bcast(&num_points_in_each_cell, 1, MPI_INT, 0, local_comm);
+    
     MPI_Gather(&num_local_cells, 1, MPI_INT, counts, 1, MPI_INT, 0, local_comm);
     if (current_proc_local_id == 0) {
         for (i = 0, num_total_cells = 0; i < num_local_procs; i ++) {
@@ -137,8 +137,8 @@ Gather_scatter_rearrange_info::Gather_scatter_rearrange_info(Field_mem_info *loc
             counts[i] *= num_points_in_each_cell*num_levels;
         }
         mpibuf = new char [num_total_cells*num_points_in_each_cell*num_levels*get_data_type_size(data_type)];
-		EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "allocate global field for gather/scatter");
-		global_field_mem = memory_manager->alloc_mem("IO_gather_field", new_decomp_id, grid_id, BUF_MARK_GATHER, data_type, "no unit", "allocate gather field", false);
+        EXECUTION_REPORT_LOG(REPORT_LOG,-1, true, "allocate global field for gather/scatter");
+        global_field_mem = memory_manager->alloc_mem("IO_gather_field", new_decomp_id, grid_id, BUF_MARK_GATHER, data_type, "no unit", "allocate gather field", false);
     }
 }
 
@@ -218,14 +218,14 @@ Field_mem_info *Gather_scatter_rearrange_info::get_global_field(Field_mem_info *
 
 void Gather_scatter_rearrange_info::scatter_field(Field_mem_info *local_field_mem, bool &has_field_in_file)
 {
-	int has_field_in_file_int = has_field_in_file? 1 : 0;
+    int has_field_in_file_int = has_field_in_file? 1 : 0;
 
 
-	MPI_Bcast(&has_field_in_file_int, 1, MPI_INT, 0, local_comm);
-	has_field_in_file = (has_field_in_file_int == 1);
-	if (!has_field_in_file)
-		return;
-	
+    MPI_Bcast(&has_field_in_file_int, 1, MPI_INT, 0, local_comm);
+    has_field_in_file = (has_field_in_file_int == 1);
+    if (!has_field_in_file)
+        return;
+    
     if (!has_global_field) {
         MPI_Bcast(local_field_mem->get_data_buf(), local_field_mem->get_field_data()->get_grid_data_field()->required_data_size*get_data_type_size(data_type),
                   MPI_CHAR, 0, local_comm);
@@ -311,19 +311,19 @@ void Fields_gather_scatter_mgt::gather_write_field(IO_netcdf *nc_file, Field_mem
 
 bool Fields_gather_scatter_mgt::read_scatter_field(IO_netcdf *nc_file, Field_mem_info *local_field, const char *field_IO_name, int time_pos, bool check_existence)
 {
-	bool has_data_in_file;
-	
+    bool has_data_in_file;
+    
 
     Gather_scatter_rearrange_info *rearrage_info = apply_gather_scatter_rearrange_info(local_field);
     if (comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(local_field->get_host_comp_id(), "in read_scatter_field") == 0) {
-		if (field_IO_name != NULL)
-			strcpy(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field()->field_name_in_IO_file, field_IO_name);
-		has_data_in_file = nc_file->read_data(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field(), time_pos, check_existence);
-		if (field_IO_name != NULL)
-			strcpy(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field()->field_name_in_IO_file, local_field->get_field_name());		
+        if (field_IO_name != NULL)
+            strcpy(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field()->field_name_in_IO_file, field_IO_name);
+        has_data_in_file = nc_file->read_data(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field(), time_pos, check_existence);
+        if (field_IO_name != NULL)
+            strcpy(rearrage_info->get_global_field(local_field)->get_field_data()->get_grid_data_field()->field_name_in_IO_file, local_field->get_field_name());        
     }
     rearrage_info->scatter_field(local_field, has_data_in_file);
-	return has_data_in_file;
+    return has_data_in_file;
 }
 
 

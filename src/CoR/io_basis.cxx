@@ -85,8 +85,8 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
 
     if (field_data_in_application->get_coord_value_grid() != NULL) {
         field_data_in_application->get_coord_value_grid()->compute_remap_field_data_runtime_mask(field_data_in_application->get_coord_value_grid(), mask_sub_grids, &num_mask_sub_grids, &runtime_mask_field);
-		if (runtime_mask_field != NULL)
-	        runtime_mask_values = (bool*) runtime_mask_field->get_grid_data_field()->data_buf;
+        if (runtime_mask_field != NULL)
+            runtime_mask_values = (bool*) runtime_mask_field->get_grid_data_field()->data_buf;
     }
 
     if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE)) 
@@ -138,10 +138,10 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
             copy_data_values_for_IO((bool*)field_data_in_application->get_grid_data_field()->data_buf, (bool)fill_value_application, 
                                    (int*)field_data_in_io->get_grid_data_field()->data_buf, (int)fill_value_io, runtime_mask_values, 
                                    field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
-		else if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_BOOL)) 
-					copy_data_values_for_IO((bool*)field_data_in_application->get_grid_data_field()->data_buf, (bool)fill_value_application, 
-										   (bool*)field_data_in_io->get_grid_data_field()->data_buf, (bool)fill_value_io, runtime_mask_values, 
-										   field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
+        else if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_BOOL)) 
+                    copy_data_values_for_IO((bool*)field_data_in_application->get_grid_data_field()->data_buf, (bool)fill_value_application, 
+                                           (bool*)field_data_in_io->get_grid_data_field()->data_buf, (bool)fill_value_io, runtime_mask_values, 
+                                           field_data_in_application->get_grid_data_field()->required_data_size, is_restart_field);
         else EXECUTION_REPORT(REPORT_ERROR, -1, false, "C-Coupler error5 in copy_field_data_for_IO\n");
     else if (words_are_the_same(field_data_in_application->get_grid_data_field()->data_type_in_application, DATA_TYPE_SHORT)) 
         if (words_are_the_same(field_data_in_io->get_grid_data_field()->data_type_in_application, DATA_TYPE_SHORT)) 
@@ -158,11 +158,11 @@ void IO_basis::copy_field_data_for_IO(Remap_grid_data_class *field_data_in_appli
 
 int IO_basis::get_recorded_grid_num(Remap_grid_class *grid)
 {
-	for (int i = 0; i < recorded_grids.size(); i ++)
-		if (recorded_grids[i] == grid || words_are_the_same(recorded_grids[i]->get_grid_name(), grid->get_grid_name()))
-			return i;
+    for (int i = 0; i < recorded_grids.size(); i ++)
+        if (recorded_grids[i] == grid || words_are_the_same(recorded_grids[i]->get_grid_name(), grid->get_grid_name()))
+            return i;
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in IO_basis::get_recorded_grid_num %s %lx", grid->get_grid_name(), grid);
-	return -1;
+    EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in IO_basis::get_recorded_grid_num %s %lx", grid->get_grid_name(), grid);
+    return -1;
 }
 

@@ -31,7 +31,7 @@ class IO_basis
         char file_type[256];
         char open_format[256];
         std::map<const Remap_grid_class*, int> sized_grids_map;
-		std::vector<const Remap_grid_class*> recorded_grids;
+        std::vector<const Remap_grid_class*> recorded_grids;
 
         virtual void write_grid(Remap_grid_class*, bool, bool) = 0;
         virtual void write_field_data(Remap_grid_data_class*, Remap_grid_class*, bool, const char*, int, bool, bool) = 0;
@@ -47,7 +47,7 @@ class IO_basis
         virtual long get_dimension_size(const char*, MPI_Comm, bool) = 0;
         Remap_grid_data_class *generate_field_data_for_IO(Remap_grid_data_class*, bool);
         void copy_field_data_for_IO(Remap_grid_data_class*, Remap_grid_data_class*, bool);
-		int get_recorded_grid_num(Remap_grid_class*);
+        int get_recorded_grid_num(Remap_grid_class*);
 };
 
 #endif

@@ -17,16 +17,16 @@
 class Remap_operator_linear: public Remap_operator_1D_basis
 {
     private:
-		long *temp_decomp_map_src;
+        long *temp_decomp_map_src;
         void compute_remap_weights_of_one_dst_cell(long);
-		void allocate_local_arrays();
+        void allocate_local_arrays();
 
     public:
         Remap_operator_linear(const char*, int, Remap_grid_class **);
         Remap_operator_linear() {}
         ~Remap_operator_linear();
         void set_parameter(const char *, const char *);
-		int check_parameter(const char *, const char *, char*);
+        int check_parameter(const char *, const char *, char*);
         void calculate_remap_weights();
         void do_remap_values_caculation(double*, double*, int);
         void do_src_decomp_caculation(long*, const long*);

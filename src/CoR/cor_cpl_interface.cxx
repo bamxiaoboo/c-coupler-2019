@@ -111,9 +111,9 @@ Remap_grid_data_class *cpl_duplicate_field_with_double_data_type(Remap_grid_data
     strcpy(double_field->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE);
     strcpy(double_field->get_grid_data_field()->data_type_in_IO_file, DATA_TYPE_DOUBLE);
     delete [] double_field->get_grid_data_field()->data_buf;
-	EXECUTION_REPORT(REPORT_ERROR, -1, float_field->get_coord_value_grid()->get_grid_size() == double_field->get_grid_data_field()->required_data_size,
-				 "C-Coupler software error in cpl_duplicate_field_with_double_data_type\n");
-	EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "cpl duplicated field size is %ld", double_field->get_grid_data_field()->required_data_size);
+    EXECUTION_REPORT(REPORT_ERROR, -1, float_field->get_coord_value_grid()->get_grid_size() == double_field->get_grid_data_field()->required_data_size,
+                 "C-Coupler software error in cpl_duplicate_field_with_double_data_type\n");
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "cpl duplicated field size is %ld", double_field->get_grid_data_field()->required_data_size);
     double_field->get_grid_data_field()->data_buf = new double [double_field->get_grid_data_field()->required_data_size];
 
     return double_field;
@@ -122,6 +122,6 @@ Remap_grid_data_class *cpl_duplicate_field_with_double_data_type(Remap_grid_data
 
 void cpl_check_remap_weights_format(Remap_weight_of_strategy_class *remap_weights)
 {
-	remap_weights->check_remap_weights_format();
+    remap_weights->check_remap_weights_format();
 }
 

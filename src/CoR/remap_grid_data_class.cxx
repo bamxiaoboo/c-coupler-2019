@@ -73,7 +73,7 @@ Remap_grid_data_class::Remap_grid_data_class(const char *field_data_name,
     grid_data_field->data_buf = new char[num_value_points*get_data_type_size(grid_data_type)];
     grid_data_field->required_data_size = num_value_points;
     grid_data_field->read_data_size = num_value_points;
-	coord_value_grid = NULL;
+    coord_value_grid = NULL;
     if (grid_name != NULL) {
         EXECUTION_REPORT(REPORT_ERROR, -1, num_value_points == remap_grid_manager->search_remap_grid_with_grid_name(grid_name)->get_grid_size(),
                      "the size of span array must be the same as the size of grid \"%s\"\n",
@@ -138,26 +138,26 @@ void Remap_grid_data_class::generate_data_field_info(const char *field_data_name
 
 void Remap_grid_data_class::set_masked_cell_to_missing_value()
 {
-	if (coord_value_grid == NULL || coord_value_grid->get_grid_mask_field() == NULL)
-		return;
+    if (coord_value_grid == NULL || coord_value_grid->get_grid_mask_field() == NULL)
+        return;
 
-	if (!words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_FLOAT) && words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_DOUBLE))
-		return;
-	
-	bool *mask = (bool*) coord_value_grid->get_grid_mask_field()->grid_data_field->data_buf;
-	if (words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_FLOAT)) {
-		float *data_buf = (float*) grid_data_field->data_buf;
-		for (int i = 0; i < grid_data_field->required_data_size; i ++)
-			if (!mask[i])
-				data_buf[i] = (float) DEFAULT_FILL_VALUE;
-	}
-	else {
-		double *data_buf = (double*) grid_data_field->data_buf;
-		for (int i = 0; i < grid_data_field->required_data_size; i ++)
-			if (!mask[i])
-				data_buf[i] = (double) DEFAULT_FILL_VALUE;		
-	}
-			
+    if (!words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_FLOAT) && words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_DOUBLE))
+        return;
+    
+    bool *mask = (bool*) coord_value_grid->get_grid_mask_field()->grid_data_field->data_buf;
+    if (words_are_the_same(grid_data_field->data_type_in_application, DATA_TYPE_FLOAT)) {
+        float *data_buf = (float*) grid_data_field->data_buf;
+        for (int i = 0; i < grid_data_field->required_data_size; i ++)
+            if (!mask[i])
+                data_buf[i] = (float) DEFAULT_FILL_VALUE;
+    }
+    else {
+        double *data_buf = (double*) grid_data_field->data_buf;
+        for (int i = 0; i < grid_data_field->required_data_size; i ++)
+            if (!mask[i])
+                data_buf[i] = (double) DEFAULT_FILL_VALUE;        
+    }
+            
 }
 
 
@@ -177,13 +177,13 @@ Remap_grid_data_class *Remap_grid_data_class::duplicate_grid_data_field(Remap_gr
 
 
     if (copy_data) {
-		if (coord_value_grid != NULL)
-	        EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_grid_size() == coord_value_grid->get_grid_size(), "remap software error1 in duplicate_grid_data_field\n");
-		else {
-			EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_grid_size() == grid_data_field->required_data_size, "remap software error1 in duplicate_grid_data_field\n");
-			EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_num_dimensions() == 1, "When copy none-grided field %s to a grided field, the grid %s of the grided field must be 1D grid", 
-							 grid_data_field->field_name_in_application, associative_grid->get_grid_name());
-		}
+        if (coord_value_grid != NULL)
+            EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_grid_size() == coord_value_grid->get_grid_size(), "remap software error1 in duplicate_grid_data_field\n");
+        else {
+            EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_grid_size() == grid_data_field->required_data_size, "remap software error1 in duplicate_grid_data_field\n");
+            EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_num_dimensions() == 1, "When copy none-grided field %s to a grided field, the grid %s of the grided field must be 1D grid", 
+                             grid_data_field->field_name_in_application, associative_grid->get_grid_name());
+        }
     }
     EXECUTION_REPORT(REPORT_ERROR, -1, associative_grid->get_whole_grid() == NULL, "remap software error2 duplicate_grid_data_field\n");
 
@@ -307,11 +307,11 @@ void Remap_grid_data_class::transfer_field_attributes_to_another(Remap_grid_data
     if (another_field->have_data_content())
         return;
 
-	if (words_are_the_same(another_field->grid_data_field->field_name_in_IO_file, "\0"))
-	    strcpy(another_field->grid_data_field->field_name_in_IO_file, this->grid_data_field->field_name_in_IO_file);
+    if (words_are_the_same(another_field->grid_data_field->field_name_in_IO_file, "\0"))
+        strcpy(another_field->grid_data_field->field_name_in_IO_file, this->grid_data_field->field_name_in_IO_file);
     strcpy(another_field->grid_data_field->data_type_in_IO_file, this->grid_data_field->data_type_in_IO_file);
 
-	another_field->grid_data_field->field_attributes.clear();
+    another_field->grid_data_field->field_attributes.clear();
     for (int i = 0; i < this->grid_data_field->field_attributes.size(); i ++)
         another_field->grid_data_field->field_attributes.push_back(this->grid_data_field->field_attributes[i]);
 }
@@ -462,27 +462,27 @@ void Remap_grid_data_class::change_datatype_in_application(const char* new_datat
 
 void Remap_grid_data_class::write_grid_data_into_array(char **array, long &buffer_max_size, long &buffer_content_size)
 {
-	write_data_into_array_buffer(grid_data_field->data_buf, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&(grid_data_field->read_data_size), sizeof(long), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(&(grid_data_field->required_data_size), sizeof(long), array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(grid_data_field->data_type_in_IO_file, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(grid_data_field->data_type_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(grid_data_field->field_name_in_IO_file, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
-	write_data_into_array_buffer(grid_data_field->field_name_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(grid_data_field->data_buf, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application), array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(&(grid_data_field->read_data_size), sizeof(long), array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(&(grid_data_field->required_data_size), sizeof(long), array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(grid_data_field->data_type_in_IO_file, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(grid_data_field->data_type_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(grid_data_field->field_name_in_IO_file, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
+    write_data_into_array_buffer(grid_data_field->field_name_in_application, NAME_STR_SIZE, array, buffer_max_size, buffer_content_size);
 }
 
 
 Remap_grid_data_class::Remap_grid_data_class(Remap_grid_class *grid, const char *array, long &buffer_content_iter)
 {
-	grid_data_field = new Remap_data_field;
-	read_data_from_array_buffer(grid_data_field->field_name_in_application, NAME_STR_SIZE, array, buffer_content_iter, true);
-	read_data_from_array_buffer(grid_data_field->field_name_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter, true);
-	read_data_from_array_buffer(grid_data_field->data_type_in_application, NAME_STR_SIZE, array, buffer_content_iter, true);
-	read_data_from_array_buffer(grid_data_field->data_type_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter, true);
-	read_data_from_array_buffer(&(grid_data_field->required_data_size), sizeof(long), array, buffer_content_iter, true);
-	read_data_from_array_buffer(&(grid_data_field->read_data_size), sizeof(long), array, buffer_content_iter, true);
-	grid_data_field->data_buf = new char [grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application)];
-	read_data_from_array_buffer(grid_data_field->data_buf, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application), array, buffer_content_iter, true);
-	this->coord_value_grid = grid;
+    grid_data_field = new Remap_data_field;
+    read_data_from_array_buffer(grid_data_field->field_name_in_application, NAME_STR_SIZE, array, buffer_content_iter, true);
+    read_data_from_array_buffer(grid_data_field->field_name_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter, true);
+    read_data_from_array_buffer(grid_data_field->data_type_in_application, NAME_STR_SIZE, array, buffer_content_iter, true);
+    read_data_from_array_buffer(grid_data_field->data_type_in_IO_file, NAME_STR_SIZE, array, buffer_content_iter, true);
+    read_data_from_array_buffer(&(grid_data_field->required_data_size), sizeof(long), array, buffer_content_iter, true);
+    read_data_from_array_buffer(&(grid_data_field->read_data_size), sizeof(long), array, buffer_content_iter, true);
+    grid_data_field->data_buf = new char [grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application)];
+    read_data_from_array_buffer(grid_data_field->data_buf, grid_data_field->required_data_size*get_data_type_size(grid_data_field->data_type_in_application), array, buffer_content_iter, true);
+    this->coord_value_grid = grid;
 }
 

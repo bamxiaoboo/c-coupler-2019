@@ -18,14 +18,14 @@
 
 class Remap_weight_of_operator_mgt
 {
-	private: 
-		std::vector<Remap_weight_of_operator_class *> remap_weights_of_operators;
+    private: 
+        std::vector<Remap_weight_of_operator_class *> remap_weights_of_operators;
 
-	public:
-		Remap_weight_of_operator_mgt() {}
-		~Remap_weight_of_operator_mgt();
-		void add_remap_weights_of_operator(Remap_weight_of_operator_class*);
-		Remap_weight_of_operator_class *search_remap_weights_of_operator(Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*);
+    public:
+        Remap_weight_of_operator_mgt() {}
+        ~Remap_weight_of_operator_mgt();
+        void add_remap_weights_of_operator(Remap_weight_of_operator_class*);
+        Remap_weight_of_operator_class *search_remap_weights_of_operator(Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*);
 };
 
 
@@ -39,9 +39,9 @@ class Remap_weight_of_strategy_mgt
         ~Remap_weight_of_strategy_mgt();
         void execute(const char*, Remap_statement_operand **, int);
         Remap_weight_of_strategy_class *search_remap_weight_of_strategy(const char*);
-		Remap_weight_of_strategy_class *search_or_add_remap_weight_of_strategy(Remap_grid_class*, Remap_grid_class*, Remap_strategy_class*, const char*, const char*, const char*, bool);
-		void add_remap_weight_of_strategy(Remap_weight_of_strategy_class *);
-		Remap_weight_of_strategy_class *generate_new_remap_weights(const char*, const char*, const char*, const char*, const char*, const char*, bool);
+        Remap_weight_of_strategy_class *search_or_add_remap_weight_of_strategy(Remap_grid_class*, Remap_grid_class*, Remap_strategy_class*, const char*, const char*, const char*, bool);
+        void add_remap_weight_of_strategy(Remap_weight_of_strategy_class *);
+        Remap_weight_of_strategy_class *generate_new_remap_weights(const char*, const char*, const char*, const char*, const char*, const char*, bool);
 };
 
 #endif

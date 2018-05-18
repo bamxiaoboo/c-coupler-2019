@@ -45,9 +45,9 @@ void Remap_mgt::push_back_all_words()
     push_back_words("function", FUNCTION_WORD_REMAP);
     push_back_words("function", FUNCTION_WORD_WRITE_FIELD);
     push_back_words("function", FUNCTION_WORD_READ_FIELD);
-	push_back_words("function", FUNCTION_WORD_SET_BOUNDARY);
+    push_back_words("function", FUNCTION_WORD_SET_BOUNDARY);
     push_back_words("function", FUNCIION_WORD_LEV_COORD_FROM_SIGMA);
-	push_back_words("function", FUNCIION_WORD_LEV_COORD_FROM_HYBRID);
+    push_back_words("function", FUNCIION_WORD_LEV_COORD_FROM_HYBRID);
     push_back_words("function", FUNCTION_WORD_EXTRACT_MASK);
     push_back_words("function", FUNCTION_WORD_COMPUTE_OCN_MASK);
     push_back_words("function", FUNCTION_WORD_ALLOC_FIELD);
@@ -58,7 +58,7 @@ void Remap_mgt::push_back_all_words()
     push_back_words("function", FUNCTION_WORD_EVALUATE_ERROR);
     push_back_words("function", FUNCTION_WORD_COMPUTE_REMAP_WEIGHTS);
     push_back_words("function", FUNCTION_WORD_SET_OPERATOR_PARA);
-	push_back_words("function", FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO);
+    push_back_words("function", FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO);
 
     push_back_words("reserved", RESERVED_WORD_QUOTE_MARK);
     push_back_words("reserved", RESERVED_WORD_EQUAL);
@@ -85,30 +85,30 @@ Remap_mgt::Remap_mgt(const char *cfg_file_name)
     remap_operator_manager = new Remap_operator_mgt();
     remap_field_data_manager = new Remap_field_data_mgt();    
     remap_weights_of_strategy_manager = new Remap_weight_of_strategy_mgt();
-	sequential_remap_weight_of_operator_manager = new Remap_weight_of_operator_mgt();
-	parallel_remap_weight_of_operator_manager = new Remap_weight_of_operator_mgt();
+    sequential_remap_weight_of_operator_manager = new Remap_weight_of_operator_mgt();
+    parallel_remap_weight_of_operator_manager = new Remap_weight_of_operator_mgt();
     push_back_all_words();
 
     /* Initialize the data structure to keep each word in a statement */
-	if (cfg_file_name != NULL) {
-	    remap_parser = new Remap_parser(cfg_file_name);
-	    words_in_statement = new char *[256];
-	    for (i = 0; i < 256; i ++)
-	        words_in_statement[i] = new char [256];
+    if (cfg_file_name != NULL) {
+        remap_parser = new Remap_parser(cfg_file_name);
+        words_in_statement = new char *[256];
+        for (i = 0; i < 256; i ++)
+            words_in_statement[i] = new char [256];
 
-	    /* For each statement, check its syntax, analyze its semantic, execute it and then release it */
-	    line_number = 1;
-	    while (remap_parser->get_next_parsed_statement(&num_words_in_statement, words_in_statement)) { 
-	        parse_statement(num_words_in_statement, words_in_statement);
-	        process_statement();
-	        release_statement();
-	        line_number ++;
-	    }
-	    delete remap_parser;
-	    for (i = 0; i < 256; i ++)
-	        delete [] words_in_statement[i];
-	    delete [] words_in_statement;
-	}
+        /* For each statement, check its syntax, analyze its semantic, execute it and then release it */
+        line_number = 1;
+        while (remap_parser->get_next_parsed_statement(&num_words_in_statement, words_in_statement)) { 
+            parse_statement(num_words_in_statement, words_in_statement);
+            process_statement();
+            release_statement();
+            line_number ++;
+        }
+        delete remap_parser;
+        for (i = 0; i < 256; i ++)
+            delete [] words_in_statement[i];
+        delete [] words_in_statement;
+    }
 }
 
 
@@ -294,7 +294,7 @@ void Remap_mgt::process_statement()
                      remap_statement->result_operand->object->object_name);    
         if (remap_statement->result_operand->num_extension_names > 0) {
             if (words_are_the_same(remap_statement->function, FUNCTION_WORD_READ_FIELD) || 
-				words_are_the_same(remap_statement->function, FUNCTION_WORD_SET_BOUNDARY) ||
+                words_are_the_same(remap_statement->function, FUNCTION_WORD_SET_BOUNDARY) ||
                 words_are_the_same(remap_statement->function, FUNCTION_WORD_COMPUTE_OCN_MASK) ||
                 words_are_the_same(remap_statement->function, FUNCIION_WORD_LEV_COORD_FROM_SIGMA) ||
                 words_are_the_same(remap_statement->function, FUNCIION_WORD_LEV_COORD_FROM_HYBRID) ||
@@ -357,7 +357,7 @@ void Remap_mgt::process_statement()
             check_is_parameter_object_type_IO(remap_statement->function, 1, remap_statement->src_operands[0], "the IO file to record the weight data");
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_ADD_GRID_AREA)) 
             check_is_parameter_object_type_grid(remap_statement->function, 1, remap_statement->src_operands[0], "the partial grid to be added the area");   
-		else if (words_are_the_same(remap_statement->function, FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO)) 
+        else if (words_are_the_same(remap_statement->function, FUNCIION_WORD_SET_LEV_GRID_SIGMA_INFO)) 
             check_is_parameter_object_type_grid(remap_statement->function, 1, remap_statement->src_operands[0], "the level grid (vertical grid) to be set the sigma information");   
         else if (words_are_the_same(remap_statement->function, FUNCTION_WORD_ADD_AREA_BOUND))
             check_is_parameter_object_type_grid(remap_statement->function, 1, remap_statement->src_operands[0], "the partial grid to be added the area bounds");  
@@ -442,8 +442,8 @@ Remap_mgt::~Remap_mgt()
 
     delete io_manager;
     delete remap_weights_of_strategy_manager;
-	delete sequential_remap_weight_of_operator_manager;
-	delete parallel_remap_weight_of_operator_manager;
+    delete sequential_remap_weight_of_operator_manager;
+    delete parallel_remap_weight_of_operator_manager;
     delete remap_strategy_manager;
     delete remap_grid_manager;
     delete remap_operator_manager;

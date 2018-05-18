@@ -109,7 +109,7 @@ Remap_operator_grid::Remap_operator_grid(Remap_grid_class *remap_grid, Remap_ope
     this->num_vertexes = 0;
     this->num_neighbors = 0;
     this->num_vertex_values_groups = 0;
-	this->grid2D_search_engine = NULL;
+    this->grid2D_search_engine = NULL;
     this->rotated_remap_operator_grid = NULL;
     this->is_src_grid = is_src_grid;
     this->is_rotated_grid = is_rotated_grid;
@@ -173,8 +173,8 @@ Remap_operator_grid::~Remap_operator_grid()
     for (int i = 0; i < num_vertex_values_groups; i ++)
         delete vertex_values_groups[i];
 
-	if (grid2D_search_engine != NULL)
-		delete grid2D_search_engine;
+    if (grid2D_search_engine != NULL)
+        delete grid2D_search_engine;
 
     if (rotated_remap_operator_grid != NULL)
         delete rotated_remap_operator_grid;
@@ -184,7 +184,7 @@ Remap_operator_grid::~Remap_operator_grid()
 void Remap_operator_grid::update_operator_grid_data()
 {
     if (require_vertex_fields) {
-		initialize_for_vertex_coord_values_generation();
+        initialize_for_vertex_coord_values_generation();
         generate_overall_vertex_coord_values();
     }
 
@@ -195,10 +195,10 @@ void Remap_operator_grid::update_operator_grid_data()
         rotate_sphere_grid();
     
     if (remap_operator->get_num_dimensions() > 1 && remap_operator->get_is_operator_regridding()) {
-		if (grid2D_search_engine == NULL)
-			grid2D_search_engine = new H2D_grid_cell_search_engine(remap_grid, center_coord_values[0], center_coord_values[1], mask_values, redundant_cell_mark,
-			                                                       num_vertexes, vertex_coord_values[0], vertex_coord_values[1], EDGE_TYPE_LATLON, is_src_grid);
-		else grid2D_search_engine->update(mask_values);
+        if (grid2D_search_engine == NULL)
+            grid2D_search_engine = new H2D_grid_cell_search_engine(remap_grid, center_coord_values[0], center_coord_values[1], mask_values, redundant_cell_mark,
+                                                                   num_vertexes, vertex_coord_values[0], vertex_coord_values[1], EDGE_TYPE_LATLON, is_src_grid);
+        else grid2D_search_engine->update(mask_values);
     }
 
     if (rotated_remap_operator_grid != NULL)
@@ -280,8 +280,8 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
     Remap_grid_data_class *current_vertex_field;
 
 
-	if (grid_vertex_fields.size() > 0)
-		return;
+    if (grid_vertex_fields.size() > 0)
+        return;
 
     if (remap_grid->get_is_sphere_grid() && !remap_grid->check_vertex_fields_completeness(remap_operator)) {
         EXECUTION_REPORT(REPORT_WARNING, -1, false, "the vertex values corresponding to sphere grid \"%s\" will be generated automatically", remap_grid->get_grid_name());
@@ -293,9 +293,9 @@ void Remap_operator_grid::initialize_for_vertex_coord_values_generation()
         if (leaf_grids[i]->grid_vertex_fields.size() == 0)
             current_vertex_field = leaf_grids[i]->get_grid_vertex_field();
         else current_vertex_field = leaf_grids[i]->grid_vertex_fields[0];
-		EXECUTION_REPORT(REPORT_ERROR, -1, current_vertex_field != NULL, 
-						 "The vertex coordinate values of the grid %s are missing, which are not specified by users or generated automatically",
-						 remap_grid->get_grid_name());
+        EXECUTION_REPORT(REPORT_ERROR, -1, current_vertex_field != NULL, 
+                         "The vertex coordinate values of the grid %s are missing, which are not specified by users or generated automatically",
+                         remap_grid->get_grid_name());
         grid_vertex_fields.push_back(current_vertex_field);
     }
 

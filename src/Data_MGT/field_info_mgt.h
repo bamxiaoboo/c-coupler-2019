@@ -41,10 +41,10 @@ public:
     Field_info_mgt();
     ~Field_info_mgt() {}
     const field_attr* search_field_info(const char*);
-	int get_field_num_dims(const char*, const char*);
-	const char *get_field_long_name(const char*);
-	const char *get_field_unit(const char*);
-	void add_field_info(const char*, const char*, const char*, const char*, const char *, int);
+    int get_field_num_dims(const char*, const char*);
+    const char *get_field_long_name(const char*);
+    const char *get_field_unit(const char*);
+    void add_field_info(const char*, const char*, const char*, const char*, const char *, int);
 };
 
 #endif

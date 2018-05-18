@@ -21,27 +21,27 @@ void Remap_operator_bilinear::set_parameter(const char *parameter_name, const ch
     EXECUTION_REPORT(REPORT_ERROR, -1, enable_to_set_parameters, 
                  "the parameter of remap operator object \"%s\" must be set before using it to build remap strategy\n",
                  object_name);
-	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
-		if (words_are_the_same(parameter_value, "true"))
-	        enable_extrapolate = true;
-		else if (words_are_the_same(parameter_value, "false"))
-	        enable_extrapolate = true;
-		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "The parameter value must be \"true\" or \"false\"\n");
-	}
+    if (words_are_the_same(parameter_name, "enable_extrapolate")) {
+        if (words_are_the_same(parameter_value, "true"))
+            enable_extrapolate = true;
+        else if (words_are_the_same(parameter_value, "false"))
+            enable_extrapolate = true;
+        else EXECUTION_REPORT(REPORT_ERROR, -1, false, "The parameter value must be \"true\" or \"false\"\n");
+    }
     else EXECUTION_REPORT(REPORT_ERROR, -1, false, "bilinear algorithm does not have the parameter to be set\n");
 }
 
 
 int Remap_operator_bilinear::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
 {
-	int check_result = 0;
-	if (words_are_the_same(parameter_name, "enable_extrapolate")) {
-		check_result = 1;
-		if (words_are_the_same(parameter_value, "true") || words_are_the_same(parameter_value, "false"))
-			check_result = 3;
-		else sprintf(error_string, "The parameter value must be \"true\" or \"false\"");
-	}
-	
+    int check_result = 0;
+    if (words_are_the_same(parameter_name, "enable_extrapolate")) {
+        check_result = 1;
+        if (words_are_the_same(parameter_value, "true") || words_are_the_same(parameter_value, "false"))
+            check_result = 3;
+        else sprintf(error_string, "The parameter value must be \"true\" or \"false\"");
+    }
+    
     return check_result;
 }
 
@@ -51,7 +51,7 @@ Remap_operator_bilinear::Remap_operator_bilinear()
     found_nearest_points_distance = NULL;
     found_nearest_points_src_indexes = NULL;
     weigt_values_of_one_dst_cell = NULL;
-	enable_extrapolate = false;
+    enable_extrapolate = false;
 }
 
 
@@ -72,7 +72,7 @@ Remap_operator_bilinear::Remap_operator_bilinear(const char *object_name, int nu
     found_nearest_points_distance = new double [src_grid->get_grid_size()];
     found_nearest_points_src_indexes = new long [src_grid->get_grid_size()];
     weigt_values_of_one_dst_cell = new double [max_num_found_nearest_points];
-	enable_extrapolate = false;
+    enable_extrapolate = false;
 }
 
 
@@ -94,8 +94,8 @@ void Remap_operator_bilinear::calculate_remap_weights()
     clear_remap_weight_info_in_sparse_matrix();
     
     for (long dst_cell_index = 0; dst_cell_index < dst_grid->get_grid_size(); dst_cell_index++) {
-		if (H2D_grid_decomp_mask != NULL && !H2D_grid_decomp_mask[dst_cell_index])
-			continue;
+        if (H2D_grid_decomp_mask != NULL && !H2D_grid_decomp_mask[dst_cell_index])
+            continue;
         initialize_computing_remap_weights_of_one_cell();
         compute_remap_weights_of_one_dst_cell(dst_cell_index);    
         finalize_computing_remap_weights_of_one_cell();
@@ -114,15 +114,15 @@ int Remap_operator_bilinear::search_at_least_16_nearnest_src_points_for_bilinear
 
     while (num_points_within_threshold_distance < 16) {
         num_points_within_threshold_distance = 0;
-		get_current_grid2D_search_engine(true)->search_nearest_points_var_distance(current_threshold_distance, dst_cell_center_values[0], dst_cell_center_values[1], 
-																								              num_points_within_threshold_distance, found_nearest_points_src_indexes, found_nearest_points_distance, true);
+        get_current_grid2D_search_engine(true)->search_nearest_points_var_distance(current_threshold_distance, dst_cell_center_values[0], dst_cell_center_values[1], 
+                                                                                                              num_points_within_threshold_distance, found_nearest_points_src_indexes, found_nearest_points_distance, true);
         if (num_points_within_threshold_distance >= 4 && near_optimal_threshold_distance == 0.0)
             near_optimal_threshold_distance = current_threshold_distance * sqrt(((double)4)/((double)num_points_within_threshold_distance));
         if (num_points_within_threshold_distance == 0)
             current_threshold_distance *= 2;
         else current_threshold_distance *= 1.1;     
-	if (num_points_within_threshold_distance > 0 && found_nearest_points_distance[0] <= eps)
-		break;
+    if (num_points_within_threshold_distance > 0 && found_nearest_points_distance[0] <= eps)
+        break;
 
     }
 
@@ -178,7 +178,7 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box_recursively(double *
     bool have_points_on_the_same_line;
     int index_of_quadrant_id_for_distance_sorting[4];
     int new_iter_num_src_points_in_each_quadrant[4];
-	double eps = 2.0e-9;
+    double eps = 2.0e-9;
 
 
     for (i = 0; i < 4; i ++) {
@@ -194,7 +194,7 @@ bool Remap_operator_bilinear::get_near_optimal_bilinear_box_recursively(double *
                           bilinear_vertex_coord2_values,
                           index_of_selected_src_point_in_each_quadrant,
                           4);     
-	
+    
     if (is_point_in_2D_cell(dst_cell_center_values[0], 
                             dst_cell_center_values[1],
                             bilinear_vertex_coord1_values,
@@ -318,7 +318,7 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     double eps = 2.0e-7;
     int num_vertexes_dst;
     double vertex_coord_values_dst[65536];
-	
+    
 
     initialize_computing_remap_weights_of_one_cell();
 
@@ -331,8 +331,8 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     /* When no src cell contains the center of the dst cell, we use inverse distance weight to compute weight values
       */
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
-	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, vertex_coord_values_dst, true);
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell: too big number of num_vertexes_dst %d", num_vertexes_dst);
+    get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, vertex_coord_values_dst, true);
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell: too big number of num_vertexes_dst %d", num_vertexes_dst);
 
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;
@@ -341,11 +341,11 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
     if (src_cell_index != -1)
         get_cell_mask_of_src_grid(src_cell_index, &src_cell_mask);
 
-	if (num_vertexes_dst == 0 && src_cell_index == -1 && (!enable_extrapolate))
-		return;
-	if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
-		return;
-	
+    if (num_vertexes_dst == 0 && src_cell_index == -1 && (!enable_extrapolate))
+        return;
+    if (num_vertexes_dst == 0 && (!enable_extrapolate && !src_cell_mask))
+        return;
+    
     iterative_threshold_distance = 1.0/6000.0;
 
     if (src_cell_index == -1 || !src_cell_mask) {
@@ -382,11 +382,11 @@ void Remap_operator_bilinear::compute_remap_weights_of_one_dst_cell(long dst_cel
                                                                                                    src_cell_index, 
                                                                                                    current_threshold_distance, 
                                                                                                    near_optimal_threshold_distance);
-		if (found_nearest_points_distance[0] <= eps) {
-			weigt_values_of_one_dst_cell[0] = 1.0;
-			add_remap_weights_to_sparse_matrix(&found_nearest_points_src_indexes[0], dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
-			return;
-		}
+        if (found_nearest_points_distance[0] <= eps) {
+            weigt_values_of_one_dst_cell[0] = 1.0;
+            add_remap_weights_to_sparse_matrix(&found_nearest_points_src_indexes[0], dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);
+            return;
+        }
         if (num_points_within_threshold_distance > max_num_found_nearest_points)
             break;        
         if (get_near_optimal_bilinear_box(dst_cell_center_values, 
@@ -655,10 +655,10 @@ Remap_operator_basis *Remap_operator_bilinear::duplicate_remap_operator(bool ful
 {
     Remap_operator_bilinear *duplicated_remap_operator = new Remap_operator_bilinear();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
-	duplicated_remap_operator->max_num_found_nearest_points = max_num_found_nearest_points;
-	duplicated_remap_operator->num_nearest_points = num_nearest_points;
-	duplicated_remap_operator->num_power = num_power;
-	duplicated_remap_operator->iterative_threshold_distance = iterative_threshold_distance;
+    duplicated_remap_operator->max_num_found_nearest_points = max_num_found_nearest_points;
+    duplicated_remap_operator->num_nearest_points = num_nearest_points;
+    duplicated_remap_operator->num_power = num_power;
+    duplicated_remap_operator->iterative_threshold_distance = iterative_threshold_distance;
     return duplicated_remap_operator;
 }
 

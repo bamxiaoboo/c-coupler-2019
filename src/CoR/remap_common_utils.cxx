@@ -32,16 +32,16 @@ void match_degree_values(double &data_value1, double &data_value2)
 
 bool words_are_the_same(const char *word1, const char *word2)
 {
-	if (word1 == NULL)
-		if (word2 == NULL || strlen(word2) == 0)
-			return true;
-		else return false;
+    if (word1 == NULL)
+        if (word2 == NULL || strlen(word2) == 0)
+            return true;
+        else return false;
 
-	if (word2 == NULL)
-		if (strlen(word1) == 0)
-			return true;
-		else return false;
-	
+    if (word2 == NULL)
+        if (strlen(word1) == 0)
+            return true;
+        else return false;
+    
     return strcmp(word1, word2) == 0;
 }
 
@@ -56,11 +56,11 @@ double compute_three_3D_points_cross_product(double center_coord_value_x,
                                              double vertex2_coord_value_y,
                                              double vertex2_coord_value_z)
 {
-	double vector_x = vertex1_coord_value_y*vertex2_coord_value_z - vertex1_coord_value_z*vertex2_coord_value_y;
-	double vector_y = vertex1_coord_value_z*vertex2_coord_value_x - vertex1_coord_value_x*vertex2_coord_value_z;
-	double vector_z = vertex1_coord_value_x*vertex2_coord_value_y - vertex1_coord_value_y*vertex2_coord_value_x;
-	double module1 = sqrt(center_coord_value_x*center_coord_value_x+center_coord_value_y*center_coord_value_y+center_coord_value_z*center_coord_value_z);
-	double module2 = sqrt(vector_x*vector_x+vector_y*vector_y+vector_z*vector_z);
+    double vector_x = vertex1_coord_value_y*vertex2_coord_value_z - vertex1_coord_value_z*vertex2_coord_value_y;
+    double vector_y = vertex1_coord_value_z*vertex2_coord_value_x - vertex1_coord_value_x*vertex2_coord_value_z;
+    double vector_z = vertex1_coord_value_x*vertex2_coord_value_y - vertex1_coord_value_y*vertex2_coord_value_x;
+    double module1 = sqrt(center_coord_value_x*center_coord_value_x+center_coord_value_y*center_coord_value_y+center_coord_value_z*center_coord_value_z);
+    double module2 = sqrt(vector_x*vector_x+vector_y*vector_y+vector_z*vector_z);
     return (center_coord_value_x*vector_x + center_coord_value_y*vector_y + center_coord_value_z*vector_z) / (module1*module2);
 }
 
@@ -303,17 +303,17 @@ void rotate_sphere_coordinate(double lon_original, double lat_original, double &
     double lon_rotated_radian, lat_rotated_radian, temp1_value, temp2_value;
 
 
-	if (lon_original == 0.0 && lat_original == 0.0) {
-		lat_rotated = -90.0;
-		lon_rotated = 0.0;
-		return;
-	}
+    if (lon_original == 0.0 && lat_original == 0.0) {
+        lat_rotated = -90.0;
+        lon_rotated = 0.0;
+        return;
+    }
 
-	if (lon_original == 180 && lat_original == 0.0) {
-		lat_rotated = 90.0;
-		lon_rotated = 0.0;
-		return;
-	}
+    if (lon_original == 180 && lat_original == 0.0) {
+        lat_rotated = 90.0;
+        lon_rotated = 0.0;
+        return;
+    }
 
     temp1_value = cos(DEGREE_TO_RADIAN(lon_original))*cos(DEGREE_TO_RADIAN(lat_original));
     temp2_value = sin(DEGREE_TO_RADIAN(lon_original))*cos(DEGREE_TO_RADIAN(lat_original))/sqrt(1-temp1_value*temp1_value);

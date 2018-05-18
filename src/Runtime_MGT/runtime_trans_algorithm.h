@@ -24,7 +24,7 @@ class Runtime_trans_algorithm
         int remote_proc_idx_begin;
         bool send_or_receive;    // true means send and false means receive
         int comp_id;
-		Comp_comm_group_mgt_node *comp_node;
+        Comp_comm_group_mgt_node *comp_node;
         int num_transfered_fields;
         Field_mem_info **fields_mem;
         void **fields_data_buffers;
@@ -58,12 +58,12 @@ class Runtime_trans_algorithm
         std::vector<long> history_receive_sender_time;
         std::vector<long> history_receive_usage_time;
         char *temp_receive_data_buffer;
-		std::vector<std::vector<Field_mem_info *> > history_receive_fields_mem;
+        std::vector<std::vector<Field_mem_info *> > history_receive_fields_mem;
         long last_receive_sender_time;
         int last_history_receive_buffer_index;
         Comp_comm_group_mgt_node * local_comp_node;
         Comp_comm_group_mgt_node * remote_comp_node;
-		bool remote_comp_node_updated;
+        bool remote_comp_node_updated;
         char remote_comp_full_name[NAME_STR_SIZE];
         int current_proc_local_id;
         int current_proc_global_id;
@@ -75,9 +75,9 @@ class Runtime_trans_algorithm
         std::vector<int> index_recv_procs_with_common_data;
         int num_recv_procs_related;
         int recv_proc_start;
-		int bypass_counter;
-		bool timer_not_bypassed;
-		int comm_tag;
+        int bypass_counter;
+        bool timer_not_bypassed;
+        int comm_tag;
 
         bool send(bool);
         bool recv(bool);

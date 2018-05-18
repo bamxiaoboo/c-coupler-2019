@@ -43,7 +43,7 @@ void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_
 
     get_cell_center_coord_values_of_dst_grid(cell_index_dst, center_coord_values_dst);
     get_cell_vertex_coord_values_of_dst_grid(cell_index_dst, &num_vertexes_dst, vertex_coord_values_dst, false);    
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell: too big num_vertexes_dst: %d", num_vertexes_dst);
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell: too big num_vertexes_dst: %d", num_vertexes_dst);
     num_grid_dimensions_dst = current_runtime_remap_operator_grid_src->get_num_grid_dimensions();
 
     for (i = 0; i < num_vertexes_dst; i ++) {
@@ -65,7 +65,7 @@ void Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell(long cell_
     for (i = 0, sum_area = 0, num_weights = 0; i < num_overlapping_src_cells; i ++) {
         compute_common_sub_cell_of_src_cell_and_dst_cell_2D(overlapping_src_cells_indexes[i], cell_index_dst, num_common_sub_cell_vertexes, 
                                                             common_sub_cell_vertexes_lons, common_sub_cell_vertexes_lats);
-		EXECUTION_REPORT(REPORT_ERROR, -1, num_common_sub_cell_vertexes <= 65536/2, "Software error in Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell: too big num_common_sub_cell_vertexes: %d", num_common_sub_cell_vertexes);
+        EXECUTION_REPORT(REPORT_ERROR, -1, num_common_sub_cell_vertexes <= 65536/2, "Software error in Remap_operator_conserv_2D::compute_remap_weights_of_one_dst_cell: too big num_common_sub_cell_vertexes: %d", num_common_sub_cell_vertexes);
         if (num_common_sub_cell_vertexes > 0) {
             common_sub_cell_area[num_weights] = compute_area_of_sphere_cell(num_common_sub_cell_vertexes, common_sub_cell_vertexes_lons, common_sub_cell_vertexes_lats);
             overlapping_src_cells_indexes[num_weights] = overlapping_src_cells_indexes[i];
@@ -94,8 +94,8 @@ void Remap_operator_conserv_2D::calculate_remap_weights()
     clear_remap_weight_info_in_sparse_matrix();
 
     for (cell_index_dst = 0; cell_index_dst < dst_grid->get_grid_size(); cell_index_dst ++) {
-		if (H2D_grid_decomp_mask != NULL && !H2D_grid_decomp_mask[cell_index_dst])
-			continue;
+        if (H2D_grid_decomp_mask != NULL && !H2D_grid_decomp_mask[cell_index_dst])
+            continue;
         get_cell_mask_of_dst_grid(cell_index_dst, &dst_cell_mask);
         if (!dst_cell_mask)
             continue;
@@ -138,7 +138,7 @@ Remap_operator_basis *Remap_operator_conserv_2D::duplicate_remap_operator(bool f
 {
     Remap_operator_conserv_2D *duplicated_remap_operator = new Remap_operator_conserv_2D();
     copy_remap_operator_basic_data(duplicated_remap_operator, fully_copy);
-	duplicated_remap_operator->num_order = num_order;
+    duplicated_remap_operator->num_order = num_order;
     return duplicated_remap_operator;
 }
 

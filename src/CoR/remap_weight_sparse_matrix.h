@@ -36,7 +36,7 @@ class Remap_weight_sparse_matrix
         ~Remap_weight_sparse_matrix();
         void clear_weights_info();
         void add_weights(long*, long, double*, int, bool);
-		void get_weight(long*, long*, double*, int);
+        void get_weight(long*, long*, double*, int);
         void remap_values(double*, double*, int);
         void calc_src_decomp(long*, const long*);
         Remap_weight_sparse_matrix *duplicate_remap_weight_of_sparse_matrix();
@@ -48,8 +48,8 @@ class Remap_weight_sparse_matrix
         long get_num_remaped_dst_cells_indexes() { return num_remaped_dst_cells_indexes; }
         long *get_remaped_dst_cells_indexes() { return remaped_dst_cells_indexes; }
         double *get_weight_values() { return weight_values; }
-		void compare_to_another_sparse_matrix(Remap_weight_sparse_matrix*);
-		void print();
+        void compare_to_another_sparse_matrix(Remap_weight_sparse_matrix*);
+        void print();
 };
 
 

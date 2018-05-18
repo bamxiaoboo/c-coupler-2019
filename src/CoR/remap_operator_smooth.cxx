@@ -30,7 +30,7 @@ void Remap_operator_smooth::set_parameter(const char *parameter_name, const char
 int Remap_operator_smooth::check_parameter(const char *parameter_name, const char *parameter_value, char *error_string)
 {
     EXECUTION_REPORT(REPORT_ERROR, -1, false, "Software error in Remap_operator_smooth::check_parameter");
-	return 0;
+    return 0;
 }
 
 

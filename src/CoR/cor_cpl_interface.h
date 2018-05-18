@@ -13,13 +13,13 @@
 #include "cor_global_data.h"
 
 
-#define GRID_LATS_GF		"n_grid_lats"
-#define GRID_LONS_GF		"n_grid_lons"
-#define LAT_GF						"lat"	
-#define LON_GF					"lon"
-#define AREA_GF					"arear"
-#define MASK_GF					"mask"
-#define SURFACE_FIELD_GF					"surface_field"
+#define GRID_LATS_GF        "n_grid_lats"
+#define GRID_LONS_GF        "n_grid_lons"
+#define LAT_GF                        "lat"    
+#define LON_GF                    "lon"
+#define AREA_GF                    "arear"
+#define MASK_GF                    "mask"
+#define SURFACE_FIELD_GF                    "surface_field"
 
 
 extern long cpl_get_grid_size(const char*);

@@ -26,27 +26,27 @@ Remap_weight_sparse_matrix::Remap_weight_sparse_matrix(Remap_operator_basis *rem
     this->cells_indexes_dst = cells_indexes_dst;
     this->weight_values = weight_values;
     this->remaped_dst_cells_indexes = remaped_dst_cells_indexes;
-	this->num_remaped_dst_cells_indexes = num_remaped_dst_cells_indexes;
+    this->num_remaped_dst_cells_indexes = num_remaped_dst_cells_indexes;
     
     if (remaped_dst_cells_indexes == NULL) {
-		int *mask = new int [remap_operator->get_dst_grid()->get_grid_size()];
-		for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
-			mask[i] = 0;
-		for (int i = 0; i < num_weights; i ++)
-			mask[cells_indexes_dst[i]] = 1;
-		this->num_remaped_dst_cells_indexes = 0;
-		for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
-			if (mask[i] == 1)
-				this->num_remaped_dst_cells_indexes ++;
-		this->remaped_dst_cells_indexes = new long [this->num_remaped_dst_cells_indexes];
+        int *mask = new int [remap_operator->get_dst_grid()->get_grid_size()];
+        for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
+            mask[i] = 0;
+        for (int i = 0; i < num_weights; i ++)
+            mask[cells_indexes_dst[i]] = 1;
         this->num_remaped_dst_cells_indexes = 0;
-		for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
-			if (mask[i] == 1)
-				this->remaped_dst_cells_indexes[this->num_remaped_dst_cells_indexes ++] = i;
-		delete [] mask;
+        for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
+            if (mask[i] == 1)
+                this->num_remaped_dst_cells_indexes ++;
+        this->remaped_dst_cells_indexes = new long [this->num_remaped_dst_cells_indexes];
+        this->num_remaped_dst_cells_indexes = 0;
+        for (int i = 0; i < remap_operator->get_dst_grid()->get_grid_size(); i ++)
+            if (mask[i] == 1)
+                this->remaped_dst_cells_indexes[this->num_remaped_dst_cells_indexes ++] = i;
+        delete [] mask;
     }
 
-	this->remaped_dst_cells_indexes_array_size = this->num_remaped_dst_cells_indexes;
+    this->remaped_dst_cells_indexes_array_size = this->num_remaped_dst_cells_indexes;
 }
 
 
@@ -88,11 +88,11 @@ void Remap_weight_sparse_matrix::add_weights(long *indexes_src, long index_dst, 
     long i, new_array_size;
 
 
-	if (is_real_weight) {
-		for (i = 0; i < num_added_weights; i ++)
-			EXECUTION_REPORT(REPORT_ERROR, -1, indexes_src[i] >= 0 && indexes_src[i] < remap_operator->get_src_grid()->get_grid_size(), "C-Coupler error1 in add_weights of Remap_weight_sparse_matrix");
-		EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator->get_dst_grid() != NULL && index_dst >= 0 && index_dst < remap_operator->get_dst_grid()->get_grid_size(), "C-Coupler error2 in add_weights of Remap_weight_sparse_matrix");
-	}
+    if (is_real_weight) {
+        for (i = 0; i < num_added_weights; i ++)
+            EXECUTION_REPORT(REPORT_ERROR, -1, indexes_src[i] >= 0 && indexes_src[i] < remap_operator->get_src_grid()->get_grid_size(), "C-Coupler error1 in add_weights of Remap_weight_sparse_matrix");
+        EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator->get_dst_grid() != NULL && index_dst >= 0 && index_dst < remap_operator->get_dst_grid()->get_grid_size(), "C-Coupler error2 in add_weights of Remap_weight_sparse_matrix");
+    }
     
     if (num_weights + num_added_weights > weight_arrays_size) {
         new_array_size = 2 * (num_weights+num_added_weights);
@@ -135,10 +135,10 @@ void Remap_weight_sparse_matrix::add_weights(long *indexes_src, long index_dst, 
 
 void Remap_weight_sparse_matrix::get_weight(long *index_src, long *index_dst, double *weight_value, int index_weight)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, index_weight >= 0 && index_weight < num_weights, "software error when get remapping weight of sparse matrix\n");
-	*index_src = cells_indexes_src[index_weight];
-	*index_dst = cells_indexes_dst[index_weight];
-	*weight_value = weight_values[index_weight];
+    EXECUTION_REPORT(REPORT_ERROR, -1, index_weight >= 0 && index_weight < num_weights, "software error when get remapping weight of sparse matrix\n");
+    *index_src = cells_indexes_src[index_weight];
+    *index_dst = cells_indexes_dst[index_weight];
+    *weight_value = weight_values[index_weight];
 }
 
 
@@ -248,22 +248,22 @@ Remap_weight_sparse_matrix *Remap_weight_sparse_matrix::generate_parallel_remap_
 
 void Remap_weight_sparse_matrix::compare_to_another_sparse_matrix(Remap_weight_sparse_matrix *another_sparse_matrix)
 {
-	EXECUTION_REPORT(REPORT_ERROR, -1, this->num_weights == another_sparse_matrix->num_weights, "C-Coupler error1 in compare_to_another_sparse_matrix");
-	EXECUTION_REPORT(REPORT_ERROR, -1, this->num_remaped_dst_cells_indexes == another_sparse_matrix->num_remaped_dst_cells_indexes, "C-Coupler error2 in compare_to_another_sparse_matrix");
+    EXECUTION_REPORT(REPORT_ERROR, -1, this->num_weights == another_sparse_matrix->num_weights, "C-Coupler error1 in compare_to_another_sparse_matrix");
+    EXECUTION_REPORT(REPORT_ERROR, -1, this->num_remaped_dst_cells_indexes == another_sparse_matrix->num_remaped_dst_cells_indexes, "C-Coupler error2 in compare_to_another_sparse_matrix");
 
-	for (long i = 0; i < num_weights; i ++) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, this->cells_indexes_src[i] == another_sparse_matrix->cells_indexes_src[i], "C-Coupler error3 in compare_to_another_sparse_matrix");
-		EXECUTION_REPORT(REPORT_ERROR, -1, this->cells_indexes_dst[i] == another_sparse_matrix->cells_indexes_dst[i], "C-Coupler error4 in compare_to_another_sparse_matrix");
-		EXECUTION_REPORT(REPORT_ERROR, -1, this->weight_values[i] == another_sparse_matrix->weight_values[i], "C-Coupler error5 in compare_to_another_sparse_matrix");		
-	}
-	
-	for (long i = 0; i < num_remaped_dst_cells_indexes; i ++)
-		EXECUTION_REPORT(REPORT_ERROR, -1, this->remaped_dst_cells_indexes[i] == another_sparse_matrix->remaped_dst_cells_indexes[i], "C-Coupler error6 in compare_to_another_sparse_matrix");
+    for (long i = 0; i < num_weights; i ++) {
+        EXECUTION_REPORT(REPORT_ERROR, -1, this->cells_indexes_src[i] == another_sparse_matrix->cells_indexes_src[i], "C-Coupler error3 in compare_to_another_sparse_matrix");
+        EXECUTION_REPORT(REPORT_ERROR, -1, this->cells_indexes_dst[i] == another_sparse_matrix->cells_indexes_dst[i], "C-Coupler error4 in compare_to_another_sparse_matrix");
+        EXECUTION_REPORT(REPORT_ERROR, -1, this->weight_values[i] == another_sparse_matrix->weight_values[i], "C-Coupler error5 in compare_to_another_sparse_matrix");        
+    }
+    
+    for (long i = 0; i < num_remaped_dst_cells_indexes; i ++)
+        EXECUTION_REPORT(REPORT_ERROR, -1, this->remaped_dst_cells_indexes[i] == another_sparse_matrix->remaped_dst_cells_indexes[i], "C-Coupler error6 in compare_to_another_sparse_matrix");
 }
 
 
 void Remap_weight_sparse_matrix::print()
 {
-	for (int i = 0; i < num_weights; i ++)
-		printf("remapping weight (%d): src_index=%d, dst_index=%d, weight_value=%lf\n", i, cells_indexes_src[i], cells_indexes_dst[i], weight_values[i]);
+    for (int i = 0; i < num_weights; i ++)
+        printf("remapping weight (%d): src_index=%d, dst_index=%d, weight_value=%lf\n", i, cells_indexes_src[i], cells_indexes_dst[i], weight_values[i]);
 }

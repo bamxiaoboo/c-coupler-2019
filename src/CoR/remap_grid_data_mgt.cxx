@@ -17,7 +17,7 @@
 void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand **statement_operands, int num_operands)
 {
     int i;
-	char field_name_in_IO[256];
+    char field_name_in_IO[256];
 
 
     if (words_are_the_same(function, FUNCTION_WORD_READ_FIELD)) {
@@ -35,11 +35,11 @@ void Remap_field_data_mgt::execute(const char*function, Remap_statement_operand 
         EXECUTION_REPORT(REPORT_ERROR, -1, num_operands == 2 || num_operands == 3, "function \"%s\" for reading field data must have one result parameter and one or two input parameters\n", function);
         check_is_parameter_object_type_field_data(function, 0, statement_operands[0], "the field allocated");
         check_is_parameter_object_type_grid(function, 1, statement_operands[1], "the grid corresponding to the field");
-		strcpy(field_name_in_IO, "\0");
-		if (num_operands == 3) {
-			check_is_parameter_string_type(function, 2, statement_operands[2], "the variable name of data in IO file");
-			strcpy(field_name_in_IO, statement_operands[2]->extension_names[0]);
-		}
+        strcpy(field_name_in_IO, "\0");
+        if (num_operands == 3) {
+            check_is_parameter_string_type(function, 2, statement_operands[2], "the variable name of data in IO file");
+            strcpy(field_name_in_IO, statement_operands[2]->extension_names[0]);
+        }
         all_field_data.push_back(new Remap_grid_data_class(statement_operands[0]->object->object_name,
                                                            remap_grid_manager->search_remap_grid_with_grid_name(statement_operands[1]->object->object_name),
                                                            NULL, field_name_in_IO));

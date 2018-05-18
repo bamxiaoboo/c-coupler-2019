@@ -16,16 +16,16 @@
 
 class Runtime_datatype_transformer
 {
-	private:
-		std::vector<Field_mem_info*> src_fields;
-		std::vector<Field_mem_info*> dst_fields;
+    private:
+        std::vector<Field_mem_info*> src_fields;
+        std::vector<Field_mem_info*> dst_fields;
 
-	public:
-		Runtime_datatype_transformer() {}
-		Runtime_datatype_transformer(Field_mem_info*, Field_mem_info*);
-		~Runtime_datatype_transformer() {}
-		void transform_fields_datatype();
-		bool run(bool);
+    public:
+        Runtime_datatype_transformer() {}
+        Runtime_datatype_transformer(Field_mem_info*, Field_mem_info*);
+        ~Runtime_datatype_transformer() {}
+        void transform_fields_datatype();
+        bool run(bool);
 };
 
 #endif

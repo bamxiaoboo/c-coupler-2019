@@ -31,8 +31,8 @@ class Remap_strategy_class
         int get_num_remap_operator() { return remap_operators.size(); }
         Remap_operator_basis *get_remap_operator(int i) { return remap_operators[i]; }
         void check_field_data_grid_center_values_for_remapping(Remap_grid_class*, Remap_grid_class*, bool);
-		const char *get_strategy_name() { return strategy_name; }
-		void remap_fields(const char*, const char*);
+        const char *get_strategy_name() { return strategy_name; }
+        void remap_fields(const char*, const char*);
 };
 
 

@@ -17,15 +17,15 @@
 
 class Annotation_mgt
 {
-	private:
-		Dictionary<const char*> *annoation_lookup_table;
-		std::vector<const char *> annotations;
+    private:
+        Dictionary<const char*> *annoation_lookup_table;
+        std::vector<const char *> annotations;
 
-	public:
-		Annotation_mgt();
-		~Annotation_mgt();
-		void add_annotation(int, const char*, const char*);
-		const char *get_annotation(int, const char*);
+    public:
+        Annotation_mgt();
+        ~Annotation_mgt();
+        void add_annotation(int, const char*, const char*);
+        const char *get_annotation(int, const char*);
 };
 
 #endif

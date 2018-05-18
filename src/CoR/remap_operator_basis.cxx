@@ -156,7 +156,7 @@ void Remap_operator_basis::calculate_grids_overlaping()
         if (!dst_cell_mask)
             continue;
         get_cell_center_coord_values_of_dst_grid(cell_index_dst, center_coord_values_dst);  
-		get_current_grid2D_search_engine(true)->search_overlapping_cells(num_overlapping_src_cells, overlapping_src_cells_indexes, get_current_grid2D_search_engine(false)->get_cell(cell_index_dst), true, false);
+        get_current_grid2D_search_engine(true)->search_overlapping_cells(num_overlapping_src_cells, overlapping_src_cells_indexes, get_current_grid2D_search_engine(false)->get_cell(cell_index_dst), true, false);
         displ_src_cells_overlap_with_dst_cells[cell_index_dst] = num_overlapping_src_cells;
         if (num_overlapping_src_cells+temp_array_iter >= size_index_src_cells_overlap_with_dst_cells) {
             size_index_src_cells_overlap_with_dst_cells *= 2;
@@ -168,7 +168,7 @@ void Remap_operator_basis::calculate_grids_overlaping()
         }
         for (i = 0; i < num_overlapping_src_cells; i ++)
             index_src_cells_overlap_with_dst_cells[temp_array_iter++] = overlapping_src_cells_indexes[i];
-		do_quick_sort(overlapping_src_cells_indexes, (long*)NULL, 0, num_overlapping_src_cells-1);
+        do_quick_sort(overlapping_src_cells_indexes, (long*)NULL, 0, num_overlapping_src_cells-1);
     }
     finalize_computing_remap_weights_of_one_cell();
 
@@ -212,21 +212,21 @@ void Remap_operator_basis::generate_parallel_remap_weights(Remap_operator_basis 
 
 void Remap_operator_basis::change_remap_operator_info(const char *operator_name, Remap_grid_class *grid_src, Remap_grid_class *grid_dst)
 {
-	strcpy(this->operator_name, operator_name);
-	this->src_grid = grid_src;
-	this->dst_grid = grid_dst;
+    strcpy(this->operator_name, operator_name);
+    this->src_grid = grid_src;
+    this->dst_grid = grid_dst;
 }
 
 
 void Remap_operator_basis::update_unique_weight_sparse_matrix(Remap_weight_sparse_matrix *new_sparse_matrix)
 {
-	if (remap_weights_groups.size() > 0) {
-		EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_groups.size() == 1 && remap_weights_groups[0]->get_num_weights() == 0, "Software error in Remap_operator_basis::update_unique_weight_sparse_matrix");
-		delete remap_weights_groups[0];
-		remap_weights_groups.clear();
-	}
+    if (remap_weights_groups.size() > 0) {
+        EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights_groups.size() == 1 && remap_weights_groups[0]->get_num_weights() == 0, "Software error in Remap_operator_basis::update_unique_weight_sparse_matrix");
+        delete remap_weights_groups[0];
+        remap_weights_groups.clear();
+    }
 
-	remap_weights_groups.push_back(new_sparse_matrix);
+    remap_weights_groups.push_back(new_sparse_matrix);
 }
 
 

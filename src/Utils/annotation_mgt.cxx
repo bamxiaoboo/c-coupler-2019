@@ -18,39 +18,39 @@
 
 Annotation_mgt::Annotation_mgt()
 {
-	annoation_lookup_table = new Dictionary<const char*>(1024);
+    annoation_lookup_table = new Dictionary<const char*>(1024);
 }
 
 
 Annotation_mgt::~Annotation_mgt()
 {
-	delete annoation_lookup_table;
-	for (int i = 0; i < annotations.size(); i ++)
-		delete annotations[i];
+    delete annoation_lookup_table;
+    for (int i = 0; i < annotations.size(); i ++)
+        delete annotations[i];
 }
 
 
 void Annotation_mgt::add_annotation(int object_id, const char *tag, const char *annotation)
 {
-	char key[NAME_STR_SIZE];
-	char *local_annotation = strdup(annotation);
+    char key[NAME_STR_SIZE];
+    char *local_annotation = strdup(annotation);
 
 
-	sprintf(key, "%x @ %s", object_id, tag);
-	annoation_lookup_table->insert(key, local_annotation);
-	annotations.push_back(local_annotation);
+    sprintf(key, "%x @ %s", object_id, tag);
+    annoation_lookup_table->insert(key, local_annotation);
+    annotations.push_back(local_annotation);
 }
 
 
 const char *Annotation_mgt::get_annotation(int object_id, const char *tag)
 {
-	char key[NAME_STR_SIZE];
-	const char *annotation;
+    char key[NAME_STR_SIZE];
+    const char *annotation;
 
 
-	sprintf(key, "%x @ %s", object_id, tag);
-	annotation = annoation_lookup_table->search(key, true);
-	EXECUTION_REPORT(REPORT_ERROR, -1, annotation != NULL, "Software error in Annotation_mgt::get_annotation");
-	return annotation;
+    sprintf(key, "%x @ %s", object_id, tag);
+    annotation = annoation_lookup_table->search(key, true);
+    EXECUTION_REPORT(REPORT_ERROR, -1, annotation != NULL, "Software error in Annotation_mgt::get_annotation");
+    return annotation;
 }
 

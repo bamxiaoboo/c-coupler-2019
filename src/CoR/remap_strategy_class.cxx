@@ -90,27 +90,27 @@ void Remap_strategy_class::check_field_data_grid_center_values_for_remapping(Rem
 
     for (i = 0; i < num_leaf_grids_field_data; i ++)
         if (leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values() != NULL) {
-			if (!leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_sigma_grid())
-	            EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_subset_of_grid(field_data_grid), 
-	                         "The grid of setting coordinate values of 1D grid \"%s\" is \"%s\", it must be a sub grid of field data grid\n",
-	                         leaf_grids_field_data[i]->get_coord_label(), leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
+            if (!leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_sigma_grid())
+                EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->is_subset_of_grid(field_data_grid), 
+                             "The grid of setting coordinate values of 1D grid \"%s\" is \"%s\", it must be a sub grid of field data grid\n",
+                             leaf_grids_field_data[i]->get_coord_label(), leaf_grids_field_data[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
         }
     if (is_remap_operator_regriding)
         for (i = 0; i < num_leaf_grids_remap_operator; i ++) {
-			if (leaf_grids_remap_operator[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid()) {
-				EXECUTION_REPORT(REPORT_ERROR, -1, field_data_grid->get_sigma_grid_surface_value_field() != NULL, "C-Coupler error in check_field_data_grid_center_values_for_remapping");
-			}
-			else {	
-	            EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values() != NULL,
-	                         "The coordinate values of \"%s\" defined in grid \"%s\" must be set for regriding\n",
-	                         leaf_grids_remap_operator[i]->get_coord_label(),
-	                         leaf_grids_remap_operator[i]->get_grid_name());
-	            if (!leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values()->is_subset_of_grid(remap_operator_grid))
-	                EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator_grid->get_num_dimensions() == 1,
-	                             "the coordinate values of %s are set in grid %s, it must be used in 1D remapping\n",
-	                             leaf_grids_remap_operator[i]->get_coord_label(),
-	                             leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
-			}
+            if (leaf_grids_remap_operator[i]->has_grid_coord_label(COORD_LABEL_LEV) && field_data_grid->is_sigma_grid()) {
+                EXECUTION_REPORT(REPORT_ERROR, -1, field_data_grid->get_sigma_grid_surface_value_field() != NULL, "C-Coupler error in check_field_data_grid_center_values_for_remapping");
+            }
+            else {    
+                EXECUTION_REPORT(REPORT_ERROR, -1, leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values() != NULL,
+                             "The coordinate values of \"%s\" defined in grid \"%s\" must be set for regriding\n",
+                             leaf_grids_remap_operator[i]->get_coord_label(),
+                             leaf_grids_remap_operator[i]->get_grid_name());
+                if (!leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values()->is_subset_of_grid(remap_operator_grid))
+                    EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator_grid->get_num_dimensions() == 1,
+                                 "the coordinate values of %s are set in grid %s, it must be used in 1D remapping\n",
+                                 leaf_grids_remap_operator[i]->get_coord_label(),
+                                 leaf_grids_remap_operator[i]->get_super_grid_of_setting_coord_values()->get_grid_name());
+            }
         }
 }
 
@@ -142,25 +142,25 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
     remap_src_data_grid->end_grid_definition_stage(NULL);
     remap_dst_data_grid->end_grid_definition_stage(NULL);
 
-	if (remap_src_data_grid->is_sigma_grid() || remap_dst_data_grid->is_sigma_grid()) {
-		for (i = 0; i < remap_operators.size(); i ++)
-			if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
-				break;
-		EXECUTION_REPORT(REPORT_ERROR, -1, i < remap_operators.size(), "One grid in %s or %s is a sigma grid. The interpolation between them must have vertical interpolation", remap_src_data_grid->get_grid_name(), remap_dst_data_grid->get_grid_name());
-	}
+    if (remap_src_data_grid->is_sigma_grid() || remap_dst_data_grid->is_sigma_grid()) {
+        for (i = 0; i < remap_operators.size(); i ++)
+            if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
+                break;
+        EXECUTION_REPORT(REPORT_ERROR, -1, i < remap_operators.size(), "One grid in %s or %s is a sigma grid. The interpolation between them must have vertical interpolation", remap_src_data_grid->get_grid_name(), remap_dst_data_grid->get_grid_name());
+    }
 
- 	j = 1;
+     j = 1;
     
     current_remap_src_data_grid = remap_src_data_grid;
     for (i = 0; i < remap_operators.size(); i ++) {
         EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "execute remap operator %s  %s %s %lx %s", remap_operators[i]->get_object_name(), remap_operators[i]->get_operator_name(), remap_operators[i]->get_dst_grid()->get_grid_name(), remap_operators[i]->get_dst_grid(), remap_dst_data_grid->get_grid_name());
-		EXECUTION_REPORT(REPORT_ERROR, -1, remap_operators[i]->get_dst_grid()->is_sub_grid_of_grid(remap_dst_data_grid), "Software error: the dst grid \"%s\" of an remapping operator is not a sub grid of \"%s\"", remap_operators[i]->get_dst_grid()->get_grid_name(), remap_dst_data_grid->get_grid_name());
-		current_remap_src_data_grid_interchanged = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
-		runtime_mask_src = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
-		current_remap_dst_data_grid = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
+        EXECUTION_REPORT(REPORT_ERROR, -1, remap_operators[i]->get_dst_grid()->is_sub_grid_of_grid(remap_dst_data_grid), "Software error: the dst grid \"%s\" of an remapping operator is not a sub grid of \"%s\"", remap_operators[i]->get_dst_grid()->get_grid_name(), remap_dst_data_grid->get_grid_name());
+        current_remap_src_data_grid_interchanged = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
+        runtime_mask_src = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
+        current_remap_dst_data_grid = remap_weight_of_strategy->get_field_data_grid_in_remapping_process(j);
         check_field_data_grid_center_values_for_remapping(current_remap_src_data_grid, get_remap_operator(i)->get_src_grid(), get_remap_operator(i)->get_is_operator_regridding());
-        check_field_data_grid_center_values_for_remapping(current_remap_dst_data_grid, get_remap_operator(i)->get_dst_grid(), get_remap_operator(i)->get_is_operator_regridding());	
-		runtime_mask_dst = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
+        check_field_data_grid_center_values_for_remapping(current_remap_dst_data_grid, get_remap_operator(i)->get_dst_grid(), get_remap_operator(i)->get_is_operator_regridding());    
+        runtime_mask_dst = remap_weight_of_strategy->get_runtime_mask_field_in_remapping_process(j++);
         current_remap_src_data_grid->interchange_grid_fields_for_remapping(current_remap_src_data_grid_interchanged,
                                                                            remap_operators[i]->get_src_grid(),
                                                                            runtime_mask_src);
@@ -199,9 +199,9 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
                 current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter, H2D_remapping_wgt_file);
             }
         }
-		if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
-			if (remap_operators[i]->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || remap_operators[i]->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid())
-				remap_weight_of_strategy->mark_empty_remap_weight();
+        if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
+            if (remap_operators[i]->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || remap_operators[i]->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid())
+                remap_weight_of_strategy->mark_empty_remap_weight();
 
         delete runtime_remap_grid_src;
         delete runtime_remap_grid_dst;
@@ -225,11 +225,11 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
     }
 
     if (field_data_src != NULL) {
-	    field_data_dst->get_grid_data_field()->read_data_size = field_data_dst->get_grid_data_field()->required_data_size;
+        field_data_dst->get_grid_data_field()->read_data_size = field_data_dst->get_grid_data_field()->required_data_size;
         delete current_remap_src_data_grid;
     }
 
-	EXECUTION_REPORT(REPORT_ERROR, -1, j+1 == remap_weight_of_strategy->get_num_field_data_grids_in_remapping_process(), "C-Coupler error in calculate_remapping_weights\n");
+    EXECUTION_REPORT(REPORT_ERROR, -1, j+1 == remap_weight_of_strategy->get_num_field_data_grids_in_remapping_process(), "C-Coupler error in calculate_remapping_weights\n");
 }
 
 
@@ -238,12 +238,12 @@ void Remap_strategy_class::remap_fields(const char *field_data_name_src, const c
     int i;
     Remap_grid_class *remap_src_data_grid, *remap_dst_data_grid;
     Remap_grid_data_class *field_data_src, *field_data_dst;
-	Remap_weight_of_strategy_class *remap_weight_of_strategy;
+    Remap_weight_of_strategy_class *remap_weight_of_strategy;
 
 
     field_data_src = remap_field_data_manager->search_remap_field_data(field_data_name_src);
     field_data_dst = remap_field_data_manager->search_remap_field_data(field_data_name_dst);
-	field_data_src->transfer_field_attributes_to_another(field_data_dst);
+    field_data_src->transfer_field_attributes_to_another(field_data_dst);
     EXECUTION_REPORT(REPORT_ERROR, -1, field_data_src != NULL && field_data_dst != NULL, "remap software error1 in Remap_strategy_class::remap_fields\n");
     EXECUTION_REPORT(REPORT_WARNING, -1, field_data_src->have_data_content(), 
                      "source field data \"%s\" does not have essential data; before the current remapping calculation, its data should have been read from IO or calculated by remapping\n",
@@ -263,15 +263,15 @@ void Remap_strategy_class::remap_fields(const char *field_data_name_src, const c
     remap_src_data_grid->end_grid_definition_stage(NULL);
     remap_dst_data_grid->end_grid_definition_stage(NULL);
 
-	if (remap_src_data_grid->is_sigma_grid() || remap_dst_data_grid->is_sigma_grid()) {
-		for (i = 0; i < remap_operators.size(); i ++)
-			if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
-				break;
-		EXECUTION_REPORT(REPORT_ERROR, -1, i < remap_operators.size(), "One grid in %s or %s is a sigma grid. The interpolation between them must have vertical interpolation", remap_src_data_grid->get_grid_name(), remap_dst_data_grid->get_grid_name());
-	}
+    if (remap_src_data_grid->is_sigma_grid() || remap_dst_data_grid->is_sigma_grid()) {
+        for (i = 0; i < remap_operators.size(); i ++)
+            if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))
+                break;
+        EXECUTION_REPORT(REPORT_ERROR, -1, i < remap_operators.size(), "One grid in %s or %s is a sigma grid. The interpolation between them must have vertical interpolation", remap_src_data_grid->get_grid_name(), remap_dst_data_grid->get_grid_name());
+    }
 
-	remap_weight_of_strategy = remap_weights_of_strategy_manager->search_or_add_remap_weight_of_strategy(remap_src_data_grid, remap_dst_data_grid, this, NULL, NULL, NULL, false);
-	remap_weight_of_strategy->do_remap(field_data_src, field_data_dst);
+    remap_weight_of_strategy = remap_weights_of_strategy_manager->search_or_add_remap_weight_of_strategy(remap_src_data_grid, remap_dst_data_grid, this, NULL, NULL, NULL, false);
+    remap_weight_of_strategy->do_remap(field_data_src, field_data_dst);
 }
 
 

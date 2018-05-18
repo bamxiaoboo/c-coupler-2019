@@ -48,7 +48,7 @@ class Remap_operator_grid
         bool *mask_values;
         int num_vertex_values_groups;
         Vertex_values_group *vertex_values_groups[256];
-		H2D_grid_cell_search_engine *grid2D_search_engine;
+        H2D_grid_cell_search_engine *grid2D_search_engine;
         bool require_vertex_fields;
         bool is_grid_sphere;
         bool *cell_visiting_mark;
@@ -88,7 +88,7 @@ class Remap_operator_grid
         void visit_cell(long);
         void clear_cell_visiting_info();
         long search_cell_of_locating_point(double*, bool);
-		H2D_grid_cell_search_engine *get_grid2D_search_engine() const { return grid2D_search_engine; }
+        H2D_grid_cell_search_engine *get_grid2D_search_engine() const { return grid2D_search_engine; }
 };
 
 

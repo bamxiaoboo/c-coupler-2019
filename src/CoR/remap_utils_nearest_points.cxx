@@ -69,7 +69,7 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
     long src_cell_index;
     double sum_wgt_values, src_cell_center_values[256], dst_cell_center_values[256], dst_cell_vertex_values[65536];
     int i, num_points_within_threshold_dist, num_vertexes_dst;
-	double current_dist;
+    double current_dist;
 
     
     get_cell_mask_of_dst_grid(dst_cell_index, &dst_cell_mask);
@@ -77,24 +77,24 @@ void compute_dist_remap_weights_of_one_dst_cell(long dst_cell_index,
         return;
 
     get_cell_center_coord_values_of_dst_grid(dst_cell_index, dst_cell_center_values);
-	get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, dst_cell_vertex_values, true);
-	EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in compute_dist_remap_weights_of_one_dst_cell: too big number of dst vertexes: %d", num_vertexes_dst);
-	
+    get_cell_vertex_coord_values_of_dst_grid(dst_cell_index, &num_vertexes_dst, dst_cell_vertex_values, true);
+    EXECUTION_REPORT(REPORT_ERROR, -1, num_vertexes_dst <= 65536/2, "Software error in compute_dist_remap_weights_of_one_dst_cell: too big number of dst vertexes: %d", num_vertexes_dst);
+    
     if (num_vertexes_dst > 0 && (!enable_extrapolate && !have_overlapped_src_cells_for_dst_cell(dst_cell_index)))
         return;
 
-	if (num_vertexes_dst == 0) {
-	    search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
-		if (src_cell_index == -1 && (!enable_extrapolate))
-			return;
-	}
+    if (num_vertexes_dst == 0) {
+        search_cell_in_src_grid(dst_cell_center_values, &src_cell_index, false);
+        if (src_cell_index == -1 && (!enable_extrapolate))
+            return;
+    }
 
-	get_current_grid2D_search_engine(true)->search_nearest_points_var_number(num_nearest_points, dst_cell_center_values[0], dst_cell_center_values[1], 
-																									  num_points_within_threshold_dist, found_nearest_points_src_indexes, found_nearest_points_distance, true);
+    get_current_grid2D_search_engine(true)->search_nearest_points_var_number(num_nearest_points, dst_cell_center_values[0], dst_cell_center_values[1], 
+                                                                                                      num_points_within_threshold_dist, found_nearest_points_src_indexes, found_nearest_points_distance, true);
 
-	if (num_nearest_points > num_points_within_threshold_dist)
-		num_nearest_points = num_points_within_threshold_dist;
-	
+    if (num_nearest_points > num_points_within_threshold_dist)
+        num_nearest_points = num_points_within_threshold_dist;
+    
     if (found_nearest_points_distance[0] == 0.0) {
         weigt_values_of_one_dst_cell[0] = 1.0;
         add_remap_weights_to_sparse_matrix(found_nearest_points_src_indexes, dst_cell_index, weigt_values_of_one_dst_cell, 1, 0, true);

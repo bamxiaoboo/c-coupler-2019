@@ -167,7 +167,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
         sub_grid_sizes_interchange[i] = sized_sub_grids_interchange[i]->get_grid_size();
 
     if (words_are_the_same(this->data_type_in_application, DATA_TYPE_DOUBLE) ||
-		words_are_the_same(this->data_type_in_application, DATA_TYPE_LONG))
+        words_are_the_same(this->data_type_in_application, DATA_TYPE_LONG))
         interchange_array_data(num_sized_sub_grids_src, 
                            sub_grid_indexes_src, 
                            sub_grid_indexes_interchange, 
@@ -311,7 +311,7 @@ void Remap_data_field::set_fill_value(void *given_fill_value)
             *((double*) attribute_value) = DEFAULT_FILL_VALUE;
         else EXECUTION_REPORT(REPORT_ERROR, -1, false, "remap software error2 in datatype_from_application_to_netcdf in set_fill_value \"%s\"\n", data_type_in_application);
     }
-	
+    
     strcpy(remap_field_attribute.attribute_name, FILL_VALUE_LABEL);
     strcpy(remap_field_attribute.attribute_type, data_type_in_application);
     remap_field_attribute.attribute_size = 1;

@@ -57,7 +57,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
 
     this->send_or_receive = send_or_receive;
     this->num_transfered_fields = num_transfered_fields;
-	this->comm_tag = connection_id;
+    this->comm_tag = connection_id;
     EXECUTION_REPORT(REPORT_ERROR,-1, num_transfered_fields > 0, "Software error: Runtime_trans_algorithm does not have transfer fields");
 
     union_comm = comm;
@@ -69,7 +69,7 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     last_history_receive_buffer_index = -1;
     last_field_remote_recv_count = -1;
     current_field_local_recv_count = 1;
-	last_receive_sender_time = -1;
+    last_receive_sender_time = -1;
 
     for (int i = 0; i < num_transfered_fields; i ++) {
         this->fields_mem[i] = fields_mem[i];
@@ -86,14 +86,14 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
         remote_comp_node = fields_routers[0]->get_src_comp_node();
     }
     strcpy(remote_comp_full_name, remote_comp_node->get_comp_full_name());
-	remote_comp_node_updated = false;
-	timer_not_bypassed = false;
+    remote_comp_node_updated = false;
+    timer_not_bypassed = false;
     comp_id = local_comp_node->get_comp_id();
-	comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "in Runtime_trans_algorithm::Runtime_trans_algorithm");
+    comp_node = comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "in Runtime_trans_algorithm::Runtime_trans_algorithm");
     current_proc_local_id = local_comp_node->get_current_proc_local_id();
     current_proc_global_id = comp_comm_group_mgt_mgr->get_current_proc_global_id();
     time_mgr = components_time_mgrs->get_time_mgr(comp_id);
-	EXECUTION_REPORT(REPORT_ERROR, -1, time_mgr != NULL, "software error in Runtime_trans_algorithm::Runtime_trans_algorithm: wrong time mgr: %x: %d: %d: %s : %s: %s %s %s", comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_current_proc_local_id(), current_proc_local_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_comp_full_name(), local_comp_node->get_comp_full_name(), remote_comp_node->get_comp_full_name(), fields_routers[0]->get_src_comp_node()->get_comp_name(), fields_routers[0]->get_dst_comp_node()->get_comp_name());
+    EXECUTION_REPORT(REPORT_ERROR, -1, time_mgr != NULL, "software error in Runtime_trans_algorithm::Runtime_trans_algorithm: wrong time mgr: %x: %d: %d: %s : %s: %s %s %s", comp_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_current_proc_local_id(), current_proc_local_id, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false, "C-Coupler native code get time manager")->get_comp_full_name(), local_comp_node->get_comp_full_name(), remote_comp_node->get_comp_full_name(), fields_routers[0]->get_src_comp_node()->get_comp_name(), fields_routers[0]->get_dst_comp_node()->get_comp_name());
     num_remote_procs = remote_comp_node->get_num_procs();
     num_local_procs = local_comp_node->get_num_procs();
     remote_proc_ranks_in_union_comm = new int [num_remote_procs];
@@ -176,19 +176,19 @@ Runtime_trans_algorithm::Runtime_trans_algorithm(bool send_or_receive, int num_t
     for (int i = 1; i < num_remote_procs; i ++)
         recv_displs_in_current_proc[i] = recv_displs_in_current_proc[i-1] + transfer_size_with_remote_procs[i-1] + 4*sizeof(long);
 
-	current_receive_field_sender_time = -1;
-	last_receive_field_sender_time = -1;
+    current_receive_field_sender_time = -1;
+    last_receive_field_sender_time = -1;
     data_buf_size = 0;
     for (int j = 0; j < num_remote_procs; j ++) 
         data_buf_size += transfer_size_with_remote_procs[j];
 
     total_buf_size = data_buf_size + (4*num_remote_procs + 4) * sizeof(long);
     total_buf = (char*) (new long[(total_buf_size+sizeof(long)-1)/sizeof(long)]);
-    send_tag_buf = (long *) total_buf;	
-	temp_receive_data_buffer = (char*)(new long [(data_buf_size+sizeof(long)-1)/sizeof(long)]);
+    send_tag_buf = (long *) total_buf;    
+    temp_receive_data_buffer = (char*)(new long [(data_buf_size+sizeof(long)-1)/sizeof(long)]);
 
-	for (int i = 0; i < 4; i ++)
-	    send_tag_buf[i] = -1;
+    for (int i = 0; i < 4; i ++)
+        send_tag_buf[i] = -1;
     for (int i = 0; i < num_remote_procs; i ++) {
         tag_buf = (long *) (total_buf + recv_displs_in_current_proc[i]);
         for (int j = 0; j < 2; j ++)
@@ -232,7 +232,7 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
     delete [] field_grids_num_lev;
     delete [] fields_data_type_sizes;
     delete [] is_V1D_sub_grid_after_H2D_sub_grid;
-	delete [] total_buf;
+    delete [] total_buf;
     delete [] transfer_size_with_remote_procs;
     delete [] send_displs_in_remote_procs;
     delete [] recv_displs_in_current_proc;
@@ -246,8 +246,8 @@ Runtime_trans_algorithm::~Runtime_trans_algorithm()
 
 void Runtime_trans_algorithm::pass_transfer_parameters(long current_remote_fields_time, int bypass_counter)
 {
-	this->current_remote_fields_time = current_remote_fields_time;
-	this->bypass_counter = bypass_counter;
+    this->current_remote_fields_time = current_remote_fields_time;
+    this->bypass_counter = bypass_counter;
 }
 
 
@@ -255,9 +255,9 @@ bool Runtime_trans_algorithm::set_local_tags()
 {
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
     send_tag_buf[0] = current_field_local_recv_count;
-	send_tag_buf[1] = ((long)time_mgr->get_current_num_elapsed_day())*100000 + ((long)time_mgr->get_current_second());
-	send_tag_buf[2] = (long) time_mgr->get_runtype_mark();
-	send_tag_buf[3] = time_mgr->get_restart_full_time();
+    send_tag_buf[1] = ((long)time_mgr->get_current_num_elapsed_day())*100000 + ((long)time_mgr->get_current_second());
+    send_tag_buf[2] = (long) time_mgr->get_runtype_mark();
+    send_tag_buf[3] = time_mgr->get_restart_full_time();
     current_field_local_recv_count ++;
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
 
@@ -268,47 +268,47 @@ bool Runtime_trans_algorithm::set_local_tags()
 bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 {
     long temp_field_remote_recv_count = -100;
-	double time1, time2;
+    double time1, time2;
 
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
-	wtime(&time1);
+    wtime(&time1);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] > 0) {
- 			if (remote_comp_node_updated && last_receive_sender_time < remote_comp_node->get_proc_latest_model_time(remote_proc_index)) {
-				EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Can bypass MPI_Get for proc %d", remote_proc_index);
-				continue;
-			}
+             if (remote_comp_node_updated && last_receive_sender_time < remote_comp_node->get_proc_latest_model_time(remote_proc_index)) {
+                EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Can bypass MPI_Get for proc %d", remote_proc_index);
+                continue;
+            }
             int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
             MPI_Win_lock(MPI_LOCK_SHARED, remote_proc_id, 0, data_win);
             MPI_Get(send_tag_buf, sizeof(long)*4, MPI_CHAR, remote_proc_id, 0, sizeof(long)*4, MPI_CHAR, data_win);
             MPI_Win_unlock(remote_proc_id, data_win);
-			if (remote_comp_node_updated)
-				remote_comp_node->set_proc_latest_model_time(remote_proc_index, send_tag_buf[1]);
-			if (send_tag_buf[0] != -1 && send_tag_buf[0] != last_field_remote_recv_count + 1)
-				return false;
-			if (temp_field_remote_recv_count == -100)
-				temp_field_remote_recv_count = send_tag_buf[0];
-			if (temp_field_remote_recv_count != send_tag_buf[0])
-				return false;
+            if (remote_comp_node_updated)
+                remote_comp_node->set_proc_latest_model_time(remote_proc_index, send_tag_buf[1]);
+            if (send_tag_buf[0] != -1 && send_tag_buf[0] != last_field_remote_recv_count + 1)
+                return false;
+            if (temp_field_remote_recv_count == -100)
+                temp_field_remote_recv_count = send_tag_buf[0];
+            if (temp_field_remote_recv_count != send_tag_buf[0])
+                return false;
         }
     }
 
     if (temp_field_remote_recv_count == -1) {
         EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, last_field_remote_recv_count == -1 || last_field_remote_recv_count == 0, "Software error in Runtime_trans_algorithm::is_remote_data_buf_ready");
         if (last_field_remote_recv_count != -1) 
-	        return false;
+            return false;
     }
 
-    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Remote buffer component \"%s\" is ready for receiving data: %ld vs %ld vs %ld : %d: %d  %ld", remote_comp_full_name, temp_field_remote_recv_count, last_field_remote_recv_count, last_receive_sender_time, bypass_counter, send_tag_buf[2], send_tag_buf[3]);	
+    EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Remote buffer component \"%s\" is ready for receiving data: %ld vs %ld vs %ld : %d: %d  %ld", remote_comp_full_name, temp_field_remote_recv_count, last_field_remote_recv_count, last_receive_sender_time, bypass_counter, send_tag_buf[2], send_tag_buf[3]);    
 
-	last_field_remote_recv_count ++;
+    last_field_remote_recv_count ++;
 
-	wtime(&time2);
-	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_QUERRY, -1, remote_comp_full_name, time2-time1);
-	
+    wtime(&time2);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_QUERRY, -1, remote_comp_full_name, time2-time1);
+    
     return true;
 }
 
@@ -316,43 +316,43 @@ bool Runtime_trans_algorithm::is_remote_data_buf_ready(bool bypass_timer)
 void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 {
     bool is_ready = true;
-	double time1, time2, time3;
+    double time1, time2, time3;
 
 
     if (index_remote_procs_with_common_data.size() == 0)
         return;
 
-	if (timer_not_bypassed && last_history_receive_buffer_index != -1) {
-		int comp_min_remote_lag_seconds = comp_node->get_min_remote_lag_seconds();
-		long current_receiver_full_seconds = ((long)time_mgr->get_current_num_elapsed_day())*86400 + time_mgr->get_current_second();
-		long current_sender_full_seconds = ((current_receive_field_sender_time%((long)100000000000000))/((long)100000))*86400 + (current_receive_field_sender_time%((long)100000));
-		if (current_sender_full_seconds + 2*comp_min_remote_lag_seconds > current_receiver_full_seconds)
-			return;
-	}
+    if (timer_not_bypassed && last_history_receive_buffer_index != -1) {
+        int comp_min_remote_lag_seconds = comp_node->get_min_remote_lag_seconds();
+        long current_receiver_full_seconds = ((long)time_mgr->get_current_num_elapsed_day())*86400 + time_mgr->get_current_second();
+        long current_sender_full_seconds = ((current_receive_field_sender_time%((long)100000000000000))/((long)100000))*86400 + (current_receive_field_sender_time%((long)100000));
+        if (current_sender_full_seconds + 2*comp_min_remote_lag_seconds > current_receiver_full_seconds)
+            return;
+    }
 
 #ifndef USE_ONE_SIDED_MPI
-	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
-			continue;
+            continue;
         data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
         MPI_Irecv((char *)data_buf, 4*sizeof(long)+transfer_size_with_remote_procs[remote_proc_index], MPI_CHAR, remote_proc_id, comm_tag, union_comm, &request[i]);
     }    
-	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
-	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
-			continue;
+            continue;
         MPI_Status state;
         MPI_Wait(&request[i], &state);
     }
-	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
 #endif
 
-	wtime(&time1);
+    wtime(&time1);
 
 #ifdef USE_ONE_SIDED_MPI
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, current_proc_id_union_comm, 0, data_win);
@@ -372,36 +372,36 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 
     if (!is_ready) {
 #ifndef USE_ONE_SIDED_MPI
-		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error1 in MPI_send/recv implementation in Runtime_trans_algorithm::receive_data_in_temp_buffer");
+        EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error1 in MPI_send/recv implementation in Runtime_trans_algorithm::receive_data_in_temp_buffer");
 #endif
         return;
     }
 
     if (last_receive_field_sender_time == current_receive_field_sender_time) {
 #ifndef USE_ONE_SIDED_MPI
-		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error2 in MPI_send/recv implementation in Runtime_trans_algorithm::receive_data_in_temp_buffer");
+        EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, false, "Software error2 in MPI_send/recv implementation in Runtime_trans_algorithm::receive_data_in_temp_buffer");
 #endif
         return;
     }
 
-	for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
-		int remote_proc_index = index_remote_procs_with_common_data[i];
-		tag_buf = (long *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
-		if (tag_buf[2] != -1) {
-			if (tag_buf[2] == RUNTYPE_MARK_INITIAL || tag_buf[2] == RUNTYPE_MARK_HYBRID) 
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", remote_comp_full_name, local_comp_node->get_comp_full_name());
-			else {		
-				EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name);
-				if (time_mgr->get_restart_full_time() != -1 && tag_buf[3] != -1)
-					EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_restart_full_time() == tag_buf[3], "The restart time between the two component models \"%s\" and \"%s\" are inconsistent: %ld vs %ld. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name, time_mgr->get_restart_full_time(), tag_buf[3]);
-			}
-		}
-	}
+    for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
+        int remote_proc_index = index_remote_procs_with_common_data[i];
+        tag_buf = (long *) (total_buf + recv_displs_in_current_proc[remote_proc_index]);
+        if (tag_buf[2] != -1) {
+            if (tag_buf[2] == RUNTYPE_MARK_INITIAL || tag_buf[2] == RUNTYPE_MARK_HYBRID) 
+                EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_INITIAL || time_mgr->get_runtype_mark() == RUNTYPE_MARK_HYBRID, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", remote_comp_full_name, local_comp_node->get_comp_full_name());
+            else {        
+                EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_runtype_mark() == RUNTYPE_MARK_CONTINUE || time_mgr->get_runtype_mark() == RUNTYPE_MARK_BRANCH, "Inconsistency of run type between component models is detected: the component model \"%s\" is in an initial run or hybrid run, while the component model \"%s\" is in a continue run or branch run. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name);
+                if (time_mgr->get_restart_full_time() != -1 && tag_buf[3] != -1)
+                    EXECUTION_REPORT(REPORT_ERROR, comp_id, time_mgr->get_restart_full_time() == tag_buf[3], "The restart time between the two component models \"%s\" and \"%s\" are inconsistent: %ld vs %ld. Please verify.", local_comp_node->get_comp_full_name(), remote_comp_full_name, time_mgr->get_restart_full_time(), tag_buf[3]);
+            }
+        }
+    }
 
 #ifdef USE_ONE_SIDED_MPI
-	wtime(&time2);	
-	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_QUERRY, -1, remote_comp_full_name, time2-time1);
-#endif	
+    wtime(&time2);    
+    local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_QUERRY, -1, remote_comp_full_name, time2-time1);
+#endif    
 
     int empty_history_receive_buffer_index = -1;
     if (last_history_receive_buffer_index != -1) {
@@ -417,36 +417,36 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
         std::vector<bool> temp_history_receive_buffer_status;
         std::vector<long> temp_history_receive_sender_time;
         std::vector<long> temp_history_receive_usage_time;
-		std::vector<std::vector<Field_mem_info *> > temp_history_receive_fields_mem;
+        std::vector<std::vector<Field_mem_info *> > temp_history_receive_fields_mem;
         for (int i = 0; i < history_receive_fields_mem.size(); i ++) {
             int index_iter = (last_history_receive_buffer_index+i) % history_receive_fields_mem.size();
             temp_history_receive_buffer_status.push_back(history_receive_buffer_status[index_iter]);
             temp_history_receive_sender_time.push_back(history_receive_sender_time[index_iter]);
             temp_history_receive_usage_time.push_back(history_receive_usage_time[index_iter]);
-			temp_history_receive_fields_mem.push_back(history_receive_fields_mem[index_iter]);
+            temp_history_receive_fields_mem.push_back(history_receive_fields_mem[index_iter]);
         }
         history_receive_buffer_status.clear();
         history_receive_sender_time.clear();
         history_receive_usage_time.clear();
-		history_receive_fields_mem.clear();
+        history_receive_fields_mem.clear();
         for (int i = 0; i < temp_history_receive_fields_mem.size(); i ++) {
             history_receive_buffer_status.push_back(temp_history_receive_buffer_status[i]);
             history_receive_sender_time.push_back(temp_history_receive_sender_time[i]);
             history_receive_usage_time.push_back(temp_history_receive_usage_time[i]);
-			history_receive_fields_mem.push_back(temp_history_receive_fields_mem[i]);
+            history_receive_fields_mem.push_back(temp_history_receive_fields_mem[i]);
         }
         last_history_receive_buffer_index = 0;
         empty_history_receive_buffer_index = history_receive_buffer_status.size();
         history_receive_buffer_status.push_back(false);
         history_receive_sender_time.push_back(-1);
         history_receive_usage_time.push_back(-1);
-		std::vector<Field_mem_info *> new_receive_fields_mem;
-		for (int i = 0; i < num_transfered_fields; i ++) {
-			new_receive_fields_mem.push_back(memory_manager->alloc_mem(fields_mem[i], BUF_MARK_DATA_TRANSFER, history_receive_fields_mem.size(), fields_mem[i]->get_data_type(), false));
-			for (int j = 0; j < history_receive_fields_mem.size(); j ++)
-				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, history_receive_fields_mem[j][i] != new_receive_fields_mem[i], "Software error in Runtime_trans_algorithm::receive_data_in_temp_buffer");
-		}	
-		history_receive_fields_mem.push_back(new_receive_fields_mem);
+        std::vector<Field_mem_info *> new_receive_fields_mem;
+        for (int i = 0; i < num_transfered_fields; i ++) {
+            new_receive_fields_mem.push_back(memory_manager->alloc_mem(fields_mem[i], BUF_MARK_DATA_TRANSFER, history_receive_fields_mem.size(), fields_mem[i]->get_data_type(), false));
+            for (int j = 0; j < history_receive_fields_mem.size(); j ++)
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, history_receive_fields_mem[j][i] != new_receive_fields_mem[i], "Software error in Runtime_trans_algorithm::receive_data_in_temp_buffer");
+        }    
+        history_receive_fields_mem.push_back(new_receive_fields_mem);
     }
 
     history_receive_buffer_status[empty_history_receive_buffer_index] = true;
@@ -461,7 +461,7 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
     for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
         int remote_proc_index = index_remote_procs_with_common_data[i];
         if (transfer_size_with_remote_procs[remote_proc_index] == 0) 
-			continue;
+            continue;
         data_buf = (void *) (total_buf + recv_displs_in_current_proc[remote_proc_index] + 4*sizeof(long));
         memcpy(temp_receive_data_buffer+offset, data_buf, transfer_size_with_remote_procs[remote_proc_index]);
         offset += transfer_size_with_remote_procs[remote_proc_index];
@@ -469,37 +469,37 @@ void Runtime_trans_algorithm::receive_data_in_temp_buffer()
 #ifdef USE_ONE_SIDED_MPI
     MPI_Win_unlock(current_proc_id_union_comm, data_win);
 #endif
-	
-	offset = 0;
-	for (int i = 0; i < num_remote_procs; i ++) {
-		if (transfer_size_with_remote_procs[i] == 0) 
-			continue;
-		int old_offset = offset;
-		//int offset = recv_displs_in_current_proc[i];
-		for (int j = 0; j < num_transfered_fields; j ++) {
-			if (fields_routers[j]->get_num_dimensions() == 0) {
-				memcpy(history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), temp_receive_data_buffer + offset, fields_data_type_sizes[j]);
-				offset += fields_data_type_sizes[j];
-			}
-			else unpack_MD_data(temp_receive_data_buffer, i, j, history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), &offset);
-		}	
-		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
-	}
+    
+    offset = 0;
+    for (int i = 0; i < num_remote_procs; i ++) {
+        if (transfer_size_with_remote_procs[i] == 0) 
+            continue;
+        int old_offset = offset;
+        //int offset = recv_displs_in_current_proc[i];
+        for (int j = 0; j < num_transfered_fields; j ++) {
+            if (fields_routers[j]->get_num_dimensions() == 0) {
+                memcpy(history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), temp_receive_data_buffer + offset, fields_data_type_sizes[j]);
+                offset += fields_data_type_sizes[j];
+            }
+            else unpack_MD_data(temp_receive_data_buffer, i, j, history_receive_fields_mem[empty_history_receive_buffer_index][j]->get_data_buf(), &offset);
+        }    
+        EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, offset - old_offset == transfer_size_with_remote_procs[i], "C-Coupler software error in recv of runtime_trans_algorithm.");
+    }
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Get receiving data from component \"%s\" (at time %ld) into temp buffer", remote_comp_full_name, last_receive_field_sender_time);
 
 #ifdef USE_ONE_SIDED_MPI
     set_local_tags();
-	wtime(&time3);
-	local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name, time3-time2);
-#endif	
+    wtime(&time3);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_add(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV, -1, remote_comp_full_name, time3-time2);
+#endif    
 }
 
 
 bool Runtime_trans_algorithm::run(bool bypass_timer)
 {
-	if (!bypass_timer)
-		timer_not_bypassed = true;
+    if (!bypass_timer)
+        timer_not_bypassed = true;
     if (send_or_receive)
         return send(bypass_timer);
     else return recv(bypass_timer);
@@ -508,18 +508,18 @@ bool Runtime_trans_algorithm::run(bool bypass_timer)
 
 bool Runtime_trans_algorithm::send(bool bypass_timer)
 {
-	if (!remote_comp_node_updated) {
-		remote_comp_node = comp_comm_group_mgt_mgr->load_comp_info_from_XML(local_comp_node->get_comp_id(), remote_comp_full_name, local_comp_node->get_comm_group());
-		Comp_comm_group_mgt_node *existing_remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_full_name);
-		if (existing_remote_comp_node != NULL) {
-			delete remote_comp_node;
-			remote_comp_node = existing_remote_comp_node;
-		}
-		remote_comp_node_updated = true;
-		remote_comp_node->allocate_proc_latest_model_time();
-	}
+    if (!remote_comp_node_updated) {
+        remote_comp_node = comp_comm_group_mgt_mgr->load_comp_info_from_XML(local_comp_node->get_comp_id(), remote_comp_full_name, local_comp_node->get_comm_group());
+        Comp_comm_group_mgt_node *existing_remote_comp_node = comp_comm_group_mgt_mgr->search_global_node(remote_comp_full_name);
+        if (existing_remote_comp_node != NULL) {
+            delete remote_comp_node;
+            remote_comp_node = existing_remote_comp_node;
+        }
+        remote_comp_node_updated = true;
+        remote_comp_node->allocate_proc_latest_model_time();
+    }
 #ifndef USE_ONE_SIDED_MPI
-	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
+    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     if (!is_first_run) {
         for (int i = 0; i < index_remote_procs_with_common_data.size(); i ++) {
             int remote_proc_index = index_remote_procs_with_common_data[i];
@@ -527,7 +527,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
             MPI_Wait(&request[i], &state);
         }
     }
-	comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
+    comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id,false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND_WAIT, -1, remote_comp_full_name);
     is_first_run = false;
 #endif
 
@@ -535,7 +535,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
         preprocess();
 #ifdef USE_ONE_SIDED_MPI
         if (!is_remote_data_buf_ready(bypass_timer)) {
-			inout_interface_mgr->runtime_receive_algorithms_receive_data();
+            inout_interface_mgr->runtime_receive_algorithms_receive_data();
             return false;
         }
 #endif
@@ -549,7 +549,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
     if (index_remote_procs_with_common_data.size() == 0)
         return true;
 
-	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, -1, remote_comp_full_name);
 
     long current_full_time = ((long)time_mgr->get_current_num_elapsed_day())*100000 + time_mgr->get_current_second();
     int offset = 0;
@@ -579,8 +579,8 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
             tag_buf[0] = current_full_time;
             tag_buf[1] = current_remote_fields_time;
         }
-		tag_buf[2] = (long) time_mgr->get_runtype_mark();
-		tag_buf[3] = time_mgr->get_restart_full_time();
+        tag_buf[2] = (long) time_mgr->get_runtype_mark();
+        tag_buf[3] = time_mgr->get_restart_full_time();
 
         int remote_proc_id = remote_proc_ranks_in_union_comm[remote_proc_index];
 
@@ -603,7 +603,7 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish sending data to component \"%s\": %d", remote_comp_full_name, comm_tag);
 
-	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_SEND, -1, remote_comp_full_name);
 
     return true;
 }
@@ -612,14 +612,14 @@ bool Runtime_trans_algorithm::send(bool bypass_timer)
 bool Runtime_trans_algorithm::recv(bool bypass_timer)
 {
     bool received_data_ready = false;
-	
+    
 
 #ifdef USE_ONE_SIDED_MPI
-	local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_start(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
 #endif
     if (bypass_timer) {
         EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Bypass timer to begin to receive data from component \"%s\": %ld: %d: %d", remote_comp_full_name, current_remote_fields_time, bypass_counter, comm_tag);
-    }	
+    }    
     else EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Use timer to begin to receive data from component \"%s\": %ld %d", remote_comp_full_name, current_remote_fields_time, comm_tag);
 
     if (index_remote_procs_with_common_data.size() > 0) {
@@ -634,16 +634,16 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
                 inout_interface_mgr->runtime_receive_algorithms_receive_data();
         }
 #endif
-		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, last_history_receive_buffer_index >= 0, "Software error with last_history_receive_buffer_index: %d", last_history_receive_buffer_index);
-		for (int j = 0; j < num_transfered_fields; j ++)
-			memcpy(fields_mem[j]->get_data_buf(), history_receive_fields_mem[last_history_receive_buffer_index][j]->get_data_buf(), fields_mem[j]->get_size_of_field()*get_data_type_size(fields_mem[j]->get_data_type()));
+        EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, last_history_receive_buffer_index >= 0, "Software error with last_history_receive_buffer_index: %d", last_history_receive_buffer_index);
+        for (int j = 0; j < num_transfered_fields; j ++)
+            memcpy(fields_mem[j]->get_data_buf(), history_receive_fields_mem[last_history_receive_buffer_index][j]->get_data_buf(), fields_mem[j]->get_size_of_field()*get_data_type_size(fields_mem[j]->get_data_type()));
     }
 
-	if (index_remote_procs_with_common_data.size() > 0)
-		last_receive_sender_time = history_receive_sender_time[last_history_receive_buffer_index];
-	else if (bypass_timer)
-		last_receive_sender_time = bypass_counter*((long)100000000000000);
-	else last_receive_sender_time = current_remote_fields_time;
+    if (index_remote_procs_with_common_data.size() > 0)
+        last_receive_sender_time = history_receive_sender_time[last_history_receive_buffer_index];
+    else if (bypass_timer)
+        last_receive_sender_time = bypass_counter*((long)100000000000000);
+    else last_receive_sender_time = current_remote_fields_time;
 
     for (int j = 0; j < num_transfered_fields; j ++) {
          fields_mem[j]->check_field_sum("after receiving data");
@@ -658,7 +658,7 @@ bool Runtime_trans_algorithm::recv(bool bypass_timer)
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish receiving data from component \"%s\" at the remote model time %ld vs %ld", remote_comp_full_name, last_receive_sender_time, current_remote_fields_time);
 
 #ifdef USE_ONE_SIDED_MPI
-	local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
+    local_comp_node->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMMUNICATION, TIMING_COMMUNICATION_RECV_WAIT, -1, remote_comp_full_name);
 #endif
 
     return true;

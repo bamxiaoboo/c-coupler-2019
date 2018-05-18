@@ -54,9 +54,9 @@ class Remap_grid_data_class
         void generate_analytic_values(const char*);
         void evaluate_error(Remap_grid_data_class*, Remap_grid_data_class*);
         void change_datatype_in_application(const char*);
-		void write_grid_data_into_array(char **, long &, long &);
-		Remap_grid_data_class(Remap_grid_class *, const char *, long&);
-		void set_masked_cell_to_missing_value();
+        void write_grid_data_into_array(char **, long &, long &);
+        Remap_grid_data_class(Remap_grid_class *, const char *, long&);
+        void set_masked_cell_to_missing_value();
 };
 
 

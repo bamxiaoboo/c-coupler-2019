@@ -34,44 +34,44 @@
 
 class Performance_timing_unit
 {
-	private:
-		int unit_type;
-		int unit_behavior;
-		int unit_int_keyword;
-		char unit_char_keyword[256];
-		double previous_time;
-		double total_time;
-		int comp_id;
+    private:
+        int unit_type;
+        int unit_behavior;
+        int unit_int_keyword;
+        char unit_char_keyword[256];
+        double previous_time;
+        double total_time;
+        int comp_id;
 
-		void check_timing_unit(int, int, int, const char*);
+        void check_timing_unit(int, int, int, const char*);
 
-	public:
-		Performance_timing_unit(int, int, int, int, const char*);
-		~Performance_timing_unit(){}
-		void timing_start();
-		void timing_stop();
-		void timing_output();
-		bool match_timing_unit(int, int, int, const char*);
-		void timing_add(double time_inc) { total_time += time_inc; }
-		void timing_reset() { total_time = 0.0; }
+    public:
+        Performance_timing_unit(int, int, int, int, const char*);
+        ~Performance_timing_unit(){}
+        void timing_start();
+        void timing_stop();
+        void timing_output();
+        bool match_timing_unit(int, int, int, const char*);
+        void timing_add(double time_inc) { total_time += time_inc; }
+        void timing_reset() { total_time = 0.0; }
 };
 
 
 class Performance_timing_mgt
 {
-	private:
-		std::vector<Performance_timing_unit*> performance_timing_units;
-		int search_timing_unit(int, int, int, const char*);
-		int comp_id;
+    private:
+        std::vector<Performance_timing_unit*> performance_timing_units;
+        int search_timing_unit(int, int, int, const char*);
+        int comp_id;
 
-	public: 
-		Performance_timing_mgt(int comp_id) { this->comp_id = comp_id; }
-		~Performance_timing_mgt();
-		void performance_timing_start(int, int, int, const char*);
-		void performance_timing_stop(int, int, int, const char*);
-		void performance_timing_add(int, int, int, const char*, double);
-		void performance_timing_output();
-		void performance_timing_reset();
+    public: 
+        Performance_timing_mgt(int comp_id) { this->comp_id = comp_id; }
+        ~Performance_timing_mgt();
+        void performance_timing_start(int, int, int, const char*);
+        void performance_timing_stop(int, int, int, const char*);
+        void performance_timing_add(int, int, int, const char*, double);
+        void performance_timing_output();
+        void performance_timing_reset();
 };
 
 #endif
