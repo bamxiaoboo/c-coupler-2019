@@ -91,6 +91,10 @@ long H2D_remapping_wgt_file_info::get_grid_field_checksum_value(const char *fiel
 
 bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *src_original_grid, Original_grid_info *dst_original_grid)
 {
+    for (int i = 0; i < matched_grid_pair.size(); i ++)
+        if (matched_grid_pair[i].first == src_original_grid && matched_grid_pair[i].second == dst_original_grid)
+            return true;
+
     read_grid_size(dst_original_grid->get_comp_id(), "n_a", src_grid_size);
     if (src_grid_size != src_original_grid->get_H2D_sub_CoR_grid()->get_grid_size()) {
         clean();
@@ -136,6 +140,8 @@ bool H2D_remapping_wgt_file_info::match_H2D_remapping_wgt(Original_grid_info *sr
     read_weight_grid_data(dst_original_grid->get_comp_id(), "area_a", DATA_TYPE_DOUBLE, (void**)(&src_area), src_grid_size);
     read_weight_grid_data(dst_original_grid->get_comp_id(), "area_b", DATA_TYPE_DOUBLE, (void**)(&dst_area), dst_grid_size);
     read_remapping_weights(dst_original_grid->get_comp_id());
+
+    matched_grid_pair.push_back(std::make_pair(src_original_grid, dst_original_grid));
     return true;
 }
 

@@ -42,7 +42,7 @@ class H2D_remapping_wgt_file_info
         long *wgts_src_indexes;
         long *wgts_dst_indexes;
         double *wgts_values;
-
+        std::vector<std::pair<Original_grid_info*, Original_grid_info*> > matched_grid_pair;
 
     public:
         H2D_remapping_wgt_file_info(const char*);
