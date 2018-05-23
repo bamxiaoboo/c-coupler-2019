@@ -538,7 +538,7 @@ Time_mgt::Time_mgt(int comp_id, const char *XML_file_name, bool is_for_root_comp
             common_restart_full_time = determine_continue_run_restart_time();
         MPI_Bcast(&common_restart_full_time, 1, MPI_LONG, 0, MPI_COMM_WORLD);
         EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "The restart time determined by the rpointer files is %ld", common_restart_full_time);
-        EXECUTION_REPORT(REPORT_ERROR, comp_id, common_restart_full_time != -1, "Error happens when starting the continue run: fail to find a common restart time according to the rpointer files among a component models");
+        EXECUTION_REPORT(REPORT_ERROR, comp_id, common_restart_full_time != -1, "Error happens when starting the continue run: fail to find a common restart time according to the rpointer files among a component models. Please check the rpointer files.");
     }
 }
 

@@ -189,20 +189,20 @@ Comp_comm_group_mgt_node::Comp_comm_group_mgt_node(const char *comp_name, const 
         parent_comm = parent->get_comm_group();
         if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
             EXECUTION_REPORT_LOG(REPORT_LOG, parent->comp_id, true, 
-                             "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
+                             "Before the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registering its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
                              parent->get_comp_name(), comp_name, annotation);
         else if (parent->get_current_proc_local_id() == 0) 
             EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, 
-                             "Before the MPI_barrier for synchronizing all processes of the whole coupled model for registerring root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
+                             "Before the MPI_barrier for synchronizing all processes of the whole coupled model for registering root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
                              comp_name, annotation);    
         EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(parent_comm) == MPI_SUCCESS);
         if ((parent->comp_id&TYPE_ID_SUFFIX_MASK) != 0)
             EXECUTION_REPORT_LOG(REPORT_LOG, parent->comp_id, true, 
-                             "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registerring its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
+                             "After the MPI_barrier for synchronizing all processes of the parent component \"%s\" for registering its children components including \"%s\" (the corresponding model code annotation is \"%s\")", 
                              parent->get_comp_name(), comp_name, annotation);
         else if (parent->get_current_proc_local_id() == 0) 
             EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, 
-                             "After the MPI_barrier for synchronizing all processes of the whole coupled model for registerring root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
+                             "After the MPI_barrier for synchronizing all processes of the whole coupled model for registering root components including \"%s\" (the corresponding model code annotation is \"%s\")", 
                              comp_name, annotation);    
         EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_size(parent_comm, &num_procs) == MPI_SUCCESS);
         EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Comm_rank(parent_comm, &current_proc_local_id_in_parent) == MPI_SUCCESS);

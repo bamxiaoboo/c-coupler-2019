@@ -102,7 +102,7 @@ Restart_mgt::Restart_mgt(Comp_comm_group_mgt_node *comp_node)
     restart_mgt_info_written = true;
     time_mgr = NULL;
     restart_write_data_file = NULL;
-	backup_restart_write_data_file = NULL;
+    backup_restart_write_data_file = NULL;
     restart_read_data_file_name = NULL;
     are_all_restarted_fields_read = false;
     restart_normal_fields_enabled = false;
@@ -119,8 +119,8 @@ Restart_mgt::~Restart_mgt()
         delete [] restart_read_annotation;
     if (restart_read_data_file_name != NULL)
         delete restart_read_data_file_name;
-	if (backup_restart_write_data_file != NULL)
-		delete backup_restart_write_data_file;
+    if (backup_restart_write_data_file != NULL)
+        delete backup_restart_write_data_file;
 }
 
 
@@ -275,10 +275,10 @@ void Restart_mgt::do_restart_write(const char *annotation, bool bypass_timer, bo
             time_mgr->write_time_mgt_into_array(time_mgr_restart_buffer->get_buffer_content_ptr(), *(time_mgr_restart_buffer->get_buffer_max_size_ptr()), *(time_mgr_restart_buffer->get_buffer_content_iter_ptr()));
             char restart_data_file_name[NAME_STR_SIZE];
             sprintf(restart_data_file_name, "%s/%s.%s.r.%08d-%05d.nc", comp_node->get_working_dir(), time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
-			if (backup_restart_write_data_file != NULL) {
-				delete backup_restart_write_data_file;
-				backup_restart_write_data_file = NULL;
-			}
+            if (backup_restart_write_data_file != NULL) {
+                delete backup_restart_write_data_file;
+                backup_restart_write_data_file = NULL;
+            }
             restart_write_data_file = new IO_netcdf(restart_data_file_name, restart_data_file_name, "w", false);
             sprintf(restart_data_file_name, "%s/%s.%s.r.%08d-%05d", comp_node->get_working_dir(), time_mgr->get_case_name(), comp_node->get_comp_full_name(), date, second);
             FILE *restart_mgt_info_file = fopen(restart_data_file_name, "w+");
@@ -329,7 +329,7 @@ void Restart_mgt::write_restart_field_data(Field_mem_info *field_instance, const
     if (comp_node->get_current_proc_local_id() == 0) {
         strcpy(global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, field_IO_name);
         EXECUTION_REPORT(REPORT_ERROR, -1, restart_write_data_file != NULL && backup_restart_write_data_file == NULL || restart_write_data_file == NULL && backup_restart_write_data_file != NULL, "Software error in Restart_mgt::write_restart_field_data");
-		IO_netcdf *active_restart_write_data_file = restart_write_data_file != NULL? restart_write_data_file : backup_restart_write_data_file;
+        IO_netcdf *active_restart_write_data_file = restart_write_data_file != NULL? restart_write_data_file : backup_restart_write_data_file;
         EXECUTION_REPORT_LOG(REPORT_LOG, comp_node->get_comp_id(), true, "Write variable \"%s\" into restart data file \"%s\"", global_field->get_field_data()->get_grid_data_field()->field_name_in_IO_file, active_restart_write_data_file->get_file_name());
         active_restart_write_data_file->write_grided_data(global_field->get_field_data(), true, -1, -1, true);
         sprintf(hint, "restart writing field \"%s\" to the file \"%s\"", field_IO_name, active_restart_write_data_file->get_file_name());

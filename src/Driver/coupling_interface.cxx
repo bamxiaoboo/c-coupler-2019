@@ -380,7 +380,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
         EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when registering the root component (\"%s\") at the model code with the annotation \"%s\": the root compnent (\"%s\") has been registered before, at the model code with the annotation \"%s\". Please note that there must be only one root component model at each MPI process", comp_name, annotation, comp_comm_group_mgt_mgr->get_root_component_model()->get_comp_name(), comp_comm_group_mgt_mgr->get_annotation_start());
     MPI_Initialized(&flag);
     if (flag == 0) {
-        EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Initialize MPI when registerring the root component \"%s\"", comp_name);
+        EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Initialize MPI when registering the root component \"%s\"", comp_name);
         MPI_Init(NULL, NULL);
     }
 
@@ -520,7 +520,7 @@ extern "C" void get_id_of_component_
         node = NULL;
 
     if (node == NULL) {
-        EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling the API \"CCPL_get_component_id\" to get the ID of a component model: no component model with the name of \"%s\" has been registerred. Please check the model code at the annotation \"%s\"", comp_name, annotation);
+        EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when calling the API \"CCPL_get_component_id\" to get the ID of a component model: no component model with the name of \"%s\" has been registered. Please check the model code at the annotation \"%s\"", comp_name, annotation);
         *comp_id = -1;
     }
     else *comp_id = node->get_local_node_id();    
@@ -786,7 +786,7 @@ extern "C" void register_v1d_grid_with_data_
     delete [] temp_value2;
     delete [] temp_value3;
 
-    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finsh registering V1D grid %s", grid_name);
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering V1D grid %s", grid_name);
 }
 
 
@@ -1205,7 +1205,7 @@ extern "C" void set_component_time_step_
     check_API_parameter_int(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id,"C-Coupler code in set_component_time_step_"), NULL, *time_step_in_second, "time step (the unit is seconds)", annotation);
     components_time_mgrs->set_component_time_step(*comp_id, *time_step_in_second, annotation);
     
-    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finsh setting the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish setting the time step of component model \%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
 
@@ -1221,7 +1221,7 @@ extern "C" void reset_component_current_time_to_start_time_
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to reset the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
     synchronize_comp_processes_for_API(*comp_id, API_ID_TIME_MGT_SET_NORMAL_TIME_STEP, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in CCPL_reset_current_time_to_start_time_"), "resetting the current time of a component model to the initial time", annotation);
     components_time_mgrs->get_time_mgr(*comp_id)->reset_current_time_to_start_time(annotation);
-    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finishing resetting the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());    
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish resetting the current time of the component model \%s\" to start time", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());    
 }
 
 
@@ -1472,7 +1472,7 @@ extern "C" void register_inout_interface_
 #endif
 (const char *interface_name, int *interface_id, int *import_or_export, int *num_fields, int *field_ids, int *timer_id, int *inst_or_aver, const char *annotation, int *array_size1)
 {
-    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register import/export interface");
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register an import/export interface");
 
     if (*import_or_export == 0) {
         check_for_ccpl_managers_allocated(API_ID_INTERFACE_REG_IMPORT, annotation);
@@ -1485,7 +1485,7 @@ extern "C" void register_inout_interface_
         *interface_id = inout_interface_mgr->register_inout_interface(interface_name, *import_or_export, *num_fields, field_ids, *array_size1, *timer_id, 0, annotation, INTERFACE_SOURCE_REGISTER);
     }    
 
-    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish register import/export interface");
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering an import/export interface");
 }
 
 

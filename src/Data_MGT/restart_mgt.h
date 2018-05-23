@@ -72,7 +72,7 @@ class Restart_mgt
         char *restart_read_annotation;
         bool restart_mgt_info_written;
         IO_netcdf *restart_write_data_file;
-		IO_netcdf *backup_restart_write_data_file;
+        IO_netcdf *backup_restart_write_data_file;
         char *restart_read_data_file_name;
         bool restart_normal_fields_enabled;
         bool are_all_restarted_fields_read;

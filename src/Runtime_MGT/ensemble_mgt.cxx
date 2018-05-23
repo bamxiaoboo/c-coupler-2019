@@ -38,7 +38,7 @@ void Ensemble_mgt::Initialize(int ensemble_member_id, int have_random_seed_for_p
             this->perturbation_type_id = 3;
         else if (words_are_the_same("xor_last_bit_with_a_bit", perturbation_type))
             this->perturbation_type_id = 4;
-        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "\"%s\" is not a right selection for perturbing the roundoff errors of the registerred fields. Existing selections include set_last_bit_to_1, set_last_bit_to_0, reverse_last_bit and xor_last_bit_with_a_bit", perturbation_type);
+        else EXECUTION_REPORT(REPORT_ERROR,-1, false, "\"%s\" is not a right selection for perturbing the roundoff errors of the registered fields. Existing selections include set_last_bit_to_1, set_last_bit_to_0, reverse_last_bit and xor_last_bit_with_a_bit", perturbation_type);
         srand(root_random_seed_for_perturbation);
         for (int i = 0; i < ensemble_member_id; i ++)
             this->ensemble_random_seed_for_perturbation = rand();
@@ -55,7 +55,7 @@ void Ensemble_mgt::register_a_field_for_perturbation(void *data_buf)
 
     registered_field = memory_manager->search_field_via_data_buf(data_buf, false);
     EXECUTION_REPORT(REPORT_ERROR,-1, registered_field != NULL && registered_field->get_is_registered_model_buf(), 
-                     "The field data buffer for perturbing the roundoff errors has not been registerred to C-Coupler before. Please check.");
+                     "The field data buffer for perturbing the roundoff errors has not been registered to C-Coupler before. Please check.");
     EXECUTION_REPORT(REPORT_ERROR,-1, words_are_the_same(registered_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_FLOAT) || words_are_the_same(registered_field->get_field_data()->get_grid_data_field()->data_type_in_application, DATA_TYPE_DOUBLE),
                      "The data type of field %s is not real4 or real8. It cannot be used for perturbing the roundoff errors. Please check.", registered_field->get_field_name());
     registered_fields_for_perturbation.push_back(registered_field);
