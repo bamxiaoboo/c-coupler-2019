@@ -368,7 +368,7 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
     int root_comp_id;
     int current_proc_global_id;
     char file_name[NAME_STR_SIZE];
-    MPI_Comm cpp_comm = MPI_Comm_f2c(*f_comm);
+    MPI_Comm cpp_comm;
 
 
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "start to register the root component model");
@@ -388,7 +388,8 @@ int *enabled_in_parent_coupling_gen, int *change_dir, const char *executable_nam
 
     comp_comm_group_mgt_mgr = new Comp_comm_group_mgt_mgr(executable_name);
     import_report_setting();
-
+	
+	cpp_comm = MPI_Comm_f2c(*f_comm);
     if (cpp_comm != MPI_COMM_NULL) {
         EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Before MPI_barrier at root component \"%s\" for synchronizing the processes of the component (the corresponding model code annotation is \"%s\").", comp_name, annotation);
         EXECUTION_REPORT(REPORT_ERROR,-1, MPI_Barrier(cpp_comm) == MPI_SUCCESS);
