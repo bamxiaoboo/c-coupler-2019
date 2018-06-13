@@ -26,7 +26,7 @@ long get_interchange_index(long index_iter_src,
                      long *sub_grid_sizes_interchange, 
                      long *sub_grid_indexes_src,
                      long *sub_grid_indexes_interchange,
-                     int *index_interchange_table, 
+                     int *index_interchange_table_src_to_dst, 
                      int num_sized_sub_grids_src)
 {
     int i;
@@ -35,7 +35,7 @@ long get_interchange_index(long index_iter_src,
 
     if (index_iter_src == 0) {
         interchange_first_dim_total_index_base = 1;
-        for (i = 0; i < index_interchange_table[0]; i ++)
+        for (i = 0; i < index_interchange_table_src_to_dst[0]; i ++)
             interchange_first_dim_total_index_base *= sub_grid_sizes_interchange[i];
         index_iter_interchange = -interchange_first_dim_total_index_base;
     }
@@ -50,10 +50,10 @@ long get_interchange_index(long index_iter_src,
 
     for (i = 0; i < num_sized_sub_grids_src; i ++) {
         sub_grid_indexes_src[i] ++;
-        sub_grid_indexes_interchange[index_interchange_table[i]] ++;
+        sub_grid_indexes_interchange[index_interchange_table_src_to_dst[i]] ++;
         if (sub_grid_indexes_src[i] == sub_grid_sizes_src[i]) {
             sub_grid_indexes_src[i] = 0;
-            sub_grid_indexes_interchange[index_interchange_table[i]] = 0;
+            sub_grid_indexes_interchange[index_interchange_table_src_to_dst[i]] = 0;
         }
         else break;
     }
@@ -67,7 +67,7 @@ template <class T> void interchange_array_data(int num_sized_sub_grids_src,
                                                     long *sub_grid_indexes_interchange,
                                                     long *sub_grid_sizes_src,
                                                     long *sub_grid_sizes_interchange,
-                                                    int *index_interchange_table,
+                                                    int *index_interchange_table_src_to_dst,
                                                     T *data_src,
                                                     T *data_interchange,
                                                     long array_size,
@@ -75,114 +75,110 @@ template <class T> void interchange_array_data(int num_sized_sub_grids_src,
 {
     int i, j, k;
     long index_iter_src, index_iter_interchange, interchange_first_dim_total_index_base, iter;
-	long lowest_dim_size_src, higher_dims_size_src;
-	long *tmp_interchange_index_map = NULL;
-	int sub_grid_tile_sizes_src[256], sub_grid_num_tiles_src[256], sub_grid_tile_iter_src[256], total_tile_size_iter, sub_grid_tile_current_start_index[256], sub_grid_tile_current_end_index[256];
-	int interchange_block_num_elements, total_tile_size_in_each_direction, num_total_tiles, total_tile_iter;
+    long lowest_dim_size_src, higher_dims_size_src;
+    long *tmp_interchange_index_map = NULL;
+    int sub_grid_tile_sizes_src[256], sub_grid_num_tiles_src[256], sub_grid_tile_iter_src[256], total_tile_size_iter, sub_grid_tile_current_start_index[256], sub_grid_tile_current_end_index[256], index_interchange_table_dst_to_src[256];
+    int interchange_block_num_elements, total_tile_size_in_each_direction, num_total_tiles, total_tile_iter;
 
-	
-	interchange_block_num_elements = INTERCHANGE_BLOCK_SIZE / sizeof(T);
-	total_tile_size_in_each_direction = (int) sqrt((double)interchange_block_num_elements);
-	for (i = 0, total_tile_size_iter = 1; i < num_sized_sub_grids_src; i ++) {
-		if (sub_grid_sizes_src[i] <= ((int)(total_tile_size_in_each_direction/total_tile_size_iter)))
-			sub_grid_tile_sizes_src[i] = sub_grid_sizes_src[i];
-		else sub_grid_tile_sizes_src[i] = (int)(total_tile_size_in_each_direction/total_tile_size_iter);
-		total_tile_size_iter *= sub_grid_tile_sizes_src[i];
-		sub_grid_tile_iter_src[i] = 0;
-	}
-	EXECUTION_REPORT(REPORT_ERROR, -1, total_tile_size_iter <= total_tile_size_in_each_direction, "Software error in Remap_data_field::interchange_remap_data_field");
-	for (i = 0, num_total_tiles = 1; i < num_sized_sub_grids_src; i ++) {
-		total_tile_size_iter = total_tile_size_iter / sub_grid_tile_sizes_src[index_interchange_table[i]];
-		if (sub_grid_sizes_src[index_interchange_table[i]] < ((int)(interchange_block_num_elements / total_tile_size_iter)))
-			sub_grid_tile_sizes_src[index_interchange_table[i]] = sub_grid_sizes_src[index_interchange_table[i]];
-		else sub_grid_tile_sizes_src[index_interchange_table[i]] = ((int)(interchange_block_num_elements / total_tile_size_iter));
-		total_tile_size_iter *= sub_grid_tile_sizes_src[index_interchange_table[i]];
-		sub_grid_num_tiles_src[index_interchange_table[i]] = (sub_grid_sizes_src[index_interchange_table[i]]+sub_grid_tile_sizes_src[index_interchange_table[i]]-1)/sub_grid_tile_sizes_src[index_interchange_table[i]];
-		num_total_tiles *= sub_grid_num_tiles_src[index_interchange_table[i]];
-	}
-	for (i = 0; i < num_sized_sub_grids_src; i ++)
-		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "tile size of %d sub grid is %d, with %d tiles for the total size %ld", i, sub_grid_tile_sizes_src[i], sub_grid_num_tiles_src[i], sub_grid_sizes_src[i]);
 
-	interchange_first_dim_total_index_base = 1;
-	for (i = 0; i < index_interchange_table[0]; i ++)
-		interchange_first_dim_total_index_base *= sub_grid_sizes_interchange[i];
+    for (i = 0; i < num_sized_sub_grids_src; i ++)
+        index_interchange_table_dst_to_src[index_interchange_table_src_to_dst[i]] = i;
+    interchange_block_num_elements = INTERCHANGE_BLOCK_SIZE / sizeof(T);
+    total_tile_size_in_each_direction = (int) sqrt((double)interchange_block_num_elements);
+    for (i = 0, total_tile_size_iter = 1; i < num_sized_sub_grids_src; i ++) {
+        if (sub_grid_sizes_src[i] <= ((int)(total_tile_size_in_each_direction/total_tile_size_iter)))
+            sub_grid_tile_sizes_src[i] = sub_grid_sizes_src[i];
+        else sub_grid_tile_sizes_src[i] = (int)(total_tile_size_in_each_direction/total_tile_size_iter);
+        total_tile_size_iter *= sub_grid_tile_sizes_src[i];
+        sub_grid_tile_iter_src[i] = 0;
+    }
+    EXECUTION_REPORT(REPORT_ERROR, -1, total_tile_size_iter <= total_tile_size_in_each_direction, "Software error in Remap_data_field::interchange_remap_data_field");
+    for (i = 0, num_total_tiles = 1; i < num_sized_sub_grids_src; i ++) {
+        total_tile_size_iter = total_tile_size_iter / sub_grid_tile_sizes_src[index_interchange_table_dst_to_src[i]];
+        if (sub_grid_sizes_src[index_interchange_table_dst_to_src[i]] < ((int)(interchange_block_num_elements / total_tile_size_iter)))
+            sub_grid_tile_sizes_src[index_interchange_table_dst_to_src[i]] = sub_grid_sizes_src[index_interchange_table_dst_to_src[i]];
+        else sub_grid_tile_sizes_src[index_interchange_table_dst_to_src[i]] = ((int)(interchange_block_num_elements / total_tile_size_iter));
+        total_tile_size_iter *= sub_grid_tile_sizes_src[index_interchange_table_dst_to_src[i]];
+        sub_grid_num_tiles_src[index_interchange_table_dst_to_src[i]] = (sub_grid_sizes_src[index_interchange_table_dst_to_src[i]]+sub_grid_tile_sizes_src[index_interchange_table_dst_to_src[i]]-1)/sub_grid_tile_sizes_src[index_interchange_table_dst_to_src[i]];
+        num_total_tiles *= sub_grid_num_tiles_src[index_interchange_table_dst_to_src[i]];
+    }
+    interchange_first_dim_total_index_base = 1;
+    for (i = 0; i < index_interchange_table_src_to_dst[0]; i ++)
+        interchange_first_dim_total_index_base *= sub_grid_sizes_interchange[i];
 
-	if (report_error_enabled)
-		tmp_interchange_index_map = new long [array_size];
+    if (report_error_enabled)
+        tmp_interchange_index_map = new long [array_size];
 
-	for (total_tile_iter = 0; total_tile_iter < num_total_tiles; total_tile_iter ++) {
-		for (i = 0; i < num_sized_sub_grids_src; i ++) {
-			sub_grid_tile_current_start_index[i] = sub_grid_tile_iter_src[i]*sub_grid_tile_sizes_src[i];
-			if (sub_grid_tile_iter_src[i] < sub_grid_num_tiles_src[i] - 1)
-				sub_grid_tile_current_end_index[i] = (sub_grid_tile_iter_src[i]+1)*sub_grid_tile_sizes_src[i];
-			else sub_grid_tile_current_end_index[i] = sub_grid_sizes_src[i];
-			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "%d tile starts at %d and ends at %d, at total tile iter %d", i, sub_grid_tile_current_start_index[i], sub_grid_tile_current_end_index[i], total_tile_iter);
-			EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, sub_grid_tile_current_end_index[i] <= sub_grid_sizes_src[i], "Software error in interchange_array_data");
-		}
-		sub_grid_tile_iter_src[0] ++;
-		for (i = 0; i < num_sized_sub_grids_src; i ++) {
-			if (sub_grid_tile_iter_src[i] == sub_grid_num_tiles_src[i]) {
-				if (i+1 < num_sized_sub_grids_src)
-					sub_grid_tile_iter_src[i+1] ++;
-				sub_grid_tile_iter_src[i] = 0;	
-			}
-		}
-		for (i = 1, higher_dims_size_src = 1; i < num_sized_sub_grids_src; i ++)
-			higher_dims_size_src *= sub_grid_tile_current_end_index[i]-sub_grid_tile_current_start_index[i];
-		for (i = 0; i < num_sized_sub_grids_src; i ++)
-			sub_grid_indexes_src[i] = sub_grid_tile_current_start_index[i];
-		for (j = 0; j < higher_dims_size_src; j ++) {
-			for (i = 0, index_iter_src = 0, iter = 1; i < num_sized_sub_grids_src; i ++) {
-				index_iter_src += sub_grid_indexes_src[i] * iter;
-				iter *= sub_grid_sizes_src[i];
-			}
-			for (iter = 1, index_iter_interchange = 0, i = 0; i < num_sized_sub_grids_src; i ++) {
-				index_iter_interchange += sub_grid_indexes_src[index_interchange_table[i]]*iter;
-				iter *= sub_grid_sizes_interchange[i];
-			}
-			for (i = sub_grid_tile_current_start_index[0]; i < sub_grid_tile_current_end_index[0]; i ++) {
-				for (k = 0; k < num_point_per_cell; k ++)
-					data_interchange[index_iter_interchange*num_point_per_cell+k] = data_src[index_iter_src*num_point_per_cell+k];
-				if (report_error_enabled)
-					tmp_interchange_index_map[index_iter_src] = index_iter_interchange;
-				index_iter_interchange += interchange_first_dim_total_index_base;
-				index_iter_src ++;
-			}
-			for (i = 1; i < num_sized_sub_grids_src; i ++) {
-				sub_grid_indexes_src[i] ++;
-				if (sub_grid_indexes_src[i] == sub_grid_tile_current_end_index[i])
-					sub_grid_indexes_src[i] = sub_grid_tile_current_start_index[i];
-				else break;
-			}		
-		}
+    for (total_tile_iter = 0; total_tile_iter < num_total_tiles; total_tile_iter ++) {
+        for (i = 0; i < num_sized_sub_grids_src; i ++) {
+            sub_grid_tile_current_start_index[i] = sub_grid_tile_iter_src[i]*sub_grid_tile_sizes_src[i];
+            if (sub_grid_tile_iter_src[i] < sub_grid_num_tiles_src[i] - 1)
+                sub_grid_tile_current_end_index[i] = (sub_grid_tile_iter_src[i]+1)*sub_grid_tile_sizes_src[i];
+            else sub_grid_tile_current_end_index[i] = sub_grid_sizes_src[i];
+            EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, sub_grid_tile_current_end_index[i] <= sub_grid_sizes_src[i], "Software error in interchange_array_data");
+        }
+        sub_grid_tile_iter_src[0] ++;
+        for (i = 0; i < num_sized_sub_grids_src; i ++) {
+            if (sub_grid_tile_iter_src[i] == sub_grid_num_tiles_src[i]) {
+                if (i+1 < num_sized_sub_grids_src)
+                    sub_grid_tile_iter_src[i+1] ++;
+                sub_grid_tile_iter_src[i] = 0;    
+            }
+        }
+        for (i = 1, higher_dims_size_src = 1; i < num_sized_sub_grids_src; i ++)
+            higher_dims_size_src *= sub_grid_tile_current_end_index[i]-sub_grid_tile_current_start_index[i];
+        for (i = 0; i < num_sized_sub_grids_src; i ++)
+            sub_grid_indexes_src[i] = sub_grid_tile_current_start_index[i];
+        for (j = 0; j < higher_dims_size_src; j ++) {
+            for (i = 0, index_iter_src = 0, iter = 1; i < num_sized_sub_grids_src; i ++) {
+                index_iter_src += sub_grid_indexes_src[i] * iter;
+                iter *= sub_grid_sizes_src[i];
+            }
+            for (iter = 1, index_iter_interchange = 0, i = 0; i < num_sized_sub_grids_src; i ++) {                
+                index_iter_interchange += sub_grid_indexes_src[index_interchange_table_dst_to_src[i]]*iter;
+                iter *= sub_grid_sizes_interchange[i];
+            }
+            for (i = sub_grid_tile_current_start_index[0]; i < sub_grid_tile_current_end_index[0]; i ++) {
+                for (k = 0; k < num_point_per_cell; k ++)
+                    data_interchange[index_iter_interchange*num_point_per_cell+k] = data_src[index_iter_src*num_point_per_cell+k];
+                if (report_error_enabled)
+                    tmp_interchange_index_map[index_iter_src] = index_iter_interchange;
+                index_iter_interchange += interchange_first_dim_total_index_base;
+                index_iter_src ++;
+            }
+            for (i = 1; i < num_sized_sub_grids_src; i ++) {
+                sub_grid_indexes_src[i] ++;
+                if (sub_grid_indexes_src[i] == sub_grid_tile_current_end_index[i])
+                    sub_grid_indexes_src[i] = sub_grid_tile_current_start_index[i];
+                else break;
+            }        
+        }
+    }
 
-		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "index_iter_src at total tile iter %d is %ld vs %ld", total_tile_iter, index_iter_src, index_iter_interchange);
-	}
+    if (report_error_enabled) {
+        for (i = 0; i < num_sized_sub_grids_src; i ++) {
+            sub_grid_indexes_src[i] = 0;
+            sub_grid_indexes_interchange[i] = 0;
+        }
+        lowest_dim_size_src = sub_grid_sizes_src[0];
+        for (i = 1, higher_dims_size_src = 1; i < num_sized_sub_grids_src; i ++)
+            higher_dims_size_src *= sub_grid_sizes_src[i];
+        index_iter_src = 0;
+        for (index_iter_src = 0, index_iter_interchange = 0; index_iter_src < array_size; index_iter_src ++) {
+            index_iter_interchange = get_interchange_index(index_iter_src,
+                                                           index_iter_interchange,
+                                                           sub_grid_sizes_src, 
+                                                           sub_grid_sizes_interchange, 
+                                                           sub_grid_indexes_src,
+                                                           sub_grid_indexes_interchange,
+                                                           index_interchange_table_src_to_dst, 
+                                                           num_sized_sub_grids_src);
+            EXECUTION_REPORT(REPORT_ERROR, -1, tmp_interchange_index_map[index_iter_src] == index_iter_interchange, "Software error in T interchange_array_data %ld: %ld vs %ld", index_iter_src, tmp_interchange_index_map[index_iter_src], index_iter_interchange);
+        }
+    }
 
-	if (report_error_enabled) {
-		for (i = 0; i < num_sized_sub_grids_src; i ++) {
-			sub_grid_indexes_src[i] = 0;
-			sub_grid_indexes_interchange[i] = 0;
-		}
-		lowest_dim_size_src = sub_grid_sizes_src[0];
-		for (i = 1, higher_dims_size_src = 1; i < num_sized_sub_grids_src; i ++)
-			higher_dims_size_src *= sub_grid_sizes_src[i];
-		index_iter_src = 0;
-	    for (index_iter_src = 0, index_iter_interchange = 0; index_iter_src < array_size; index_iter_src ++) {
-	        index_iter_interchange = get_interchange_index(index_iter_src,
-	                                                       index_iter_interchange,
-	                                                       sub_grid_sizes_src, 
-	                                                       sub_grid_sizes_interchange, 
-	                                                       sub_grid_indexes_src,
-	                                                       sub_grid_indexes_interchange,
-	                                                       index_interchange_table, 
-	                                                       num_sized_sub_grids_src);
-			EXECUTION_REPORT(REPORT_ERROR, -1, tmp_interchange_index_map[index_iter_src] == index_iter_interchange, "Software error in T interchange_array_data %ld: %ld vs %ld", index_iter_src, tmp_interchange_index_map[index_iter_src], index_iter_interchange);
-	    }
-	}
-
-	if (tmp_interchange_index_map != NULL)
-		delete [] tmp_interchange_index_map;
+    if (tmp_interchange_index_map != NULL)
+        delete [] tmp_interchange_index_map;
 }
 
 
@@ -234,7 +230,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
     int num_sized_sub_grids_src, num_sized_sub_grids_interchange;
     Remap_grid_class *sized_sub_grids_src[256], *sized_sub_grids_interchange[256]; 
     long sub_grid_sizes_src[256], sub_grid_sizes_interchange[256];
-    int index_interchange_table[256];
+    int index_interchange_table_src_to_dst[256];
     long sub_grid_indexes_src[256], sub_grid_indexes_interchange[256];
     int i, j;
     int num_point_per_cell;
@@ -245,7 +241,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
 
     grid_src->get_sized_sub_grids(&num_sized_sub_grids_src, sized_sub_grids_src);
     grid_interchange->get_sized_sub_grids(&num_sized_sub_grids_interchange, sized_sub_grids_interchange);
-    grid_src->get_grid_index_interchange_table(grid_interchange, index_interchange_table);
+    grid_src->get_grid_index_interchange_table(grid_interchange, index_interchange_table_src_to_dst);
     num_point_per_cell = this->required_data_size / grid_src->get_grid_size();
     for (i = 0; i < num_sized_sub_grids_src; i ++)
         sub_grid_sizes_src[i] = sized_sub_grids_src[i]->get_grid_size();
@@ -259,7 +255,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
                            sub_grid_indexes_interchange, 
                            sub_grid_sizes_src, 
                            sub_grid_sizes_interchange, 
-                           index_interchange_table,
+                           index_interchange_table_src_to_dst,
                            (double*) this->data_buf,
                            (double*) field_data_interchanged->data_buf,
                            grid_src->get_grid_size(),
@@ -271,7 +267,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
                            sub_grid_indexes_interchange, 
                            sub_grid_sizes_src, 
                            sub_grid_sizes_interchange, 
-                           index_interchange_table,
+                           index_interchange_table_src_to_dst,
                            (int*) this->data_buf,
                            (int*) field_data_interchanged->data_buf,
                            grid_src->get_grid_size(),
@@ -283,7 +279,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
                            sub_grid_indexes_interchange, 
                            sub_grid_sizes_src, 
                            sub_grid_sizes_interchange, 
-                           index_interchange_table,
+                           index_interchange_table_src_to_dst,
                            (char*) this->data_buf,
                            (char*) field_data_interchanged->data_buf,
                            grid_src->get_grid_size(),
@@ -294,7 +290,7 @@ void Remap_data_field::interchange_remap_data_field(Remap_data_field *field_data
                            sub_grid_indexes_interchange, 
                            sub_grid_sizes_src, 
                            sub_grid_sizes_interchange, 
-                           index_interchange_table,
+                           index_interchange_table_src_to_dst,
                            (short*) this->data_buf,
                            (short*) field_data_interchanged->data_buf,
                            grid_src->get_grid_size(),
