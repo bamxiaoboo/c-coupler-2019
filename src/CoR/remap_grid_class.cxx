@@ -838,6 +838,7 @@ void Remap_grid_class::set_lev_grid_sigma_info(double top_value, const double *s
         hybrid_grid_coefficient_field = new Remap_grid_data_class(this, remap_data_field);
     }
     allocate_sigma_grid_specific_fields(hybrid_grid_coefficient_field, sigma_value_field, NULL, top_value, scale_factor);
+    this->super_grid_of_setting_coord_values = this;
 }
 
 
@@ -857,6 +858,7 @@ void Remap_grid_class::set_lev_grid_sigma_info(const char *sigma_value_field_nam
     else hybrid_grid_coefficient_field = NULL;
     EXECUTION_REPORT(REPORT_ERROR, -1, sigma_value_field != NULL, "C-Coupler error2 in set_lev_grid_sigma_info");
     allocate_sigma_grid_specific_fields(hybrid_grid_coefficient_field, sigma_value_field, NULL, top_value, scale_factor);
+    this->super_grid_of_setting_coord_values = this;
 }
 
 
