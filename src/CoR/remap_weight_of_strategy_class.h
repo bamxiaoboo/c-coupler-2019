@@ -83,7 +83,7 @@ class Remap_weight_of_operator_class
 class Remap_weight_of_strategy_class
 {
     private:
-        char object_name[256];
+        char object_name[NAME_STR_SIZE];
         std::vector<Remap_weight_of_operator_class*> remap_weights_of_operators;
         Remap_grid_class *data_grid_src;
         Remap_grid_class *data_grid_dst;
