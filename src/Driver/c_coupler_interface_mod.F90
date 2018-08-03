@@ -29,7 +29,7 @@
    public :: CCPL_register_IO_fields_from_field_instances 
    public :: CCPL_get_number_of_current_step 
    public :: CCPL_get_number_of_total_steps 
-   public :: CCPL_normal_time_step
+   public :: CCPL_get_normal_time_step
    public :: CCPL_is_first_step
    public :: CCPL_is_first_restart_step
    public :: CCPL_get_current_num_days_in_year
@@ -1146,7 +1146,7 @@
 
 
 
- integer FUNCTION CCPL_normal_time_step(comp_id, annotation)
+ integer FUNCTION CCPL_get_normal_time_step(comp_id, annotation)
    implicit none  
    integer, intent(in) :: comp_id
    character(len=*), intent(in), optional :: annotation
@@ -1157,9 +1157,9 @@
    else 
       call get_ccpl_time_step(comp_id, step_size, trim("")//char(0))
    endif
-   CCPL_normal_time_step = step_size
+   CCPL_get_normal_time_step = step_size
 
- END FUNCTION CCPL_normal_time_step
+ END FUNCTION CCPL_get_normal_time_step
 
 
 
