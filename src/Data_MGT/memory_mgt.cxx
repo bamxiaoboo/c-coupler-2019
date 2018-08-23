@@ -497,7 +497,7 @@ int Memory_mgt::register_external_field_instance(const char *field_name, void *d
 
     existing_field_instance_instance = search_field_instance(field_name, decomp_id, comp_or_grid_id, buf_mark);
     if (existing_field_instance_instance != NULL)
-        EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance of \"%s\": cannot register an instance of the field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
+        EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "Error happens when calling the API \"CCPL_register_field_instance\" to register a field instance: cannot register an instance of the field of \"%s\" again (the corresponding annotation is \"%s\") because this field instance has been registered before (the corresponding annotation is \"%s\")", 
                          field_name, annotation, annotation_mgr->get_annotation(existing_field_instance_instance->get_field_instance_id(), "allocate field instance"));
 
     new_field_instance = new Field_mem_info(field_name, decomp_id, comp_or_grid_id, buf_mark, unit, data_type, annotation, (buf_mark!=BUF_MARK_IO_FIELD_REG) && (usage_tag&REG_FIELD_TAG_CPL) == REG_FIELD_TAG_CPL);
