@@ -136,10 +136,11 @@ void Field_mem_info::reset_mem_buf(void * buf, bool is_external_field, int usage
         delete [] grided_field_data->get_grid_data_field()->data_buf;
 
     grided_field_data->get_grid_data_field()->data_buf = buf;
-    is_registered_model_buf = true;
 
-    if (is_external_field)
+    if (is_external_field) {
         this->usage_tag = usage_tag;
+		is_registered_model_buf = true;
+    }
 }
 
 

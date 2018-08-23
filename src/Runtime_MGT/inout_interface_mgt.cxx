@@ -1098,10 +1098,10 @@ void Inout_interface::add_remappling_fraction_processing(void *frac_src, void *f
     EXECUTION_REPORT_LOG(REPORT_LOG, comp_id, true, "Finish checking for adding remappling fraction processing for the remapping interface \"%s\"", interface_name);
 
     Field_mem_info *frac_field_src = memory_manager->alloc_mem("remap_frac", template_field_src->get_decomp_id(), template_field_src->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "source fraction for remapping", false);
-    frac_field_src->reset_mem_buf(frac_src, false, -1);
+    frac_field_src->reset_mem_buf(frac_src, true, -1);
     Field_mem_info *frac_field_dst = memory_manager->alloc_mem("remap_frac", template_field_dst->get_decomp_id(), template_field_dst->get_comp_or_grid_id(), BUF_MARK_REMAP_FRAC ^ coupling_generator->get_latest_connection_id(), frac_data_type, "unitless", "target fraction for remapping", false);
     if (size_frac_dst != -1) 
-        frac_field_dst->reset_mem_buf(frac_dst, false, -1);
+        frac_field_dst->reset_mem_buf(frac_dst, true, -1);
     memset(frac_field_dst->get_data_buf(), 0, frac_field_dst->get_size_of_field()*get_data_type_size(frac_field_dst->get_data_type()));
     interface_type = COUPLING_INTERFACE_MARK_FRAC_REMAP;
     EXECUTION_REPORT(REPORT_ERROR, -1, fields_mem_registered.size() == 0, "Software error in Inout_interface::add_remappling_fraction_processing");
