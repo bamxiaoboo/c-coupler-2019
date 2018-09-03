@@ -120,7 +120,7 @@ Runtime_remapping_weights::Runtime_remapping_weights(const char *src_comp_full_n
     sprintf(remap_weight_name, "weights_%lx_%s(%s)_to_%s(%s)", remapping_setting->calculate_checksum(), src_original_grid->get_grid_name(), src_comp_full_name, dst_original_grid->get_grid_name(), dst_comp_full_name);
     if (H2D_remapping_weight_file != NULL) {
         EXECUTION_REPORT(REPORT_PROGRESS, dst_decomp_info->get_host_comp_id(), true, "The remapping weight file \"%s\" will be used for data remapping from the horizontal grid \"%s\" (of the component model \"%s\") to the horizontal grid \"%s\" (of the component model \"%s\").", H2D_remapping_weight_file->get_wgt_file_name(), src_original_grid->get_grid_name(), src_comp_full_name, dst_original_grid->get_grid_name(), dst_comp_full_name);
-        sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name());
+        sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), H2D_remapping_weight_file->get_wgt_file_name(), true);
         if (src_original_grid->is_H2D_grid()) 
             set_H2D_grids_area(H2D_remapping_weight_file->get_src_area(), H2D_remapping_weight_file->get_dst_area(), src_original_grid->get_original_CoR_grid()->get_grid_size(), dst_original_grid->get_original_CoR_grid()->get_grid_size());
         H2D_remapping_weight_file->clean();
@@ -134,11 +134,12 @@ Runtime_remapping_weights::Runtime_remapping_weights(const char *src_comp_full_n
         for (int i = 0; i < dst_decomp_info->get_num_local_cells(); i ++)
         	if (dst_decomp_info->get_local_cell_global_indx()[i] != CCPL_NULL_INT)
                 H2D_grid_decomp_mask[dst_decomp_info->get_local_cell_global_indx()[i]] = true;
-        sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), NULL);
+        sequential_remapping_weights = new Remap_weight_of_strategy_class(remap_weight_name, remapping_strategy, src_original_grid->get_original_CoR_grid(), dst_original_grid->get_original_CoR_grid(), NULL, true);
         delete [] H2D_grid_decomp_mask;
         H2D_grid_decomp_mask = NULL;
         if (src_original_grid->is_H2D_grid() && src_original_grid->get_original_CoR_grid()->get_area_or_volumn() != NULL)
             set_H2D_grids_area(src_original_grid->get_original_CoR_grid()->get_area_or_volumn(), src_original_grid->get_original_CoR_grid()->get_area_or_volumn(), src_original_grid->get_original_CoR_grid()->get_grid_size(), dst_original_grid->get_original_CoR_grid()->get_grid_size());
+		sequential_remapping_weights->write_overall_H2D_remapping_weights(dst_decomp_info->get_comp_id());
     }    
     EXECUTION_REPORT_LOG(REPORT_LOG, dst_decomp_info->get_host_comp_id(), true, "after generating sequential_remapping_weights from original grid %s to %s", src_original_grid->get_grid_name(), dst_original_grid->get_grid_name());    
     execution_phase_number = 2;
