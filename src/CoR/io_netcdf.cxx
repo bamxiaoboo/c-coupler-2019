@@ -679,9 +679,10 @@ void IO_netcdf::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
 
     EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(open_format, "w"), "can not write to netcdf file %s: %s, whose open format is not write\n", object_name, file_name);
     EXECUTION_REPORT(REPORT_ERROR, -1, remap_weights != NULL, "remap software error1 in write_remap_weights of netcdf file\n");
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, remap_grid_manager->search_remap_grid_with_grid_name(remap_weights->get_data_grid_src()->get_grid_name()) != NULL && remap_grid_manager->search_remap_grid_with_grid_name(remap_weights->get_data_grid_dst()->get_grid_name()) != NULL, "Software error in Remap_weight_of_operator_class::write_overall_remapping_weights");
 
-    remap_grid_src = remap_weights->get_data_grid_src();
-    remap_grid_dst = remap_weights->get_data_grid_dst();
+    remap_grid_src = remap_grid_manager->search_remap_grid_with_grid_name(remap_weights->get_data_grid_src()->get_grid_name());
+    remap_grid_dst = remap_grid_manager->search_remap_grid_with_grid_name(remap_weights->get_data_grid_dst()->get_grid_name());
 
 	if (remap_weights->get_remap_strategy() != NULL) {
 	    EXECUTION_REPORT(REPORT_ERROR, -1, remap_grid_src->are_all_vertex_fields_specified_by_user(),
@@ -700,8 +701,8 @@ void IO_netcdf::write_remap_weights(Remap_weight_of_strategy_class *remap_weight
         remap_operator = remap_weights->get_unique_remap_operator_of_weights();
         EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator != NULL,
                      "for SCRIP format of remap weights, we only support horizontal 2D remap of only one 2D remap algorithm\n");
-        remap_operator_grid_src = new Remap_operator_grid(remap_weights->get_data_grid_src(), remap_operator, true, false);
-        remap_operator_grid_dst = new Remap_operator_grid(remap_weights->get_data_grid_dst(), remap_operator, true, false);
+        remap_operator_grid_src = new Remap_operator_grid(remap_weights->get_data_grid_src(), remap_operator, false, false);
+        remap_operator_grid_dst = new Remap_operator_grid(remap_weights->get_data_grid_dst(), remap_operator, false, false);
         remap_operator_grid_src->update_operator_grid_data();
         remap_operator_grid_dst->update_operator_grid_data();
         EXECUTION_REPORT(REPORT_ERROR, -1, remap_operator->get_num_remap_weights_groups() == 1,
@@ -1050,9 +1051,11 @@ void IO_netcdf::read_file_field(const char *field_name, void **data_array_ptr, i
             return;
         MPI_Bcast(field_size, 1, MPI_INT, 0, comm);
         MPI_Bcast(data_type, NAME_STR_SIZE, MPI_CHAR, 0, comm);
-        if (data_array == NULL)
-            data_array = new char [(*field_size)*get_data_type_size(data_type)];
-        MPI_Bcast(data_array, (*field_size)*get_data_type_size(data_type), MPI_CHAR, 0, comm);
+		if (field_size > 0) {
+	        if (data_array == NULL)
+	            data_array = new char [(*field_size)*get_data_type_size(data_type)];
+	        MPI_Bcast(data_array, (*field_size)*get_data_type_size(data_type), MPI_CHAR, 0, comm);
+		}
     }
 
     *data_array_ptr = data_array;
