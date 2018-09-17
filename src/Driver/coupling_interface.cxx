@@ -650,7 +650,7 @@ extern "C" void ccpl_family_coupling_generation_
     check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_FAMILY, annotation, false);
     EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
     synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_FAMILY, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_family_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);    
-    coupling_generator->generate_coupling_procedures_internal(*comp_id, true, annotation);
+    coupling_generator->generate_coupling_procedures_internal(*comp_id, true, false, annotation);
     EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
@@ -665,7 +665,7 @@ extern "C" void ccpl_individual_coupling_generation_
     check_for_component_registered(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, annotation, false);
     EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "start to generate coupling procedures for the component model \"%s\"", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
     synchronize_comp_processes_for_API(*comp_id, API_ID_COUPLING_GEN_INDIVIDUAL, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(*comp_id, "C-Coupler code in ccpl_individual_coupling_generation_"), "first synchorization for coupling generation of a component", annotation);    
-    coupling_generator->generate_coupling_procedures_internal(*comp_id, false, annotation);
+    coupling_generator->generate_coupling_procedures_internal(*comp_id, false, true, annotation);
     EXECUTION_REPORT_LOG(REPORT_LOG, *comp_id, true, "Finish generating coupling procedures for the component model \"%s\" and its descendants", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id,true,"")->get_full_name());
 }
 
