@@ -45,10 +45,10 @@
 #define RUNTYPE_BRANCH                  "branch"
 #define RUNTYPE_HYBRID                  "hybrid"
 
-#define SECONDS_PER_DAY                 86400
-#define NUM_MONTH_PER_YEAR              12
-#define NUM_DAYS_PER_NONLEAP_YEAR       365
-#define NUM_DAYS_PER_LEAP_YEAR          366
+#define SECONDS_PER_DAY                 ((long)86400)
+#define NUM_MONTH_PER_YEAR              ((long)12)
+#define NUM_DAYS_PER_NONLEAP_YEAR       ((long)365)
+#define NUM_DAYS_PER_LEAP_YEAR          ((long)366)
 
 
 #define IS_TIME_UNIT_STEP(unit)         (words_are_the_same(unit,FREQUENCY_UNIT_STEP) || words_are_the_same(unit,FREQUENCY_UNIT_STEPS) || words_are_the_same(unit,FREQUENCY_UNIT_NSTEP) || words_are_the_same(unit,FREQUENCY_UNIT_NSTEPS))
