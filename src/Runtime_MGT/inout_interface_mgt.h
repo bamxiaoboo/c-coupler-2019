@@ -101,6 +101,7 @@ class Connection_coupling_procedure
         Restart_mgt *restart_mgr;
         int remote_bypass_counter;
         bool is_coupling_time_out_of_execution;
+		long last_receive_sender_time;
         
     public:
         Connection_coupling_procedure(Inout_interface*, Coupling_connection*);
@@ -121,6 +122,7 @@ class Connection_coupling_procedure
         Inout_interface *get_inout_interface() { return inout_interface; }
         bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time, false); }
         bool get_is_coupling_time_out_of_execution() { return is_coupling_time_out_of_execution; }
+		long get_last_receive_sender_time() { return last_receive_sender_time; }
 };
 
 
@@ -141,6 +143,7 @@ class Inout_interface
         std::vector<bool> fields_connected_status;
         std::vector<int> imported_fields_necessity;
         std::vector<Connection_coupling_procedure*> coupling_procedures;
+		std::vector<Connection_coupling_procedure*> fields_coupling_procedures;
         std::vector<Inout_interface *> children_interfaces;           // only for remap interface 
         int execution_checking_status;
         long last_execution_time;
@@ -191,7 +194,8 @@ class Inout_interface
         void write_restart_mgt_info(Restart_buffer_container*);
         bool get_is_child_interface() { return is_child_interface; }
         bool is_in_restart_write_window();
-        void read_restart_fields(int, const char*);
+        void read_restart_fields(int, const char*);	
+		void get_sender_time(int, int, int, int*, int*, int*, const char*);
 };
 
 

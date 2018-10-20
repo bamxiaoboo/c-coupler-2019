@@ -225,6 +225,7 @@ class Time_mgt
         void check_timer_format(const char*, int, int, int, bool, const char*);
         bool check_time_consistency_between_components(long);
         long calculate_elapsed_day(int, int, int);
+		long get_elapsed_day_from_full_time(long);
         void get_elapsed_days_from_start_date(int*, int*);
         void get_elapsed_days_from_reference_date(int*, int*);
         void get_current_time(int&, int&, int&, int&, int, const char*);

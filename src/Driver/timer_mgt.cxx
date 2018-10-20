@@ -610,6 +610,16 @@ long Time_mgt::calculate_elapsed_day(int year, int month, int day)
 }
 
 
+long Time_mgt::get_elapsed_day_from_full_time(long full_time)
+{
+	int year = full_time / 1000000000;
+	int month = full_time%((long)1000000000) / 10000000;
+	int day = full_time%((long)10000000) / 100000;
+
+	return calculate_elapsed_day(year, month, day);
+}
+
+
 void Time_mgt::advance_time(int &current_year, int &current_month, int &current_day, int &current_second, int &current_num_elapsed_day, int time_step_in_second)
 {
     int i, num_days_in_current_month;

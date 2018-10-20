@@ -105,6 +105,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
     this->coupling_connection = coupling_connection; 
     coupling_connections_dumped = false;
     remote_bypass_counter = -1;
+	last_receive_sender_time = 0;
     is_coupling_time_out_of_execution = false;
     restart_mgr = comp_comm_group_mgt_mgr->search_global_node(inout_interface->get_comp_id())->get_restart_mgr();
 
@@ -299,7 +300,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
                 EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), !(!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) || last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
             }
             else if (!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH))
-                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), inout_interface->get_bypass_counter() - 1 == remote_bypass_counter, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), (inout_interface->get_bypass_counter() - 1)%8 == remote_bypass_counter, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 2");
             transfer_data = true;
         }
         else if (!(fields_time_info_dst->current_num_elapsed_days != fields_time_info_dst->last_timer_num_elapsed_days || fields_time_info_dst->current_second != fields_time_info_dst->last_timer_second)) {
@@ -354,19 +355,23 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
             }
         }
         finish_status = true;
+		if (transfer_data) {
+			last_receive_sender_time = runtime_data_transfer_algorithm->get_history_receive_sender_time() % ((long)10000000000000000);
+            remote_bypass_counter = runtime_data_transfer_algorithm->get_history_receive_sender_time() / ((long)10000000000000000);
+            EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "interface \"%s\" last_receive_sender_time is %ld", inout_interface->get_interface_name(), last_receive_sender_time);
+		}
         for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
             if (!transfer_data)
                 continue;
-            remote_bypass_counter = runtime_data_transfer_algorithm->get_history_receive_sender_time(i) / ((long)100000000000000);
             EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Bypass counter: remote is %d while local is %d", remote_bypass_counter, inout_interface->get_bypass_counter());
             if (bypass_timer) {
-                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == inout_interface->get_bypass_counter(), "Error happens when executing the import interface \"%s\" with its timer bypassed (the corresponding input parameter \"bypass_timer\" has been set to true): the data currently obtained by this import interface should be but is not from a timer bypassed execution of the corresponding export interface \"%s\" of the component model \"%s\". Please verify.", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == (inout_interface->get_bypass_counter()%8), "Error happens when executing the import interface \"%s\" with its timer bypassed (the corresponding input parameter \"bypass_timer\" has been set to true): the data currently obtained by this import interface should be but is not from a timer bypassed execution of the corresponding export interface \"%s\" of the component model \"%s\". Please verify.", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
             }
             else {
                 EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when executing the import interface \"%s\" with its timer unbypassed (the corresponding input parameter \"bypass_timer\" has been set to false): the data currently obtained by this import interface should be but is not from a timer unbypassed execution of the corresponding export interface \"%s\" of the component model \"%s\". Please verify.", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
-                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), runtime_data_transfer_algorithm->get_history_receive_sender_time(i) == current_remote_fields_time, 
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), time_mgr->get_elapsed_day_from_full_time(last_receive_sender_time)*((long)100000) + last_receive_sender_time%100000 == current_remote_fields_time, 
                                  "Software error: Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %ld). Please verify. ", 
-                                 inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, current_remote_fields_time, runtime_data_transfer_algorithm->get_history_receive_sender_time(i));
+                                 inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, current_remote_fields_time, runtime_data_transfer_algorithm->get_history_receive_sender_time());
             }    
         }
         return;
@@ -598,6 +603,7 @@ Inout_interface::Inout_interface(const char *interface_name, int interface_id, i
             EXECUTION_REPORT(REPORT_ERROR, comp_id, field_instance->is_CPL_field_inst(), "Error happens when calling the API \"%s\" to register an interface named \"%s\" at the model code with the annotation \"%s\": the field instance of \"%s\" cannot not be referred by an import/export interface because it has not been declared as a coupling field instance. Please check the parameter \"usage_tag\" when registering this field instance (at the model code with the annotation \"%s\")", API_label, interface_name, annotation, field_instance->get_field_name(), annotation_mgr->get_annotation(field_instance->get_field_instance_id(), "allocate field instance"));
         fields_mem_registered.push_back(field_instance);
         fields_connected_status.push_back(false);
+		fields_coupling_procedures.push_back(NULL);
         if (interface_type == COUPLING_INTERFACE_MARK_IMPORT && !is_child_interface)
             restart_mgr->add_restarted_field_instance(fields_mem_registered[fields_mem_registered.size()-1], true);
     }
@@ -860,6 +866,7 @@ void Inout_interface::add_coupling_procedure(Connection_coupling_procedure *coup
                     if (!fields_connected_status[i])
                         num_fields_connected ++;
                     fields_connected_status[j] = true;
+					fields_coupling_procedures[j] = coupling_procedure;
                 }
     }
 }
@@ -1234,6 +1241,25 @@ int Inout_interface::check_is_import_field_connected(int field_instance_id, cons
     EXECUTION_REPORT(REPORT_ERROR, comp_id, i < fields_mem_registered.size(), "ERROR happens when calling the API \"CCPL_check_is_import_field_connected\": the parameter \"field_instance_id\" (currently is 0x%x) fails to specify a field instance in the corresponding coupling interface \"%s\". Please verify the model code with the annotation \"%s\".", field_instance_id, interface_name, annotation);
 
     return (fields_connected_status[i]? 1 : 0);
+}
+
+
+void Inout_interface::get_sender_time(int size_sender_date, int size_sender_elapsed_days, int size_sender_second, int *sender_date, int *sender_elapsed_days, int *sender_second, const char *annotation)
+{
+    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, interface_type == COUPLING_INTERFACE_MARK_IMPORT, "ERROR happens when calling the API \"CCPL_get_import_fields_sender_time\": the corresponding coupling interface \"%s\" is not an import interface. Please verify the model code with the annotation \"%s\".", interface_name, annotation);
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, fields_mem_registered.size() <= size_sender_elapsed_days, "ERROR happens when calling the API \"CCPL_get_import_fields_sender_time\" to get the current sender time of the field instances imported by the interface \"%s\": the array size of the input parameter \"sender_date\" (%d) is smaller than the number of fields (%d). Please verify the model code with the annotation \"%s\".", interface_name, size_sender_second, fields_mem_registered.size(), annotation);
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, fields_mem_registered.size() <= size_sender_second, "ERROR happens when calling the API \"CCPL_get_import_fields_sender_time\" to get the current sender time of the field instances imported by the interface \"%s\": the array size of the input parameter \"sender_second\" (%d) is smaller than the number of fields (%d). Please verify the model code with the annotation \"%s\".", interface_name, size_sender_second, fields_mem_registered.size(), annotation);
+	EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, fields_mem_registered.size() <= size_sender_elapsed_days, "ERROR happens when calling the API \"CCPL_get_import_fields_sender_time\" to get the current sender time of the field instances imported by the interface \"%s\": the array size of the input parameter \"sender_elapsed_days\" (%d) is smaller than the number of fields (%d). Please verify the model code with the annotation \"%s\".", interface_name, size_sender_elapsed_days, fields_mem_registered.size(), annotation);	
+	
+	for (int i = 0; i < fields_mem_registered.size(); i ++) {
+		sender_elapsed_days[i] = CCPL_NULL_INT;
+		sender_second[i] = CCPL_NULL_INT;
+		if (fields_coupling_procedures[i] != NULL) {
+			sender_date[i] = fields_coupling_procedures[i]->get_last_receive_sender_time() / 100000;
+			sender_second[i] = fields_coupling_procedures[i]->get_last_receive_sender_time() % 100000;
+			sender_elapsed_days[i] = time_mgr->calculate_elapsed_day(sender_date[i]/10000, (sender_date[i]%10000)/100, sender_date[i]%100);
+		}
+	}
 }
 
 

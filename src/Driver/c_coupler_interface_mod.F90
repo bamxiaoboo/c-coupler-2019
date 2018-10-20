@@ -82,6 +82,7 @@
    public :: CCPL_execute_interface_using_id 
    public :: CCPL_execute_interface_using_name
    public :: CCPL_check_is_import_field_connected
+   public :: CCPL_get_import_fields_sender_time
    public :: CCPL_get_local_comp_full_name 
    public :: CCPL_report_log 
    public :: CCPL_report_progress 
@@ -2867,6 +2868,30 @@
    
 
 
+   SUBROUTINE CCPL_get_import_fields_sender_time(import_interface_id, sender_date, sender_second, sender_elapased_days, annotation)
+   implicit none
+   integer,          intent(in)                          :: import_interface_id
+   integer,          intent(out), dimension(:)           :: sender_date
+   integer,          intent(out), dimension(:)           :: sender_second
+   integer,          intent(out), dimension(:),optional  :: sender_elapased_days ! number of elapased days since 0000-01-01
+   character(len=*), intent(in), optional                :: annotation
+   character *2048                                       :: local_annotation
+   integer                                               :: temp_sender_elapased_days(4096) 
+
+   local_annotation = ""
+   if (present(annotation)) then
+       local_annotation = annotation
+   endif
+   if (present(sender_elapased_days)) then
+      call get_ccpl_import_fields_sender_time(import_interface_id, size(sender_date), size(sender_elapased_days), size(sender_second), sender_date, sender_elapased_days, sender_second, trim(local_annotation)//char(0))
+   else
+      call get_ccpl_import_fields_sender_time(import_interface_id, size(sender_date), size(temp_sender_elapased_days), size(sender_second), sender_date, temp_sender_elapased_days, sender_second, trim(local_annotation)//char(0))
+   endif
+   
+   END SUBROUTINE CCPL_get_import_fields_sender_time
+
+
+
    integer FUNCTION CCPL_register_import_interface(interface_name, num_field_instances, field_instance_IDs, timer_ID, inst_or_aver, necessity, annotation)
    implicit none
    character(len=*), intent(in)                         :: interface_name
@@ -2922,7 +2947,7 @@
    integer                                               :: local_bypass_timer
    integer,          intent(out), dimension(:), optional :: field_update_status
    integer                                               :: temp_field_update_status(4096), i, num_dst_fields
-   character *2048                                        :: local_annotation
+   character *2048                                       :: local_annotation
 
 
    if (bypass_timer) then
