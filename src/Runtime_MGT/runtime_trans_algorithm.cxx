@@ -255,7 +255,7 @@ bool Runtime_trans_algorithm::set_local_tags()
 {
     MPI_Win_lock(MPI_LOCK_SHARED, current_proc_id_union_comm, 0, data_win);
     send_tag_buf[0] = current_field_local_recv_count;
-    send_tag_buf[1] = ((long)time_mgr->get_current_num_elapsed_day())*100000 + ((long)time_mgr->get_current_second());
+    send_tag_buf[1] = time_mgr->get_current_full_time();
     send_tag_buf[2] = (long) time_mgr->get_runtype_mark();
     send_tag_buf[3] = time_mgr->get_restart_full_time();
     current_field_local_recv_count ++;

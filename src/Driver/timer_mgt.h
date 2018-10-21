@@ -110,7 +110,7 @@ class Coupling_timer
         int get_remote_lag_count() { return remote_lag_count; }
         const char *get_frequency_unit() { return frequency_unit; }
         void write_timer_into_array(char **, long &, long &);
-        void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, bool);
+        void get_time_of_next_timer_on(Time_mgt *, int, int, int, int, int, int, int &, int &, int &, bool);
         void reset_remote_lag_count() { remote_lag_count = 0; }
         void check_timer_format();
         bool is_the_same_with(Coupling_timer *);

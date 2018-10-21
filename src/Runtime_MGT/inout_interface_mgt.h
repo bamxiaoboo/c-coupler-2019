@@ -53,8 +53,10 @@ class Connection_field_time_info
         int current_day;
         int current_second;
         int current_num_elapsed_days;
+		int last_timer_date;
         int last_timer_num_elapsed_days;
         int last_timer_second;
+		int next_timer_date;
         int next_timer_num_elapsed_days;
         int next_timer_second;
         int time_step_in_second;
@@ -86,7 +88,8 @@ class Connection_coupling_procedure
         Connection_field_time_info * fields_time_info_src;
         Connection_field_time_info * fields_time_info_dst;
         long last_remote_fields_time;
-        long current_remote_fields_time;
+		long current_remote_fields_time;
+        long current_remote_fields_elapsed_time;
         Coupling_connection *coupling_connection;
         Inout_interface *inout_interface;
         std::vector<Runtime_cumulate_average_algorithm*> runtime_inner_averaging_algorithm;
@@ -120,7 +123,7 @@ class Connection_coupling_procedure
         bool get_coupling_connections_dumped(){return coupling_connections_dumped;}
         void set_coupling_connections_dumped(){ coupling_connections_dumped = true;}
         Inout_interface *get_inout_interface() { return inout_interface; }
-        bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_time, false); }
+        bool is_in_restart_write_window() { return restart_mgr->is_in_restart_write_window(current_remote_fields_elapsed_time, false); }
         bool get_is_coupling_time_out_of_execution() { return is_coupling_time_out_of_execution; }
 		long get_last_receive_sender_time() { return last_receive_sender_time; }
 };

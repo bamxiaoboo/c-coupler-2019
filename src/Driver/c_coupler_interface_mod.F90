@@ -2850,9 +2850,9 @@
 
 
 
-   logical FUNCTION CCPL_check_is_import_field_connected(interface_id, field_instance_id, annotation)
+   logical FUNCTION CCPL_check_is_import_field_connected(import_interface_id, field_instance_id, annotation)
    implicit none
-   integer,          intent(in)                         :: interface_id
+   integer,          intent(in)                         :: import_interface_id
    integer,          intent(in)                         :: field_instance_id
    character(len=*), intent(in), optional               :: annotation
    character *2048                                      :: local_annotation
@@ -2860,7 +2860,7 @@
 
    local_annotation = ""
    if (present(annotation)) local_annotation = annotation
-   call check_is_ccpl_import_field_connected(interface_id, field_instance_id, check_result, trim(local_annotation)//char(0))
+   call check_is_ccpl_import_field_connected(import_interface_id, field_instance_id, check_result, trim(local_annotation)//char(0))
    CCPL_check_is_import_field_connected = .true.
    if (check_result .eq. 0) CCPL_check_is_import_field_connected = .false.
    

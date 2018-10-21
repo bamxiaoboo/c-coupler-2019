@@ -36,16 +36,19 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
         this->time_step_in_second = time_step_in_second;
         if (components_time_mgrs->get_time_mgr(inout_interface->get_comp_id())->is_timer_on(timer->get_frequency_unit(), timer->get_frequency_count(), timer->get_local_lag_count())) {
             last_timer_num_elapsed_days = current_num_elapsed_days;
+			last_timer_date = current_year*10000 + current_month*100 + current_day;
             last_timer_second = current_second;
         }
         else {
             last_timer_num_elapsed_days = -1;
+			last_timer_date = -1;
             last_timer_second = -1;
         }
         next_timer_num_elapsed_days = -1;
+		next_timer_date = -1;
         next_timer_second = -1;
         timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
-                                         current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, true);
+                                         current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_date, next_timer_second, true);
     }
 }
 
@@ -53,7 +56,7 @@ Connection_field_time_info::Connection_field_time_info(Inout_interface *inout_in
 void Connection_field_time_info::get_time_of_next_timer_on(bool advance)
 {
     timer->get_time_of_next_timer_on(components_time_mgrs->get_time_mgr(inout_interface->get_comp_id()), current_year, current_month, current_day,
-                                     current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_second, advance);
+                                     current_second, current_num_elapsed_days, time_step_in_second, next_timer_num_elapsed_days, next_timer_date, next_timer_second, advance);
 }
 
 
@@ -105,7 +108,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
     this->coupling_connection = coupling_connection; 
     coupling_connections_dumped = false;
     remote_bypass_counter = -1;
-	last_receive_sender_time = 0;
+	last_receive_sender_time = CCPL_NULL_INT;
     is_coupling_time_out_of_execution = false;
     restart_mgr = comp_comm_group_mgt_mgr->search_global_node(inout_interface->get_comp_id())->get_restart_mgr();
 
@@ -135,7 +138,8 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
             fields_mem_registered.push_back(coupling_connection->get_bottom_field(inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT, i-coupling_connection->fields_name.size()));
             field_interface_local_index.push_back(-1);
         }
-        current_remote_fields_time = -1;
+        current_remote_fields_elapsed_time = -1;
+		current_remote_fields_time = -1;
         last_remote_fields_time = -1;
         fields_mem_inner_step_averaged.push_back(NULL);
         fields_mem_inter_step_averaged.push_back(NULL);
@@ -275,6 +279,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
         if (time_mgr->is_timer_on(local_fields_time_info->timer->get_frequency_unit(), local_fields_time_info->timer->get_frequency_count(), local_fields_time_info->timer->get_local_lag_count())) {
             if (((long)local_fields_time_info->current_num_elapsed_days)*100000+local_fields_time_info->current_second == ((long)local_fields_time_info->next_timer_num_elapsed_days)*100000+local_fields_time_info->next_timer_second) {
                 local_fields_time_info->last_timer_num_elapsed_days = local_fields_time_info->next_timer_num_elapsed_days;
+				local_fields_time_info->last_timer_date = local_fields_time_info->next_timer_date;
                 local_fields_time_info->last_timer_second = local_fields_time_info->next_timer_second;
                 local_fields_time_info->get_time_of_next_timer_on(true);
             }
@@ -282,6 +287,7 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
                 if (remote_fields_time_info->timer->is_timer_on(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days, 
                                                                 time_mgr->get_start_year(), time_mgr->get_start_month(), time_mgr->get_start_day(), time_mgr->get_start_second(), time_mgr->get_start_num_elapsed_day())) {
                     remote_fields_time_info->last_timer_num_elapsed_days = remote_fields_time_info->current_num_elapsed_days;
+					remote_fields_time_info->last_timer_date = remote_fields_time_info->current_year*10000 + remote_fields_time_info->current_month*100 + remote_fields_time_info->current_day;
                     remote_fields_time_info->last_timer_second = remote_fields_time_info->current_second;
                 }    
                 time_mgr->advance_time(remote_fields_time_info->current_year, remote_fields_time_info->current_month, remote_fields_time_info->current_day, remote_fields_time_info->current_second, remote_fields_time_info->current_num_elapsed_days,  remote_fields_time_info->time_step_in_second);
@@ -295,7 +301,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
         ((Runtime_trans_algorithm*)runtime_data_transfer_algorithm)->receive_data_in_temp_buffer();
 #endif
         if (bypass_timer) {
-            current_remote_fields_time = -1;
+            current_remote_fields_elapsed_time = -1;
+			current_remote_fields_time = -1;
             if (inout_interface->get_bypass_counter() == 1) {
                 EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), !(!words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) || last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time 1");
             }
@@ -304,16 +311,18 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
             transfer_data = true;
         }
         else if (!(fields_time_info_dst->current_num_elapsed_days != fields_time_info_dst->last_timer_num_elapsed_days || fields_time_info_dst->current_second != fields_time_info_dst->last_timer_second)) {
-            if (fields_time_info_src->last_timer_num_elapsed_days != -1)
-                current_remote_fields_time = ((long)fields_time_info_src->last_timer_num_elapsed_days) * 100000 + fields_time_info_src->last_timer_second; 
-            if (current_remote_fields_time != -1 && !time_mgr->is_time_out_of_execution(current_remote_fields_time) && current_remote_fields_time != last_remote_fields_time) {
-                EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will receive remote data at %ld vs %ld", inout_interface->get_interface_name(), current_remote_fields_time, last_remote_fields_time);
-                last_remote_fields_time = current_remote_fields_time;
+            if (fields_time_info_src->last_timer_num_elapsed_days != -1) {
+                current_remote_fields_elapsed_time = ((long)fields_time_info_src->last_timer_num_elapsed_days) * 100000 + fields_time_info_src->last_timer_second; 
+				current_remote_fields_time = ((long)fields_time_info_src->last_timer_date)*100000 + fields_time_info_src->last_timer_second;
+            }	
+            if (current_remote_fields_elapsed_time != -1 && !time_mgr->is_time_out_of_execution(current_remote_fields_elapsed_time) && current_remote_fields_elapsed_time != last_remote_fields_time) {
+                EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will receive remote data at %ld vs %ld", inout_interface->get_interface_name(), current_remote_fields_elapsed_time, last_remote_fields_time);
+                last_remote_fields_time = current_remote_fields_elapsed_time;
                 transfer_data = true;
             }
              else {
-                EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld vs %ld", last_remote_fields_time, current_remote_fields_time);
-                if (current_remote_fields_time != -1 && time_mgr->is_time_out_of_execution(current_remote_fields_time))
+                EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Do not redundantly receive remote data at %ld vs %ld", last_remote_fields_time, current_remote_fields_elapsed_time);
+                if (current_remote_fields_elapsed_time != -1 && time_mgr->is_time_out_of_execution(current_remote_fields_elapsed_time))
                     is_coupling_time_out_of_execution = true;
              }
         }
@@ -321,9 +330,9 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
             for (int i = fields_mem_registered.size() - 1; i >= 0; i --)
                 if (field_interface_local_index[i] != -1)
                     field_update_status[field_interface_local_index[i]] = transfer_data? 1 : 0;
-            bool read_restart_data = (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_time));
-            if (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_time)) {
-                EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will not receive data from the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_src_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
+            bool read_restart_data = (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_elapsed_time));
+            if (!bypass_timer && !inout_interface->get_is_child_interface() && restart_mgr->is_in_restart_read_window(current_remote_fields_elapsed_time)) {
+                EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The import interface \"%s\" will not receive data from the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_src_comp_full_name(), current_remote_fields_elapsed_time, time_mgr->get_restart_full_time());
                 for (int i = 0; i < fields_mem_registered.size(); i ++)
                     restart_mgr->read_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true, NULL, false, annotation);
                 transfer_data = false;
@@ -347,8 +356,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
                         comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, "data average");
                 }
                 comp_comm_group_mgt_mgr->get_global_node_of_local_comp(inout_interface->get_comp_id(),false,"")->get_performance_timing_mgr()->performance_timing_stop(TIMING_TYPE_COMPUTATION, -1, -1, inout_interface->get_interface_name());
-                if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_time, true))) {
-                    EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
+                if (!bypass_timer && !inout_interface->get_is_child_interface() && (restart_mgr->is_in_restart_write_window(current_remote_fields_elapsed_time, true))) {
+                    EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "Should write the remote data at the remote time %ld and local %ld into the restart data file", current_remote_fields_elapsed_time, time_mgr->get_current_num_elapsed_day()*((long)100000)+time_mgr->get_current_second());
                     for (int i = 0; i < fields_mem_registered.size(); i ++)
                         restart_mgr->write_restart_field_data(fields_mem_registered[i], inout_interface->get_interface_name(), "imported", true);
                 }
@@ -369,9 +378,9 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
             }
             else {
                 EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), remote_bypass_counter == 0, "Error happens when executing the import interface \"%s\" with its timer unbypassed (the corresponding input parameter \"bypass_timer\" has been set to false): the data currently obtained by this import interface should be but is not from a timer unbypassed execution of the corresponding export interface \"%s\" of the component model \"%s\". Please verify.", inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first);
-                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), time_mgr->get_elapsed_day_from_full_time(last_receive_sender_time)*((long)100000) + last_receive_sender_time%100000 == current_remote_fields_time, 
+                EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, inout_interface->get_comp_id(), time_mgr->get_elapsed_day_from_full_time(last_receive_sender_time)*((long)100000) + last_receive_sender_time%100000 == current_remote_fields_elapsed_time, 
                                  "Software error: Error happens when using the timer to call the import interface \"%s\": this interface call does not receive the data from the corresponding export interface \"%s\" from the component model \"%s\" at the right model time (the receiver wants the imported data at %ld but received the imported data at %ld). Please verify. ", 
-                                 inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, current_remote_fields_time, runtime_data_transfer_algorithm->get_history_receive_sender_time());
+                                 inout_interface->get_interface_name(), coupling_connection->src_comp_interfaces[0].second, coupling_connection->src_comp_interfaces[0].first, current_remote_fields_elapsed_time, runtime_data_transfer_algorithm->get_history_receive_sender_time());
             }    
         }
         return;
@@ -379,7 +388,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
     else {
         for (int i = fields_mem_registered.size() - 1; i >= 0; i --) {
             if (bypass_timer) {
-                current_remote_fields_time = -1;
+                current_remote_fields_elapsed_time = -1;
+				current_remote_fields_time = -1;
                 EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1 && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_CONTINUE) && !words_are_the_same(time_mgr->get_run_type(), RUNTYPE_BRANCH)) || last_remote_fields_time == -1, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
                 transfer_data = true;
                 if (runtime_inner_averaging_algorithm[i] != NULL)
@@ -401,26 +411,28 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
                 if (runtime_inner_averaging_algorithm[i] != NULL)
                     runtime_inner_averaging_algorithm[i]->run(true);
                 if (((long)fields_time_info_src->current_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_src->current_second == ((long)fields_time_info_dst->last_timer_num_elapsed_days)*SECONDS_PER_DAY+fields_time_info_dst->last_timer_second+lag_seconds) {
-                    current_remote_fields_time = ((long)fields_time_info_dst->last_timer_num_elapsed_days)*100000 + fields_time_info_dst->last_timer_second;
-                    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1) || last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
-                    last_remote_fields_time = current_remote_fields_time;
+                    current_remote_fields_elapsed_time = ((long)fields_time_info_dst->last_timer_num_elapsed_days)*100000 + fields_time_info_dst->last_timer_second;
+					current_remote_fields_time = ((long)fields_time_info_dst->last_timer_date)*100000 + fields_time_info_dst->last_timer_second;
+                    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1) || last_remote_fields_time != current_remote_fields_elapsed_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+                    last_remote_fields_time = current_remote_fields_elapsed_time;
                     if (runtime_inter_averaging_algorithm[i] != NULL)
                         runtime_inter_averaging_algorithm[i]->run(true);
                     if (runtime_datatype_transform_algorithms[i] != NULL) 
                         runtime_datatype_transform_algorithms[i]->run(false);
-                    if (!time_mgr->is_time_out_of_execution(current_remote_fields_time))
+                    if (!time_mgr->is_time_out_of_execution(current_remote_fields_elapsed_time))
                         transfer_data = true;
                     continue;
                 }
                 if ((((long)fields_time_info_dst->next_timer_num_elapsed_days)*((long)SECONDS_PER_DAY))+fields_time_info_dst->next_timer_second+lag_seconds < (((long)fields_time_info_src->next_timer_num_elapsed_days)*((long)SECONDS_PER_DAY)) + fields_time_info_src->next_timer_second) {
-                    current_remote_fields_time = ((long)fields_time_info_dst->next_timer_num_elapsed_days)*100000 + fields_time_info_dst->next_timer_second;
-                    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1) || last_remote_fields_time != current_remote_fields_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
-                    last_remote_fields_time = current_remote_fields_time;
+                    current_remote_fields_elapsed_time = ((long)fields_time_info_dst->next_timer_num_elapsed_days)*100000 + fields_time_info_dst->next_timer_second;
+					current_remote_fields_time = ((long)fields_time_info_dst->next_timer_date)*100000 + fields_time_info_dst->next_timer_second;
+                    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, !(i == fields_mem_registered.size() - 1) || last_remote_fields_time != current_remote_fields_elapsed_time, "Software error in Connection_coupling_procedure::execute: wrong last_remote_fields_time");
+                    last_remote_fields_time = current_remote_fields_elapsed_time;
                     if (runtime_inter_averaging_algorithm[i] != NULL)
                         runtime_inter_averaging_algorithm[i]->run(true);
                     if (runtime_datatype_transform_algorithms[i] != NULL) 
                         runtime_datatype_transform_algorithms[i]->run(false);
-                    if (!time_mgr->is_time_out_of_execution(current_remote_fields_time)) {
+                    if (!time_mgr->is_time_out_of_execution(current_remote_fields_elapsed_time)) {
                         transfer_data = true;
                     }
                 }
@@ -430,8 +442,8 @@ void Connection_coupling_procedure::execute(bool bypass_timer, int *field_update
                 }    
             }
         }
-        if (!bypass_timer && !inout_interface->get_is_child_interface() && transfer_data && restart_mgr->is_in_restart_read_window(current_remote_fields_time)) {
-            EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The export interface \"%s\" will not send data to the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_dst_comp_full_name(), current_remote_fields_time, time_mgr->get_restart_full_time());
+        if (!bypass_timer && !inout_interface->get_is_child_interface() && transfer_data && restart_mgr->is_in_restart_read_window(current_remote_fields_elapsed_time)) {
+            EXECUTION_REPORT_LOG(REPORT_LOG, inout_interface->get_comp_id(), true, "The export interface \"%s\" will not send data to the component model \"%s\" that is at the time %ld (the restart time is %ld)", inout_interface->get_interface_name(), coupling_connection->get_dst_comp_full_name(), current_remote_fields_elapsed_time, time_mgr->get_restart_full_time());
             transfer_data = false;
         }
         if (!transfer_data)
@@ -470,7 +482,7 @@ void Connection_coupling_procedure::write_restart_mgt_info(Restart_buffer_contai
     fields_time_info_src->write_restart_mgt_info(restart_buffer);
     fields_time_info_dst->write_restart_mgt_info(restart_buffer);
     restart_buffer->dump_in_data(&last_remote_fields_time, sizeof(long));
-    restart_buffer->dump_in_data(&current_remote_fields_time, sizeof(long));
+    restart_buffer->dump_in_data(&current_remote_fields_elapsed_time, sizeof(long));
     for (int i = fields_mem_registered.size()-1; i >=0; i --)
         restart_buffer->dump_in_string(fields_mem_registered[i]->get_field_name(), -1);
     if (inout_interface->get_interface_type() == COUPLING_INTERFACE_MARK_EXPORT) {
@@ -535,7 +547,7 @@ void Connection_coupling_procedure::import_restart_data(Restart_buffer_container
                 break;
         EXECUTION_REPORT(REPORT_ERROR, inout_interface->get_comp_id(), i == j, "Error happens when loading the restart data file \"%s\": it does not match the configuration of the interface \"%s\": its original %th field recorded in the restart data file is \"%s\" while the current %th field is \"%s\". Please check.", restart_buffer->get_input_restart_mgt_info_file(), inout_interface->get_interface_name(), i, restart_field_name, fields_mem_registered[i]->get_field_name());
     }
-    restart_buffer->load_restart_data(&current_remote_fields_time, sizeof(long));
+    restart_buffer->load_restart_data(&current_remote_fields_elapsed_time, sizeof(long));
     restart_buffer->load_restart_data(&last_remote_fields_time, sizeof(long));
     fields_time_info_dst->import_restart_data(restart_buffer);
     fields_time_info_src->import_restart_data(restart_buffer);
@@ -1254,7 +1266,8 @@ void Inout_interface::get_sender_time(int size_sender_date, int size_sender_elap
 	for (int i = 0; i < fields_mem_registered.size(); i ++) {
 		sender_elapsed_days[i] = CCPL_NULL_INT;
 		sender_second[i] = CCPL_NULL_INT;
-		if (fields_coupling_procedures[i] != NULL) {
+		sender_date[i] = CCPL_NULL_INT;
+		if (fields_coupling_procedures[i] != NULL && fields_coupling_procedures[i]->get_last_receive_sender_time() != CCPL_NULL_INT) {
 			sender_date[i] = fields_coupling_procedures[i]->get_last_receive_sender_time() / 100000;
 			sender_second[i] = fields_coupling_procedures[i]->get_last_receive_sender_time() % 100000;
 			sender_elapsed_days[i] = time_mgr->calculate_elapsed_day(sender_date[i]/10000, (sender_date[i]%10000)/100, sender_date[i]%100);
