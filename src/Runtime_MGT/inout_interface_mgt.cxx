@@ -108,7 +108,7 @@ Connection_coupling_procedure::Connection_coupling_procedure(Inout_interface *in
     this->coupling_connection = coupling_connection; 
     coupling_connections_dumped = false;
     remote_bypass_counter = -1;
-	last_receive_sender_time = CCPL_NULL_INT;
+	last_receive_sender_time = CCPL_NULL_LONG;
     is_coupling_time_out_of_execution = false;
     restart_mgr = comp_comm_group_mgt_mgr->search_global_node(inout_interface->get_comp_id())->get_restart_mgr();
 
@@ -1267,7 +1267,7 @@ void Inout_interface::get_sender_time(int size_sender_date, int size_sender_elap
 		sender_elapsed_days[i] = CCPL_NULL_INT;
 		sender_second[i] = CCPL_NULL_INT;
 		sender_date[i] = CCPL_NULL_INT;
-		if (fields_coupling_procedures[i] != NULL && fields_coupling_procedures[i]->get_last_receive_sender_time() != CCPL_NULL_INT) {
+		if (fields_coupling_procedures[i] != NULL && fields_coupling_procedures[i]->get_last_receive_sender_time() != CCPL_NULL_LONG) {
 			sender_date[i] = fields_coupling_procedures[i]->get_last_receive_sender_time() / 100000;
 			sender_second[i] = fields_coupling_procedures[i]->get_last_receive_sender_time() % 100000;
 			sender_elapsed_days[i] = time_mgr->calculate_elapsed_day(sender_date[i]/10000, (sender_date[i]%10000)/100, sender_date[i]%100);
