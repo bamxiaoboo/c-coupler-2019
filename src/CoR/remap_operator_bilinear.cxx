@@ -25,7 +25,7 @@ void Remap_operator_bilinear::set_parameter(const char *parameter_name, const ch
         if (words_are_the_same(parameter_value, "true"))
             enable_extrapolate = true;
         else if (words_are_the_same(parameter_value, "false"))
-            enable_extrapolate = true;
+            enable_extrapolate = false;
         else EXECUTION_REPORT(REPORT_ERROR, -1, false, "The parameter value must be \"true\" or \"false\"\n");
     }
     else EXECUTION_REPORT(REPORT_ERROR, -1, false, "bilinear algorithm does not have the parameter to be set\n");
