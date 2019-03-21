@@ -20,6 +20,7 @@
 #include "dictionary.h"
 #include "remapping_configuration_mgt.h"
 #include "runtime_remapping_weights_mgt.h"
+#include "datamodel_mgt.h"
 
 
 #define USING_INSTANTANEOUS_VALUE            0
@@ -60,6 +61,7 @@ class Coupling_connection
         friend class IO_output_procedure;
         friend class Inout_interface;
         friend class Inout_interface_mgt;
+        friend class Datamodel_instance_info;
         int connection_id;
         std::vector<const char*> fields_name;
         std::vector<std::pair<const char*, const char*> > src_comp_interfaces;

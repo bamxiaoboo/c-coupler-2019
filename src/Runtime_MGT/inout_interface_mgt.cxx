@@ -12,6 +12,7 @@
 #include "runtime_cumulate_average_algorithm.h"
 #include "runtime_datatype_transformer.h"
 #include "inout_interface_mgt.h"
+#include "datamodel_mgt.h"
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -1464,6 +1465,8 @@ int Inout_interface_mgt::register_inout_interface(const char *interface_name, in
 
     if (interface_type == COUPLING_INTERFACE_MARK_EXPORT)
         write_comp_export_info_into_XML_file(new_interface->get_comp_id());
+    if (interface_type == COUPLING_INTERFACE_MARK_IMPORT)
+        datamodel_instance_info_mgr->check_is_input_datamodel_needed(new_interface->get_comp_id(),new_interface->get_comp_full_name());
     
     return new_interface->get_interface_id();
 }
