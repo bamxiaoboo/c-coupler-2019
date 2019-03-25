@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include "coupling_interface.h"
+#include "datamodel_mgt.h"
 
 
 int coupling_process_control_counter = 0;
@@ -341,6 +342,7 @@ extern "C" void initialize_ccpl_mgrs_
     runtime_remapping_weights_mgr = new Runtime_remapping_weights_mgt();
     all_H2D_remapping_wgt_files_info = new H2D_remapping_wgt_file_container();
     coupling_generator = new Coupling_generator();
+    datamodel_instance_info_mgr = new Datamodel_instance_info();
 }
 
 
