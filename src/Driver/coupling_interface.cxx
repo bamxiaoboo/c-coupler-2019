@@ -343,6 +343,7 @@ extern "C" void initialize_ccpl_mgrs_
     all_H2D_remapping_wgt_files_info = new H2D_remapping_wgt_file_container();
     coupling_generator = new Coupling_generator();
     datamodel_instance_info_mgr = new Datamodel_instance_info();
+    datamodel_mgr = new Datamodel_mgt();
 }
 
 
@@ -1599,5 +1600,19 @@ extern "C" void ccpl_report_
     check_for_ccpl_managers_allocated(API_id, annotation);
     check_API_parameter_string_length(*comp_id, API_id, 512, report_content, "report_string", annotation);
     EXECUTION_REPORT(*report_type, *comp_id, local_condition, report_content);
+}
+
+#ifdef LINK_WITHOUT_UNDERLINE
+extern "C" void register_datamodel_output_handler
+#else
+extern "C" void register_datamodel_output_handler_
+#endif
+(int *handler_id, int *num_fields, int *field_ids, const char *output_datamodel_name, bool *implicit_or_explicit, int *sampling_timer_id, const char *annotation)
+{
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a datamodel output handler");
+    check_for_ccpl_managers_allocated(API_ID_HANDLER_DATAMODEL_OUTPUT, annotation);
+    check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_IMPORT, CCPL_NAME_STR_LEN, handler_name, "handler_name", annotation);
+    handler_id = datamodel_mgr->register_datamodel_output_handler(*num_fields, field_ids, output_datamodel_name, *implicit_or_explicit, *sampling_timer_id, annotation);
+    EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a datamodel output handler");
 }
 

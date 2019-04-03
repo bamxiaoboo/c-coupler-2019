@@ -36,6 +36,4 @@ Coupling_generator *coupling_generator = NULL;
 Runtime_remapping_weights_mgt *runtime_remapping_weights_mgr = NULL;
 H2D_remapping_wgt_file_container *all_H2D_remapping_wgt_files_info = NULL;
 Datamodel_instance_info *datamodel_instance_info_mgr = NULL;
-
-
-
+Datamodel_mgt *datamodel_mgr = NULL;

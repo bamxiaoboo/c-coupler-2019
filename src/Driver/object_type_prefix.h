@@ -21,6 +21,7 @@
 #define TYPE_TIMER_ID_PREFIX                   ((int)0x08000000)
 #define TYPE_INOUT_INTERFACE_ID_PREFIX         ((int)0x09000000)
 #define TYPE_IO_FIELD_PREFIX                   ((int)0x0a000000)
+#define TYPE_OUTPUT_HANDLER_ID_PREFIX		   ((int)0x0b000000)
 
 
 #endif

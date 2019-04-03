@@ -98,6 +98,7 @@
    public :: CCPL_do_individual_coupling_generation
    public :: CCPL_do_family_coupling_generation
    public :: CCPL_abort
+   public :: CCPL_register_datamodel_output_handler
 
 
    interface CCPL_register_field_instance ; module procedure &
@@ -3312,6 +3313,32 @@
    call coupling_abort(trim(error_string)//char(0))
 
    END SUBROUTINE CCPL_abort
+
+
+
+   integer FUNCTION CCPL_register_datamodel_output_handler(num_field_instances, field_instance_ids, datamodel_name, implicit_or_explicit, sampling_timer_id, annotation)
+   implicit none
+   integer,          intent(in)                         :: num_field_instances
+   integer,          intent(in), dimension(:)           :: field_instance_ids
+   character(len=*), intent(in)                         :: datamodel_name
+   logical,          intent(in)                         :: implicit_or_explicit
+   integer,          intent(in), optional               :: sampling_timer_id
+   character(len=*), intent(in), optional               :: annotation
+   integer                                              :: handler_id
+
+   if (present(sampling_timer_id)) then
+      sampling_timer_id = -1;
+   endif
+
+   if (present(annotation)) then
+      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, trim(annotation)//char(0))
+   else
+      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, trim("")//char(0))
+   endif
+   
+   CCPL_register_datamodel_output_handler = handler_id
+
+   END FUNCTION CCPL_register_datamodel_output_handler
 
 
  END MODULE CCPL_interface_mod

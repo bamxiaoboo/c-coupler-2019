@@ -64,6 +64,7 @@ extern Coupling_generator *coupling_generator;
 extern Runtime_remapping_weights_mgt *runtime_remapping_weights_mgr;
 extern H2D_remapping_wgt_file_container *all_H2D_remapping_wgt_files_info;
 extern Datamodel_instance_info *datamodel_instance_info_mgr;
+extern Datamodel_mgt *datamodel_mgr;
 
 
 #endif
