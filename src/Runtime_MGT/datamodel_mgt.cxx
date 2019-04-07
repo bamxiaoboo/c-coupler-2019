@@ -44,6 +44,13 @@ bool varname_or_value(const char* string) {
     return true;//decimal value
 }
 
+void tolower(char *string) {
+	for (int i = 0; i < strlen(string); i++) {
+		if (string[i]<='Z' || string[i]>='A')
+			string[i]+=32;
+	}
+}
+
 int set_unit(const char* input_unit) {
     int output_unit;
     if (words_are_the_same(input_unit,"year") || words_are_the_same(input_unit,"years") || words_are_the_same(input_unit,"nyear") || words_are_the_same(input_unit,"nyears"))
@@ -327,80 +334,249 @@ void Datamodel_instance_info::read_datamodel_instance_configuration(int host_com
 
 int Datamodel_mgt::register_datamodel_output_handler(int num_fields, int *field_ids, const char *output_datamodel_name, bool implicit_or_explicit, int sampling_timer_id, const char *annotation) {
 	int API_id = API_ID_HANDLER_DATAMODEL_OUTPUT;
-	Output_datamodel *new_output_handler = new Output_handler(output_datamodel_name, get_next_handler_id(), num_fields, field_ids, sampling_timer_id, annotation);
-	output_hanlers.push_back(new_output_handler);
+	Output_handler *new_output_handler = new Output_handler(output_datamodel_name, get_next_handler_id(), num_fields, field_ids, sampling_timer_id, annotation);
+	output_handlers.push_back(new_output_handler);
 	return new_output_handler->get_handler_id();
 }
 
-Output_handler::Output_handler(const char *datamodel_name, int handler_id, int num_fields, int* field_ids, int sampling_timer_id, char *annotation) {
+Output_handler::Output_handler(const char *datamodel_name, int handler_id, int num_fields, int *field_ids, int sampling_timer_id, const char *annotation) {
 	int i;
 	for (i=0; i < datamodel_mgr->output_datamodels.size(); i++) {
-		if (words_are_the_same(datamodel_name, datamodel_mgr->output_datamodels[i])) {
-			output_datamodel = new Output_datamodel(datamodel_mgr->output_datamodels[i]);
+		if (words_are_the_same(datamodel_name, datamodel_mgr->output_datamodels[i]->get_datamodel_name())) {
+			output_datamodel = new Inout_datamodel(datamodel_mgr->output_datamodels[i]);
 			break;
 		}
 	}
 
 	if (i == datamodel_mgr->output_datamodels.size())
-		output_datamodel = new Output_datamodel(datamodel_name);
+		output_datamodel = new Inout_datamodel(host_comp_id, datamodel_name);
 
 	this->handler_id = handler_id;
 	this->num_fields = num_fields;
-	for (int j = 0; j < field_ids.size(); j ++) {
-		handler_fields_id.push_back(fields_id[j]);
+	for (int j = 0; j < num_fields; j ++) {
+		handler_fields_id.push_back(field_ids[j]);
 	}
 	this->sampling_timer_id = sampling_timer_id;
 	strcpy(this->annotation, annotation);
-	this->host_comp_id = memory_manager->get_field_instance(num_fields[0])->get_comp_id();
+	
+	this->host_comp_id = memory_manager->get_field_instance(field_ids[1])->get_comp_id();
 }
 
-Output_datamodel::Output_datamodel(const char *output_datamodel_name) {
+Inout_datamodel::Inout_datamodel(int host_comp_id, const char *output_datamodel_name) {
 	int line_number;
+	this->host_comp_id = host_comp_id;
 	strcpy(datamodel_name, output_datamodel_name);
 	sprintf(datamodel_config_dir, "%s/CCPL_dir/datamodel/config",comp_comm_group_mgt_mgr->get_root_working_dir());
-	sprintf(datamodel_file_name,"output_datamodel_%s.xml",output_datamodel_name)
+	sprintf(datamodel_file_name,"output_datamodel_%s.xml",output_datamodel_name);
 	sprintf(XML_file_name,"%s/%s", datamodel_config_dir, datamodel_file_name);
 	sprintf(datamodel_data_dir, "%s/CCPL_dir/datamodel/data",comp_comm_group_mgt_mgr->get_root_working_dir());
+	strcpy(this->XML_file_name,XML_file_name);
 
 	TiXmlDocument *XML_file = open_XML_file_to_read(host_comp_id, XML_file_name, MPI_COMM_NULL, false);
 	if (XML_file == NULL) {
 		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "Can't find the Datamodel configuration file named %s, Please check directory %s.", datamodel_file_name, datamodel_config_dir);
 		return;
 	}
-	TiXmlElement *root_element = XML_FILE->FirstChildElement();
-	TiXmlNode *root_element_node = get_XML_first_child_of_unique_root(host_comp_id, XML_file_name, XML_file);
-	output_datamodel_node = root_element_node->FirstChild();
-	output_datamodel_elment = output_datamodel_node->ToElement();
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(output_datamodel_elment->Value(),"output_datamodel"), "The first node of an \"Output_datmodel\" XML_file should be \"output_datamodel\", Please verify.");
-	/*const char *name_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, output_datamodel_elment, "name", XML_file_name, line_number, "The \"name\" of the output_datamodel",ture);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(name_str, output_datamodel_name),"The name of the Output_datamodel should be %s, Please verify.",output_datamodel_name);*/
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, is_XML_setting_on(host_comp_id, output_datamodel_elment, XML_file_name,"the \"status\" of output_datamodel","output_datamodel config file"),"The status of \"output_datmodel\" node of datamodel \"%s\" should be on, Please check.",output_datamodel_name);
+
+	TiXmlNode *root_node = get_XML_first_child_of_unique_root(host_comp_id, XML_file_name, XML_file);
+	TiXmlElement *root_element = XML_file->FirstChildElement();
+	for (; root_node != NULL; root_node = root_node->NextSibling()) {
+		if (root_node->Type() != TiXmlNode::TINYXML_ELEMENT)
+			continue;
+		root_element = root_node->ToElement();
+		if (words_are_the_same(root_element->Value(), "output_datamodel"))
+			break;
+	}
+
+	TiXmlNode *output_datamodel_node = root_node;
+	TiXmlElement *output_datamodel_element = root_element;
+	//check output_datamodel status
+	const char *name_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, output_datamodel_element, "name", XML_file_name, line_number, "The \"name\" of the output_datamodel","output datamodel xml file",true);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(name_str, output_datamodel_name),"The name of the Output_datamodel should be %s, Please verify.",output_datamodel_name);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, is_XML_setting_on(host_comp_id, output_datamodel_element, XML_file_name,"the \"status\" of output_datamodel","output_datamodel config file"),"The status of \"output_datmodel\" node of datamodel \"%s\" should be on, Please check.",output_datamodel_name);
 	TiXmlNode *data_files_node = output_datamodel_node->FirstChild();
-	TiXmlElement *data_files_element = output_datamodel_node->ToElement();
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_files_element->Value(), "data_files"),"The first node in an Output_datamodel configuration file should be \"data_files\", Please verify.");
-	config_data_files_for_datamodel(host_comp_id, data_files_node, datamodel_data_dir, datamodel_name);
-	for (TiXmlNode *sub_node = data_files_node->NextSibling(); sub_node = sub_node->NextSibling(); sub_node != NULL) {
-		if (words_are_the_same(sub_node->ToElement()->Value()),"horizontal_grids")
-			config_horizontal_grids_for_datamodel(host_comp_id,sub_node);
-		if (words_are_the_same(sub_node->ToElement()->Value()),"vertical_grids")
-			config_vertical_grids_for_datamodel(host_comp_id, sub_node);
-		if (words_are_the_same(sub_node->ToElement()->value()),"V3D_grids")
-			config_v3d_grids_for_datamodel(host_comp_id, sub_node);
+	TiXmlElement *data_files_element = data_files_node->ToElement();
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_files_element->Value(), "data_files"),"The first node in an Output_datamodel configuration file should be \"data_files\", not \"%s\" as is specified in the file, Please verify.", data_files_element->Value());
+	config_data_files_for_datamodel(host_comp_id, data_files_node);
+
+	for (TiXmlNode *sub_node = data_files_node->NextSibling(); sub_node != NULL; sub_node = sub_node->NextSibling()) {
+		if (words_are_the_same(sub_node->ToElement()->Value(),"horizontal_grids")) 
+			config_horizontal_grids_for_datamodel(sub_node);
+		if (words_are_the_same(sub_node->ToElement()->Value(),"vertical_grids"))
+			config_vertical_grids_for_datamodel(sub_node);
+		if (words_are_the_same(sub_node->ToElement()->Value(),"V3D_grids"))
+			config_v3d_grids_for_datamodel(sub_node);
 	}
 }
 
-void Inout_datamodel::config_data_files_for_datamodel(int host_comp_id, TiXmlNode *data_files_node, char* datamodel_data_dir, char* datamodel_name) {
-	//
+void Inout_datamodel::config_data_files_for_datamodel(int host_comp_id, TiXmlNode *data_files_node) {
+	TiXmlNode *data_file_node;
+	int line_number,pos_last_star,i, num_stars=0;
+	bool is_data_file_configured = false;
+	char file_name[NAME_STR_SIZE],file_type_str[NAME_STR_SIZE];
+
+	for (data_file_node = data_files_node->FirstChild(); data_file_node != NULL; data_file_node = data_file_node->NextSibling()) {
+		TiXmlElement *data_file_element = data_file_node->ToElement();
+		if (is_data_file_configured && !is_XML_setting_on(host_comp_id, data_file_element, XML_file_name,"the status of a data_file node of an output_datamodel", "output_datamodel xml file"))
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "In output_datamodel configuration file\"%s\", only one \"status\" of the \"data_file\" node can be set on, Please Verify.", XML_file_name);
+		if (is_data_file_configured)
+			return;
+		is_data_file_configured = true;
+		const char *file_names_str = get_XML_attribute(host_comp_id, 80, data_file_element, "file_names", XML_file_name, line_number, "the \"file_names\" of an output_datamodel", "output_datamodel configuration file", true);
+		if (file_names_str[0] != '/')
+			sprintf(datamodel_files_dir_name, "%s/%s", datamodel_data_dir, file_names_str);
+		else
+			strcpy(datamodel_files_dir_name, file_names_str);
+		for (i = strlen(datamodel_files_dir_name); i != 0; i--) {
+			if (datamodel_files_dir_name[i] == '/')
+				break;
+		}
+		strncpy(file_dir, datamodel_files_dir_name, i+1);
+		file_dir[i+1]='\0';
+		strcpy(file_name, datamodel_files_dir_name+i+1);
+		for (i = 0; i < strlen(file_name); i++) {
+			if (file_name[i] == '*') {
+				num_stars ++;
+				pos_last_star = i;
+			}
+		}
+		strncpy(file_name_prefix, file_name, pos_last_star);
+		file_name_prefix[pos_last_star] = '\0';
+		strcpy(file_name_suffix, file_name+pos_last_star+1);
+        strcpy(time_format_in_file_names,get_XML_attribute(host_comp_id, NAME_STR_SIZE, data_file_element, "time_format_in_filename", XML_file_name, line_number, "the \"time_format\" in the file name of a datamodel", "datamodel configuration file", true));
+        //int id_time_format_in_file_names = check_time_format(host_comp_id, time_format_in_file_names, "time_format_in_file_name");
+        EXECUTION_REPORT(REPORT_ERROR,host_comp_id,num_stars == 1,"Error happens when reading the XML configuration file %s arround line number %d, only one * can be specified in data_file names, there are %d detected, Pleas Verify.", XML_file_name, data_file_element->Row(), num_stars);//if there are no * s in filename, do not read time_format_in_filename
+        strcpy(file_type_str,get_XML_attribute(host_comp_id, 80, data_file_element, "file_type", XML_file_name, line_number, "the \"file_type\" of an output_datamodel", "datamodel configuration file", true));
+        tolower(strdup(file_type_str));
+        if (words_are_the_same(file_type_str, "netcdf"))
+        	this->file_type = 1;
+	}
 }
 
-void Inout_datamodel::config_horizontal_grids_for_datamodel(int host_comp_id, TiXmlNode *hg_node) {
-	//
+void Inout_datamodel::config_horizontal_grids_for_datamodel(TiXmlNode *hgs_node) {
+	int line_number;
+	for (TiXmlNode *hg_node = hgs_node->FirstChild(); hg_node != NULL; hg_node = hg_node->NextSibling()) {
+		TiXmlElement *hg_element = hg_node->ToElement();
+		if (!is_XML_setting_on(host_comp_id, hg_element, XML_file_name, "the status of a \"horizontal_grid\" node of an output_datamodel", "output_datamodel xml file"))
+			continue;
+		const char *grid_name_str = get_XML_attribute(host_comp_id, 80, hg_element, "grid_name", XML_file_name, line_number, "the \"grid_name\" of an output_datamodel horizontal_grid","datamodel configuration file",true);
+		const char *specification_str = get_XML_attribute(host_comp_id, 80, hg_element, "specification", XML_file_name, line_number, "the \"specification\" of an output_datamodel horizontal_grid","datamodel configuration file",true);
+		if (words_are_the_same(specification_str, "CCPL_grid_file"))
+			config_horizontal_grid_via_CCPL_grid_file(hg_node->FirstChild());
+		else if (words_are_the_same(specification_str, "grid_data_file_field"))
+			config_horizontal_grid_via_grid_data_file_field(hg_node->FirstChild());
+		else if (words_are_the_same(specification_str, "uniform_lonlat_grid"))
+			config_horizontal_grid_via_uniform_lonlat_grid(hg_node->FirstChild());
+		else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "The \"specification\" of a horizontal_grid in a datamodel configuration file can only be one of \"CCPL_grid_file\", \"grid_data_file_field\", or \"uniform_lonlat_grid\", Please Verify the xml configuration file \"%s\".", XML_file_name);
+	}
 }
 
-void Inout_datamodel::config_vertical_grids_for_datamodel(int host_comp_id, TiXmlNode *vg_node) {
-	//
+void Inout_datamodel::config_horizontal_grid_via_CCPL_grid_file(TiXmlNode *grid_file_entry_node) {
+	int line_number;
+	const char *CCPL_grid_file_name_str = get_XML_attribute(host_comp_id, 80, grid_file_entry_node->ToElement(), "file_name", XML_file_name, line_number, "the \"file_name\" of an CCPL_grid_file","datamodel configuration file", true);
 }
 
-void Inout_datamodel::config_v3d_grids_for_datamodel(int host_comp_id, TiXmlNode *v3d_node) {
+void Inout_datamodel::config_horizontal_grid_via_grid_data_file_field(TiXmlNode *file_field_entry_node) {
+	int line_number;
+	TiXmlElement *file_field_entry_element = file_field_entry_node->ToElement();
+	const char *file_name_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "file_name", XML_file_name, line_number, "the \"file_name\" of a grid_data_file_field", "datamodel configuration file",false);
+	const char *edge_type_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "edge_type", XML_file_name, line_number, "the \"edge_type\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *coord_unit_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *cyclic_or_acyclic_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "cyclic_or_acyclic", XML_file_name, line_number, "the \"cyclic_or_acyclic\" of a grid_data_file_field", "datamodel configuration file",true);
+	const char *dim_size1_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "dim_size1", XML_file_name, line_number, "the \"dim_size1\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *dim_size2_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "dim_size2", XML_file_name, line_number, "the \"dim_size2\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *min_lon_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "min_lon", XML_file_name, line_number, "the \"min_lon\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *min_lat_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "min_lat", XML_file_name, line_number, "the \"min_lat\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *max_lon_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "max_lon", XML_file_name, line_number, "the \"max_lon\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *max_lat_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "max_lat", XML_file_name, line_number, "the \"max_lat\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *center_lon_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "center_lon", XML_file_name, line_number, "the \"center_lon\" of a grid_data_file_field", "datamodel configuration file", true);
+	const char *center_lat_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "center_lat", XML_file_name, line_number, "the \"center_lat\" of a grid_data_file_field", "datamodel configuration file", true);
+}
+
+void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *uniform_lonlat_grid_entry_node) {
+	int line_number;
+	TiXmlElement *uniform_lonlat_grid_entry_element = uniform_lonlat_grid_entry_node->ToElement();
+	const char *num_lons = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "num_lons", XML_file_name, line_number, "the \"num_lons\" of a uniform_lon_lat_grid", "datamodel configuration file", true);
+	const char *num_lats = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "num_lats", XML_file_name, line_number, "the \"num_lats\" of a uniform_lon_lat_grid", "datamodel configuration file", true);
+	const char *cyclic_or_acyclic_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "cyclic_or_acyclic", XML_file_name, line_number, "the \"cyclic_or_acyclic\" of a grid_data_file_field", "datamodel configuration file",true);
+	bool cyclic = false;
+	if (words_are_the_same(cyclic_or_acyclic_str, "cyclic"))
+		bool cyclic = true;
+	const char *min_lon_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "min_lon", XML_file_name, line_number, "the \"min_lon\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
+	const char *min_lat_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "min_lat", XML_file_name, line_number, "the \"min_lat\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
+	const char *max_lon_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "max_lon", XML_file_name, line_number, "the \"max_lon\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
+	const char *max_lat_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "max_lat", XML_file_name, line_number, "the \"max_lat\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
+}
+
+void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
+	int line_number;
+	for (TiXmlNode *vg_node = vgs_node->FirstChild(); vg_node != NULL; vg_node = vg_node->NextSibling()) {
+		TiXmlElement *vg_element = vg_node->ToElement();
+		if (!is_XML_setting_on(host_comp_id, vg_element, XML_file_name, "the status of a \"vertical_grid\" node of an output_datamodel", "output_datamodel xml file"))
+			continue;
+		const char *file_name_str = get_XML_attribute(host_comp_id, 80, vg_element, "file_name", XML_file_name, line_number, "the \"file_name\" of a output_datamodel vertical_grid", "datamodel configuration file",false);
+		const char *grid_name_str = get_XML_attribute(host_comp_id, 80, vg_element, "grid_name", XML_file_name, line_number, "the \"grid_name\" of an output_datamodel vertical_grid","datamodel configuration file",true);
+		const char *specification_str = get_XML_attribute(host_comp_id, 80, vg_element, "specification", XML_file_name, line_number, "the \"specification\" of an output_datamodel vertical_grid","datamodel configuration file",true);
+		const char *grid_type_str = get_XML_attribute(host_comp_id, 80, vg_element, "grid_type", XML_file_name, line_number, "the \"grid_type\" of an output_datamodel vertical_grid", "datamodel configuration file",true);
+		if (words_are_the_same(specification_str, "grid_data_file_field")) {
+			if (words_are_the_same(grid_type_str, "Z"))
+				config_vertical_z_grid(vg_node->FirstChild());
+			else if (words_are_the_same(grid_type_str, "SIGMA"))
+				config_vertical_sigma_grid(vg_node->FirstChild());
+			else if (words_are_the_same(grid_type_str, "HYBRID"))
+				config_vertical_hybrid_grid(vg_node->FirstChild());
+			else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "The \"grid_type\" of a horizontal_grid in a datamodel configuration file can only be one of \"Z\", \"SIGMA\", or \"HYBRID\", Please Verify the xml configuration file \"%s\".", XML_file_name);
+		}
+	}
+}
+
+void Inout_datamodel::config_vertical_z_grid(TiXmlNode *entry_node) {
+	int line_number;
+	TiXmlElement *entry_element = entry_node->ToElement();
+	const char *coord_unit_str = get_XML_attribute(host_comp_id, 80, entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of an output_datamodel vertical_grid","datamodel configuration file", true);
+	const char *coord_values_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "coord_values",XML_file_name, line_number, "the \"coord_values\" of a vertical_z_grid", "datamodel configuration file", true);
+}
+
+void Inout_datamodel::config_vertical_sigma_grid(TiXmlNode *entry_node) {
+	int line_number;
+	TiXmlElement *entry_element = entry_node->ToElement();
+	const char *coord_unit_str = get_XML_attribute(host_comp_id, 80, entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of an output_datamodel vertical_grid", "datamodel configuration file", true);
+	const char *top_value_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "top_value", XML_file_name, line_number, "the \"top_value\" of an output_datmaodel vertical_grid", "datamodel configuration file", true);
+	const char *sigma_values_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "sigma_values", XML_file_name, line_number, "the \"sigma_values\" of an output_datamodel vertical grid", "datamodel configuration file", true);
+}
+
+void Inout_datamodel::config_vertical_hybrid_grid(TiXmlNode *entry_node) {
+	int line_number;
+	TiXmlElement *entry_element = entry_node->ToElement();
+	const char *coord_unit_str = get_XML_attribute(host_comp_id, 80, entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of an output_datamodel vertical_grid", "datamodel configuration file", true);
+	const char *top_value_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "top_value", XML_file_name, line_number, "the \"top_value\" of an output_datmaodel vertical_grid", "datamodel configuration file", true);
+	const char *Ap_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "Ap", XML_file_name, line_number, "the \"Ap\" values of an output_datamodel vertical grid", "datamodel configuration file", true);
+	const char *Bp_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "Bp", XML_file_name, line_number, "the \"Bp\" values of an output_datamodel vertical grid", "datamodel configuration file", true);
+}
+
+void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
+	int line_number;
+	for (TiXmlNode *v3d_node = v3ds_node->FirstChild(); v3d_node != NULL; v3d_node = v3d_node->NextSibling()) {
+		TiXmlElement *v3d_element = v3d_node->ToElement();
+		if (!is_XML_setting_on(host_comp_id, v3d_element, XML_file_name, "the status of a \"3d_grid\" node of an output_datamodel", "output_datamodel xml file"))
+			continue;
+		const char *grid_name_str = get_XML_attribute(host_comp_id, 80, v3d_element, "grid_name", XML_file_name, line_number, "the \"grid_name\" of an output_datamodel 3d_grid","datamodel configuration file",true);
+		const char *mid_point_grid_name_str = get_XML_attribute(host_comp_id, 80, v3d_element, "mid_point_grid_name", XML_file_name, line_number, "the \"mid_point_grid_name\" of an output_datamodel vertical_grid","datamodel configuration file",false);
+		TiXmlNode *horizontal_sub_grid_node = v3d_node->FirstChild();
+		TiXmlElement *horizontal_grid_element = horizontal_sub_grid_node->ToElement();
+		const char *horizontal_subgrid_name_str = get_XML_attribute(host_comp_id, 80, horizontal_grid_element, "grid_name",XML_file_name, line_number, "the \"grid_name\" of the horizontal_subgrid of an output_datamodel v3d_grid","datamodel configuration file",true);
+		TiXmlNode *vertical_sub_grid_node = horizontal_sub_grid_node->NextSibling();
+		TiXmlElement *vertical_sub_grid_element = vertical_sub_grid_node->ToElement();
+		const char *vertical_subgrid_name_str = get_XML_attribute(host_comp_id, 80, vertical_sub_grid_element, "grid_name",XML_file_name, line_number, "the \"grid_name\" of the vertical_subgrid of an output_datamodel v3d_grid","datamodel configuration file", true);
+		TiXmlNode *surface_field_node = vertical_sub_grid_node->FirstChild();
+		if (surface_field_node != NULL) {
+			TiXmlElement *surface_field_element = surface_field_node->ToElement();
+			const char *surface_field_type_str = get_XML_attribute(host_comp_id, 80, surface_field_element, "type", XML_file_name, line_number, "the surface_field \"type\" of an output_datamodel V3D_grid", "datamodel configuration file",false);
+			const char *field_name_in_file_str = get_XML_attribute(host_comp_id, 80, surface_field_element, "field_name_in_file", XML_file_name, line_number, "the surface_field name of an output_datamodel V3D_grid", "datamodel configuration file", false);
+		}
+	}
+}
+
+Inout_datamodel::Inout_datamodel(Inout_datamodel *src_output_datamodel) {
 	//
 }

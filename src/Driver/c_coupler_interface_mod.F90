@@ -3325,15 +3325,20 @@
    integer,          intent(in), optional               :: sampling_timer_id
    character(len=*), intent(in), optional               :: annotation
    integer                                              :: handler_id
+   character *1024                                      :: handler_annotation
 
-   if (present(sampling_timer_id)) then
-      sampling_timer_id = -1;
-   endif
 
    if (present(annotation)) then
-      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, trim(annotation)//char(0))
+      handler_annotation = trim(annotation)//char(0)
    else
-      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, trim("")//char(0))
+      handler_annotation = trim("")//char(0)
+   endif
+
+
+   if (present(sampling_timer_id)) then
+      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, -1, handler_annotation)
+   else
+      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, handler_annotation)
    endif
    
    CCPL_register_datamodel_output_handler = handler_id

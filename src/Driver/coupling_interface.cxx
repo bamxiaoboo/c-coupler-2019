@@ -1611,8 +1611,8 @@ extern "C" void register_datamodel_output_handler_
 {
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a datamodel output handler");
     check_for_ccpl_managers_allocated(API_ID_HANDLER_DATAMODEL_OUTPUT, annotation);
-    check_API_parameter_string_length(-1, API_ID_INTERFACE_REG_IMPORT, CCPL_NAME_STR_LEN, handler_name, "handler_name", annotation);
-    handler_id = datamodel_mgr->register_datamodel_output_handler(*num_fields, field_ids, output_datamodel_name, *implicit_or_explicit, *sampling_timer_id, annotation);
+    check_API_parameter_string_length(-1, API_ID_HANDLER_DATAMODEL_OUTPUT, CCPL_NAME_STR_LEN, output_datamodel_name, "output_datamodel_name", annotation);
+    *handler_id = datamodel_mgr->register_datamodel_output_handler(*num_fields, field_ids, output_datamodel_name, *implicit_or_explicit, *sampling_timer_id, annotation);
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a datamodel output handler");
 }
 

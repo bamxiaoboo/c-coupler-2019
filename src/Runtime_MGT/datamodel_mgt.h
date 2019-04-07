@@ -18,6 +18,9 @@
 #include <string>
 #include <vector>
 
+#define INPUT_DATAMODEL            ((int)0)
+#define OUTPUT_DATAMODEL           ((int)1)
+
 class Datamodel_instance_info
 {
 public:
@@ -50,18 +53,39 @@ class Inout_datamodel {
 private:
 	bool datamodel_type;//input: 0, output: 1
 	bool implicit_or_explicit;//implicit: 0, explicit: 1
-	char datamodel_config_dir[NAME_STR_SIZE];//dir
+	char datamodel_config_dir[NAME_STR_SIZE];//config dir
+	char datamodel_data_dir[NAME_STR_SIZE];//data dir
 	char XML_file_name[NAME_STR_SIZE];//dir+filename
 	char datamodel_file_name[NAME_STR_SIZE];//dir not included
 	char datamodel_name[NAME_STR_SIZE];
+	char datamodel_files_dir_name[NAME_STR_SIZE];
+	char file_dir[NAME_STR_SIZE];
+	char file_name_prefix[NAME_STR_SIZE];
+	char file_name_suffix[NAME_STR_SIZE];
+	char time_format_in_file_names[NAME_STR_SIZE];
+	int file_type;//1: netcdf
+	int host_comp_id;
+
+	std::vector<char*> vertical_grid_names;
+	std::vector<char*> horizontal_grid_names;
+	std::vector<char*> v3d_grid_names;
+	std::vector<char*> vertical_grid_type;
 public:
-	Inout_datamodel(const char*);
+	Inout_datamodel(int, const char*);
 	Inout_datamodel(Inout_datamodel*);
 	~Inout_datamodel();
-	config_data_files_for_datamodel(int, TiXmlNode*, char*, char*);
-	config_horizontal_grids_for_datamodel(int, TiXmlNode*);
-	config_vertical_grids_for_datamodel(int, TiXmlNode*);
-	config_v3d_grids_for_datamodel(int, TiXmlNode*);
+	const char *get_datamodel_name() {return datamodel_name;}
+	void config_data_files_for_datamodel(int, TiXmlNode*);
+	void config_horizontal_grids_for_datamodel(TiXmlNode*);
+	void config_vertical_grids_for_datamodel(TiXmlNode*);
+	void config_v3d_grids_for_datamodel(TiXmlNode*);
+	void config_horizontal_grid_via_CCPL_grid_file(TiXmlNode*);
+	void config_horizontal_grid_via_grid_data_file_field(TiXmlNode*);
+	void config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode*);
+	void config_vertical_z_grid(TiXmlNode*);
+	void config_vertical_sigma_grid(TiXmlNode*);
+	void config_vertical_hybrid_grid(TiXmlNode*);
+	char *get_vertical_grid_type(const char*);
 };
 
 class Output_handler {
@@ -69,29 +93,31 @@ private:
 	int host_comp_id;
 	int handler_id;
 	int num_fields;
-	int *handler_fields_id;
+	std::vector<int> handler_fields_id;
 	Inout_datamodel *output_datamodel;
 	int sampling_timer_id;
 	char annotation[NAME_STR_SIZE];
 public:
-	Output_handler(const char*, int, int, int*, int, char*);
+	Output_handler(const char*, int, int, int*, int,const char*);
 	~Output_handler();
 	int get_handler_id() {return handler_id;}
 };
 
 class Datamodel_mgt {
 private:
+	friend class Output_handler;
 	std::vector<Output_handler*> output_handlers;
 	std::vector<Inout_datamodel*> output_datamodels;
 public:
 	Datamodel_mgt() {}
 	~Datamodel_mgt() {}
 	int register_datamodel_output_handler(int, int *, const char*, bool, int, const char*);
-	int get_next_handler_id() {return TYPE_OUTPUT_HANDLER_ID_PREFIX|interfaces.size();}
+	int get_next_handler_id() {return TYPE_OUTPUT_HANDLER_ID_PREFIX|output_handlers.size();}
 };
 
 bool varname_or_value(const char*);
 int set_unit(const char*);
 int check_time_format(const char*, const char*);
+void tolower(char*);
 
 #endif

@@ -294,6 +294,9 @@ void get_API_hint(int comp_id, int API_id, char *API_label)
         case API_ID_COUPLING_GEN_GET_COMPS:
             sprintf(API_label, "CCPL_get_configurable_comps_full_names");
             break;
+        case API_ID_HANDLER_DATAMODEL_OUTPUT:
+            sprintf(API_label, "CCPL_register_datamodel_output_handler");
+            break;
         default:
             EXECUTION_REPORT(REPORT_ERROR, comp_id, false, "software error1 in get_API_hint %x", API_id);
             break;
