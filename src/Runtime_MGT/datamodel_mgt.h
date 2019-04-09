@@ -75,7 +75,7 @@ public:
 	Inout_datamodel(Inout_datamodel*);
 	~Inout_datamodel();
 	const char *get_datamodel_name() {return datamodel_name;}
-	void config_data_files_for_datamodel(int, TiXmlNode*);
+	void config_data_files_for_datamodel(TiXmlNode*);
 	void config_horizontal_grids_for_datamodel(TiXmlNode*);
 	void config_vertical_grids_for_datamodel(TiXmlNode*);
 	void config_v3d_grids_for_datamodel(TiXmlNode*);
@@ -85,7 +85,15 @@ public:
 	void config_vertical_z_grid(TiXmlNode*);
 	void config_vertical_sigma_grid(TiXmlNode*);
 	void config_vertical_hybrid_grid(TiXmlNode*);
+	void config_field_output_settings_for_datamodel(TiXmlNode*);
+	void config_field_info(TiXmlNode*);
 	char *get_vertical_grid_type(const char*);
+	void visit_time_slots_node(TiXmlNode*);
+	void visit_time_points_node(TiXmlNode*);
+	bool is_expected_segment(TiXmlNode*, const char*);
+	void get_all_sub_segment_time_slots(TiXmlNode*, std::vector<TiXmlNode*>);
+	void config_output_frequency(TiXmlNode*);
+	void config_default_settings(TiXmlNode*);
 };
 
 class Output_handler {

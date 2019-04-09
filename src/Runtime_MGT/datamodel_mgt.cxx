@@ -397,7 +397,7 @@ Inout_datamodel::Inout_datamodel(int host_comp_id, const char *output_datamodel_
 	TiXmlNode *data_files_node = output_datamodel_node->FirstChild();
 	TiXmlElement *data_files_element = data_files_node->ToElement();
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_files_element->Value(), "data_files"),"The first node in an Output_datamodel configuration file should be \"data_files\", not \"%s\" as is specified in the file, Please verify.", data_files_element->Value());
-	config_data_files_for_datamodel(host_comp_id, data_files_node);
+	config_data_files_for_datamodel(data_files_node);
 
 	for (TiXmlNode *sub_node = data_files_node->NextSibling(); sub_node != NULL; sub_node = sub_node->NextSibling()) {
 		if (words_are_the_same(sub_node->ToElement()->Value(),"horizontal_grids")) 
@@ -406,10 +406,12 @@ Inout_datamodel::Inout_datamodel(int host_comp_id, const char *output_datamodel_
 			config_vertical_grids_for_datamodel(sub_node);
 		if (words_are_the_same(sub_node->ToElement()->Value(),"V3D_grids"))
 			config_v3d_grids_for_datamodel(sub_node);
+		if (words_are_the_same(sub_node->ToElement()->Value(), "fields_output_settings"))
+			config_field_output_settings_for_datamodel(sub_node);
 	}
 }
 
-void Inout_datamodel::config_data_files_for_datamodel(int host_comp_id, TiXmlNode *data_files_node) {
+void Inout_datamodel::config_data_files_for_datamodel(TiXmlNode *data_files_node) {
 	TiXmlNode *data_file_node;
 	int line_number,pos_last_star,i, num_stars=0;
 	bool is_data_file_configured = false;
@@ -417,10 +419,10 @@ void Inout_datamodel::config_data_files_for_datamodel(int host_comp_id, TiXmlNod
 
 	for (data_file_node = data_files_node->FirstChild(); data_file_node != NULL; data_file_node = data_file_node->NextSibling()) {
 		TiXmlElement *data_file_element = data_file_node->ToElement();
-		if (is_data_file_configured && !is_XML_setting_on(host_comp_id, data_file_element, XML_file_name,"the status of a data_file node of an output_datamodel", "output_datamodel xml file"))
+		if (is_data_file_configured && is_XML_setting_on(host_comp_id, data_file_element, XML_file_name,"the status of a data_file node of an output_datamodel", "output_datamodel xml file"))
 			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "In output_datamodel configuration file\"%s\", only one \"status\" of the \"data_file\" node can be set on, Please Verify.", XML_file_name);
 		if (is_data_file_configured)
-			return;
+			continue;
 		is_data_file_configured = true;
 		const char *file_names_str = get_XML_attribute(host_comp_id, 80, data_file_element, "file_names", XML_file_name, line_number, "the \"file_names\" of an output_datamodel", "output_datamodel configuration file", true);
 		if (file_names_str[0] != '/')
@@ -574,6 +576,120 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 			const char *surface_field_type_str = get_XML_attribute(host_comp_id, 80, surface_field_element, "type", XML_file_name, line_number, "the surface_field \"type\" of an output_datamodel V3D_grid", "datamodel configuration file",false);
 			const char *field_name_in_file_str = get_XML_attribute(host_comp_id, 80, surface_field_element, "field_name_in_file", XML_file_name, line_number, "the surface_field name of an output_datamodel V3D_grid", "datamodel configuration file", false);
 		}
+	}
+}
+
+void Inout_datamodel::config_field_output_settings_for_datamodel(TiXmlNode *field_output_settings_node) {
+	int line_number;
+	for (TiXmlNode *field_output_setting_node = field_output_settings_node->FirstChild(); field_output_setting_node != NULL; field_output_setting_node = field_output_setting_node->NextSibling()) {
+		TiXmlElement *field_output_setting_element = field_output_setting_node->ToElement();
+		if (!is_XML_setting_on(host_comp_id, field_output_setting_element, XML_file_name, "the status of a \"horizontal_grid\" node of an output_datamodel", "output_datamodel xml file"))
+			continue;
+		for (TiXmlNode *sub_node = field_output_setting_node->FirstChild(); sub_node != NULL; sub_node = sub_node->NextSibling()) {
+			TiXmlElement *sub_element = sub_node->ToElement();
+			if (words_are_the_same(sub_element->Value(), "default_settings"))
+				config_default_settings(sub_node);
+			if (words_are_the_same(sub_element->Value(), "output_frequency"))
+				config_output_frequency(sub_node);
+			if (words_are_the_same(sub_element->Value(), "fields"))
+				config_field_info(sub_node);
+		}
+	}
+}
+
+void Inout_datamodel::config_default_settings(TiXmlNode *default_settings_node) {
+	int line_number;
+	TiXmlElement *default_settings_element = default_settings_node->ToElement();
+	const char *default_operation_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_operation", XML_file_name, line_number, "The \"default_operation\" of the output_datamodel","output datamodel xml file",false);
+	const char *default_h2d_grid_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_h2d_grid", XML_file_name, line_number, "The \"default_h2d_grid\" of the output_datamodel","output datamodel xml file",false);
+	const char *default_float_type_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_float_type", XML_file_name, line_number, "The \"default_float_type\" of the output_datamodel","output datamodel xml file",false);
+	const char *default_integer_type_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_integer_type", XML_file_name, line_number, "The \"default_integer_type\" of the output_datamodel","output datamodel xml file",false);
+}
+
+void Inout_datamodel::config_output_frequency(TiXmlNode *output_frequency_node) {
+	int line_number;
+	TiXmlElement *output_frequency_element = output_frequency_node->ToElement();
+	const char *file_freq_unit_str = get_XML_attribute(host_comp_id, 80, output_frequency_element, "file_freq_unit", XML_file_name, line_number, "The \"file_freq_unit\" of the output_datamodel","output datamodel xml file",false);
+	const char *file_freq_count_str = get_XML_attribute(host_comp_id, 80, output_frequency_element, "file_freq_count", XML_file_name, line_number, "The \"file_freq_count\" of the output_datamodel","output datamodel xml file",false);
+	bool is_outer_segment_node_found = false;
+	for (TiXmlNode *outer_segment_node = output_frequency_node->FirstChild(); outer_segment_node != NULL; outer_segment_node = outer_segment_node->NextSibling()) {
+		TiXmlElement *outer_segment_element = outer_segment_node->ToElement();
+		if (!is_XML_setting_on(host_comp_id, outer_segment_element, XML_file_name, "the status of a \"segment\" node of an output_datamodel output_frequency_setting", "output_datamodel xml file"))
+			continue;
+		else if (is_outer_segment_node_found)
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "In output_datamodel configuration file\"%s\", only one \"status\" of the outmost \"segment\" node can be set on, Please Verify.", XML_file_name);
+		else is_outer_segment_node_found = true;
+		const char *freq_count_str = get_XML_attribute(host_comp_id, 80, outer_segment_element, "freq_count", XML_file_name, line_number, "The \"freq_count\" of the output_datamodel","output datamodel xml file",false);
+		const char *freq_unit_str = get_XML_attribute(host_comp_id, 80, outer_segment_element, "freq_unit", XML_file_name, line_number, "The \"freq_unit\" of the output_datamodel","output datamodel xml file",false);
+		std::vector<TiXmlNode*> segment_vector;
+		int valid_segment_start_pos = 0;
+		//第一层可能是time_points_node
+		if (is_expected_segment(outer_segment_node->FirstChild(), "time_slots"))
+			get_all_sub_segment_time_slots(outer_segment_node, segment_vector);
+		else if (is_expected_segment(outer_segment_node->FirstChild(), "time_points"))
+			visit_time_points_node(outer_segment_node->FirstChild());
+		int num_segments = segment_vector.size();
+		while (num_segments != 0) {
+			for (int i = valid_segment_start_pos; i < num_segments; i++) {
+				visit_time_slots_node(segment_vector[i]);
+				get_all_sub_segment_time_slots(segment_vector[i], segment_vector);
+			}
+			valid_segment_start_pos += num_segments;
+			num_segments = segment_vector.size() - num_segments;
+		}
+	}
+}
+
+bool Inout_datamodel::is_expected_segment(TiXmlNode *undecided_node, const char *expected_str) {
+	int line_number;
+	TiXmlElement *undecided_element = undecided_node->ToElement();
+	const char *undecided_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, undecided_element, expected_str, XML_file_name, line_number, "The \"time_slots\" or \"time_points\" of the output_datamodel","output datamodel xml file",false);
+	if (undecided_str == NULL)
+		return false;
+	else return true;
+}
+
+void Inout_datamodel::get_all_sub_segment_time_slots(TiXmlNode *outer_segment_node, std::vector<TiXmlNode*> global_segment_vector) {
+	for (TiXmlNode *internal_segment_node = outer_segment_node->FirstChild(); internal_segment_node != NULL; internal_segment_node = internal_segment_node->NextSibling()) {
+		if (is_expected_segment(internal_segment_node, "time_slots"))
+			global_segment_vector.push_back(internal_segment_node);
+	}
+}
+
+void Inout_datamodel::visit_time_slots_node(TiXmlNode *time_slot_segment_node) {
+	int line_number;
+	TiXmlElement *time_slot_segment_element = time_slot_segment_node->ToElement();
+	if (!is_XML_setting_on(host_comp_id, time_slot_segment_element, XML_file_name,"the status of the time_points \"segment\" of an output_datamodel", "output_datamodel configuration file"))
+		return;
+	const char *time_slots_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, time_slot_segment_element, "time_slots", XML_file_name, line_number, "The \"time_slots\" of the output_datamodel","output datamodel xml file",true);
+	const char *time_slot_format_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, time_slot_segment_element, "time_slot_format", XML_file_name, line_number, "The \"time_slot_format\" of the output_datamodel","output datamodel xml file",true);
+	const char *freq_count_str = get_XML_attribute(host_comp_id, 80, time_slot_segment_element, "freq_count", XML_file_name, line_number, "The \"freq_count\" of the output_datamodel","output datamodel xml file",false);
+	const char *freq_unit_str = get_XML_attribute(host_comp_id, 80, time_slot_segment_element, "freq_unit", XML_file_name, line_number, "The \"freq_unit\" of the output_datamodel","output datamodel xml file",false);
+	TiXmlNode *sub_segment_node = time_slot_segment_node->FirstChild();
+	if (is_expected_segment(sub_segment_node, "time_points"))
+		visit_time_points_node(sub_segment_node);
+}
+
+void Inout_datamodel::visit_time_points_node(TiXmlNode *time_points_segment_node) {
+	int line_number;
+	TiXmlElement *time_points_segment_element = time_points_segment_node->ToElement();
+	if (!is_XML_setting_on(host_comp_id, time_points_segment_element, XML_file_name,"the status of the time_points \"segment\" of an output_datamodel", "output_datamodel configuration file"))
+		return;
+	const char *time_points_str = get_XML_attribute(host_comp_id, 80, time_points_segment_element, "time_points", XML_file_name, line_number, "The \"time_points\" of the output_datamodel","output datamodel xml file",true);
+	const char *time_point_format = get_XML_attribute(host_comp_id, 80, time_points_segment_element, "time_point_format", XML_file_name, line_number, "The \"time_point_format\" of the output_datamodel","output datamodel xml file",false);
+	const char *time_point_unit = get_XML_attribute(host_comp_id, 80, time_points_segment_element, "time_point_unit", XML_file_name, line_number, "The \"time_point_unit\" of the output_datamodel","output datamodel xml file",false);
+}
+
+void Inout_datamodel::config_field_info(TiXmlNode *fields_node) {
+	for (TiXmlNode *field_node = fields_node->FirstChild(); field_node != NULL; field_node = field_node->NextSibling()) {
+		TiXmlElement *field_element = field_node->ToElement();
+		const char *name_in_model_str = get_XML_attribute(host_comp_id, 80, field_element, "name_in_model", XML_file_name, line_number, "The \"name_in_model\" of the output_datamodel field","output datamodel xml file",true);
+		const char *grid_name_str = get_XML_attribute(host_comp_id, 80, field_element, "grid_name", XML_file_name, line_number, "The \"grid_name\" of the output_datamodel field","output datamodel xml file",false);
+		const char *name_in_file_str = get_XML_attribute(host_comp_id, 80, field_element, "name_in_file", XML_file_name, line_number, "The \"name_in_file\" of the output_datamodel field","output datamodel xml file",false);
+		const char *float_datatype_str = get_XML_attribute(host_comp_id, 80, field_element, "float_datatype", XML_file_name, line_number, "The \"float_datatype\" of the output_datamodel field","output datamodel xml file",false);
+		const char *integer_datatype_str = get_XML_attribute(host_comp_id, 80, field_element, "integer_datatype", XML_file_name, line_number, "The \"integer_datatype\" of the output_datamodel field","output datamodel xml file",false);
+		const char *operation_str = get_XML_attribute(host_comp_id, 80, field_element, "operation", XML_file_name, line_number, "The \"operation\" of the output_datamodel field","output datamodel xml file",false);
+		const char *unit_str = get_XML_attribute(host_comp_id, 80, field_element, "unit", XML_file_name, line_number, "The \"unit\" of the output_datamodel field","output datamodel xml file",false);
 	}
 }
 
