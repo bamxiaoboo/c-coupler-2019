@@ -21,7 +21,7 @@
 #define INPUT_DATAMODEL            ((int)0)
 #define OUTPUT_DATAMODEL           ((int)1)
 
-class Datamodel_instance_info
+/*class Datamodel_instance_info
 {
 public:
 	char datamodel_instance_name[NAME_STR_SIZE];//Datainst_ not included
@@ -47,7 +47,7 @@ public:
 	void load_datamodel_instatnces_configuration(int, const char*, char*, std::vector<char*>);
 	void clear_datamodel_instance_settings();
 	void read_datamodel_instance_configuration(int, const char*, char*, const char*, TiXmlNode*);
-};
+};*/
 
 class Inout_datamodel {
 private:
@@ -65,13 +65,14 @@ private:
 	char time_format_in_file_names[NAME_STR_SIZE];
 	int file_type;//1: netcdf
 	int host_comp_id;
-
-	std::vector<char*> vertical_grid_names;
-	std::vector<char*> horizontal_grid_names;
-	std::vector<char*> v3d_grid_names;
-	std::vector<char*> vertical_grid_type;
+	std::vector<int> h2d_grid_ids;
+	std::vector<int> v1d_grid_ids;
+	std::vector<int> v3d_grid_ids;
+	std::vector<int> mid_3d_grid_ids;
+	std::vector<int> mid_1d_grid_ids;
+	std::vector<char*> surface_field_names;
 public:
-	Inout_datamodel(int, const char*);
+	Inout_datamodel(int, const char*, bool);
 	Inout_datamodel(Inout_datamodel*);
 	~Inout_datamodel();
 	const char *get_datamodel_name() {return datamodel_name;}
@@ -79,21 +80,21 @@ public:
 	void config_horizontal_grids_for_datamodel(TiXmlNode*);
 	void config_vertical_grids_for_datamodel(TiXmlNode*);
 	void config_v3d_grids_for_datamodel(TiXmlNode*);
-	void config_horizontal_grid_via_CCPL_grid_file(TiXmlNode*);
-	void config_horizontal_grid_via_grid_data_file_field(TiXmlNode*);
-	void config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode*);
-	void config_vertical_z_grid(TiXmlNode*);
-	void config_vertical_sigma_grid(TiXmlNode*);
-	void config_vertical_hybrid_grid(TiXmlNode*);
+	void config_horizontal_grid_via_CCPL_grid_file(TiXmlNode*, const char*);
+	void config_horizontal_grid_via_grid_data_file_field(TiXmlNode*, const char*);
+	void config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode*, const char*);
+	void config_vertical_z_grid(MPI_Comm, TiXmlNode*, IO_netcdf*, char*, void **coord_values, int &, char*, bool);
+	void config_vertical_sigma_grid(MPI_Comm, TiXmlNode*, IO_netcdf*, char*, char*, void**, int&, char*, bool);
+	void config_vertical_hybrid_grid(MPI_Comm, TiXmlNode*, const char*, IO_netcdf*, char*, char*, void**, void**, int&, char*, bool);
 	void config_field_output_settings_for_datamodel(TiXmlNode*);
 	void config_field_info(TiXmlNode*);
-	char *get_vertical_grid_type(const char*);
 	void visit_time_slots_node(TiXmlNode*);
 	void visit_time_points_node(TiXmlNode*);
 	bool is_expected_segment(TiXmlNode*, const char*);
 	void get_all_sub_segment_time_slots(TiXmlNode*, std::vector<TiXmlNode*>);
 	void config_output_frequency(TiXmlNode*);
 	void config_default_settings(TiXmlNode*);
+	void register_common_h2d_grid_for_datamodel(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char *, const char*, const char*);
 };
 
 class Output_handler {
@@ -123,7 +124,7 @@ public:
 	int get_next_handler_id() {return TYPE_OUTPUT_HANDLER_ID_PREFIX|output_handlers.size();}
 };
 
-bool varname_or_value(const char*);
+bool varname_or_value(const char*);//false: varname, true: value
 int set_unit(const char*);
 int check_time_format(const char*, const char*);
 void tolower(char*);
