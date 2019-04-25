@@ -3334,13 +3334,12 @@
       handler_annotation = trim("")//char(0)
    endif
 
-
    if (present(sampling_timer_id)) then
-      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, -1, handler_annotation)
+      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, size(field_instance_ids), handler_annotation)
    else
-      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, handler_annotation)
+      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, -1, size(field_instance_ids), handler_annotation)
    endif
-   
+
    CCPL_register_datamodel_output_handler = handler_id
 
    END FUNCTION CCPL_register_datamodel_output_handler

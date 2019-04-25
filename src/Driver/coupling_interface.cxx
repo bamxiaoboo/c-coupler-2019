@@ -1186,7 +1186,7 @@ extern "C" void define_complex_timer_
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to define a timer");
 
     check_for_coupling_registration_stage(*comp_id, API_ID_TIME_MGT_DEFINE_COMPLEX_TIMER, true, annotation);
-    EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
+    EXECUTION_REPORT(REPORT_ERROR, *comp_id, components_time_mgrs->get_time_mgr(*comp_id)->get_time_step_in_second() > 0, "The time step of the component \"%s\" has not been set yet. Please specify the time step before defining a timer at the model code with the annotation \"%s\"", 
                      comp_comm_group_mgt_mgr->get_global_node_of_local_comp(*comp_id, true, annotation)->get_comp_name(), annotation);
     *timer_id = timer_mgr->define_timer(*comp_id, children_timers_id, *num_children_timers, *array_size, *or_or_and, annotation);
 
@@ -1607,12 +1607,12 @@ extern "C" void register_datamodel_output_handler
 #else
 extern "C" void register_datamodel_output_handler_
 #endif
-(int *handler_id, int *num_fields, int *field_ids, const char *output_datamodel_name, bool *implicit_or_explicit, int *sampling_timer_id, const char *annotation)
+(int *handler_id, int *num_fields, int *field_ids, const char *output_datamodel_name, int *implicit_or_explicit, int *sampling_timer_id, int *field_instance_ids_size, const char *annotation)
 {
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Start to register a datamodel output handler");
     check_for_ccpl_managers_allocated(API_ID_HANDLER_DATAMODEL_OUTPUT, annotation);
     check_API_parameter_string_length(-1, API_ID_HANDLER_DATAMODEL_OUTPUT, CCPL_NAME_STR_LEN, output_datamodel_name, "output_datamodel_name", annotation);
-    *handler_id = datamodel_mgr->register_datamodel_output_handler(*num_fields, field_ids, output_datamodel_name, *implicit_or_explicit, *sampling_timer_id, annotation);
+    *handler_id = datamodel_mgr->register_datamodel_output_handler(*num_fields, field_ids, output_datamodel_name, *implicit_or_explicit, *sampling_timer_id, *field_instance_ids_size, annotation);
     EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Finish registering a datamodel output handler");
 }
 

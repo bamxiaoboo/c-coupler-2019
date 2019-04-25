@@ -51,8 +51,9 @@ public:
 
 class Inout_datamodel {
 private:
+	char datamodel_keyword[NAME_STR_SIZE];
 	bool datamodel_type;//input: 0, output: 1
-	bool implicit_or_explicit;//implicit: 0, explicit: 1
+	int implicit_or_explicit;//implicit: 0, explicit: 1
 	char datamodel_config_dir[NAME_STR_SIZE];//config dir
 	char datamodel_data_dir[NAME_STR_SIZE];//data dir
 	char XML_file_name[NAME_STR_SIZE];//dir+filename
@@ -65,6 +66,13 @@ private:
 	char time_format_in_file_names[NAME_STR_SIZE];
 	int file_type;//1: netcdf
 	int host_comp_id;
+	std::vector<char*> default_operations;
+	std::vector<char*> default_float_types;
+	std::vector<char*> default_integer_types;
+	std::vector<char*> default_h2d_grids;
+	std::vector<char*> default_v3d_grids;
+	std::vector<char*> file_freq_units;
+	std::vector<char*> file_freq_counts;
 	std::vector<int> h2d_grid_ids;
 	std::vector<int> v1d_grid_ids;
 	std::vector<int> v3d_grid_ids;
@@ -72,10 +80,11 @@ private:
 	std::vector<int> mid_1d_grid_ids;
 	std::vector<char*> surface_field_names;
 public:
-	Inout_datamodel(int, const char*, bool);
-	Inout_datamodel(Inout_datamodel*);
+	Inout_datamodel(int, char*, const char*, bool);
+	Inout_datamodel(const char*);
 	~Inout_datamodel();
-	const char *get_datamodel_name() {return datamodel_name;}
+	const char *get_datamodel_name() { return datamodel_name; }
+	const char *get_datamodel_keyword() { return datamodel_keyword; }
 	void config_data_files_for_datamodel(TiXmlNode*);
 	void config_horizontal_grids_for_datamodel(TiXmlNode*);
 	void config_vertical_grids_for_datamodel(TiXmlNode*);
@@ -95,6 +104,7 @@ public:
 	void config_output_frequency(TiXmlNode*);
 	void config_default_settings(TiXmlNode*);
 	void register_common_h2d_grid_for_datamodel(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char *, const char*, const char*);
+	void initialize_output_setting_configurations();
 };
 
 class Output_handler {
@@ -103,11 +113,12 @@ private:
 	int handler_id;
 	int num_fields;
 	std::vector<int> handler_fields_id;
-	Inout_datamodel *output_datamodel;
+	char datamodel_name[NAME_STR_SIZE];
+	char datamodel_keyword[NAME_STR_SIZE];
 	int sampling_timer_id;
 	char annotation[NAME_STR_SIZE];
 public:
-	Output_handler(const char*, int, int, int*, int,const char*);
+	Output_handler(char*, const char*, int, int, int*, int, int, int, const char *);
 	~Output_handler();
 	int get_handler_id() {return handler_id;}
 };
@@ -120,8 +131,9 @@ private:
 public:
 	Datamodel_mgt() {}
 	~Datamodel_mgt() {}
-	int register_datamodel_output_handler(int, int *, const char*, bool, int, const char*);
+	int register_datamodel_output_handler(int, int *, const char*, int, int, int, const char*);
 	int get_next_handler_id() {return TYPE_OUTPUT_HANDLER_ID_PREFIX|output_handlers.size();}
+	void common_checking_for_datamodel_handler_registration(int, int*, int, int, int, const char*);
 };
 
 bool varname_or_value(const char*);//false: varname, true: value
