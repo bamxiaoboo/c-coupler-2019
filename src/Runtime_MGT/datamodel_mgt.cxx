@@ -43,11 +43,22 @@ bool varname_or_value(const char* string) {
     return true;//decimal value
 }
 
-void tolower(char *string) {
-	for (int i = 0; i < strlen(string); i++) {
-		if (string[i]<='Z' || string[i]>='A')
-			string[i]+=32;
+char *tolower(const char *string) {
+	if (string == NULL) return NULL;
+	char *new_str = strdup(string);
+	for (int i = 0; i < strlen(new_str); i++) {
+		if (new_str[i]<='Z' || new_str[i]>='A')
+			new_str[i]+=32;
 	}
+	return new_str;
+}
+
+bool words_are_the_similar(const char *str1, const char *str2) {
+	char *word1 = strdup(tolower(str1));
+	char *word2 = strdup(tolower(str2));
+	if (words_are_the_same(word1, word2))
+		return true;
+	else return false;
 }
 
 int set_unit(const char* input_unit) {
@@ -118,7 +129,7 @@ int check_time_format(const char* time_format, const char *report_hint) {
         id_time_format = TIME_FORMAT_MMDDHH;
     else if (words_are_the_same(time_format, "DD.HH") || words_are_the_same(time_format, "DD-HH") || words_are_the_same(time_format, "DDHH"))
         id_time_format = TIME_FORMAT_DDHH;
-    else EXECUTION_REPORT(REPORT_ERROR, false, "The time format \"%s\" for \"%s\" is incorrect", time_format, report_hint);
+    else EXECUTION_REPORT(REPORT_ERROR, -1, false, "The time format \"%s\" for \"%s\" is incorrect", time_format, report_hint);//测一下
 
     return id_time_format;
 }
@@ -333,32 +344,30 @@ void Datamodel_instance_info::read_datamodel_instance_configuration(int host_com
 
 int Datamodel_mgt::register_datamodel_output_handler(int num_fields, int *field_ids, const char *output_datamodel_name, int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
 	int API_id = API_ID_HANDLER_DATAMODEL_OUTPUT, i;
-	char datamodel_keyword[NAME_STR_SIZE];
 	Inout_datamodel *output_datamodel;
 	common_checking_for_datamodel_handler_registration(num_fields, field_ids, implicit_or_explicit, sampling_timer_id, field_instance_ids_size, annotation);
 	int host_comp_id = memory_manager->get_field_instance(field_ids[0])->get_comp_id();
 	for (i=0; i < output_datamodels.size(); i++) {
-		if (words_are_the_same(datamodel_keyword, output_datamodels[i]->get_datamodel_keyword())) {
-			output_datamodel = new Inout_datamodel(output_datamodels[i]->get_datamodel_keyword());
+		if (words_are_the_same(output_datamodel_name, output_datamodels[i]->get_datamodel_name()) && host_comp_id == output_datamodels[i]->get_host_comp_id()) {
+			output_datamodel = output_datamodels[i];
+			EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "The output_datamodel \"%s\" of which output data dir is %s, needed for output_datamodel_hander has already been configured, and will be used as already configured.", output_datamodel_name, output_datamodel->get_datamodel_data_dir());
 			break;
 		}
 	}
 	if (i == datamodel_mgr->output_datamodels.size()) 
-		output_datamodel = new Inout_datamodel(host_comp_id, datamodel_keyword, output_datamodel_name, OUTPUT_DATAMODEL);
-	output_datamodels.push_back(output_datamodel);
-	Output_handler *new_output_handler = new Output_handler(datamodel_keyword, output_datamodel_name, get_next_handler_id(), num_fields, field_ids, implicit_or_explicit, sampling_timer_id, field_instance_ids_size, annotation);
+		output_datamodel = new Inout_datamodel(host_comp_id, output_datamodel_name, OUTPUT_DATAMODEL);	output_datamodels.push_back(output_datamodel);
+	Output_handler *new_output_handler = new Output_handler(output_datamodel_name, get_next_handler_id(), num_fields, field_ids, implicit_or_explicit, sampling_timer_id, field_instance_ids_size, annotation);
 	output_handlers.push_back(new_output_handler);
 	return new_output_handler->get_handler_id();
 }
 
-Output_handler::Output_handler(char *datamodel_keyword_str, const char *datamodel_name_str, int handler_id, int num_fields, int *field_ids,int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
+Output_handler::Output_handler(const char *datamodel_name_str, int handler_id, int num_fields, int *field_ids,int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
 	this->sampling_timer_id = sampling_timer_id;
 	this->handler_id = handler_id;
 	this->num_fields = num_fields;
 	this->sampling_timer_id = sampling_timer_id;
-	strcpy(this->datamodel_keyword, datamodel_keyword_str);
-	strcpy(this->datamodel_name, datamodel_name_str);
-	strcpy(this->annotation, annotation);
+	this->datamodel_name =strdup(datamodel_name_str);
+	this->annotation = strdup(annotation);
 	for (int j = 0; j < num_fields; j ++) {
 		handler_fields_id.push_back(field_ids[j]);
 	}
@@ -367,7 +376,7 @@ Output_handler::Output_handler(char *datamodel_keyword_str, const char *datamode
 
 void Datamodel_mgt::common_checking_for_datamodel_handler_registration(int num_fields, int *field_ids, int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
 	int comp_id = -1;
-	char str[NAME_STR_SIZE], API_label[NAME_STR_SIZE];
+	char str[200], API_label[200];
 
 	get_API_hint(-1, API_ID_HANDLER_DATAMODEL_OUTPUT, API_label);
 	EXECUTION_REPORT(REPORT_ERROR, -1, num_fields > 0, "Error happens when calling the API \"%s\" to register a datamodel handler with the annotation \"%s\", the parameter \"num_field_instances\" (currently is %d) cannot be smaller than 1. Please verify the model code.", API_label, annotation, num_fields);
@@ -378,13 +387,15 @@ void Datamodel_mgt::common_checking_for_datamodel_handler_registration(int num_f
 			comp_id = memory_manager->get_field_instance(field_ids[i])->get_comp_id();
 		EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, comp_id, comp_id == memory_manager->get_field_instance(field_ids[i])->get_comp_id(), "Error happens when calling the API \"%s\" to register a datamodel handler with the annotation \"%s\": the field instances specified via the parameter \"%s\" should but not correspond to the same component model crrently: the first field instance corresponds to the component model \"%s\" while the %dth field instance corresponds to the component model \"%s\". Please verify the model code with the annotation \"%s\".", API_label, annotation, "field_instance_ids", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "")->get_comp_full_name(), i+1, comp_comm_group_mgt_mgr->get_global_node_of_local_comp(memory_manager->get_field_instance(field_ids[i])->get_comp_id(), false, "")->get_comp_full_name());
 	}
-	if (sampling_timer_id != -1) {
-		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(sampling_timer_id), "Error happens when calling the API \"%s\" to register a datamodel handler with the annotation \"%s\": the parameter \"sampling_timer_id\" (currently is 0x%x) is not the legal id of a timer. Please verify the corresponding model code.", API_label, annotation, sampling_timer_id);check_API_parameter_timer(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), "registering a datamodel handler", sampling_timer_id, "sampling_timer_id (the information of the timer)", annotation);
-	}
-	check_API_parameter_int(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), "registering a datamodel handler", sampling_timer_id, "sampling_timer_id", annotation);
-	EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(sampling_timer_id)->get_comp_id(), "Error happens when calling the API \"%s\" to register a datamodel handler with the annotation \"%s\": the parameter \"sampling_timer_id\" and the parameter \"%s\" do not correspond to the same component model (the parameter \"sampling_timer_id\" corresponds to the component model \"%s\" while \"%s\" corresponds to the component model \"%s\"). Please verify.", API_label, annotation, "field_instance_ids", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(sampling_timer_id)->get_comp_id(), false, "")->get_comp_full_name(), "field_instance_ids", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "")->get_comp_full_name());
 	sprintf(str, "registering a datamodel handler with the annotation \"%s\"", annotation);
 	synchronize_comp_processes_for_API(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), str, annotation);
+	int temp_int = (sampling_timer_id == -1)? 0 : 1;
+	check_API_parameter_int(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), NULL, temp_int, "sampling_timer_id", annotation);
+	if (sampling_timer_id != -1) {
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, timer_mgr->check_is_legal_timer_id(sampling_timer_id), "Error happens when calling the API \"%s\" to register a datamodel handler with the annotation \"%s\": the parameter \"sampling_timer_id\" (currently is 0x%x) is not the legal id of a timer. Please verify the corresponding model code.", API_label, annotation, sampling_timer_id);
+		check_API_parameter_timer(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), "registering a datamodel handler", sampling_timer_id, "sampling_timer_id (the information of the timer)", annotation);
+		EXECUTION_REPORT(REPORT_ERROR, comp_id, comp_id == timer_mgr->get_timer(sampling_timer_id)->get_comp_id(), "Error happens when calling the API \"%s\" to register a datamodel handler with the annotation \"%s\": the parameter \"sampling_timer_id\" and the parameter \"%s\" do not correspond to the same component model (the parameter \"sampling_timer_id\" corresponds to the component model \"%s\" while \"%s\" corresponds to the component model \"%s\"). Please verify.", API_label, annotation, "field_instance_ids", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(timer_mgr->get_timer(sampling_timer_id)->get_comp_id(), false, "")->get_comp_full_name(), "field_instance_ids", comp_comm_group_mgt_mgr->get_global_node_of_local_comp(comp_id, false, "")->get_comp_full_name());//timer和field_instance必须对应相同的comp_id
+	}
 	check_API_parameter_int(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), NULL, num_fields, "num_field_instances", annotation);
 	sprintf(str, "\"%s\" (the information of the field instances)", "field_instance_ids");
 	for (int i = 0; i < num_fields; i++)
@@ -392,12 +403,12 @@ void Datamodel_mgt::common_checking_for_datamodel_handler_registration(int num_f
 	check_API_parameter_int(comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(comp_id, "in Output_handler:Output_handler"), "registering a datamodel handler", implicit_or_explicit, "implicit_or_explicit (the tag of executing the handler implicitly or explicitly)", annotation);
 }
 
-Inout_datamodel::Inout_datamodel(int host_comp_id, char *datamodel_keyword, const char *output_datamodel_name, bool datamodel_type_label) {
-	int line_number;
+Inout_datamodel::Inout_datamodel(int host_comp_id, const char *output_datamodel_name, bool datamodel_type_label) {
+	int line_number, num_data_files_node = 0, num_hg_grids_node = 0, num_vg_grids_node = 0, num_vd_grids_node = 0, num_out_freq_node = 0, num_nodes = 0;
+	TiXmlNode *sub_node = NULL;
 	this->host_comp_id = host_comp_id;
 	this->datamodel_type = datamodel_type_label;
-	strcpy(this->datamodel_keyword, datamodel_keyword);
-	strcpy(datamodel_name, output_datamodel_name);
+	this->datamodel_name = strdup(output_datamodel_name);
 	sprintf(datamodel_config_dir, "%s/CCPL_dir/datamodel/config",comp_comm_group_mgt_mgr->get_root_working_dir());
 	sprintf(datamodel_file_name,"output_datamodel_%s.xml",output_datamodel_name);
 	sprintf(XML_file_name,"%s/%s", datamodel_config_dir, datamodel_file_name);
@@ -407,7 +418,7 @@ Inout_datamodel::Inout_datamodel(int host_comp_id, char *datamodel_keyword, cons
 
 	TiXmlDocument *XML_file = open_XML_file_to_read(host_comp_id, XML_file_name, comm, false);
 	if (XML_file == NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "Can't find the Datamodel configuration file named %s, Please check directory %s.", datamodel_file_name, datamodel_config_dir);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Can't find the Datamodel configuration file named %s, Please check directory %s.", datamodel_file_name, datamodel_config_dir);
 		return;
 	}
 
@@ -424,102 +435,119 @@ Inout_datamodel::Inout_datamodel(int host_comp_id, char *datamodel_keyword, cons
 	TiXmlNode *output_datamodel_node = root_node;
 	TiXmlElement *output_datamodel_element = root_element;
 	//check output_datamodel status
-	const char *name_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, output_datamodel_element, "name", XML_file_name, line_number, "The \"name\" of the output_datamodel","output datamodel xml file",true);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(name_str, output_datamodel_name),"The name of the Output_datamodel should be %s, Please verify.",output_datamodel_name);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, is_XML_setting_on(host_comp_id, output_datamodel_element, XML_file_name,"the \"status\" of output_datamodel","output_datamodel config file"),"The status of \"output_datmodel\" node of datamodel \"%s\" should be on, Please check.",output_datamodel_name);
-	TiXmlNode *data_files_node = output_datamodel_node->FirstChild();
-	TiXmlElement *data_files_element = data_files_node->ToElement();
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_files_element->Value(), "data_files"),"The first node in an Output_datamodel configuration file should be \"data_files\", not \"%s\" as is specified in the file, Please verify.", data_files_element->Value());
-	config_data_files_for_datamodel(data_files_node);
+	const char *name_str = get_XML_attribute(host_comp_id, 80, output_datamodel_element, "name", XML_file_name, line_number, "The \"name\" of the output_datamodel","output datamodel xml file",true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(name_str, output_datamodel_name),"The name of the Output_datamodel should be %s, Please verify.",output_datamodel_name);
+	if (!at_most_one_node_of("data_files", output_datamodel_node, sub_node, num_nodes))
+		EXECUTION_REPORT(REPORT_ERROR, -1, num_nodes == 1, "Error happens when reading the xml configuration file \"%s\" for datamodel \"%s\", there should be one and only one node named \"data_files\" under node \"output_datamodel\", %d are detected, Please check.", XML_file_name, datamodel_name, num_nodes);
+	if (sub_node != NULL) config_data_files_for_datamodel(sub_node);
+	EXECUTION_REPORT(REPORT_ERROR, -1, at_most_one_node_of("horizontal_grids", output_datamodel_node, sub_node, num_nodes), "Error happens when reading the xml configuration file \"%s\" for datamodel \"%s\", %d nodes named \"horizontal_grids\" are found under node \"output_datamodel\", Please check.", XML_file_name, datamodel_name, num_nodes);
+	if (sub_node != NULL) config_horizontal_grids_for_datamodel(sub_node);
+	EXECUTION_REPORT(REPORT_ERROR, -1, at_most_one_node_of("vertical_grids", output_datamodel_node, sub_node, num_nodes), "Error happens when reading the xml configuration file \"%s\" for datamodel \"%s\", %d nodes named \"vertical_grids\" are found under node \"output_datamodel\", Please check.", XML_file_name, datamodel_name, num_nodes);
+	if (sub_node != NULL) config_vertical_grids_for_datamodel(sub_node);
+	EXECUTION_REPORT(REPORT_ERROR, -1, at_most_one_node_of("V3D_grids", output_datamodel_node, sub_node, num_nodes), "Error happens when reading the xml configuration file \"%s\" for datamodel \"%s\", %d nodes named \"V3D_grids\" are found under node \"output_datamodel\", Please check.", XML_file_name, datamodel_name, num_nodes);
+	if (sub_node != NULL) config_v3d_grids_for_datamodel(sub_node);
+	EXECUTION_REPORT(REPORT_ERROR, -1, at_most_one_node_of("fields_output_settings", output_datamodel_node, sub_node, num_nodes), "Error happens when reading the xml configuration file \"%s\" for datamodel \"%s\", %d nodes named \"fields_output_settings\" are found under node \"output_datamodel\", Please check.", XML_file_name, datamodel_name, num_nodes);
+	if (sub_node != NULL) config_field_output_settings_for_datamodel(sub_node);
+}
 
-	for (TiXmlNode *sub_node = data_files_node->NextSibling(); sub_node != NULL; sub_node = sub_node->NextSibling()) {
-		if (words_are_the_same(sub_node->ToElement()->Value(),"horizontal_grids")) 
-			config_horizontal_grids_for_datamodel(sub_node);
-		if (words_are_the_same(sub_node->ToElement()->Value(),"vertical_grids"))
-			config_vertical_grids_for_datamodel(sub_node);
-		if (words_are_the_same(sub_node->ToElement()->Value(),"V3D_grids"))
-			config_v3d_grids_for_datamodel(sub_node);
-		if (words_are_the_same(sub_node->ToElement()->Value(), "fields_output_settings"))
-			config_field_output_settings_for_datamodel(sub_node);
+bool at_most_one_node_of(const char *node_name, TiXmlNode *outer_node, TiXmlNode *&inner_node, int &num_nodes) {
+	int num_node = 0;
+	bool return_val;
+	TiXmlNode *sub_node = NULL;
+	for (sub_node = outer_node->FirstChild(); sub_node != NULL; sub_node = sub_node->NextSibling()) {
+		if (words_are_the_same(sub_node->ToElement()->Value(), node_name)) {
+			inner_node = sub_node;
+			num_node ++;
+		}
 	}
+	num_nodes = num_node;
+	return_val = (num_node == 1 || num_node == 0)? true: false;
+	return return_val;
 }
 
 void Inout_datamodel::config_data_files_for_datamodel(TiXmlNode *data_files_node) {
 	TiXmlNode *data_file_node;
 	int line_number,pos_last_star,i, num_stars=0;
 	bool is_data_file_configured = false;
-	char file_name[NAME_STR_SIZE],file_type_str[NAME_STR_SIZE];
+	char *file_name, *file_type_str;
 
 	for (data_file_node = data_files_node->FirstChild(); data_file_node != NULL; data_file_node = data_file_node->NextSibling()) {
 		TiXmlElement *data_file_element = data_file_node->ToElement();
-		if (is_data_file_configured && is_XML_setting_on(host_comp_id, data_file_element, XML_file_name,"the status of a data_file node of an output_datamodel", "output_datamodel xml file"))
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "In output_datamodel configuration file\"%s\", only one \"status\" of the \"data_file\" node can be set on, Please Verify.", XML_file_name);
-		if (is_data_file_configured)
-			continue;
+		if (is_XML_setting_on(host_comp_id, data_file_element, XML_file_name,"the status of a data_file node of an output_datamodel", "output_datamodel xml file"))
+			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, !is_data_file_configured, "Error happens in output_datamodel configuration file\"%s\" for datamodel \"%s\", only one \"status\" of the \"data_file\" node can be set as \"on\", Please Verify the xml file arround line_number %d.", XML_file_name, datamodel_name, data_file_element->Row());
+		else continue;
 		is_data_file_configured = true;
 		const char *file_names_str = get_XML_attribute(host_comp_id, 80, data_file_element, "file_names", XML_file_name, line_number, "the \"file_names\" of an output_datamodel", "output_datamodel configuration file", true);
-		if (file_names_str[0] != '/')
+		if (file_names_str[0] != '/') {
+			datamodel_files_dir_name = new char [strlen(datamodel_data_dir) + strlen(file_names_str) + 1];
 			sprintf(datamodel_files_dir_name, "%s/%s", datamodel_data_dir, file_names_str);
+		}
 		else
-			strcpy(datamodel_files_dir_name, file_names_str);
-		for (i = strlen(datamodel_files_dir_name); i != 0; i--) {
+			datamodel_files_dir_name =strdup(file_names_str);
+		for (i = strlen(datamodel_files_dir_name)-1; i != 0; i--) {
 			if (datamodel_files_dir_name[i] == '/')
 				break;
 		}
+		file_dir = new char [i+1];
 		strncpy(file_dir, datamodel_files_dir_name, i+1);
 		file_dir[i+1]='\0';
-		strcpy(file_name, datamodel_files_dir_name+i+1);
+		file_name = strdup(datamodel_files_dir_name+i+1);
+		DIR *dir=opendir(file_dir);
+		EXECUTION_REPORT(REPORT_ERROR, -1, dir != NULL, "Error happens when reading the xml configuration file of datamodel \"%s\", the data file directory specified as \"%s\" cannot be found, Please check the xml configuration file \"%s\" arround line number %d", datamodel_name, file_dir, XML_file_name, data_file_element->Row());
 		for (i = 0; i < strlen(file_name); i++) {
 			if (file_name[i] == '*') {
 				num_stars ++;
 				pos_last_star = i;
 			}
 		}
+		file_name_prefix = new char [pos_last_star];
 		strncpy(file_name_prefix, file_name, pos_last_star);
 		file_name_prefix[pos_last_star] = '\0';
-		strcpy(file_name_suffix, file_name+pos_last_star+1);
-        strcpy(time_format_in_file_names, get_XML_attribute(host_comp_id, NAME_STR_SIZE, data_file_element, "time_format_in_filename", XML_file_name, line_number, "the \"time_format\" in the file name of a datamodel", "datamodel configuration file", true));
-        //int id_time_format_in_file_names = check_time_format(host_comp_id, time_format_in_file_names, "time_format_in_file_name");
+		file_name_suffix =strdup(file_name+pos_last_star+1);
+        const char *time_format_in_file_names = get_XML_attribute(host_comp_id, 80, data_file_element, "time_format_in_filename", XML_file_name, line_number, "the \"time_format\" in the file name of a datamodel", "datamodel configuration file", true);
+        this->id_time_format_in_file_names = check_time_format(time_format_in_file_names, "time_format_in_file_name");
         EXECUTION_REPORT(REPORT_ERROR,host_comp_id,num_stars == 1,"Error happens when reading the XML configuration file %s arround line number %d, only one * can be specified in data_file names, there are %d detected, Pleas Verify.", XML_file_name, data_file_element->Row(), num_stars);//if there are no * s in filename, do not read time_format_in_filename
-        strcpy(file_type_str,get_XML_attribute(host_comp_id, 80, data_file_element, "file_type", XML_file_name, line_number, "the \"file_type\" of an output_datamodel", "datamodel configuration file", true));
-        tolower(strdup(file_type_str));
-        if (words_are_the_same(file_type_str, "netcdf"))
-        	this->file_type = 1;
+        file_type_str = strdup(get_XML_attribute(host_comp_id, 80, data_file_element, "file_type", XML_file_name, line_number, "the \"file_type\" of an output_datamodel", "datamodel configuration file", true));
+        if (words_are_the_similar(file_type_str, "netcdf"))
+        	this->file_type = strdup("netcdf");
 	}
 }
 
 void Inout_datamodel::config_horizontal_grids_for_datamodel(TiXmlNode *hgs_node) {
 	int line_number;
-	char grid_name_str2[NAME_STR_SIZE];
 	for (TiXmlNode *hg_node = hgs_node->FirstChild(); hg_node != NULL; hg_node = hg_node->NextSibling()) {
 		TiXmlElement *hg_element = hg_node->ToElement();
 		if (!is_XML_setting_on(host_comp_id, hg_element, XML_file_name, "the status of a \"horizontal_grid\" node of an output_datamodel", "output_datamodel xml file"))
 			continue;
 		const char *grid_name_str = get_XML_attribute(host_comp_id, 80, hg_element, "grid_name", XML_file_name, line_number, "the \"grid_name\" of an output_datamodel horizontal_grid","datamodel configuration file",true);
+		char *grid_name_str2 = new char [strlen(grid_name_str) + 10];
 		sprintf(grid_name_str2, "datamodel_%s", grid_name_str);
 		const char *specification_str = get_XML_attribute(host_comp_id, 80, hg_element, "specification", XML_file_name, line_number, "the \"specification\" of an output_datamodel horizontal_grid","datamodel configuration file",true);
 		if (words_are_the_same(specification_str, "CCPL_grid_file"))
-			config_horizontal_grid_via_CCPL_grid_file(hg_node->FirstChild(), grid_name_str2);
+			config_horizontal_grid_via_CCPL_grid_file(hg_node->FirstChild(), grid_name_str, grid_name_str2);
 		else if (words_are_the_same(specification_str, "grid_data_file_field"))
-			config_horizontal_grid_via_grid_data_file_field(hg_node->FirstChild(), grid_name_str2);
+			config_horizontal_grid_via_grid_data_file_field(hg_node->FirstChild(), grid_name_str, grid_name_str2);
 		else if (words_are_the_same(specification_str, "uniform_lonlat_grid"))
-			config_horizontal_grid_via_uniform_lonlat_grid(hg_node->FirstChild(), grid_name_str2);
+			config_horizontal_grid_via_uniform_lonlat_grid(hg_node->FirstChild(), grid_name_str, grid_name_str2);
 		else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "The \"specification\" of a horizontal_grid in a datamodel configuration file can only be one of \"CCPL_grid_file\", \"grid_data_file_field\", or \"uniform_lonlat_grid\", Please Verify the xml configuration file \"%s\".", XML_file_name);
+		delete [] grid_name_str2;
 	}
 }
 
-void Inout_datamodel::config_horizontal_grid_via_CCPL_grid_file(TiXmlNode *grid_file_entry_node, const char *grid_name) {
+void Inout_datamodel::config_horizontal_grid_via_CCPL_grid_file(TiXmlNode *grid_file_entry_node, const char *ori_grid_name, const char *grid_name) {
 	int line_number, grid_id;
-	char file_name[NAME_STR_SIZE];
+	char string_annotation[NAME_STR_SIZE];
 	const char *CCPL_grid_file_name_str = get_XML_attribute(host_comp_id, 80, grid_file_entry_node->ToElement(), "file_name", XML_file_name, line_number, "the \"file_name\" of an CCPL_grid_file","datamodel configuration file", true);
+	char file_name[strlen(datamodel_data_dir) + strlen(CCPL_grid_file_name_str) +1];
 	sprintf(file_name, "%s/%s", datamodel_data_dir, CCPL_grid_file_name_str);
-	grid_id = original_grid_mgr->register_H2D_grid_via_file(host_comp_id, grid_name, file_name, "register H2D grid for datamodel via CCPL_grid_file");
+	sprintf(string_annotation, "register H2D grid \"%s\" for datamodel \"%s\" via CCPL_grid_file at line %d in xml configuration file \"%s\"", ori_grid_name, datamodel_name, grid_file_entry_node->ToElement()->Row(), XML_file_name);
+	grid_id = original_grid_mgr->register_H2D_grid_via_file(host_comp_id, grid_name, file_name, string_annotation);
 	h2d_grid_ids.push_back(grid_id);
 }
 
-void Inout_datamodel::config_horizontal_grid_via_grid_data_file_field(TiXmlNode *file_field_entry_node, const char *grid_name) {
+void Inout_datamodel::config_horizontal_grid_via_grid_data_file_field(TiXmlNode *file_field_entry_node, const char *ori_grid_name, const char *grid_name) {
 	int line_number;
-	char grid_name_str[NAME_STR_SIZE], file_name_str2[NAME_STR_SIZE];
+	char *file_name_str2, string_annotation[NAME_STR_SIZE];
 	TiXmlElement *file_field_entry_element = file_field_entry_node->ToElement();
 	const char *file_name_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "file_name", XML_file_name, line_number, "the \"file_name\" of a grid_data_file_field", "datamodel configuration file",true);//true for output
 	const char *edge_type_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "edge_type", XML_file_name, line_number, "the \"edge_type\" of a grid_data_file_field", "datamodel configuration file", true);
@@ -537,25 +565,31 @@ void Inout_datamodel::config_horizontal_grid_via_grid_data_file_field(TiXmlNode 
 	const char *area_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "area", XML_file_name, line_number, "the \"area\" of a grid_data_file_field", "datamodel configuration file", false);
 	const char *vertex_lon_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "vertex_lon", XML_file_name, line_number, "the \"vertex_lon\" of a grid_data_file_field", "datamodel configuration file", false);
 	const char *vertex_lat_str = get_XML_attribute(host_comp_id, 80, file_field_entry_element, "vertex_lat", XML_file_name, line_number, "the \"vertex_lat\" of a grid_data_file_field", "datamodel configuration file", false);
-	sprintf(file_name_str2, "%s/%s", datamodel_data_dir, file_name_str);
-	register_common_h2d_grid_for_datamodel(grid_name, file_name_str2, edge_type_str, coord_unit_str, cyclic_or_acyclic_str, dim_size1_str, dim_size2_str, min_lon_str, min_lat_str, max_lon_str, max_lat_str, center_lon_str, center_lat_str, mask_str, area_str, vertex_lon_str, vertex_lat_str);
+	if (file_name_str[0] == '/')
+		file_name_str2 = strdup(file_name_str);
+	else sprintf(file_name_str2, "%s/%s", datamodel_data_dir, file_name_str);
+	sprintf(string_annotation, "register H2D grid \"%s\" for datamodel \"%s\" via CCPL_grid_file at line %d in xml configuration file \"%s\"", ori_grid_name, datamodel_name, file_field_entry_element->Row(), XML_file_name);
+	register_common_h2d_grid_for_datamodel(grid_name, file_name_str2, edge_type_str, coord_unit_str, cyclic_or_acyclic_str, dim_size1_str, dim_size2_str, min_lon_str, min_lat_str, max_lon_str, max_lat_str, center_lon_str, center_lat_str, mask_str, area_str, vertex_lon_str, vertex_lat_str, string_annotation);
 }
 
-void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_name_str, const char *file_name_str, const char *edge_type_str, const char *coord_unit_str, const char *cyclic_or_acyclic_str, const char *dim_size1_str, const char *dim_size2_str, const char *min_lon_str, const char *min_lat_str, const char *max_lon_str, const char *max_lat_str, const char *center_lon_str, const char *center_lat_str, const char *mask_str, const char *area_str, const char *vertex_lon_str, const char *vertex_lat_str) {
+void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_name_str, const char *file_name_str, const char *edge_type_str, const char *coord_unit_str, const char *cyclic_or_acyclic_str, const char *dim_size1_str, const char *dim_size2_str, const char *min_lon_str, const char *min_lat_str, const char *max_lon_str, const char *max_lat_str, const char *center_lon_str, const char *center_lat_str, const char *mask_str, const char *area_str, const char *vertex_lon_str, const char *vertex_lat_str, const char *annotation) {
 	int rcode, ncfile_id, grid_id;
 	int size_center_lon=-1, size_center_lat=-1, size_mask=-1, size_area=-1, size_vertex_lon=-1, size_vertex_lat=-1;
 	int *mask=NULL;
 	long dim_lon_size, dim_lat_size, dim_H2D_size, dim_size1, dim_size2;
 	char *center_lon = NULL, *center_lat = NULL, *vertex_lon = NULL, *vertex_lat = NULL, *area = NULL;
 	char min_lon[NAME_STR_SIZE], max_lon[NAME_STR_SIZE], min_lat[NAME_STR_SIZE], max_lat[NAME_STR_SIZE];
-	char data_type_for_center_lat[NAME_STR_SIZE], data_type_for_center_lon[NAME_STR_SIZE], data_type_for_vertex_lon[NAME_STR_SIZE], data_type_for_vertex_lat[NAME_STR_SIZE], data_type_for_mask[NAME_STR_SIZE], data_type_for_area[NAME_STR_SIZE];
-	char data_type_temp[NAME_STR_SIZE];
-	char edge_type[NAME_STR_SIZE], cyclic_or_acyclic[NAME_STR_SIZE], coord_unit[NAME_STR_SIZE], annotation[NAME_STR_SIZE];
+	char data_type_for_center_lat[10], data_type_for_center_lon[10], data_type_for_vertex_lon[10], data_type_for_vertex_lat[10], data_type_for_mask[10], data_type_for_area[10];
+	char data_type_temp[10];
+	char *edge_type, *cyclic_or_acyclic, *coord_unit;
 
 	MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "in register_datamodel_output_handler H2D_grid");
 	bool is_root_proc = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(host_comp_id, "in register_datamodel_output_handler H2D_grid") == 0;
 	check_API_parameter_string(host_comp_id, API_ID_HANDLER_DATAMODEL_OUTPUT, comm, "registering an H2D grid for output_datamodel handler", file_name_str, "file_name", "registering an H2D grid for output_datamodel handler");
 
+	edge_type = strdup(edge_type_str);
+	cyclic_or_acyclic = strdup(cyclic_or_acyclic_str);
+	coord_unit = strdup(coord_unit_str);
 	IO_netcdf *netcdf_file_object = new IO_netcdf("datamodel_H2D_grid_data", file_name_str, "r", false);
 	netcdf_file_object->read_file_field(center_lon_str, (void**)(&center_lon), &size_center_lon, data_type_for_center_lon, comm, is_root_proc);
 	netcdf_file_object->read_file_field(center_lat_str, (void**)(&center_lat), &size_center_lat, data_type_for_center_lat, comm, is_root_proc);
@@ -571,22 +605,19 @@ void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_na
 		dim_size1 = netcdf_file_object->get_dimension_size(dim_size1_str, comm, is_root_proc);
 	if (!varname_or_value(dim_size2_str))
 		dim_size2 = netcdf_file_object->get_dimension_size(dim_size2_str, comm, is_root_proc);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, center_lon != NULL, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the longitude value for the center of each grid point (variable \"%s\" in the file) is not specified in the grid file \"%s\".",grid_name_str, datamodel_name, center_lon_str, file_name_str);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, center_lat != NULL, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the latitude value for the center of each grid point (variable \"%s\" in the file) is not specified in the grid file \"%s\".", grid_name_str, datamodel_name, center_lat_str, file_name_str);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, vertex_lon != NULL && vertex_lat != NULL || vertex_lon == NULL && vertex_lat == NULL, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": in the data file \"%s\", the longitude and latitude values for each vertex (variables \"%s\" and \"\"%s in the file) of each grid point must be specified/unspecified at the same time", grid_name_str, datamodel_name, vertex_lon_str, vertex_lat_str, file_name_str);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_center_lat), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\", in the data file \"%s\", the data type of variables \"%s\" and \"%s\" are not the same", grid_name_str, datamodel_name, file_name_str, center_lon_str, center_lat_str);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, DATA_TYPE_FLOAT) || words_are_the_same(data_type_for_center_lon, DATA_TYPE_DOUBLE), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\", in the data file \"%s\", the data type of variables \"%s\" is not floating-point", grid_name_str, datamodel_name, file_name_str, center_lon_str);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, center_lon != NULL, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: the longitude value for the center of each grid point (variable \"%s\" in the file) is not specified in the grid file \"%s\".",grid_name_str, XML_file_name, datamodel_name, center_lon_str, file_name_str);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, center_lat != NULL, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: the latitude value for the center of each grid point (variable \"%s\" in the file) is not specified in the grid file \"%s\".", grid_name_str, XML_file_name, datamodel_name, center_lat_str, file_name_str);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, vertex_lon != NULL && vertex_lat != NULL || vertex_lon == NULL && vertex_lat == NULL, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: in the data file \"%s\", the longitude and latitude values for each vertex (variables \"%s\" and \"\"%s in the file) of each grid point must be specified/unspecified at the same time", grid_name_str, XML_file_name, datamodel_name, vertex_lon_str, vertex_lat_str, file_name_str);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_center_lat), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file, in the data file \"%s\", the data type of variables \"%s\" and \"%s\" are not the same", grid_name_str, XML_file_name, datamodel_name, file_name_str, center_lon_str, center_lat_str);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, DATA_TYPE_FLOAT) || words_are_the_same(data_type_for_center_lon, DATA_TYPE_DOUBLE), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s, in the data file \"%s\", the data type of variables \"%s\" is not floating-point", grid_name_str,  XML_file_name, datamodel_name, file_name_str, center_lon_str);
 	if (vertex_lon != NULL) {
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_vertex_lon), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": in the data file \"%s\", the data type of varaible \"%s\" is different from the data type of variable \"%s\".", grid_name_str, file_name_str, center_lon_str, vertex_lon_str);
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_vertex_lat),"Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": in the data file \"%s\", the data type of varaible \"%s\" is different from the data type of variable \"%s\".", grid_name_str, file_name_str, center_lon_str, vertex_lat_str);
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_vertex_lon), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: in the data file \"%s\", the data type of varaible \"%s\" is different from the data type of variable \"%s\".", grid_name_str, XML_file_name, file_name_str, center_lon_str, vertex_lon_str);
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_vertex_lat),"Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: in the data file \"%s\", the data type of varaible \"%s\" is different from the data type of variable \"%s\".", grid_name_str, XML_file_name, file_name_str, center_lon_str, vertex_lat_str);
 	}
 	if (area != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_area), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": in the data file \"%s\", the data type of varaible \"%s\" is different from the data type of variable \"%s\".", grid_name_str, file_name_str, center_lon_str, vertex_lat_str);
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_center_lon, data_type_for_area), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: in the data file \"%s\", the data type of varaible \"%s\" is different from the data type of variable \"%s\".", grid_name_str, XML_file_name, file_name_str, center_lon_str, vertex_lat_str);
 	if (mask != NULL)
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_mask, DATA_TYPE_INT), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": in the data file \"%s\", the data type of variable \"%s\" is not \"integer\".", grid_name_str, datamodel_name, file_name_str, mask_str);
-	strcpy(edge_type, edge_type_str);
-	strcpy(cyclic_or_acyclic, cyclic_or_acyclic_str);
-	strcpy(coord_unit, coord_unit_str);
+		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_mask, DATA_TYPE_INT), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\" as specified in xml file %s: in the data file \"%s\", the data type of variable \"%s\" is not \"integer\".", grid_name_str, XML_file_name, datamodel_name, file_name_str, mask_str);
 	double min_lon_value = atof(min_lon_str);
 	double max_lon_value = atof(max_lon_str);
 	double min_lat_value = atof(min_lat_str);
@@ -599,7 +630,7 @@ void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_na
 	transform_datatype_of_arrays(min_lat, min_lat, DATA_TYPE_DOUBLE, data_type_for_center_lon, 1);
 	transform_datatype_of_arrays(max_lon, max_lon, DATA_TYPE_DOUBLE, data_type_for_center_lon, 1);
 	transform_datatype_of_arrays(max_lat, max_lat, DATA_TYPE_DOUBLE, data_type_for_center_lon, 1);
-	sprintf(annotation, "grid %s for datamodel %s", grid_name_str, datamodel_name);
+	EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "Starting to register a H2D grid \"%s\" for datamodel \"%s\".", grid_name_str, datamodel_name);
 	grid_id = original_grid_mgr->register_H2D_grid_via_global_data(host_comp_id, grid_name_str, edge_type, coord_unit_str, cyclic_or_acyclic, data_type_for_center_lon, dim_size1, dim_size2, size_center_lon, size_center_lat, size_mask, size_area, size_vertex_lon, size_vertex_lat, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, mask, area, vertex_lon, vertex_lat, annotation, API_ID_HANDLER_DATAMODEL_OUTPUT);
 	delete [] center_lon;
 	delete [] center_lat;
@@ -614,44 +645,57 @@ void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_na
 	h2d_grid_ids.push_back(grid_id);
 }
 
-void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *uniform_lonlat_grid_entry_node, const char *grid_name) {
+void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *uniform_lonlat_grid_entry_node, const char *ori_grid_name, const char *grid_name) {
 	int line_number, grid_id, num_lons, num_lats, dim_h2d_size;
-	char annotation[NAME_STR_SIZE], cyclic_or_acyclic[NAME_STR_SIZE];
-	char min_lon[NAME_STR_SIZE], min_lat[NAME_STR_SIZE], max_lon[NAME_STR_SIZE], max_lat[NAME_STR_SIZE];
+	char annotation[100], *cyclic_or_acyclic, string_annotation[NAME_STR_SIZE];
+	double min_lon, max_lon, min_lat, max_lat;
+	char min_lon_buf[get_data_type_size(DATA_TYPE_DOUBLE)], min_lat_buf[get_data_type_size(DATA_TYPE_DOUBLE)], max_lon_buf[get_data_type_size(DATA_TYPE_DOUBLE)], max_lat_buf[get_data_type_size(DATA_TYPE_DOUBLE)];
 	char *center_lon, *center_lat, *vertex_lon, *vertex_lat, *area;
-	char data_type_for_center_lat[NAME_STR_SIZE], data_type_for_center_lon[NAME_STR_SIZE];
 	int *mask;
 	TiXmlElement *uniform_lonlat_grid_entry_element = uniform_lonlat_grid_entry_node->ToElement();
+	const char *coord_unit_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of a grid_data_file_field", "datamodel configuration file", true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(coord_unit_str, "degrees"), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the parameter \"coord_unit\" (currently is \"%s\") is not \"degrees\". Please check the xml configuration file %s arround line number %d.", grid_name, datamodel_name, coord_unit_str, XML_file_name, uniform_lonlat_grid_entry_element->Row());
 	const char *num_lons_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "num_lons", XML_file_name, line_number, "the \"num_lons\" of a uniform_lon_lat_grid", "datamodel configuration file", true);
 	const char *num_lats_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "num_lats", XML_file_name, line_number, "the \"num_lats\" of a uniform_lon_lat_grid", "datamodel configuration file", true);
 	const char *cyclic_or_acyclic_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "cyclic_or_acyclic", XML_file_name, line_number, "the \"cyclic_or_acyclic\" of a grid_data_file_field", "datamodel configuration file",true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(cyclic_or_acyclic_str, "cyclic") || words_are_the_same(cyclic_or_acyclic_str, "acyclic"), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the value (currently is \"%s\") of parameter \"cyclic_or_acyclic\" is not \"cyclic\" or \"acyclic\". Please check the xml configuration file %s around line number %d.", grid_name, datamodel_name, cyclic_or_acyclic_str, XML_file_name, uniform_lonlat_grid_entry_element->Row());
 	num_lons = atoi(num_lons_str);
 	num_lats = atoi(num_lats_str);
 	dim_h2d_size = num_lons * num_lats;
 	bool cyclic = false;
 	if (words_are_the_same(cyclic_or_acyclic_str, "cyclic"))
-		bool cyclic = true;
+		cyclic = true;
 	const char *min_lon_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "min_lon", XML_file_name, line_number, "the \"min_lon\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
-	const char *min_lat_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "min_lat", XML_file_name, line_number, "the \"min_lat\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
+	const char *min_lat_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "min_lat", XML_file_name, line_number, "the \"min_lat\" of a grid_data_file_field", "datamodel configuration file", true);
 	const char *max_lon_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "max_lon", XML_file_name, line_number, "the \"max_lon\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
-	const char *max_lat_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "max_lat", XML_file_name, line_number, "the \"max_lat\" of a grid_data_file_field", "datamodel configuration file", !cyclic);
-	transform_datatype_of_arrays(min_lon_str, min_lon, 1);
-	transform_datatype_of_arrays(min_lat_str, min_lat, 1);
-	transform_datatype_of_arrays(max_lon_str, max_lat, 1);
-	transform_datatype_of_arrays(max_lat_str, max_lat, 1);
+	const char *max_lat_str = get_XML_attribute(host_comp_id, 80, uniform_lonlat_grid_entry_element, "max_lat", XML_file_name, line_number, "the \"max_lat\" of a grid_data_file_field", "datamodel configuration file", true);
+	EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(min_lon_str, "%lf", &min_lon) == 1, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the parameter \"min_lon\" is not of float or double type, which is \"%s\", Please check the xml configuration file %s around line number %d.", grid_name, datamodel_name, min_lon_str, XML_file_name, uniform_lonlat_grid_entry_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(max_lon_str, "%lf", &max_lon) == 1, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the parameter \"max_lon\" is not of float or double type, which is \"%s\", Please check the xml configuration file %s around line number %d.", grid_name, datamodel_name, min_lon_str, XML_file_name, uniform_lonlat_grid_entry_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, cyclic && (min_lon != 0.0 || max_lon != 360.0), "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": when the value of parameter \"cyclic_or_acyclic\" is specified as \"cyclic\", parameters \"min_lon\" and \"max_lon\" can only be specified as \"0.0\" and \"360.0\", Please check the xml configuration file %s around line number %d.", grid_name, datamodel_name, XML_file_name, uniform_lonlat_grid_entry_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(min_lat_str, "%lf", &min_lat) == 1, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the parameter \"min_lat\" is not of float or double type, which is \"%s\", Please check the xml configuration file %s around line number %d.", grid_name, datamodel_name, min_lon_str, XML_file_name, uniform_lonlat_grid_entry_element->Row());
+	EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(max_lat_str, "%lf", &max_lat) == 1, "Error happens when registering an H2D grid \"%s\" for output_datamodel \"%s\": the parameter \"max_lat\" is not of float or double type, which is \"%s\", Please check the xml configuration file %s around line number %d.", grid_name, datamodel_name, min_lon_str, XML_file_name, uniform_lonlat_grid_entry_element->Row());
+	memcpy(&min_lon_buf, &min_lon, get_data_type_size(DATA_TYPE_DOUBLE));
+	memcpy(&min_lat_buf, &min_lat, get_data_type_size(DATA_TYPE_DOUBLE));
+	memcpy(&max_lon_buf, &max_lon, get_data_type_size(DATA_TYPE_DOUBLE));
+	memcpy(&max_lat_buf, &max_lat, get_data_type_size(DATA_TYPE_DOUBLE));
 	sprintf(annotation, "grid %s for datamodel %s", grid_name, datamodel_name);
-	center_lon = new char [dim_h2d_size*get_data_type_size(DATA_TYPE_DOUBLE)];
-	center_lat = new char [dim_h2d_size*get_data_type_size(DATA_TYPE_DOUBLE)];
+	center_lon = new char [num_lons*get_data_type_size(DATA_TYPE_DOUBLE)];
+	center_lat = new char [num_lats*get_data_type_size(DATA_TYPE_DOUBLE)];
+	if (cyclic) num_lons ++;
 	for (int i = 0; i < num_lats; i++) {
 		for (int j = 0; j < num_lons; j++) {
-			strcpy(center_lon, (j * ((max_lon - min_lon)/(num_lons-1))+min_lon));
+			int center_lon_buff, center_lat_buff;
+			center_lon_buff = ((max_lon - min_lon)/(num_lons-1))+min_lon;
+			memcpy(center_lon, &center_lon_buff, get_data_type_size(DATA_TYPE_DOUBLE));
 			center_lon += (i*num_lons+j)*get_data_type_size(DATA_TYPE_DOUBLE);
-			strcpy(center_lat, (i * ((max_lat - min_lat)/(num_lats-1))+min_lat));
+			center_lat_buff = ((max_lat - min_lat)/(num_lats-1))+min_lat;
+			memcpy(center_lat, &center_lat_buff, get_data_type_size(DATA_TYPE_DOUBLE));
 			center_lat += (i*num_lons+j)*get_data_type_size(DATA_TYPE_DOUBLE);
 		}
 	}
-	strcpy(cyclic_or_acyclic, cyclic_or_acyclic_str);
-	grid_id = original_grid_mgr->register_H2D_grid_via_global_data(host_comp_id, grid_name, "LON_LAT", "degrees", cyclic_or_acyclic, DATA_TYPE_DOUBLE, num_lons, num_lats, dim_h2d_size, dim_h2d_size, 0, 0, dim_h2d_size, dim_h2d_size, min_lon, max_lon, min_lat, max_lat, center_lon, center_lat, NULL, NULL, NULL, NULL, annotation, API_ID_HANDLER_DATAMODEL_OUTPUT);//DATA_TYPE_DOUBLE?no vertexes specified
+	cyclic_or_acyclic = strdup(cyclic_or_acyclic_str);
+	sprintf(string_annotation, "register H2D grid \"%s\" for datamodel \"%s\" via CCPL_grid_file at line %d in xml configuration file \"%s\"", ori_grid_name, datamodel_name, uniform_lonlat_grid_entry_element->Row(), XML_file_name);
+	grid_id = original_grid_mgr->register_H2D_grid_via_global_data(host_comp_id, grid_name, "LON_LAT", coord_unit_str, cyclic_or_acyclic, DATA_TYPE_DOUBLE, num_lons, num_lats, dim_h2d_size, dim_h2d_size, 0, 0, dim_h2d_size, dim_h2d_size, min_lon_buf, max_lon_buf, min_lat_buf, max_lat_buf, center_lon, center_lat, NULL, NULL, NULL, NULL, string_annotation, API_ID_HANDLER_DATAMODEL_OUTPUT);
 	delete [] center_lon;
 	delete [] center_lat;
 	h2d_grid_ids.push_back(grid_id);
@@ -659,11 +703,11 @@ void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *
 
 void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
 	int line_number, dim_size2, grid_id, grid_type;
-	char coord_unit_str[NAME_STR_SIZE], file_name_str[NAME_STR_SIZE], top_value_str[NAME_STR_SIZE];
-	char data_type[NAME_STR_SIZE];
+	char coord_unit_str[NAME_STR_SIZE], top_value_str[NAME_STR_SIZE];
+	char data_type[16];
 	void *coord_values=NULL, *top_value=NULL, *sigma_values=NULL, *Ap_values=NULL, *Bp_values=NULL;
 	void *value2=NULL, *value3=NULL;
-	char API_label[NAME_STR_SIZE], annotation[NAME_STR_SIZE], grid_name_str2[NAME_STR_SIZE];
+	char API_label[32], annotation[256], grid_name_str2[32];
 	double temp_value1, *temp_value2, *temp_value3;
 	for (TiXmlNode *vg_node = vgs_node->FirstChild(); vg_node != NULL; vg_node = vg_node->NextSibling()) {
 		TiXmlElement *vg_element = vg_node->ToElement();
@@ -679,6 +723,7 @@ void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
 		const char *grid_type_str = get_XML_attribute(host_comp_id, 80, vg_element, "grid_type", XML_file_name, line_number, "the \"grid_type\" of an output_datamodel vertical_grid", "datamodel configuration file",true);
 		MPI_Comm comm = comp_comm_group_mgt_mgr->get_comm_group_of_local_comp(host_comp_id, "in register_V1D_grid for output_datamodel");
 		bool is_root_proc = comp_comm_group_mgt_mgr->get_current_proc_id_in_comp(host_comp_id, "in register_V1D_grid for output_datamodel") == 0;
+		char *file_name_str = new char [strlen(datamodel_data_dir) + strlen(file_name_str2) + 1];
 		sprintf(file_name_str, "%s/%s", datamodel_data_dir, file_name_str2);
 		IO_netcdf *netcdf_file_object = new IO_netcdf("V1D_grid_data", file_name_str, "r", false);
 		EXECUTION_REPORT(REPORT_LOG, -1, true, "start to register V1D grid %s for output_datamodel", grid_name_str);
@@ -701,9 +746,9 @@ void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
 				config_vertical_hybrid_grid(comm, vg_node->FirstChild(), grid_name_str,  netcdf_file_object, coord_unit_str, top_value_str, &value2, &value3, dim_size2, data_type, is_root_proc);
 				API_id = API_ID_GRID_MGT_REG_V1D_HYBRID_GRID_VIA_MODEL;
 			}
-			else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "The \"grid_type\" of a vertical_grid in a datamodel configuration file can only be one of \"Z\", \"SIGMA\", or \"HYBRID\", Please Verify the xml configuration file \"%s\".", XML_file_name);
+			else EXECUTION_REPORT(REPORT_ERROR, -1, false, "The \"grid_type\" of a vertical_grid in a datamodel configuration file can only be one of \"Z\", \"SIGMA\", or \"HYBRID\", Please Verify the xml configuration file \"%s\".", XML_file_name);
 		}
-		else EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "The \"specification\" of a vertical_grid in a datamodel configuration file can only be \"grid_data_file_field\", Please verify the xml configuration file \"%s\".", XML_file_name);
+		else EXECUTION_REPORT(REPORT_ERROR, -1, false, "The \"specification\" of a vertical_grid in a datamodel configuration file can only be \"grid_data_file_field\", Please verify the xml configuration file \"%s\".", XML_file_name);
 		temp_value2 = new double [dim_size2];
 		temp_value3 = new double [dim_size2];
 		if (words_are_the_same(data_type, DATA_TYPE_FLOAT)) {
@@ -718,11 +763,12 @@ void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
 			transform_datatype_of_arrays((double*)value2, temp_value2, dim_size2);
 			transform_datatype_of_arrays((double*)value3, temp_value3, dim_size2);
 		}
-		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, is_array_in_sorting_order(temp_value3, dim_size2) != 0, "Error happens when registering V1D grid \"%s\" for datamodel \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the data file \"%s\".", grid_name_str, datamodel_name, file_name_str);
+		EXECUTION_REPORT(REPORT_ERROR, -1, is_array_in_sorting_order(temp_value3, dim_size2) != 0, "Error happens when registering V1D grid \"%s\" for datamodel \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the data file \"%s\".", grid_name_str, datamodel_name, file_name_str);
 		grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, host_comp_id, grid_name_str2, grid_type, coord_unit_str, dim_size2, temp_value1, temp_value2, temp_value3, annotation);
 		v1d_grid_ids.push_back(grid_id);
 		delete [] temp_value2;
 		delete [] temp_value3;
+		delete [] file_name_str;
 	}
 }
 
@@ -730,7 +776,7 @@ void Inout_datamodel::config_vertical_z_grid(MPI_Comm comm, TiXmlNode *entry_nod
 	int line_number;
 	TiXmlElement *entry_element = entry_node->ToElement();
 	strcpy(coord_unit_str,get_XML_attribute(host_comp_id, 80, entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of a datamodel vertical_grid","datamodel configuration file", true));
-	const char *coord_values_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "coord_values",XML_file_name, line_number, "the \"coord_values\" of a vertical_z_grid", "datamodel configuration file", true);
+	const char *coord_values_str = get_XML_attribute(host_comp_id, 80, entry_element, "coord_values",XML_file_name, line_number, "the \"coord_values\" of a vertical_z_grid", "datamodel configuration file", true);
 	netcdf_file_object->read_file_field(coord_unit_str, coord_values, &size_coord_values, data_type_for_coord_values, comm, is_root_proc);
 }
 
@@ -738,8 +784,8 @@ void Inout_datamodel::config_vertical_sigma_grid(MPI_Comm comm, TiXmlNode *entry
 	int line_number;
 	TiXmlElement *entry_element = entry_node->ToElement();
 	strcpy(coord_unit_str, get_XML_attribute(host_comp_id, 80, entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of an datamodel vertical_grid", "datamodel configuration file", true));
-	strcpy(top_value_str, get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "top_value", XML_file_name, line_number, "the \"top_value\" of an output_datmaodel vertical_grid", "datamodel configuration file", true));
-	const char *sigma_values_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "sigma_values", XML_file_name, line_number, "the \"sigma_values\" of a datamodel vertical grid", "datamodel configuration file", true);
+	strcpy(top_value_str, get_XML_attribute(host_comp_id, 80, entry_element, "top_value", XML_file_name, line_number, "the \"top_value\" of an output_datmaodel vertical_grid", "datamodel configuration file", true));
+	const char *sigma_values_str = get_XML_attribute(host_comp_id, 80, entry_element, "sigma_values", XML_file_name, line_number, "the \"sigma_values\" of a datamodel vertical grid", "datamodel configuration file", true);
 	netcdf_file_object->read_file_field(sigma_values_str, sigma_values, &size_sigma_values, data_type_for_sigma_values, comm, is_root_proc);
 }
 
@@ -748,18 +794,17 @@ void Inout_datamodel::config_vertical_hybrid_grid(MPI_Comm comm, TiXmlNode *entr
 	char data_type_for_bp_values[NAME_STR_SIZE];
 	TiXmlElement *entry_element = entry_node->ToElement();
 	strcpy(coord_unit_str, get_XML_attribute(host_comp_id, 80, entry_element, "coord_unit", XML_file_name, line_number, "the \"coord_unit\" of an datamodel vertical_grid", "datamodel configuration file", true));
-	strcpy(top_value_str, get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "top_value", XML_file_name, line_number, "the \"top_value\" of an output_datmaodel vertical_grid", "datamodel configuration file", true));
-	const char *Ap_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "coef_A", XML_file_name, line_number, "the \"Ap\" values of an datamodel vertical grid", "datamodel configuration file", true);
-	const char *Bp_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, entry_element, "coef_B", XML_file_name, line_number, "the \"Bp\" values of an datamodel vertical grid", "datamodel configuration file", true);
+	strcpy(top_value_str, get_XML_attribute(host_comp_id, 80, entry_element, "top_value", XML_file_name, line_number, "the \"top_value\" of an output_datmaodel vertical_grid", "datamodel configuration file", true));
+	const char *Ap_str = get_XML_attribute(host_comp_id, 80, entry_element, "coef_A", XML_file_name, line_number, "the \"Ap\" values of an datamodel vertical grid", "datamodel configuration file", true);
+	const char *Bp_str = get_XML_attribute(host_comp_id, 80, entry_element, "coef_B", XML_file_name, line_number, "the \"Bp\" values of an datamodel vertical grid", "datamodel configuration file", true);
 	netcdf_file_object->read_file_field(Ap_str, Ap_values, &size_Ap, data_type_for_ap_values, comm, is_root_proc);
 	netcdf_file_object->read_file_field(Bp_str, Bp_values, &size_Bp, data_type_for_bp_values, comm, is_root_proc);
-	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_ap_values, data_type_for_bp_values), "Error happens when registering a V1D hybrid gird \"%s\" for datamodel %s, the data type for Ap of variable \"%s\" is different form the data type for Bp of variable \"%s\".", grid_name_str, Ap_str, Bp_str);
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, words_are_the_same(data_type_for_ap_values, data_type_for_bp_values), "Error happens when registering a V1D hybrid gird \"%s\" for datamodel %s, the data type for Ap of variable \"%s\" (which is %s) is different from the data type for Bp of variable \"%s\" (which is %s).", datamodel_name, grid_name_str, Ap_str, data_type_for_ap_values, Bp_str, data_type_for_bp_values);
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, size_Ap == size_Bp, "Error happens when registering a V1D hybrid gird \"%s\" for datamodel %s, the array size for Ap of variable \"%s\" is different form the array size for Bp of variable \"%s\".", grid_name_str, Ap_str, Bp_str);
 }
 
 void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 	int line_number, v3d_grid_id, mid_3d_grid_id, mid_1d_grid_id;
-	char hg_subgrid_name[NAME_STR_SIZE], vg_subgrid_name[NAME_STR_SIZE];
 	for (TiXmlNode *v3d_node = v3ds_node->FirstChild(); v3d_node != NULL; v3d_node = v3d_node->NextSibling()) {
 		TiXmlElement *v3d_element = v3d_node->ToElement();
 		if (!is_XML_setting_on(host_comp_id, v3d_element, XML_file_name, "the status of a \"3d_grid\" node of a datamodel", "datamodel xml file"))
@@ -772,6 +817,8 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 		TiXmlNode *vertical_sub_grid_node = horizontal_sub_grid_node->NextSibling();
 		TiXmlElement *vertical_sub_grid_element = vertical_sub_grid_node->ToElement();
 		const char *vertical_subgrid_name_str = get_XML_attribute(host_comp_id, 80, vertical_sub_grid_element, "grid_name",XML_file_name, line_number, "the \"grid_name\" of the vertical_subgrid of a datamodel v3d_grid","datamodel configuration file", true);
+		char *hg_subgrid_name = new char [10 + strlen(horizontal_subgrid_name_str)];
+		char *vg_subgrid_name = new char [10 + strlen(vertical_subgrid_name_str)];
 		sprintf(hg_subgrid_name, "datamodel_%s", horizontal_subgrid_name_str);
 		sprintf(vg_subgrid_name, "datamodel_%s", vertical_subgrid_name_str);
 		int h2d_subgrid_id = original_grid_mgr->get_grid_id(host_comp_id, hg_subgrid_name, "get horizontal_subgrid name for datamodel");
@@ -794,7 +841,7 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 		v3d_grid_id = original_grid_mgr->register_md_grid_via_multi_grids(host_comp_id, grid_name_str, h2d_subgrid_id, v1d_subgrid_id, -1, -1, NULL, "register v3d_grid for datamodel");
 
 		if (mid_point_grid_name_str != NULL) {
-			char API_label[NAME_STR_SIZE];
+			char API_label[200];
 			get_API_hint(-1, API_ID_GRID_MGT_REG_MID_POINT_GRID, API_label);
 			check_for_ccpl_managers_allocated(API_ID_GRID_MGT_REG_MID_POINT_GRID, "register mid point grid for datamodel");
 			check_for_coupling_registration_stage(original_grid_mgr->get_comp_id_of_grid(v3d_grid_id), API_ID_GRID_MGT_REG_MID_POINT_GRID, true, "register mid point grid for datamodel");
@@ -811,6 +858,9 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 			surface_field_names.push_back(strdup(field_name_in_file_str));
 			//if (datamodel_type == INPUT_DATAMODEL) surface_field_type...
 		}
+		delete [] hg_subgrid_name;
+		delete [] vg_subgrid_name;
+		EXECUTION_REPORT_LOG(REPORT_LOG, host_comp_id, true, "Finished registering V3D_grid for datamodel %s, grid %s", datamodel_name, grid_name_str);
 	}
 }
 
@@ -880,7 +930,7 @@ void Inout_datamodel::config_output_frequency(TiXmlNode *output_frequency_node) 
 		if (!is_XML_setting_on(host_comp_id, outer_segment_element, XML_file_name, "the status of a \"segment\" node of an output_datamodel output_frequency_setting", "output_datamodel xml file"))
 			continue;
 		else if (is_outer_segment_node_found)
-			EXECUTION_REPORT(REPORT_ERROR, host_comp_id, false, "In output_datamodel configuration file\"%s\", only one \"status\" of the outmost \"segment\" node can be set on, Please Verify.", XML_file_name);
+			EXECUTION_REPORT(REPORT_ERROR, -1, false, "In output_datamodel configuration file\"%s\", only one \"status\" of the outmost \"segment\" node can be set on, Please Verify.", XML_file_name);
 		else is_outer_segment_node_found = true;
 		const char *freq_count_str = get_XML_attribute(host_comp_id, 80, outer_segment_element, "freq_count", XML_file_name, line_number, "The \"freq_count\" of the output_datamodel","output datamodel xml file",false);
 		const char *freq_unit_str = get_XML_attribute(host_comp_id, 80, outer_segment_element, "freq_unit", XML_file_name, line_number, "The \"freq_unit\" of the output_datamodel","output datamodel xml file",false);
@@ -906,7 +956,7 @@ void Inout_datamodel::config_output_frequency(TiXmlNode *output_frequency_node) 
 bool Inout_datamodel::is_expected_segment(TiXmlNode *undecided_node, const char *expected_str) {
 	int line_number;
 	TiXmlElement *undecided_element = undecided_node->ToElement();
-	const char *undecided_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, undecided_element, expected_str, XML_file_name, line_number, "The \"time_slots\" or \"time_points\" of the output_datamodel","output datamodel xml file",false);
+	const char *undecided_str = get_XML_attribute(host_comp_id, 80, undecided_element, expected_str, XML_file_name, line_number, "The \"time_slots\" or \"time_points\" of the output_datamodel","output datamodel xml file",false);
 	if (undecided_str == NULL)
 		return false;
 	else return true;
@@ -924,8 +974,8 @@ void Inout_datamodel::visit_time_slots_node(TiXmlNode *time_slot_segment_node) {
 	TiXmlElement *time_slot_segment_element = time_slot_segment_node->ToElement();
 	if (!is_XML_setting_on(host_comp_id, time_slot_segment_element, XML_file_name,"the status of the time_points \"segment\" of an output_datamodel", "output_datamodel configuration file"))
 		return;
-	const char *time_slots_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, time_slot_segment_element, "time_slots", XML_file_name, line_number, "The \"time_slots\" of the output_datamodel","output datamodel xml file",true);
-	const char *time_slot_format_str = get_XML_attribute(host_comp_id, NAME_STR_SIZE, time_slot_segment_element, "time_slot_format", XML_file_name, line_number, "The \"time_slot_format\" of the output_datamodel","output datamodel xml file",true);
+	const char *time_slots_str = get_XML_attribute(host_comp_id, 80, time_slot_segment_element, "time_slots", XML_file_name, line_number, "The \"time_slots\" of the output_datamodel","output datamodel xml file",true);
+	const char *time_slot_format_str = get_XML_attribute(host_comp_id, 90, time_slot_segment_element, "time_slot_format", XML_file_name, line_number, "The \"time_slot_format\" of the output_datamodel","output datamodel xml file",true);
 	const char *freq_count_str = get_XML_attribute(host_comp_id, 80, time_slot_segment_element, "freq_count", XML_file_name, line_number, "The \"freq_count\" of the output_datamodel","output datamodel xml file",false);
 	const char *freq_unit_str = get_XML_attribute(host_comp_id, 80, time_slot_segment_element, "freq_unit", XML_file_name, line_number, "The \"freq_unit\" of the output_datamodel","output datamodel xml file",false);
 	TiXmlNode *sub_segment_node = time_slot_segment_node->FirstChild();
@@ -956,6 +1006,34 @@ void Inout_datamodel::config_field_info(TiXmlNode *fields_node) {
 	}
 }
 
-Inout_datamodel::Inout_datamodel(const char *src_output_datamodel_keyword) {
-	//
+Inout_datamodel::~Inout_datamodel() {
+	delete [] datamodel_files_dir_name;
+	delete [] file_dir;
+	delete [] file_name_prefix;
+	for (int i = 0; i <default_operations.size(); i++) {
+		delete [] default_operations[i];
+		delete [] default_integer_types[i];
+		delete [] default_float_types[i];
+		delete [] default_h2d_grids[i];
+		delete [] default_v3d_grids[i];
+	}
+	for (int i = 0; i < file_freq_counts.size(); i++) {
+		delete [] file_freq_counts[i];
+		delete [] file_freq_units[i];
+	}
+	for (int i = 0; i < surface_field_names.size(); i++) {
+		delete [] surface_field_names[i];
+	}
+}
+
+Datamodel_mgt::~Datamodel_mgt() {
+	for (int i = 0; i < output_handlers.size(); i++) {
+		delete [] output_handlers[i];
+	}
+	for (int i = 0; i < output_datamodels.size(); i++) {
+		delete [] output_datamodels[i];
+	}
+	for (int i = 0; i < input_datamodels.size(); i++) {
+		delete [] input_datamodels[i];
+	}
 }
