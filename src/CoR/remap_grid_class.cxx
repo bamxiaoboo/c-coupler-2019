@@ -107,6 +107,9 @@ Remap_grid_class::Remap_grid_class(const char *grid_name,
         else if (words_are_the_same(cyclic_or_acyclic, COORD_BOUND_ACYCLIC))
             this->cyclic = false;
         else EXECUTION_REPORT(REPORT_ERROR, -1, false, "the cyclic label for coordinate lon must be \"cyclic\" or \"acyclic\"\n");
+
+	if (get_is_sphere_grid())
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Allocate H2D grid \"%s\" with size %ld", grid_name, grid_size);
 }
 
 
@@ -157,6 +160,9 @@ Remap_grid_class::Remap_grid_class(const char *grid_name,
 
     for (i = 0; i < num_leaf_grids; i ++)
         leaf_grids[i]->check_and_set_first_super_grid_of_enable_setting_coord_value(this);
+
+	if (get_is_sphere_grid())
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Allocate H2D grid \"%s\" with size %ld", grid_name, grid_size);
 }
 
 
@@ -196,6 +202,9 @@ Remap_grid_class::Remap_grid_class(Remap_grid_class *field_data_grid,
 
     if (is_sigma_grid())
         allocate_sigma_grid_specific_fields(NULL, NULL, NULL, 0, 0);
+
+	if (get_is_sphere_grid())
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Allocate H2D grid \"%s\" with size %ld", grid_name, grid_size);
 }
 
 
@@ -220,6 +229,9 @@ Remap_grid_class::Remap_grid_class(const char *grid_name, const char *whole_grid
 
 Remap_grid_class::~Remap_grid_class()
 {
+	if (get_is_sphere_grid())
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Deallocate H2D grid \"%s\" with size %ld", grid_name, grid_size);
+
     for (int i = 0; i < grid_center_fields.size(); i ++)
         delete grid_center_fields[i];
     for (int i = 0; i < grid_vertex_fields.size(); i ++)
@@ -425,6 +437,9 @@ Remap_grid_class *Remap_grid_class::duplicate_grid(Remap_grid_class *top_grid)
         duplicated_grid->grid_vertex_fields.push_back(grid_vertex_fields[i]->duplicate_grid_data_field(duplicated_grid, this->num_vertexes, true, true));
     
     this->duplicated_grid = NULL;
+
+	if (get_is_sphere_grid())
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "Allocate H2D grid \"%s\" with size %ld from the grid \"%s\"", duplicated_grid->grid_name, grid_size, grid_name);
 
     return duplicated_grid;
 }
