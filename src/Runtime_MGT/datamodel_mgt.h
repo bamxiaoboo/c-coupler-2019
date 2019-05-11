@@ -49,6 +49,20 @@ public:
 	void read_datamodel_instance_configuration(int, const char*, char*, const char*, TiXmlNode*);
 };*/
 
+struct Field_config_info
+{
+	bool datamodel_type;//input: 0, output: 1
+	char *name_in_model;
+	char *name_in_file;
+	char *grid_name;
+	char *float_datatype;
+	char *integer_datatype;
+	char *operation;
+	char *unit;
+	double add_offset;
+	double scale_factor;
+};
+
 class Inout_datamodel {
 private:
 	bool datamodel_type;//input: 0, output: 1
@@ -57,12 +71,14 @@ private:
 	char datamodel_data_dir[NAME_STR_SIZE];//data dir
 	char XML_file_name[NAME_STR_SIZE];//dir+filename
 	char datamodel_file_name[NAME_STR_SIZE];//dir not included
+	char *file_mid_name;
 	char *annotation;
 	char *datamodel_name;
 	char *datamodel_files_dir_name;
 	char *file_dir;
 	char *file_name_prefix;
 	char *file_name_suffix;
+	int id_time_format_in_data_file;
 	int id_time_format_in_file_names;
 	char *file_type;
 	int host_comp_id;
@@ -86,7 +102,10 @@ private:
 	std::vector<int> v3d_grid_ids;
 	std::vector<int> mid_3d_grid_ids;
 	std::vector<int> mid_1d_grid_ids;
+	std::vector<char*> h2d_grid_names;
+	std::vector<char*> md_grid_names;
 	std::vector<char*> surface_field_names;
+	std::vector<std::vector<Field_config_info*> > fields_config_info;
 public:
 	Inout_datamodel(int, const char*, bool, const char*);
 	~Inout_datamodel();
@@ -104,15 +123,14 @@ public:
 	void config_vertical_sigma_grid(MPI_Comm, TiXmlNode*, IO_netcdf*, char*, char*, void**, int&, char*, bool);
 	void config_vertical_hybrid_grid(MPI_Comm, TiXmlNode*, const char*, IO_netcdf*, char*, char*, void**, void**, int&, char*, bool);
 	void config_field_output_settings_for_datamodel(TiXmlNode*);
-	void config_field_info(TiXmlNode*);
+	void config_field_info(TiXmlNode*, int);
 	void visit_time_slots_node(TiXmlNode*);
 	void visit_time_points_node(TiXmlNode*);
 	bool expected_segment_exists(TiXmlNode*&, const char*);
 	void get_all_sub_segment_time_slots(TiXmlNode*, std::vector<TiXmlNode*>);
 	void config_output_frequency(TiXmlNode*, int);
-	void config_default_settings(TiXmlNode*);
+	void config_fields_output_setting_attributes(TiXmlNode*);
 	void register_common_h2d_grid_for_datamodel(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char *, const char*, const char*, const char*);
-	void initialize_output_setting_configurations();
 };
 
 class Output_handler {

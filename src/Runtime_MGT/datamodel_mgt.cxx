@@ -570,6 +570,7 @@ void Inout_datamodel::config_horizontal_grid_via_CCPL_grid_file(TiXmlNode *grid_
 	sprintf(string_annotation, "register H2D grid \"%s\" for datamodel \"%s\" via CCPL_grid_file at line %d in xml configuration file \"%s\"", ori_grid_name, datamodel_name, grid_file_entry_node->ToElement()->Row(), XML_file_name);
 	grid_id = original_grid_mgr->register_H2D_grid_via_file(host_comp_id, grid_name, file_name, string_annotation);
 	h2d_grid_ids.push_back(grid_id);
+	h2d_grid_names.push_back(strdup(grid_name));
 }
 
 void Inout_datamodel::config_horizontal_grid_via_grid_data_file_field(TiXmlNode *file_field_entry_node, const char *ori_grid_name, const char *grid_name) {
@@ -685,6 +686,7 @@ void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_na
 		delete [] area;
 	delete netcdf_file_object;
 	h2d_grid_ids.push_back(grid_id);
+	h2d_grid_names.push_back(strdup(grid_name_str));
 }
 
 void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *uniform_lonlat_grid_entry_node, const char *ori_grid_name, const char *grid_name) {
@@ -742,6 +744,7 @@ void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *
 	delete [] center_lon_array;
 	delete [] center_lat_array;
 	h2d_grid_ids.push_back(grid_id);
+	h2d_grid_names.push_back(strdup(grid_name));
 }
 
 void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
@@ -875,6 +878,8 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, v1d_subgrid_id != -1, "Error happens when registering a V3D_grid \"%s\" for datamodel \"%s\": the verticlal subgrid with name \"%s\" has not been specified (currently specified are \"%s\"), Please check the xml configuration file \"%s\".", vd_grid_name, datamodel_name, vg_subgrid_name, report_string, XML_file_name);
 		delete [] report_string;
 		v3d_grid_id = original_grid_mgr->register_md_grid_via_multi_grids(host_comp_id, vd_grid_name, h2d_subgrid_id, v1d_subgrid_id, -1, -1, NULL, "register v3d_grid for datamodel");
+		v3d_grid_ids.push_back(v3d_grid_id);
+		md_grid_names.push_back(strdup(vd_grid_name));
 
 		if (mid_point_grid_name_str != NULL) {
 			char API_label[256];
@@ -884,9 +889,11 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 			char *mid_point_grid_name = new char [10 + strlen(mid_point_grid_name_str)];
 			sprintf(mid_point_grid_name, "datamodel_%s", mid_point_grid_name_str);
 			original_grid_mgr->register_mid_point_grid(v3d_grid_id, &mid_3d_grid_id, &mid_1d_grid_id, -1, NULL, "register mid point grid for datamodel", API_label);
-			delete [] mid_point_grid_name;
+			md_grid_names.push_back(strdup(mid_point_grid_name));
 			mid_3d_grid_ids.push_back(mid_3d_grid_id);
+			v3d_grid_ids.push_back(mid_3d_grid_id);
 			mid_1d_grid_ids.push_back(mid_1d_grid_id);
+			delete [] mid_point_grid_name;
 		}
 		TiXmlNode *surface_field_node = vertical_sub_grid_node->FirstChild();
 		if (surface_field_node != NULL) {//if surface_field_node exists, read it
@@ -909,41 +916,76 @@ void Inout_datamodel::config_field_output_settings_for_datamodel(TiXmlNode *fiel
 		TiXmlElement *field_output_setting_element = field_output_setting_node->ToElement();
 		if (!is_XML_setting_on(host_comp_id, field_output_setting_element, XML_file_name, "the status of a \"horizontal_grid\" node of an output_datamodel", "output_datamodel xml file"))
 			continue;
-		config_default_settings(field_output_setting_node);
+		config_fields_output_setting_attributes(field_output_setting_node);
 		for (TiXmlNode *sub_node = field_output_setting_node->FirstChild(); sub_node != NULL; sub_node = sub_node->NextSibling()) {
 			TiXmlElement *sub_element = sub_node->ToElement();
 			if (words_are_the_same(sub_element->Value(), "output_frequency"))
 				config_output_frequency(sub_node, fields_output_setting_index);
 			if (words_are_the_same(sub_element->Value(), "fields"))
-				config_field_info(sub_node);
+				config_field_info(sub_node, fields_output_setting_index);
 		}
 		fields_output_setting_index ++;
 	}
 }
 
-void Inout_datamodel::config_default_settings(TiXmlNode *default_settings_node) {
+void Inout_datamodel::config_fields_output_setting_attributes(TiXmlNode *default_settings_node) {
 	int line_number;
 	TiXmlElement *default_settings_element = default_settings_node->ToElement();
+	file_mid_name = strdup(get_XML_attribute(host_comp_id, 80, default_settings_element, "file_mid_name", XML_file_name, line_number, "The \"file_mid_name\" of the output_datamodel","output datamodel xml file",false));
+	const char *time_format_in_datafile_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "time_format_in_data_file", XML_file_name, line_number, "The \"time_format_in_data_file\" of the output_datamodel","output datamodel xml file",false);
+	id_time_format_in_data_file = check_time_format(time_format_in_datafile_str, "time_format in output_datamodel file name");
+	const char *field_specification_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "field_specification", XML_file_name, line_number, "The \"field_specification\" of the output_datamodel","output datamodel xml file",false);
+	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_specification_str, "default") || words_are_the_same(field_specification_str, "fields") || words_are_the_same(field_specification_str, "hybrid"), "Error happens when configuring \"fields_output_settings\" node: parameter \"field_specification\" can only be one of \"default\" \"fields\" or \"hybrid\", Please check the xml configuration file %s around line number %d", XML_file_name, default_settings_element->Row());
 
 	const char *default_operation_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_operation", XML_file_name, line_number, "The \"default_operation\" of the output_datamodel","output datamodel xml file",false);
 	const char *default_h2d_grid_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_h2d_grid", XML_file_name, line_number, "The \"default_h2d_grid\" of the output_datamodel","output datamodel xml file",false);
 	const char *default_v3d_grid_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_v3d_grid", XML_file_name, line_number, "The \"default_v3d_grid\" of the output_datamodel","output datamodel xml file",false);
 	const char *default_float_type_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_float_type", XML_file_name, line_number, "The \"default_float_type\" of the output_datamodel","output datamodel xml file",false);
 	const char *default_integer_type_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_integer_type", XML_file_name, line_number, "The \"default_integer_type\" of the output_datamodel","output datamodel xml file",false);
+
 	if (default_operation_str != NULL)
 		default_operations.push_back(strdup(default_operation_str));
 	else default_operations.push_back(NULL);
-	if (default_float_type_str != NULL)
+
+	if (default_float_type_str != NULL) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(default_float_type_str, "float") || words_are_the_same(default_float_type_str, "double"), "Error happens when configuring \"output_frequency\" node for datamodel \"%s\": parameter \"default_float_type\" must be one of \"float\" or \"double\", Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name);
 		default_float_types.push_back(strdup(default_float_type_str));
+	}
 	else default_float_types.push_back(NULL);
-	if (default_integer_type_str != NULL)
+
+	if (default_integer_type_str != NULL) {
+		EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(default_integer_type_str, "int") || words_are_the_same(default_integer_type_str, "short") , "Error happens when configuring \"output_frequency\" node for datamodel \"%s\": parameter \"default_integer_type_str\" must be one of \"int\" or \"short\", Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name);
 		default_integer_types.push_back(strdup(default_integer_type_str));
+	}
 	else default_integer_types.push_back(NULL);
-	if (default_h2d_grid_str != NULL)
-		default_h2d_grids.push_back(strdup(default_h2d_grid_str));
+
+	if (default_h2d_grid_str != NULL) {
+		bool default_h2d_grid_valid = false;
+		char *default_name = new char [16+strlen(default_h2d_grid_str)];
+		sprintf(default_name, "datamodel_%s", default_h2d_grid_str);
+		for (int i = 0; i < h2d_grid_names.size(); i++)
+			if (words_are_the_same(default_name, h2d_grid_names[i]))
+				{ default_h2d_grid_valid = true; break; }
+		EXECUTION_REPORT(REPORT_ERROR, -1, default_h2d_grid_valid, "Error happens when configuring parameter \"default_h2d_grid\" for datamodel %s: grid name \"%s\" is not valid, Please check the xml configruation file around line number %d.", datamodel_name, default_h2d_grid_str, default_settings_element->Row());
+		default_h2d_grids.push_back(strdup(default_name));
+		delete default_name;
+	}
 	else default_h2d_grids.push_back(NULL);
-	if (default_v3d_grid_str != NULL)
-		default_v3d_grids.push_back(strdup(default_v3d_grid_str));
+
+	if (default_v3d_grid_str != NULL) {
+		bool default_v3d_grid_valid = false;
+		char *default_name = new char [16+strlen(default_v3d_grid_str)];
+		sprintf(default_name, "datamodel_%s", default_v3d_grid_str);
+		for (int i = 0; i < md_grid_names.size(); i++) {
+			if (words_are_the_same(default_name, md_grid_names[i])) {
+				default_v3d_grid_valid = true;
+				break;
+			}
+		}
+		EXECUTION_REPORT(REPORT_ERROR, -1, default_v3d_grid_valid, "Error happens when configuring parameter \"default_v3d_grid\" for datamodel %s: grid name \"%s\" is not valid, Please check the xml configruation file around line number %d.", datamodel_name, default_v3d_grid_str, default_settings_element->Row());
+		default_v3d_grids.push_back(strdup(default_name));
+		delete default_name;
+	}
 	else default_v3d_grids.push_back(NULL);
 }
 
@@ -1059,17 +1101,65 @@ void Inout_datamodel::visit_time_points_node(TiXmlNode *time_points_segment_node
 	else time_point_units.push_back(strdup(time_point_unit_str));
 }
 
-void Inout_datamodel::config_field_info(TiXmlNode *fields_node) {
+void Inout_datamodel::config_field_info(TiXmlNode *fields_node, int index) {
+	std::vector<Field_config_info*> current_set_of_fields;
 	for (TiXmlNode *field_node = fields_node->FirstChild(); field_node != NULL; field_node = field_node->NextSibling()) {
 		TiXmlElement *field_element = field_node->ToElement();
-		const char *name_in_model_str = get_XML_attribute(host_comp_id, 80, field_element, "name_in_model", XML_file_name, line_number, "The \"name_in_model\" of the output_datamodel field","output datamodel xml file",true);
+		Field_config_info *output_field_info = new Field_config_info();
+		output_field_info->name_in_model = strdup(get_XML_attribute(host_comp_id, 80, field_element, "name_in_model", XML_file_name, line_number, "The \"name_in_model\" of the output_datamodel field","output datamodel xml file",true));
 		const char *grid_name_str = get_XML_attribute(host_comp_id, 80, field_element, "grid_name", XML_file_name, line_number, "The \"grid_name\" of the output_datamodel field","output datamodel xml file",false);
 		const char *name_in_file_str = get_XML_attribute(host_comp_id, 80, field_element, "name_in_file", XML_file_name, line_number, "The \"name_in_file\" of the output_datamodel field","output datamodel xml file",false);
-		const char *float_datatype_str = get_XML_attribute(host_comp_id, 80, field_element, "float_datatype", XML_file_name, line_number, "The \"float_datatype\" of the output_datamodel field","output datamodel xml file",false);
-		const char *integer_datatype_str = get_XML_attribute(host_comp_id, 80, field_element, "integer_datatype", XML_file_name, line_number, "The \"integer_datatype\" of the output_datamodel field","output datamodel xml file",false);
+		const char *float_datatype_str = get_XML_attribute(host_comp_id, 80, field_element, "float_type", XML_file_name, line_number, "The \"float_datatype\" of the output_datamodel field","output datamodel xml file",false);
+		const char *integer_datatype_str = get_XML_attribute(host_comp_id, 80, field_element, "integer_type", XML_file_name, line_number, "The \"integer_datatype\" of the output_datamodel field","output datamodel xml file",false);
 		const char *operation_str = get_XML_attribute(host_comp_id, 80, field_element, "operation", XML_file_name, line_number, "The \"operation\" of the output_datamodel field","output datamodel xml file",false);
 		const char *unit_str = get_XML_attribute(host_comp_id, 80, field_element, "unit", XML_file_name, line_number, "The \"unit\" of the output_datamodel field","output datamodel xml file",false);
+		const char *add_offset_str = get_XML_attribute(host_comp_id, 80, field_element, "add_offset", XML_file_name, line_number, "The \"add_offset\" of the output_datamodel field","output datamodel xml file",false);
+		const char *scale_factor_str = get_XML_attribute(host_comp_id, 80, field_element, "scale_factor", XML_file_name, line_number, "The \"scale_factor\" of the output_datamodel field","output datamodel xml file",false);
+
+		if (grid_name_str != NULL) {
+			output_field_info->grid_name = strdup(grid_name_str);
+		}
+		else output_field_info->grid_name = NULL;//设置起来有些复杂，要根据变量实例具体是二维的还是三维的
+
+		if (name_in_file_str != NULL)
+			output_field_info->name_in_file = strdup(name_in_file_str);
+		else output_field_info->name_in_file = strdup(output_field_info->name_in_model);
+
+		if (float_datatype_str != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(float_datatype_str, "float") || words_are_the_same(float_datatype_str, "double"), "Error happens when configuring \"field\" node for datamodel \"%s\": parameter \"float_type\" must be one of \"float\" or \"double\", Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name, field_element->Row());
+			output_field_info->float_datatype = strdup(float_datatype_str);
+		}
+		else if (default_float_types[index] != NULL)
+			output_field_info->float_datatype = strdup(default_float_types[index]);
+		else output_field_info->float_datatype = NULL;
+
+		if (integer_datatype_str != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(integer_datatype_str, "int") || words_are_the_same(integer_datatype_str, "short"), "Error happens when configuring \"field\" node for datamodel \"%s\": parameter \"integer_type\" must be one of \"int\" or \"short\", Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name, field_element->Row());
+			output_field_info->integer_datatype = strdup(integer_datatype_str);
+		}
+		else if (default_integer_types[index] != NULL)
+			output_field_info->integer_datatype = strdup(default_integer_types[index]);
+		else output_field_info->integer_datatype = NULL;
+
+		if (operation_str != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(operation_str, "aver") || words_are_the_same(operation_str, "inst") || words_are_the_same(operation_str, "min") || words_are_the_same(operation_str, "max") || words_are_the_same(operation_str, "accum"), "Error happens when configuring \"field\" node for datamodel \"%s\": parameter \"operation\" must be one of \"aver\" \"inst\" \"min\" \"max\" or \"accum\", Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name, field_element->Row());
+			output_field_info->operation = strdup(operation_str);
+		}
+		else output_field_info->operation = NULL;
+
+
+		EXECUTION_REPORT(REPORT_ERROR, -1, (add_offset_str != NULL && scale_factor_str != NULL) || (add_offset_str == NULL && scale_factor_str == NULL), "Error happens when configuring \"field\" node for datamodel \"%s\": parameter \"add_offset\" and \"scale_factor\" must be specified/unspecified at the same time, Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name, field_element->Row());
+		if (add_offset_str != NULL) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(add_offset_str, "%lf", &(output_field_info->add_offset)) == 1, "Error happens when configuring \"field\" node for datamodel \"%s\": parameter \"add_offset\" is not of float or double type (which is \"%s\"), Please check the xml configuration file %s around line number %d.", datamodel_name, add_offset_str, XML_file_name, field_element->Row());
+			EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(scale_factor_str, "%lf", &(output_field_info->scale_factor)) == 1, "Error happens when configuring \"field\" node for datamodel \"%s\": the parameter \"scale_factor\" is not of float or double type (which is \"%s\"), Please check the xml configuration file %s around line number %d.", datamodel_name, scale_factor_str, XML_file_name, field_element->Row());
+		}
+		else {
+			output_field_info->add_offset = 0.0;
+			output_field_info->scale_factor = 1.0;
+		}
+		current_set_of_fields.push_back(output_field_info);
 	}
+	fields_config_info.push_back(current_set_of_fields);
 }
 
 Inout_datamodel::~Inout_datamodel() {
