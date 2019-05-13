@@ -367,7 +367,7 @@ void Datamodel_instance_info::read_datamodel_instance_configuration(int host_com
 	}
 }*/
 
-int Datamodel_mgt::register_datamodel_output_handler(int num_fields, int *field_ids, const char *output_datamodel_name, int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
+int Datamodel_mgt::register_datamodel_output_handler(const char *handler_name, int num_fields, int *field_ids, const char *output_datamodel_name, int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
 	int API_id = API_ID_HANDLER_DATAMODEL_OUTPUT, i;
 	Inout_datamodel *output_datamodel;
 	common_checking_for_datamodel_handler_registration(num_fields, field_ids, implicit_or_explicit, sampling_timer_id, field_instance_ids_size, annotation);
@@ -382,17 +382,19 @@ int Datamodel_mgt::register_datamodel_output_handler(int num_fields, int *field_
 	if (i == datamodel_mgr->output_datamodels.size()) 
 		output_datamodel = new Inout_datamodel(host_comp_id, output_datamodel_name, OUTPUT_DATAMODEL, annotation);	
 	output_datamodels.push_back(output_datamodel);
-	Output_handler *new_output_handler = new Output_handler(output_datamodel_name, get_next_handler_id(), num_fields, field_ids, implicit_or_explicit, sampling_timer_id, field_instance_ids_size, annotation);
+	Output_handler *new_output_handler = new Output_handler(handler_name, output_datamodel_name, get_next_handler_id(), num_fields, field_ids, implicit_or_explicit, sampling_timer_id, field_instance_ids_size, annotation);
 	output_handlers.push_back(new_output_handler);
 	return new_output_handler->get_handler_id();
 }
 
-Output_handler::Output_handler(const char *datamodel_name_str, int handler_id, int num_fields, int *field_ids,int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
+Output_handler::Output_handler(const char *output_handler_name, const char *datamodel_name_str, int handler_id, int num_fields, int *field_ids,int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
+	this->handler_name = strdup(output_handler_name);
 	this->sampling_timer_id = sampling_timer_id;
 	this->handler_id = handler_id;
 	this->num_fields = num_fields;
 	this->sampling_timer_id = sampling_timer_id;
 	this->datamodel_name =strdup(datamodel_name_str);
+	this->implicit_or_explicit = implicit_or_explicit;
 	this->annotation = strdup(annotation);
 	for (int j = 0; j < num_fields; j ++) {
 		handler_fields_id.push_back(field_ids[j]);
@@ -990,16 +992,27 @@ void Inout_datamodel::config_fields_output_setting_attributes(TiXmlNode *default
 }
 
 void Inout_datamodel::config_output_frequency(TiXmlNode *output_frequency_node, int index) {
-	int line_number, freq_count;
+	int line_number, freq_count, file_freq_count;
 	TiXmlElement *output_frequency_element = output_frequency_node->ToElement();
 	const char *file_freq_unit_str = get_XML_attribute(host_comp_id, 80, output_frequency_element, "file_freq_unit", XML_file_name, line_number, "The \"file_freq_unit\" of the output_datamodel","output datamodel xml file",false);
 	const char *file_freq_count_str = get_XML_attribute(host_comp_id, 80, output_frequency_element, "file_freq_count", XML_file_name, line_number, "The \"file_freq_count\" of the output_datamodel","output datamodel xml file",false);
-	if (file_freq_unit_str != NULL)
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, (file_freq_count_str != NULL && file_freq_unit_str != NULL) || (file_freq_count_str == NULL || file_freq_unit_str == NULL), "Error happens when reading \"output_frequency\" configurations for output_datamodel \"%s\": parameters \"file_freq_count\" and \"file_freq_unit\" should be specified/unspecified at the same time, Please verify the xml file %s arround line_number %d", datamodel_name, XML_file_name, output_frequency_element->Row());
+	if (file_freq_unit_str != NULL) {
+		int id_file_freq_unit = set_unit(file_freq_unit_str, "file_freq_unit");
+		EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(file_freq_count_str, "%d", &file_freq_count) == 1, "Error happens when reading \"output_frequency\" configurations for output_datamodel \"%s\": the parameter \"file_freq_count\" is not of integer type (which is \"%s\"), Please check the xml configuration file %s around line number %d.", datamodel_name, file_freq_count_str, XML_file_name, output_frequency_element->Row());
+		file_freq_counts.push_back(file_freq_count);
 		file_freq_units.push_back(strdup(file_freq_unit_str));
-	else file_freq_units.push_back(NULL);
-	if (file_freq_count_str != NULL)
-		file_freq_counts.push_back(strdup(file_freq_count_str));
-	else file_freq_counts.push_back(NULL);
+	}
+	else {
+		file_freq_counts.push_back(NULL);
+		file_freq_units.push_back(NULL);//不可以push_back NULL
+	}
+	if (file_freq_units[index] != NULL) {
+		int file_timer_id = timer_mgr->define_timer(host_comp_id, file_freq_units[index], file_freq_counts[index], 0, 0, this->annotation);
+		file_timer_ids.push_back(file_timer_id);
+	}
+	else file_timer_ids.push_back(NULL);
+
 	bool is_outer_segment_node_found = false;
 	for (TiXmlNode *outer_segment_node = output_frequency_node->FirstChild(); outer_segment_node != NULL; outer_segment_node = outer_segment_node->NextSibling()) {
 		TiXmlElement *outer_segment_element = outer_segment_node->ToElement();
@@ -1012,6 +1025,7 @@ void Inout_datamodel::config_output_frequency(TiXmlNode *output_frequency_node, 
 		const char *freq_unit_str = get_XML_attribute(host_comp_id, 80, outer_segment_element, "freq_unit", XML_file_name, line_number, "The \"freq_unit\" of the output_datamodel","output datamodel xml file",false);
 		EXECUTION_REPORT(REPORT_ERROR, host_comp_id, (freq_count_str != NULL && freq_unit_str != NULL) || (freq_count_str == NULL || freq_unit_str == NULL), "Error happens when reading \"output_frequency\" configurations for output_datamodel \"%s\": parameters \"freq_count\" and \"freq_unit\" should be specified/unspecified at the same time, Please verify the xml file %s arround line_number %d", datamodel_name, XML_file_name, outer_segment_element->Row());
 		if (freq_unit_str != NULL) {
+			int id_freq_unit = set_unit(freq_unit_str, "freq_unit");
 			EXECUTION_REPORT(REPORT_ERROR, -1, sscanf(freq_count_str, "%d", &freq_count) == 1, "Error happens when reading \"output_frequency\" configurations for output_datamodel \"%s\": the parameter \"freq_count\" is not of integer type (which is \"%s\"), Please check the xml configuration file %s around line number %d.", datamodel_name, freq_count_str, XML_file_name, outer_segment_element->Row());
 			output_freq_counts.push_back(freq_count);
 			output_freq_units.push_back(strdup(freq_unit_str));
@@ -1046,7 +1060,11 @@ void Inout_datamodel::config_output_frequency(TiXmlNode *output_frequency_node, 
 	//define single timer
 	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, components_time_mgrs->get_time_mgr(host_comp_id)->get_time_step_in_second() > 0, "Error happers when configuring the \"output_frequency\" parameter for datamodel %s: the time step of the host component model \"%s\" has not been set yet. Please specify the time step before registering the output_datmaodel_handler with annotation \"%s\"", datamodel_name, 
 		comp_comm_group_mgt_mgr->get_global_node_of_local_comp(host_comp_id, true, this->annotation)->get_comp_full_name(), this->annotation);
-	this->output_timer_id = timer_mgr->define_timer(host_comp_id, output_freq_units[index], output_freq_counts[index], time_points[index], 0, this->annotation);//the index can only uesed under define_single_timer case
+	if (output_freq_units[index] != NULL) {
+		int output_timer_id = timer_mgr->define_timer(host_comp_id, output_freq_units[index], output_freq_counts[index], time_points[index], 0, this->annotation);//the index can only uesed under define_single_timer case
+		output_timer_ids.push_back(output_timer_id);
+	}
+	else output_timer_ids.push_back(NULL);
 }
 
 bool Inout_datamodel::expected_segment_exists(TiXmlNode *&undecided_node, const char *expected_str) {
@@ -1167,18 +1185,23 @@ Inout_datamodel::~Inout_datamodel() {
 	delete [] file_dir;
 	delete [] file_name_prefix;
 	for (int i = 0; i <default_operations.size(); i++) {
-		delete [] default_operations[i];
-		delete [] default_integer_types[i];
-		delete [] default_float_types[i];
-		delete [] default_h2d_grids[i];
-		delete [] default_v3d_grids[i];
+		delete default_operations[i];
+		delete default_integer_types[i];
+		delete default_float_types[i];
+		delete default_h2d_grids[i];
+		delete default_v3d_grids[i];
+		delete file_freq_units[i];
+		delete time_point_units[i];
+		delete output_freq_units[i];
 	}
-	for (int i = 0; i < file_freq_counts.size(); i++) {
-		delete [] file_freq_counts[i];
-		delete [] file_freq_units[i];
+	for (int i = 0; i < h2d_grid_names.size(); i++) {
+		delete h2d_grid_names[i];
+	}
+	for (int i = 0; i < md_grid_names.size(); i++) {
+		delete md_grid_names[i];
 	}
 	for (int i = 0; i < surface_field_names.size(); i++) {
-		delete [] surface_field_names[i];
+		delete surface_field_names[i];
 	}
 }
 
@@ -1192,4 +1215,29 @@ Datamodel_mgt::~Datamodel_mgt() {
 	for (int i = 0; i < input_datamodels.size(); i++) {
 		delete [] input_datamodels[i];
 	}
+}
+
+void Datamodel_mgt::handle_normal_output(int handler_id, int bypass_timer, int API_id, const char* handler_annotation) {
+	Output_handler *output_handler;
+	char API_label[NAME_STR_SIZE];
+
+	get_API_hint(-1, API_id, API_label);
+	if (!is_legal_handler_id(handler_id))
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when handling a nromal output through the API \"%s\": the given interface ID 0x%x is illegal. Please check the model code with the annotation \"%s\"", API_label, handler_id, handler_annotation);
+	output_handler = get_handler(handler_id);
+	EXECUTION_REPORT_LOG(REPORT_LOG, output_handler->get_host_comp_id(), true, "Begin to execute handler \"%s\" (model code annotation is \"%s\")", output_handler->get_handler_name(), handler_annotation);
+	//output_handler->execute_handler(bypass_timer, API_id, handler_annotation);
+	EXECUTION_REPORT_LOG(REPORT_LOG, output_handler->get_host_comp_id(), true, "Finish executing handler \"%s\" (model code annotation is \"%s\")", output_handler->get_handler_name(), handler_annotation);
+}
+
+Output_handler *Datamodel_mgt::get_handler(int handler_id) {
+	if (!is_legal_handler_id(handler_id))
+		return NULL;
+	return output_handlers[handler_id&TYPE_ID_PREFIX_MASK];
+}
+
+bool Datamodel_mgt::is_legal_handler_id(int handler_id) {
+	if ((handler_id & TYPE_ID_PREFIX_MASK) != TYPE_OUTPUT_HANDLER_ID_PREFIX)
+		return false;
+	return (handler_id&TYPE_ID_SUFFIX_MASK) < output_handlers.size();
 }

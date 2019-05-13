@@ -99,6 +99,7 @@
    public :: CCPL_do_family_coupling_generation
    public :: CCPL_abort
    public :: CCPL_register_datamodel_output_handler
+   public :: CCPL_handle_normal_explicit_output
 
 
    interface CCPL_register_field_instance ; module procedure &
@@ -3316,8 +3317,9 @@
 
 
 
-   integer FUNCTION CCPL_register_datamodel_output_handler(num_field_instances, field_instance_ids, datamodel_name, implicit_or_explicit, sampling_timer_id, annotation)
+   integer FUNCTION CCPL_register_datamodel_output_handler(handler_name, num_field_instances, field_instance_ids, datamodel_name, implicit_or_explicit, sampling_timer_id, annotation)
    implicit none
+   character(len=*), intent(in)                         :: handler_name
    integer,          intent(in)                         :: num_field_instances
    integer,          intent(in), dimension(:)           :: field_instance_ids
    character(len=*), intent(in)                         :: datamodel_name
@@ -3327,7 +3329,6 @@
    integer                                              :: handler_id
    character *1024                                      :: handler_annotation
 
-
    if (present(annotation)) then
       handler_annotation = trim(annotation)//char(0)
    else
@@ -3335,14 +3336,38 @@
    endif
 
    if (present(sampling_timer_id)) then
-      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, size(field_instance_ids), handler_annotation)
+      call register_datamodel_output_handler(handler_name, handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, sampling_timer_id, size(field_instance_ids), handler_annotation)
    else
-      call register_datamodel_output_handler(handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, -1, size(field_instance_ids), handler_annotation)
+      call register_datamodel_output_handler(handler_name, handler_id, num_field_instances, field_instance_ids, trim(datamodel_name)//char(0), implicit_or_explicit, -1, size(field_instance_ids), handler_annotation)
    endif
 
    CCPL_register_datamodel_output_handler = handler_id
 
    END FUNCTION CCPL_register_datamodel_output_handler
 
+   logical FUNCTION CCPL_handle_normal_explicit_output(handler_id, bypass_timer, annotation)
+   implicit none
+   integer,          intent(in)                         :: handler_id
+   logical,          intent(in), optional               :: bypass_timer
+   character(len=*), intent(in), optional               :: annotation
+   integer                                              :: local_bypass_timer
+   character *1024                                      :: handler_annotation
+
+   if (bypass_timer) then
+      local_bypass_timer = 1
+   else
+      local_bypass_timer = 0
+   endif
+
+   if (present(annotation)) then
+      handler_annotation = trim(annotation)//char(0)
+   else
+      handler_annotation = trim("")//char(0)
+   endif
+
+   call handle_normal_explicit_output(handler_id, local_bypass_timer, handler_annotation)
+   CCPL_handle_normal_explicit_output = .true.
+
+   END FUNCTION CCPL_handle_normal_explicit_output
 
  END MODULE CCPL_interface_mod

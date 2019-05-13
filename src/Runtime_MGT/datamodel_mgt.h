@@ -82,7 +82,8 @@ private:
 	int id_time_format_in_file_names;
 	char *file_type;
 	int host_comp_id;
-	int output_timer_id;
+	std::vector<int> output_timer_ids;
+	std::vector<int> file_timer_ids;
 	std::vector<int> time_points;
 	std::vector<int> id_time_point_formats;
 	std::vector<int> id_time_point_units;
@@ -96,7 +97,7 @@ private:
 	std::vector<char*> default_h2d_grids;
 	std::vector<char*> default_v3d_grids;
 	std::vector<char*> file_freq_units;
-	std::vector<char*> file_freq_counts;
+	std::vector<int> file_freq_counts;
 	std::vector<int> h2d_grid_ids;
 	std::vector<int> v1d_grid_ids;
 	std::vector<int> v3d_grid_ids;
@@ -135,31 +136,40 @@ public:
 
 class Output_handler {
 private:
+	char *handler_name;
 	int host_comp_id;
 	int handler_id;
 	int num_fields;
+	int implicit_or_explicit;
 	std::vector<int> handler_fields_id;
 	char *datamodel_name;
 	int sampling_timer_id;
 	char *annotation;
 public:
-	Output_handler(const char*, int, int, int*, int, int, int, const char *);
+	Output_handler(const char*, const char*, int, int, int*, int, int, int, const char *);
 	~Output_handler() {}
 	int get_handler_id() { return handler_id; }
+	int get_host_comp_id() { return host_comp_id; }
+	const char *get_handler_name() { return handler_name; }
+	void execute_handler(int, int, const char*);
 };
 
 class Datamodel_mgt {
 private:
 	friend class Output_handler;
+	Time_mgt *time_mgr;
 	std::vector<Output_handler*> output_handlers;
 	std::vector<Inout_datamodel*> output_datamodels;
 	std::vector<Inout_datamodel*> input_datamodels;
 public:
 	Datamodel_mgt() {}
 	~Datamodel_mgt();
-	int register_datamodel_output_handler(int, int *, const char*, int, int, int, const char*);
+	int register_datamodel_output_handler(const char*, int, int *, const char*, int, int, int, const char*);
 	int get_next_handler_id() { return TYPE_OUTPUT_HANDLER_ID_PREFIX|output_handlers.size(); }
 	void common_checking_for_datamodel_handler_registration(int, int*, int, int, int, const char*);
+	void handle_normal_output(int, int, int, const char*);
+	bool is_legal_handler_id(int);
+	Output_handler *get_handler(int);
 };
 
 bool varname_or_value(const char*);//false: varname, true: value
