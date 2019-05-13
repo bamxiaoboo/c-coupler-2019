@@ -439,7 +439,9 @@ Remap_weight_of_strategy_class::Remap_weight_of_strategy_class(const char *objec
     EXECUTION_REPORT(REPORT_ERROR, -1, (!calculate_wgts || remap_strategy != NULL) && data_grid_src != NULL && data_grid_dst != NULL, "C-Coupler error in Remap_weight_of_strategy_class::Remap_weight_of_strategy_class");
 
 	if (calculate_wgts) {
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "before generate_remapping_related_grids");
 	    generate_remapping_related_grids();
+		EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "After generate_remapping_related_grids, before generate_remapping_related_grids");
 	    remap_strategy->calculate_remapping_weights(this, H2D_remapping_wgt_file, wgt_cal_comp_id);
 	}
 }

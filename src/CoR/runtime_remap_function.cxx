@@ -174,7 +174,7 @@ Runtime_remap_function::~Runtime_remap_function()
 }
 
 
-void Runtime_remap_function::calculate_static_remapping_weights(long current_remapping_time_iter, const char *H2D_remapping_wgt_file, int wgt_cal_comp_id)
+void Runtime_remap_function::calculate_static_remapping_weights(long current_remapping_time_iter, const char *H2D_remapping_wgt_file, int wgt_cal_comp_id, bool outer_mask)
 /*  Calculate static remapping weights and allocate entries for dynamic remapping weights
  */
 {
@@ -191,7 +191,8 @@ void Runtime_remap_function::calculate_static_remapping_weights(long current_rem
     if (runtime_remap_operator->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV)) {
         EXECUTION_REPORT(REPORT_ERROR, -1, runtime_remap_operator->get_src_grid()->get_num_dimensions() == 1, "Software error in Runtime_remap_function::calculate_static_remapping_weights: wrong dimension number of a remapping operator with vertical interpolation");
         if (runtime_remap_operator->get_src_grid()->get_a_leaf_grid_of_sigma_or_hybrid() || runtime_remap_operator->get_dst_grid()->get_a_leaf_grid_of_sigma_or_hybrid()) {
-            last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
+			//if (outer_mask)
+	            last_remap_weight_of_operator_instance = remap_weight_of_strategy->add_remap_weight_of_operator_instance(interchanged_grid_src, interchanged_grid_dst, current_remapping_time_iter, runtime_remap_operator);
             return;
         }
     }

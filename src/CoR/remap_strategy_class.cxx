@@ -126,6 +126,7 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
     Remap_grid_class *runtime_remap_grid_src, *runtime_remap_grid_dst;
     Remap_grid_data_class *runtime_mask_src, *runtime_mask_dst;
     Remap_grid_class *runtime_mask_sub_grids_src[256], *runtime_mask_sub_grids_dst[256];
+	bool *outer_mask;
     int num_runtime_mask_sub_grids_src, num_runtime_mask_sub_grids_dst;
     long runtime_remap_times_iter;
     double last_time, current_time;
@@ -178,8 +179,15 @@ void Remap_strategy_class::calculate_remapping_weights(Remap_weight_of_strategy_
                                                                     remap_weight_of_strategy,
                                                                     H2D_remapping_wgt_file);
         if (execution_phase_number == 1) {
+			outer_mask = NULL;
+			if (runtime_remap_grid_src->get_grid_mask_field() == NULL && (runtime_mask_src != NULL || runtime_mask_dst != NULL)) {
+				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, runtime_mask_src != NULL && runtime_mask_dst != NULL, "Software error in Remap_strategy_class::calculate_remapping_weights");
+				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, runtime_mask_src->get_coord_value_grid() == runtime_mask_dst->get_coord_value_grid(), "Software error in Remap_strategy_class::calculate_remapping_weights");				
+				EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, runtime_mask_src->get_grid_data_field()->required_data_size == current_remap_src_data_grid_interchanged->get_grid_size()/runtime_remap_grid_src->get_grid_size(), "Software error in Remap_strategy_class::calculate_remapping_weights");
+				outer_mask = (bool*) runtime_mask_src->get_grid_data_field()->data_buf;
+			}
             for (runtime_remap_times_iter = 0; runtime_remap_times_iter < current_remap_src_data_grid_interchanged->get_grid_size()/runtime_remap_grid_src->get_grid_size(); runtime_remap_times_iter ++) {
-                current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter, H2D_remapping_wgt_file, wgt_cal_wgt_id);
+                current_runtime_remap_function->calculate_static_remapping_weights(runtime_remap_times_iter, H2D_remapping_wgt_file, wgt_cal_wgt_id, outer_mask == NULL? true:outer_mask[runtime_remap_times_iter]);
             }
         }
         if (remap_operators[i]->get_src_grid()->has_grid_coord_label(COORD_LABEL_LEV))

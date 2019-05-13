@@ -54,7 +54,7 @@ class Runtime_remap_function
         
     public:
         Runtime_remap_function(Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_grid_class*, Remap_operator_basis*, Remap_grid_data_class*, Remap_grid_data_class*, Remap_weight_of_strategy_class*, const char*);
-        void calculate_static_remapping_weights(long, const char*, int);
+        void calculate_static_remapping_weights(long, const char*, int, bool);
         ~Runtime_remap_function();
 };
 

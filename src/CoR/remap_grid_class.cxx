@@ -479,16 +479,24 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
     }
 
     if (runtime_mask != NULL) {
-        if (runtime_mask->get_coord_value_grid()->is_similar_grid_with(remap_grid)) 
+        if (runtime_mask->get_coord_value_grid()->is_similar_grid_with(remap_grid)) {
             runtime_remap_grid->grid_mask_field = runtime_mask->duplicate_grid_data_field(remap_grid, 1, true, true);
-        else {
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "The runtime remap grid \"%s\" directly uses the runtime_mask when remapping the field with grid \"%s\"", runtime_remap_grid->get_grid_name(), grid_name);
+        }
+        else if (runtime_mask->get_coord_value_grid()->have_overlap_with_grid(remap_grid)) {
+			EXECUTION_REPORT(REPORT_ERROR, -1, remap_grid->is_subset_of_grid(runtime_mask->get_coord_value_grid()), "software error in generate_remap_operator_runtime_grid");
             runtime_remap_grid->original_grid_mask_field = runtime_mask;
             runtime_mask->interchange_grid_data(this);
             runtime_remap_grid->grid_mask_field = runtime_mask->duplicate_grid_data_field(remap_grid, 1, false, false);
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "The runtime remap grid \"%s\" uses a super runtime_mask when remapping the field with grid \"%s\"", runtime_remap_grid->get_grid_name(), grid_name);
         }
+		else {			
+			EXECUTION_REPORT_LOG(REPORT_LOG, -1, true, "The runtime remap grid \"%s\" uses a outer runtime_mask when remapping the field with grid \"%s\"", runtime_remap_grid->get_grid_name(), grid_name);
+			runtime_mask->interchange_grid_data(this);
+		}
     }
 
-    if (runtime_remap_grid->redundant_cell_mark_field == NULL) {
+    if (runtime_remap_grid->redundant_cell_mark_field == NULL && false) {
         mask_data_field = new Remap_data_field;
         strcpy(mask_data_field->data_type_in_application, DATA_TYPE_BOOL);
         mask_data_field->required_data_size = runtime_remap_grid->grid_size;    
@@ -994,7 +1002,7 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
         }
         if (sigma_grid_surface_value_field != NULL) {
             this->sigma_grid_surface_value_field = sigma_grid_surface_value_field->duplicate_grid_data_field(sigma_grid_surface_value_field->get_coord_value_grid(), 1, true, true);
-            grid_center_fields.push_back(sigma_grid_sigma_value_field->duplicate_grid_data_field(this, 1, false, false));
+            grid_center_fields.push_back(sigma_grid_sigma_value_field->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, false, false));  // temp level coord value field for global grid that should not be further used
             strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
             strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_IO_file, COORD_LABEL_LEV);
         }
@@ -1026,7 +1034,7 @@ void Remap_grid_class::allocate_sigma_grid_specific_fields(Remap_grid_data_class
     if (this->grid_center_fields.size() != 0)
         EXECUTION_REPORT(REPORT_ERROR, -1, this->grid_center_fields.size() == 1, "C-Coupler error5 in allocate_sigma_grid_specific_fields");
     else {
-        grid_center_fields.push_back(this->get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(this, 1, false, false));
+        grid_center_fields.push_back(this->get_a_leaf_grid_of_sigma_or_hybrid()->get_sigma_grid_sigma_value_field()->duplicate_grid_data_field(get_a_leaf_grid(COORD_LABEL_LEV), 1, false, false));  // temp level coord value field for global grid that should not be further used
         strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_application, COORD_LABEL_LEV);
         strcpy(grid_center_fields[0]->get_grid_data_field()->field_name_in_IO_file, COORD_LABEL_LEV);
     }
@@ -1094,6 +1102,7 @@ void Remap_grid_class::calculate_lev_sigma_values()
             full_ratio = -1.0;
     }
     EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, full_ratio == 1.0 || full_ratio == -1.0, "the sigma value in grid %s must be all positive or negative", lev_leaf_grid_of_sigma_or_hybrid->get_sigma_grid_sigma_value_field()->get_coord_value_grid()->get_grid_name());
+    EXECUTION_REPORT_ERROR_OPTIONALLY(REPORT_ERROR, -1, grid_center_fields.size() == 1 && grid_center_fields[0]->grid_data_field->required_data_size == grid_size, "Software error in ");
 
     leaf_grids[0] = lev_leaf_grid;
     leaf_grids[1] = sigma_grid_surface_value_field->get_coord_value_grid();
@@ -2684,6 +2693,11 @@ void Remap_grid_class::compute_remap_field_data_runtime_mask(Remap_grid_class *f
         return;
     }
 
+    if ((*num_mask_sub_grids) == 1) {
+        *runtime_mask = sub_mask_fields[0]->duplicate_grid_data_field(sub_mask_fields[0]->get_coord_value_grid(), 1, true, true);
+        return;
+    }
+
     *runtime_mask = sub_mask_fields[0]->duplicate_grid_data_field(this, 1, false, false);
     runtime_mask_values = (bool*) (*runtime_mask)->grid_data_field->data_buf;
     for (i = 0; i < this->grid_size; i ++)
@@ -2708,6 +2722,7 @@ void Remap_grid_class::detect_redundant_cells()
     long *cell_index, i, next_i, j;
     Radix_sort<double, long> *radix_sort;
     Remap_data_field *mask_data_field;
+	bool has_redundant_cells = false;
 
 
     if (grid_center_fields.size() == 0)
@@ -2756,6 +2771,7 @@ void Remap_grid_class::detect_redundant_cells()
                 break;
         if (j == num_dimensions) {
             redundant_cell_mark[radix_sort->content[next_i]] = true;
+			has_redundant_cells = true;
         }
     }
 
@@ -2778,6 +2794,11 @@ void Remap_grid_class::detect_redundant_cells()
 
     for (i = 0; i < num_dimensions; i ++)
         delete full_center_fields[i];
+
+	if (!has_redundant_cells) {
+		delete redundant_cell_mark_field;
+		redundant_cell_mark_field = NULL;
+	}
 }
 
 
