@@ -496,18 +496,6 @@ Remap_grid_class *Remap_grid_class::generate_remap_operator_runtime_grid(Remap_g
 		}
     }
 
-    if (runtime_remap_grid->redundant_cell_mark_field == NULL && false) {
-        mask_data_field = new Remap_data_field;
-        strcpy(mask_data_field->data_type_in_application, DATA_TYPE_BOOL);
-        mask_data_field->required_data_size = runtime_remap_grid->grid_size;    
-        mask_data_field->read_data_size = runtime_remap_grid->grid_size;
-        mask_data_field->data_buf = new char [mask_data_field->required_data_size];
-        runtime_remap_grid->redundant_cell_mark_field = new Remap_grid_data_class(runtime_remap_grid, mask_data_field);
-        runtime_remap_grid->redundant_cell_mark = (bool*) mask_data_field->data_buf;
-        for (i = 0; i < runtime_remap_grid->grid_size; i ++)
-            runtime_remap_grid->redundant_cell_mark[i] = false;
-    }
-
     return runtime_remap_grid;
 }
 
@@ -1829,13 +1817,15 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
             }
             else {
                 box_vertex_start_dim1 = (box_vertex_start_dim1+grid_size_dim1) % grid_size_dim1;
-                while (redundant_cell_mark[box_vertex_start_dim2*grid_size_dim1+box_vertex_start_dim1] ||
-                       redundant_cell_mark[box_vertex_end_dim2*grid_size_dim1+box_vertex_start_dim1])
-                    box_vertex_start_dim1 = (box_vertex_start_dim1+grid_size_dim1-1) % grid_size_dim1;
+				if (redundant_cell_mark != NULL)
+	                while (redundant_cell_mark[box_vertex_start_dim2*grid_size_dim1+box_vertex_start_dim1] ||
+    	                   redundant_cell_mark[box_vertex_end_dim2*grid_size_dim1+box_vertex_start_dim1])
+        	            box_vertex_start_dim1 = (box_vertex_start_dim1+grid_size_dim1-1) % grid_size_dim1;
                 box_vertex_end_dim1 = (box_vertex_end_dim1+grid_size_dim1) % grid_size_dim1;
-                while (redundant_cell_mark[box_vertex_start_dim2*grid_size_dim1+box_vertex_end_dim1] ||
-                       redundant_cell_mark[box_vertex_end_dim2*grid_size_dim1+box_vertex_end_dim1])
-                    box_vertex_end_dim1 = (box_vertex_end_dim1+grid_size_dim1+1) % grid_size_dim1;
+				if (redundant_cell_mark != NULL)
+	                while (redundant_cell_mark[box_vertex_start_dim2*grid_size_dim1+box_vertex_end_dim1] ||
+    	                   redundant_cell_mark[box_vertex_end_dim2*grid_size_dim1+box_vertex_end_dim1])
+        	            box_vertex_end_dim1 = (box_vertex_end_dim1+grid_size_dim1+1) % grid_size_dim1;
             }
             num_non_null_cells = 0;
             sum_value_dim1 = 0;
@@ -1850,7 +1840,7 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
                     for (l = box_vertex_start_dim1; l <= box_vertex_end_dim1; l ++) {
                         indx1 = l%grid_size_dim1;
                         indx2 = k%grid_size_dim2;
-                        if (!redundant_cell_mark[indx2*grid_size_dim1+indx1]) {
+                        if (redundant_cell_mark == NULL || !redundant_cell_mark[indx2*grid_size_dim1+indx1]) {
                             if (max_coord_value < center_values_dim1[indx2*grid_size_dim1+indx1])
                                 max_coord_value = center_values_dim1[indx2*grid_size_dim1+indx1];
                             if (min_coord_value > center_values_dim1[indx2*grid_size_dim1+indx1])
@@ -1865,7 +1855,7 @@ void Remap_grid_class::set_2D_coord_vertex_values_in_default(const double *cente
                 for (l = box_vertex_start_dim1; l <= box_vertex_end_dim1; l ++) {
                     indx1 = l%grid_size_dim1;
                     indx2 = k%grid_size_dim2;
-                    if (!redundant_cell_mark[indx2*grid_size_dim1+indx1]) {
+                    if (redundant_cell_mark == NULL || !redundant_cell_mark[indx2*grid_size_dim1+indx1]) {
                         sum_value_dim1 += center_values_dim1[indx2*grid_size_dim1+indx1];
                         sum_value_dim2 += center_values_dim2[indx2*grid_size_dim1+indx1];
                         num_non_null_cells ++;
@@ -2784,11 +2774,17 @@ void Remap_grid_class::detect_redundant_cells()
             if (((float)full_center_coord_values[1][i]) == (float)90.0)
                 if (north_pole_cell_index == -1)
                     north_pole_cell_index = i;
-                else redundant_cell_mark[i] = true;
+                else {
+					redundant_cell_mark[i] = true;
+					has_redundant_cells = true;
+                }
             if (((float)full_center_coord_values[1][i]) == (float)(-90.0))
                 if (south_pole_cell_index == -1)
                     south_pole_cell_index = i;
-                else redundant_cell_mark[i] = true;
+                else {
+					redundant_cell_mark[i] = true;
+					has_redundant_cells = true;
+                }
         }
     }
 
@@ -2798,6 +2794,7 @@ void Remap_grid_class::detect_redundant_cells()
 	if (!has_redundant_cells) {
 		delete redundant_cell_mark_field;
 		redundant_cell_mark_field = NULL;
+		redundant_cell_mark = NULL;
 	}
 }
 
