@@ -409,7 +409,7 @@ Output_handler::Output_handler(const char *output_handler_name, const char *data
 				Field_config_info *dst_field_config_info = output_datamodel->fields_config_info[i][j];
 				Field_mem_info *source_field_instance = find_handler_field_instance_id(dst_field_config_info->name_in_model);
 				if (dst_field_config_info->grid_name != NULL) {
-					original_grid_mgr->search_grid_info(grid_name, host_comp_id);
+					original_grid_mgr->search_grid_info(grid_name, host_comp_id)->
 				}
 				if (source_field_instance->get_data_type() == DATA_TYPE_DOUBLE || source_field_instance->get_data_type() == DATA_TYPE_FLOAT) {
 					if (words_are_the_same(dst_field_config_info->float_datatype, "double")) {
