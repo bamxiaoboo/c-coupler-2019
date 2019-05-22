@@ -387,7 +387,7 @@ int Datamodel_mgt::register_datamodel_output_handler(const char *handler_name, i
 	return new_output_handler->get_handler_id();
 }
 
-Output_handler::Output_handler(const char *output_handler_name, const char *datamodel_name_str, int handler_id, int num_fields, int *field_ids,int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
+Output_handler::Output_handler(const char *output_handler_name, const char *datamodel_name_str, int handler_id, int num_fields, int *export_field_ids,int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
 	this->handler_name = strdup(output_handler_name);
 	this->sampling_timer_id = sampling_timer_id;
 	this->handler_id = handler_id;
@@ -396,10 +396,49 @@ Output_handler::Output_handler(const char *output_handler_name, const char *data
 	this->datamodel_name =strdup(datamodel_name_str);
 	this->implicit_or_explicit = implicit_or_explicit;
 	this->annotation = strdup(annotation);
-	for (int j = 0; j < num_fields; j ++) {
-		handler_fields_id.push_back(field_ids[j]);
+
+	this->host_comp_id = memory_manager->get_field_instance(export_field_ids[0])->get_comp_id();
+	this->output_datamodel = datamodel_mgr->search_output_datamodel(this->datamodel_name);
+	//register field instances
+	//*field_instance_id = memory_manager->register_external_field_instance(field_name, (void*)(*data_buffer_ptr), *field_size, *decomp_id, *comp_or_grid_id, *buf_mark, *usage_tag, unit, data_type, annotation);
+	std::vector<int> import_field_instance_ids;
+	for (int i = 0; i < output_datamodel->fields_config_info.size(); i++) {
+		if (words_are_the_same(output_datamodel->field_specifications[i], "fields")) {
+			for (int j = 0; j < output_datamodel->fields_config_info[i].size(); j++) {
+				void *data_buffer_ptr;
+				Field_config_info *dst_field_config_info = output_datamodel->fields_config_info[i][j];
+				Field_mem_info *source_field_instance = find_handler_field_instance_id(dst_field_config_info->name_in_model);
+				if (dst_field_config_info->grid_name != NULL) {
+					original_grid_mgr->search_grid_info(grid_name, host_comp_id);
+				}
+				if (source_field_instance->get_data_type() == DATA_TYPE_DOUBLE || source_field_instance->get_data_type() == DATA_TYPE_FLOAT) {
+					if (words_are_the_same(dst_field_config_info->float_datatype, "double")) {
+						double data_buffer = new double [];
+					}
+				}
+				int field_instance_id = memory_manager->register_external_field_instance(dst_field_config_info->name_in_file, , , -1, );
+			}
+		}
 	}
-	this->host_comp_id = memory_manager->get_field_instance(field_ids[0])->get_comp_id();
+}
+
+Field_mem_info *Output_handler::find_handler_field_instance_id(char *field_name, int *export_field_ids, int num_fields) {
+	for (int i = 0; i < num_fields; i++) {
+		Field_mem_info *handler_filed_info = memory_manager->get_field_instance(export_field_ids[i]);
+		if (words_are_the_same(handler_filed_info->get_field_name(), field_name)) {
+			return handler_filed_info;
+		}
+	}
+	EXECUTION_REPORT(REPORT_ERROR, host_comp_id, !report_error, "Error happens when registering Output_handler \"%s\", field_instance named \"%s\" (for datamodel \"%s\") has not been registered, Please verify xml configuration file %s.", handler_name, field_name, datamodel_name, output_datamodel->get_XML_file_name());
+	return NULL;
+}
+
+Inout_datamodel *Datamodel_mgt::search_output_datamodel(char *datamodel_name) {
+	for (int i = 0; i < output_datamodel.size(); i++) {
+		if (words_are_the_same(output_datamodel[i], datamodel_name))
+			return output_datamodel[i];
+		break;
+	}
 }
 
 void Datamodel_mgt::common_checking_for_datamodel_handler_registration(int num_fields, int *field_ids, int implicit_or_explicit, int sampling_timer_id, int field_instance_ids_size, const char *annotation) {
@@ -572,6 +611,7 @@ void Inout_datamodel::config_horizontal_grid_via_CCPL_grid_file(TiXmlNode *grid_
 	sprintf(string_annotation, "register H2D grid \"%s\" for datamodel \"%s\" via CCPL_grid_file at line %d in xml configuration file \"%s\"", ori_grid_name, datamodel_name, grid_file_entry_node->ToElement()->Row(), XML_file_name);
 	grid_id = original_grid_mgr->register_H2D_grid_via_file(host_comp_id, grid_name, file_name, string_annotation);
 	h2d_grid_ids.push_back(grid_id);
+	all_grid_ids.push_back(grid_id);
 	h2d_grid_names.push_back(strdup(grid_name));
 }
 
@@ -688,6 +728,7 @@ void Inout_datamodel::register_common_h2d_grid_for_datamodel(const char *grid_na
 		delete [] area;
 	delete netcdf_file_object;
 	h2d_grid_ids.push_back(grid_id);
+	all_grid_ids.push_back(grid_id);
 	h2d_grid_names.push_back(strdup(grid_name_str));
 }
 
@@ -746,6 +787,7 @@ void Inout_datamodel::config_horizontal_grid_via_uniform_lonlat_grid(TiXmlNode *
 	delete [] center_lon_array;
 	delete [] center_lat_array;
 	h2d_grid_ids.push_back(grid_id);
+	all_grid_ids.push_back(grid_id);
 	h2d_grid_names.push_back(strdup(grid_name));
 }
 
@@ -809,6 +851,7 @@ void Inout_datamodel::config_vertical_grids_for_datamodel(TiXmlNode *vgs_node) {
 		EXECUTION_REPORT(REPORT_ERROR, -1, is_array_in_sorting_order(temp_value3, dim_size2) != 0, "Error happens when registering V1D grid \"%s\" for datamodel \"%s\": some arrays of parameters are not in a descending/ascending order. Please check the data file \"%s\".", grid_name_str, datamodel_name, file_name_str);
 		grid_id = original_grid_mgr->register_V1D_grid_via_data(API_id, host_comp_id, grid_name_str2, grid_type, coord_unit_str, dim_size2, top_value, temp_value2, temp_value3, annotation);
 		v1d_grid_ids.push_back(grid_id);
+		all_grid_ids.push_back(grid_id);
 		delete [] temp_value2;
 		delete [] temp_value3;
 		delete [] file_name_str;
@@ -881,6 +924,7 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 		delete [] report_string;
 		v3d_grid_id = original_grid_mgr->register_md_grid_via_multi_grids(host_comp_id, vd_grid_name, h2d_subgrid_id, v1d_subgrid_id, -1, -1, NULL, "register v3d_grid for datamodel");
 		v3d_grid_ids.push_back(v3d_grid_id);
+		all_grid_ids.push_back(v3d_grid_id);
 		md_grid_names.push_back(strdup(vd_grid_name));
 
 		if (mid_point_grid_name_str != NULL) {
@@ -892,8 +936,8 @@ void Inout_datamodel::config_v3d_grids_for_datamodel(TiXmlNode *v3ds_node) {
 			sprintf(mid_point_grid_name, "datamodel_%s", mid_point_grid_name_str);
 			original_grid_mgr->register_mid_point_grid(v3d_grid_id, &mid_3d_grid_id, &mid_1d_grid_id, -1, NULL, "register mid point grid for datamodel", API_label);
 			md_grid_names.push_back(strdup(mid_point_grid_name));
-			mid_3d_grid_ids.push_back(mid_3d_grid_id);
 			v3d_grid_ids.push_back(mid_3d_grid_id);
+			all_grid_ids.push_back(mid_3d_grid_id);
 			mid_1d_grid_ids.push_back(mid_1d_grid_id);
 			delete [] mid_point_grid_name;
 		}
@@ -935,7 +979,8 @@ void Inout_datamodel::config_fields_output_setting_attributes(TiXmlNode *default
 	TiXmlElement *default_settings_element = default_settings_node->ToElement();
 	file_mid_name = strdup(get_XML_attribute(host_comp_id, 80, default_settings_element, "file_mid_name", XML_file_name, line_number, "The \"file_mid_name\" of the output_datamodel","output datamodel xml file",false));
 	const char *time_format_in_datafile_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "time_format_in_data_file", XML_file_name, line_number, "The \"time_format_in_data_file\" of the output_datamodel","output datamodel xml file",false);
-	id_time_format_in_data_file = check_time_format(time_format_in_datafile_str, "time_format in output_datamodel file name");
+	int id_time_format_in_data_file = check_time_format(time_format_in_datafile_str, "time_format in output_datamodel file name");
+	id_time_format_in_data_files.push_back(id_time_format_in_data_file);
 	const char *field_specification_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "field_specification", XML_file_name, line_number, "The \"field_specification\" of the output_datamodel","output datamodel xml file",false);
 	EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(field_specification_str, "default") || words_are_the_same(field_specification_str, "fields") || words_are_the_same(field_specification_str, "hybrid"), "Error happens when configuring \"fields_output_settings\" node: parameter \"field_specification\" can only be one of \"default\" \"fields\" or \"hybrid\", Please check the xml configuration file %s around line number %d", XML_file_name, default_settings_element->Row());
 
@@ -944,7 +989,9 @@ void Inout_datamodel::config_fields_output_setting_attributes(TiXmlNode *default
 	const char *default_v3d_grid_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_v3d_grid", XML_file_name, line_number, "The \"default_v3d_grid\" of the output_datamodel","output datamodel xml file",false);
 	const char *default_float_type_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_float_type", XML_file_name, line_number, "The \"default_float_type\" of the output_datamodel","output datamodel xml file",false);
 	const char *default_integer_type_str = get_XML_attribute(host_comp_id, 80, default_settings_element, "default_integer_type", XML_file_name, line_number, "The \"default_integer_type\" of the output_datamodel","output datamodel xml file",false);
-
+	if (field_specification_str != NULL)
+		field_specifications.push_back(strdup(field_specification_str));
+	else field_specifications.push_back("default");
 	if (default_operation_str != NULL)
 		default_operations.push_back(strdup(default_operation_str));
 	else default_operations.push_back(NULL);
@@ -1163,6 +1210,8 @@ void Inout_datamodel::config_field_info(TiXmlNode *fields_node, int index) {
 			EXECUTION_REPORT(REPORT_ERROR, -1, words_are_the_same(operation_str, "aver") || words_are_the_same(operation_str, "inst") || words_are_the_same(operation_str, "min") || words_are_the_same(operation_str, "max") || words_are_the_same(operation_str, "accum"), "Error happens when configuring \"field\" node for datamodel \"%s\": parameter \"operation\" must be one of \"aver\" \"inst\" \"min\" \"max\" or \"accum\", Please check the xml configuration file %s around line number %d.", datamodel_name, XML_file_name, field_element->Row());
 			output_field_info->operation = strdup(operation_str);
 		}
+		else if (default_operations[index] != NULL)
+			output_field_info->operation = strdup(default_operations[index]);
 		else output_field_info->operation = NULL;
 
 
@@ -1217,17 +1266,26 @@ Datamodel_mgt::~Datamodel_mgt() {
 	}
 }
 
-void Datamodel_mgt::handle_normal_output(int handler_id, int bypass_timer, int API_id, const char* handler_annotation) {
+void Datamodel_mgt::handle_normal_output(int handler_id, int bypass_timer, int API_id, const char *handler_annotation) {
 	Output_handler *output_handler;
 	char API_label[NAME_STR_SIZE];
 
 	get_API_hint(-1, API_id, API_label);
 	if (!is_legal_handler_id(handler_id))
-		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when handling a nromal output through the API \"%s\": the given interface ID 0x%x is illegal. Please check the model code with the annotation \"%s\"", API_label, handler_id, handler_annotation);
+		EXECUTION_REPORT(REPORT_ERROR, -1, false, "Error happens when handling a normal output through the API \"%s\": the given interface ID 0x%x is illegal. Please check the model code with the annotation \"%s\"", API_label, handler_id, handler_annotation);
 	output_handler = get_handler(handler_id);
 	EXECUTION_REPORT_LOG(REPORT_LOG, output_handler->get_host_comp_id(), true, "Begin to execute handler \"%s\" (model code annotation is \"%s\")", output_handler->get_handler_name(), handler_annotation);
-	//output_handler->execute_handler(bypass_timer, API_id, handler_annotation);
+	output_handler->execute_handler(bypass_timer, API_id, handler_annotation);
 	EXECUTION_REPORT_LOG(REPORT_LOG, output_handler->get_host_comp_id(), true, "Finish executing handler \"%s\" (model code annotation is \"%s\")", output_handler->get_handler_name(), handler_annotation);
+}
+
+void Output_handler::execute_handler(int bypass_timer, int API_id, const char *annotation) {
+	//coupling generation for output_data
+	generate_interpolation();
+}
+
+void Output_handler::generate_interpolation(bool output_original_grid) {
+	//
 }
 
 Output_handler *Datamodel_mgt::get_handler(int handler_id) {

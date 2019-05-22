@@ -65,6 +65,7 @@ struct Field_config_info
 
 class Inout_datamodel {
 private:
+	friend class Output_handler;
 	bool datamodel_type;//input: 0, output: 1
 	int implicit_or_explicit;//implicit: 0, explicit: 1
 	char datamodel_config_dir[NAME_STR_SIZE];//config dir
@@ -78,7 +79,6 @@ private:
 	char *file_dir;
 	char *file_name_prefix;
 	char *file_name_suffix;
-	int id_time_format_in_data_file;
 	int id_time_format_in_file_names;
 	char *file_type;
 	int host_comp_id;
@@ -89,6 +89,8 @@ private:
 	std::vector<int> id_time_point_units;
 	std::vector<char*> time_point_units;
 	std::vector<int> output_freq_counts;
+	std::vector<int> id_time_format_in_data_files;
+	std::vector<char*> field_specifications;
 	std::vector<char*> output_freq_units;
 	std::vector<int> id_output_freq_units;
 	std::vector<char*> default_operations;
@@ -101,8 +103,7 @@ private:
 	std::vector<int> h2d_grid_ids;
 	std::vector<int> v1d_grid_ids;
 	std::vector<int> v3d_grid_ids;
-	std::vector<int> mid_3d_grid_ids;
-	std::vector<int> mid_1d_grid_ids;
+	std::vector<int> all_grid_ids;
 	std::vector<char*> h2d_grid_names;
 	std::vector<char*> md_grid_names;
 	std::vector<char*> surface_field_names;
@@ -113,6 +114,7 @@ public:
 	const char *get_datamodel_name() { return datamodel_name; }
 	int get_host_comp_id() { return host_comp_id; }
 	char *get_datamodel_data_dir() { return datamodel_data_dir; }
+	char *get_XML_file_name() { return XML_file_name; }
 	void config_data_files_for_datamodel(TiXmlNode*);
 	void config_horizontal_grids_for_datamodel(TiXmlNode*);
 	void config_vertical_grids_for_datamodel(TiXmlNode*);
@@ -136,12 +138,13 @@ public:
 
 class Output_handler {
 private:
+	Inout_datamodel *output_datamodel;
 	char *handler_name;
 	int host_comp_id;
 	int handler_id;
 	int num_fields;
 	int implicit_or_explicit;
-	std::vector<int> handler_fields_id;
+	//std::vector<int> handler_fields_id;
 	char *datamodel_name;
 	int sampling_timer_id;
 	char *annotation;
@@ -151,6 +154,7 @@ public:
 	int get_handler_id() { return handler_id; }
 	int get_host_comp_id() { return host_comp_id; }
 	const char *get_handler_name() { return handler_name; }
+	//int search_field_id(char *);
 	void execute_handler(int, int, const char*);
 };
 
@@ -170,6 +174,7 @@ public:
 	void handle_normal_output(int, int, int, const char*);
 	bool is_legal_handler_id(int);
 	Output_handler *get_handler(int);
+	Inout_datamodel *search_output_datamodel(char*);
 };
 
 bool varname_or_value(const char*);//false: varname, true: value
